@@ -3572,10 +3572,12 @@ void msgin_all_file_transfers_complete(txp::Id id, const string& pConnectionName
     // Stageout is/has ended on the compute node and all file transfers are complete
     // for the job associated with a logical volume...
 
+    uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
     Uuid lv_uuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
     char l_DevName[1024] = {'\0'};
     getLogicalVolumeDevName(lv_uuid, l_DevName, sizeof(l_DevName));
-    LOG(bb,info) << "All file transfers complete: LV device = " << l_DevName << ", LV uuid = " << lv_uuid
+    LOG(bb,info) << "All file transfers complete: LV device = " << l_DevName << ", LV uuid = " << lv_uuid \
+                 << ", total processing time " << (double)l_TotalProcessingTime/(double)g_TimeBaseScale << " seconds" \
                  << ". See individual handle/contributor/file messages for additional status.";
 
     EXIT(__FILE__,__FUNCTION__);
@@ -3593,6 +3595,7 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     getLogicalVolumeDevName(lv_uuid, l_DevName, sizeof(l_DevName));
     uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
     uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
+    uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
     BBSTATUS l_Status = (BBSTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
     char l_StatusStr[64] = {'\0'};
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
@@ -3619,8 +3622,9 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
             break;
         }
     }
-    LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for contribid " << l_ContribId << ": LV device = " \
-                 << l_DevName << ", handle = " << l_Handle << ", status " << l_StatusStr;
+    LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for contribid " << l_ContribId << ", LV device = " \
+                 << l_DevName << ", handle = " << l_Handle << ", status " << l_StatusStr \
+                 << ", total processing time " << (double)l_TotalProcessingTime/(double)g_TimeBaseScale << " seconds";
 
     EXIT(__FILE__,__FUNCTION__);
     return;
@@ -3883,7 +3887,7 @@ void msgin_all_file_transfers_complete_for_handle(txp::Id id, const string& pCon
         }
     }
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for handle " << l_Handle \
-                 << ": LV device = " << l_DevName << ", status " << l_StatusStr;
+                 << ", LV device = " << l_DevName << ", status " << l_StatusStr;
 
     EXIT(__FILE__,__FUNCTION__);
     return;

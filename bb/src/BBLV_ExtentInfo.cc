@@ -660,13 +660,18 @@ void BBLV_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionName,
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
 
-    LOG(bb,info) << "->bbproxy: All transfers complete:  " << *pLVKey << ".";
-    LOG(bb,info) << "           See individual handle/contributor/file messages for additional status.";
+    // Calculate the total processing time for this LVKey
+    calcProcessingTime(processingTime);
+
+    LOG(bb,info) << "->bbproxy: All transfers complete:  " << *pLVKey << ", " \
+                 << ", total processing time " << (double)processingTime/(double)g_TimeBaseScale << " seconds" \
+                 << ". See individual handle/contributor/file messages for additional status.";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
     //        Our copy can then go out of scope...
     l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
+    l_Complete->addAttribute(txp::totalProcessingTime, processingTime);
 
     // Send the all transfers complete message
 

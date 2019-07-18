@@ -1355,8 +1355,11 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
     {
         BBSTATUS l_Status = BBFULLSUCCESS;
 
+        uint64_t l_Time;
+        BB_GetTime(l_Time);;
         bs::error_code err;
         bfs::copy_file(bfs::path(pTransferDef->files[pExtent->sourceindex]), bfs::path(pTransferDef->files[pExtent->targetindex]), bfs::copy_option::overwrite_if_exists, err);
+        BB_GetTimeDifference(l_Time);
 
         if (err.value())
         {
@@ -1367,7 +1370,8 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         switch(l_Status) {
             case BBFULLSUCCESS:
                 LOG(bb,info) << "PFS copy complete for file " << pTransferDef->files[pExtent->sourceindex] \
-                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
+                             << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex \
+                             << ", copy time " << (double)l_Time/(double)g_TimeBaseScale << " seconds";
                 break;
 
             case BBFAILED:

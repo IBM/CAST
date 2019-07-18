@@ -74,6 +74,7 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'sourceindex',                        # __u32
                           'statinfo',                           # char*
                           'status',                             # __u64
+                          'totalProcessingTime',                # __u64
                           'totalTransferKeyLength',             # __u64
                           'totalTransferSize',                  # __u64
                           'transfercontribid',                  # __u32

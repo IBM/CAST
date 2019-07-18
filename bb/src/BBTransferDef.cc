@@ -762,7 +762,13 @@ size_t BBTransferDef::getTotalTransferSize(BBTransferDef* pTransferDef) {
 
     if (pTransferDef->extents.size()) {
         for (auto& e : pTransferDef->extents) {
-            l_TotalSize += e.len;
+            // NOTE: Any cp operation is NOT included in the size transferred
+            //       information.  We want to keep pure the size transferred as
+            //       the data that was actually pushed/pulled from bbServer.
+            if (!e.isCP_Transfer())
+            {
+                l_TotalSize += e.len;
+            }
         }
     }
 
@@ -1324,6 +1330,7 @@ int BBTransferDef::resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, 
 
     // Reset the status for the ContribId and Handle files in the xbbServer data...
     rc = ContribIdFile::update_xbbServerContribIdFileResetForRestart(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId);
+
 
     return rc;
 }

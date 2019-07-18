@@ -1157,14 +1157,15 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
         l_MatchStatus = (BBSTATUS)((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::matchstatus))->getData();
         l_NumHandles = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::numhandles))->getData();
 
+        switchIds(msg);
+
         stringstream l_JobStr;
         l_Job.getStr(l_JobStr);
-        LOG(bb,info) << "msgin_gettransferlist: job" << l_JobStr.str() \
-                     << std::hex << std::uppercase << setfill('0') \
-                     << ", matchstatus = 0x" << (uint64_t)l_MatchStatus \
-                     << setfill(' ') << std::nouppercase << std::dec;
-
-        switchIds(msg);
+        errorText << "msgin_gettransferlist: job" << l_JobStr.str() \
+                  << std::hex << std::uppercase << setfill('0') \
+                  << ", matchstatus=0x" << (uint64_t)l_MatchStatus \
+                  << setfill(' ') << std::nouppercase << std::dec \
+                  << ", numhandles=" << l_NumHandles;
 
 //        lockLocalMetadata((LVKey*)0, "msgin_gettransferlist");
 //        l_LockHeld = true;
@@ -1174,6 +1175,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 
             if (!rc)
             {
+                stringstream l_HandleOutput("(");
                 l_NumAvailHandles = l_Handles.size();
                 if (l_NumAvailHandles < l_NumHandles)
                 {
@@ -1182,12 +1184,24 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                 l_LengthOfHandleArray = sizeof(uint64_t)*(l_NumHandles+1);
                 l_HandleArray = (uint64_t*)(new char[l_LengthOfHandleArray]);
                 memset(l_HandleArray, 0, l_LengthOfHandleArray);
+                uint64_t* l_HandlePtr = &l_HandleArray[0];
+
+                bool l_FirstHandle = true;
                 for(size_t i=0; i<l_NumHandles; ++i)
                 {
                     if (l_Handles[i])
                     {
-                        l_HandleArray[i] = l_Handles[i];
-                        LOG(bb,info) << "msgin_gettransferlist: i=" << i << ", handle=" << l_HandleArray[i];
+                        *l_HandlePtr = l_Handles[i];
+                        if (l_FirstHandle)
+                        {
+                            l_FirstHandle = false;
+                            l_HandleOutput << *l_HandlePtr;
+                        }
+                        else
+                        {
+                            l_HandleOutput << ", " << *l_HandlePtr;
+                        }
+                        ++l_HandlePtr;
                         ++l_NumHandlesReturned;
                     }
                     else
@@ -1196,10 +1210,14 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
+                l_HandleOutput << ")";
+
+                errorText << ", numavailhandles=" << l_NumAvailHandles << ", handles(" << l_HandleOutput.str();
+                LOG(bb,info) << errorText.str();
             }
             else
             {
-	            errorText << "List of transfer handles could not be determined from the xbbserver metadata";
+	            errorText << ": List of transfer handles could not be determined from the xbbserver metadata";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         }
@@ -1692,24 +1710,39 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         l_TransferPtr->setTransferHandle(l_Handle);
         l_TransferPtr->setHostName(l_HostName);
 
-        LOG(bb,debug) << "msgin_starttransfer (" << ((!l_PerformOperation) ? "1" : "2") << "): Input " << l_LVKey \
-                      << ", hostname " << l_HostName << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                      << ", handle " << l_Handle << ", contribid " << l_ContribId << ", perform operation=" << (l_PerformOperation ? "true" : "false") \
-                      << ", mark_failed_from bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false") \
-                      << ", restart=" << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "true" : "false") \
-                      << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
-                      << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
-
         if (l_PerformOperation && config.get(process_whoami+".bringup.dumpTransferDefinitionAfterDemarshall", 0)) {
             l_TransferPtr->dump("info", "Transfer Definition (after demarshall)");
         }
+
+        // NOTE: Only output l_MarkFailedFromProxy, all_CN_CP_TransfersInDefinition, and
+        //       noStageinOrStageoutTransfersInDefinition attributes if they are true
+        stringstream s1("");
+        stringstream s2("");
+        stringstream s3("");
+        if (l_MarkFailedFromProxy)
+        {
+            s1 << ", mark_failed_from_bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false");
+        }
+        if (l_TransferPtr->all_CN_CP_TransfersInDefinition())
+        {
+            s2 << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false");
+        }
+        if (l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
+        {
+            s3 << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
+        }
+
+        LOG(bb,info ) << "msgin_starttransfer (" << ((!l_PerformOperation) ? "1" : "2") << "): Start processing " << l_LVKey \
+                      << ", hostname " << l_HostName << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
+                      << ", handle " << l_Handle << ", contribid " << l_ContribId \
+                      << ", restart=" << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "true" : "false") \
+                      << s1.str() << s2.str() << s3.str() << ", lvuuid " << lv_uuid_str;
 
         switchIds(msg);
 
         lockLocalMetadata(&l_LVKey, "msgin_starttransfer");
         l_LockHeld = true;
         bool l_AllDone = false;
-
         {
             if (l_PerformOperation)
             {
@@ -1723,9 +1756,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 string l_ServicedByHostname = ContribIdFile::isServicedBy(l_Job, l_Handle, l_ContribId);
                 if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
                 {
-                    // This condition overrides any failure detected on bbProxy...
-                    l_MarkFailedFromProxy = 0;
-
                     rc = -1;
                     errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
                               << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently being serviced by " \
@@ -1740,9 +1770,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     rc = ContribIdFile::isStopped(l_Job, l_Handle, l_ContribId);
                     if (rc == 1)
                     {
-                        // This condition overrides any failure detected on bbProxy...
-                        l_MarkFailedFromProxy = 0;
-
                         // rc is already 1 and this will be returned as a -2 back to bbProxy...
                         errorText << "Transfer definition for jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
                                   << ", handle " << l_Handle << ", contribid " << l_ContribId << " is currently stopped." \
@@ -1833,14 +1860,6 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 l_TransferPtr->setTag(l_Tag);
 
                                 // NOTE:  Perform the lvuuid checks only during the second pass of processing...
-                                LOG(bb,info ) << "msgin_starttransfer (" << ((!l_PerformOperation) ? "1" : "2") << "): Start processing " << l_LVKey \
-                                              << ", hostname " << l_HostName << ", jobid " << l_Job.getJobId() << ", jobstepid " << l_Job.getJobStepId() \
-                                              << ", handle " << l_Handle << ", contribid " << l_ContribId << ", perform operation=" << (l_PerformOperation ? "true" : "false") \
-                                              << ", restart=" << (l_TransferPtr->builtViaRetrieveTransferDefinition() ? "true" : "false") \
-                                              << ", mark_failed_from_bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false") \
-                                              << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false") \
-                                              << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false") \
-                                              << ", lvuuid " << lv_uuid_str << ", lvuuid2 " << lv_uuid2_str;
                                 if (!l_PerformOperation || l_lvuuid == l_lvuuid2 || l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
                                 {
                                     if (l_TagInfo->inExpectContrib(l_ContribId))
