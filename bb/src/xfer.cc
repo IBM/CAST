@@ -740,8 +740,16 @@ void processAsyncRequest(WorkID& pWorkItem)
         }
         else
         {
-            LOG(bb,info) << "AsyncRequest -> Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
-                         << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
+            if (g_LogAllAsyncRequestActivity)
+            {
+                LOG(bb,info) << "AsyncRequest -> Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
+                             << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
+            }
+            else
+            {
+                LOG(bb,debug) << "AsyncRequest -> Skipping async request because it is from this bbServer host: Offset 0x" << hex << uppercase << setfill('0') \
+                              << pWorkItem.getTag() << setfill(' ') << nouppercase << dec << " => " << l_Request.getData();
+            }
         }
 
         // Decrement the number of concurrent HP requests
@@ -898,8 +906,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                                             uint64_t l_StartingFlags = l_ContribIdFile->flags;
                                             SET_FLAG_VAR(l_ContribIdFile->flags, l_ContribIdFile->flags, BBTD_Stopped, 1);
 
-                                            LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
-                                            LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_ContribIdFile->flags << nouppercase << dec << ".";
+                                            LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ":";
+                                            LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_ContribIdFile->flags << nouppercase << dec << ".";
 
                                             // Save the contribid file
                                             rc = ContribIdFile::saveContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
@@ -2441,8 +2449,7 @@ void startThreads(void)
 
 int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfoMap* pTagInfoMap,
                  BBTagID& pTagId, BBJob pJob, BBTransferDef* &pTransferDef, int32_t pContribId, uint64_t pNumContrib,
-                 uint32_t pContrib[], uint64_t& pHandle, vector<struct stat*>* pStats, const uint32_t pPerformOperation,
-                 uint32_t &pMarkFailedFromProxy)
+                 uint32_t pContrib[], uint64_t& pHandle, vector<struct stat*>* pStats, const uint32_t pPerformOperation)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2485,9 +2492,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
         else
         {
             // NOTE: errstate already filled in...
-            // This condition overrides any failure detected on bbProxy...
-            pMarkFailedFromProxy = 0;
-
             errorText << "queueTagInfo: Failure from addTagInfo(), rc = " << rc;
             LOG_ERROR(errorText);
         }
@@ -2512,9 +2516,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
 
         if (l_Error)
         {
-            // This condition overrides any failure detected on bbProxy...
-            pMarkFailedFromProxy = 0;
-
             rc = -1;
             stringstream l_Temp;
             l_TagInfo->expectContribToSS(l_Temp);
@@ -2549,9 +2550,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                     {
                         case 1:
                         {
-                            // This condition overrides any failure detected on bbProxy...
-                            pMarkFailedFromProxy = 0;
-
                             // We will not restart this transfer definition
                             LOG(bb,info) << "Transfer definition associated with jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
                                          << ", handle " << pHandle << ", contribid " << pContribId \
@@ -2565,11 +2563,8 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
 
                         case 0:
                         {
-                            if (!pMarkFailedFromProxy)
-                            {
-                                // We will restart this transfer definition
-                                rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, SECOND_PASS);
-                            }
+                            // We will restart this transfer definition
+                            rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, l_OrigTransferDef, pTransferDef, SECOND_PASS);
 
                             break;
                         }
@@ -2577,9 +2572,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                         default:
                         {
                             // Error case...  errstate already set
-
-                            // This condition overrides any failure detected on bbProxy...
-                            pMarkFailedFromProxy = 0;
 
                             break;
                         }
@@ -2618,9 +2610,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                         rc = l_TagInfo->addTransferDef(pConnectionName, pLVKey, pJob, pLV_Info, pTagId, (uint32_t)pContribId, l_TagInfo->transferHandle, pTransferDef);
                         if (rc)
                         {
-                            // This condition overrides any failure detected on bbProxy...
-                            pMarkFailedFromProxy = 0;
-
                             errorText << "queueTagInfo: Failure from addTransferDef() for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") for contribid " << pContribId << ", rc=" << rc;
                             LOG_ERROR(errorText);
                         }
@@ -2654,9 +2643,6 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                             else
                             {
                                 // Extents have already been enqueued for this transfer definition...
-                                // This condition overrides any failure detected on bbProxy...
-                                pMarkFailedFromProxy = 0;
-
                                 rc = -1;
                                 errorText << "Transfer definition for contribid " << pContribId << " already exists for " << *pLVKey \
                                           << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << "), handle " << l_TagInfo->transferHandle \
@@ -2691,306 +2677,290 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
 
                     if (!rc)
                     {
-                        if (!pMarkFailedFromProxy)
+                        // NOTE:  The extents we are iterating through here is a single extent per file.
+                        //        The second pass will have the actual extents to be transferred.
+                        //        But, we can open and get stats for the PFS files...
+                        bool l_SkipFile = false;
+                        BBTransferDef* l_TempTransferDef = 0;
+                        if (l_RestartToSameServer)
                         {
-                            // NOTE:  The extents we are iterating through here is a single extent per file.
-                            //        The second pass will have the actual extents to be transferred.
-                            //        But, we can open and get stats for the PFS files...
-                            bool l_SkipFile = false;
-                            BBTransferDef* l_TempTransferDef = 0;
-                            if (l_RestartToSameServer)
+                            // If we need to check to see if this contribid was stopped, we
+                            // can use the transfer definition in the local metadata because
+                            // the same bbServer is being used for the restart.
+                            l_TempTransferDef = pTransferDef;
+                        }
+
+                        uint32_t l_NextSourceIndexToProcess = 0;
+                        map<uint32_t, int> l_AlreadyOpened;
+                        bool l_AtLeastOneFileRestarted = false;
+                        for(auto& e : pTransferDef->extents)
+                        {
+                            l_SkipFile = false;
+                            if (l_TransferDefinitionBuiltViaRetrieve)
                             {
-                                // If we need to check to see if this contribid was stopped, we
-                                // can use the transfer definition in the local metadata because
-                                // the same bbServer is being used for the restart.
-                                l_TempTransferDef = pTransferDef;
-                            }
-
-                            uint32_t l_NextSourceIndexToProcess = 0;
-                            map<uint32_t, int> l_AlreadyOpened;
-                            bool l_AtLeastOneFileRestarted = false;
-                            for(auto& e : pTransferDef->extents)
-                            {
-                                l_SkipFile = false;
-                                if (l_TransferDefinitionBuiltViaRetrieve)
+                                int rc2 = fileToBeRestarted(pLVKey, l_TempTransferDef, e, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
+                                if (!rc2)
                                 {
-                                    int rc2 = fileToBeRestarted(pLVKey, l_TempTransferDef, e, pJob.getJobId(), pJob.getJobStepId(), pHandle, pContribId);
-                                    if (!rc2)
-                                    {
-                                        // File is not to be restarted.  Indicate to skip this file...
-                                        l_SkipFile = true;
-                                    }
-                                    else
-                                    {
-                                        if (rc2 == 1)
-                                        {
-                                            // File is stopped.  Need to restart this file...
-                                        }
-                                        else
-                                        {
-                                            // Error when attempting to determine if this file was stopped....
-                                            rc = -1;
-                                            errorText << "On first pass, could not determine if the file with source index " << e.sourceindex << " was stopped for handle " << pHandle << ", contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ".";
-                                            LOG_ERROR_TEXT_RC(errorText, rc);
-                                        }
-                                    }
-                                }
-
-                                if (l_TransferDefinitionBuiltViaRetrieve)
-                                {
-                                    // bbproxy will skip all source/target file pairs from
-                                    // the last pair processed up through the current source/target file pair...
-                                    // NOTE: We have a dependency that bbProxy will always insert extents into
-                                    //       the extent vector in ascending sourcefile index order...
-                                    while ((l_NextSourceIndexToProcess) < e.sourceindex)
-                                    {
-                                        LOG(bb,info) << "bbproxy is not restarting the transfer for the source file associated with jobid " \
-                                                     << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
-                                                     << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
-                                        l_NextSourceIndexToProcess += 2;
-                                    }
-                                }
-
-                                if (!l_SkipFile)
-                                {
-                                    l_AtLeastOneFileRestarted = true;
-                                    uint16_t l_BundleID = e.getBundleID();
-                                    BBIO* l_IO = pTransferDef->iomap[l_BundleID];
-                                    if (l_IO == NULL)
-                                    {
-                                        switch(e.getBundleType())
-                                        {
-                                            case BBTransferTypeBSCFS:
-                                                l_IO = new BBIO_BSCFS(pContribId, pTransferDef);
-                                                break;
-                                            case BBTransferTypeRegular:
-                                                l_IO = new BBIO_Regular(pContribId, pTransferDef);
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        pTransferDef->iomap[l_BundleID] = l_IO;
-                                    }
-
-                                    if (l_IO)
-                                    {
-                                        if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFS))
-                                        {
-                                            uint32_t pfs_idx = (e.flags & BBI_TargetSSD) ? e.sourceindex : e.targetindex;
-                                            if (!l_AlreadyOpened[pfs_idx])
-                                            {
-                                                LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
-
-                                                mode_t l_Mode = 0;
-                                                if (e.flags & BBI_TargetPFS)
-                                                {
-                                                    // NOTE: bbProxy filled in the stats for the source files that reside on the SSD.
-                                                    //       We obtain the mode from those source file stats to pass on the open in case
-                                                    //       the PFS file needs to be created.
-                                                    // NOTE: The index is pfs_idx-1 because the sourceindex immediately precedes the target index.
-                                                    l_Mode = ((*pStats)[pfs_idx-1])->st_mode;
-                                                }
-
-                                                rc = l_IO->open(pfs_idx, e.flags, pTransferDef->files[pfs_idx], l_Mode);
-                                                if (rc)
-                                                {
-                                                    errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
-                                                    bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                    LOG_ERROR(errorText);
-                                                    break;
-                                                }
-                                                l_AlreadyOpened[pfs_idx] = 1;
-
-                                                struct stat l_Stat;
-                                                if (((*pStats)[pfs_idx]) == 0)
-                                                {
-                                                    if (e.flags & BBI_TargetSSD)
-                                                    {
-                                                        // Stagein processing...  Need stats from the PFS file...
-                                                        rc = l_IO->fstat(pfs_idx, &l_Stat);
-                                                        if (!rc)
-                                                        {
-                                                            (*pStats)[pfs_idx] = new(struct stat);
-                                                            memcpy((void*)((*pStats)[pfs_idx]), &l_Stat, sizeof(l_Stat));
-                                                        }
-                                                        else
-                                                        {
-                                                            errorText << "Unable to get stats for file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx << ", transfer type PFS_to_SSD";
-                                                            bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                            LOG_ERROR(errorText);
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else if (e.flags & BBI_TargetPFSPFS)
-                                        {
-                                            uint32_t pfs_idx = e.sourceindex;
-                                            mode_t l_Mode = 0;
-                                            if (!l_AlreadyOpened[pfs_idx])
-                                            {
-                                                LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
-
-                                                rc = l_IO->open(pfs_idx, e.flags | BBI_TargetSSD, pTransferDef->files[pfs_idx],l_Mode); //open readonly
-                                                if (rc)
-                                                {
-                                                    errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
-                                                    bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                    LOG_ERROR(errorText);
-                                                    break;
-                                                }
-                                                l_AlreadyOpened[pfs_idx] = 1;
-
-                                                (*pStats)[pfs_idx] = new(struct stat);
-                                                rc = l_IO->fstat(pfs_idx, (*pStats)[pfs_idx]);
-                                                if (rc)
-                                                {
-                                                    delete (*pStats)[pfs_idx];
-                                                    (*pStats)[pfs_idx]=NULL;
-
-                                                    errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
-                                                    bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                    LOG_ERROR(errorText);
-                                                    break;
-                                                }
-
-                                            }
-                                            if  ( (*pStats)[e.sourceindex] ) l_Mode = ((*pStats)[e.sourceindex])->st_mode;
-                                            pfs_idx = e.targetindex;
-
-
-                                            if (!l_AlreadyOpened[pfs_idx])
-                                            {
-                                                LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
-
-                                                rc = l_IO->open(pfs_idx, e.flags | BBI_TargetPFS, pTransferDef->files[pfs_idx],l_Mode); //open trunc/creat/wronly
-                                                if (rc)
-                                                {
-                                                    errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
-                                                    bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                    LOG_ERROR(errorText);
-                                                    break;
-                                                }
-                                                l_AlreadyOpened[pfs_idx] = 1;
-
-                                                (*pStats)[pfs_idx] = new(struct stat);
-                                                rc = l_IO->fstat(pfs_idx, (*pStats)[pfs_idx]);
-                                                if (rc)
-                                                {
-                                                    delete (*pStats)[pfs_idx];
-                                                    (*pStats)[pfs_idx]=NULL;
-
-                                                    errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
-                                                    bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                    LOG_ERROR(errorText);
-                                                    break;
-                                                }
-
-                                            }
-
-
-                                        }
-
-                                        if (l_TransferDefinitionBuiltViaRetrieve)
-                                        {
-                                            char l_TransferType[64] = {'\0'};
-                                            getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
-                                            LOG(bb,info) << "Indicating to bbproxy to restart the transfer for the source file associated with jobid " \
-                                                         << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
-                                                         << (uint32_t)pContribId << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        rc = -1;
-                                        errorText << "Unable to obtain/create I/O object for file associated with jobid=" << pJob.getJobId() \
-                                                  << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", bundle type=" << e.getBundleType();
-                                        LOG_ERROR_TEXT_RC(errorText, rc);
-                                        break;
-                                    }
+                                    // File is not to be restarted.  Indicate to skip this file...
+                                    l_SkipFile = true;
                                 }
                                 else
                                 {
-                                    // Indicate to bbproxy to skip this source/target file pair
-                                    // NOTE: We have a dependency that bbProxy will always insert extents into
-                                    //       the extent vector in ascending sourcefile index order...
-                                    if (!(*pStats)[l_NextSourceIndexToProcess])
+                                    if (rc2 == 1)
                                     {
-                                        (*pStats)[l_NextSourceIndexToProcess] = new(struct stat);
+                                        // File is stopped.  Need to restart this file...
                                     }
-                                    ((*pStats)[l_NextSourceIndexToProcess])->st_dev = DO_NOT_TRANSFER_FILE;
-                                    ((*pStats)[l_NextSourceIndexToProcess])->st_ino = DO_NOT_TRANSFER_FILE;
-                                    char l_TransferType[64] = {'\0'};
-                                    getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
-                                    LOG(bb,info) << "Indicating to bbproxy to not restart the transfer for the source file associated with jobid " \
-                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
-                                                 << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type " << l_TransferType;
+                                    else
+                                    {
+                                        // Error when attempting to determine if this file was stopped....
+                                        rc = -1;
+                                        errorText << "On first pass, could not determine if the file with source index " << e.sourceindex << " was stopped for handle " << pHandle << ", contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ".";
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
+                                    }
                                 }
-                                l_NextSourceIndexToProcess = e.sourceindex + 2;
                             }
 
-                            // All extents have been processed.  If this is a transfer definition built via retrieve,
-                            // perform the last updates to metadata to prepare for the restart.
                             if (l_TransferDefinitionBuiltViaRetrieve)
                             {
                                 // bbproxy will skip all source/target file pairs from
-                                // the last pair processed up through the end of the file list...
+                                // the last pair processed up through the current source/target file pair...
                                 // NOTE: We have a dependency that bbProxy will always insert extents into
                                 //       the extent vector in ascending sourcefile index order...
-                                while ((size_t)l_NextSourceIndexToProcess < (pTransferDef->files).size())
+                                while ((l_NextSourceIndexToProcess) < e.sourceindex)
                                 {
-                                    LOG(bb,info) << "bbproxy will not restart the transfer for the source file associated with jobid " \
+                                    LOG(bb,info) << "bbproxy is not restarting the transfer for the source file associated with jobid " \
                                                  << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
                                                  << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
                                     l_NextSourceIndexToProcess += 2;
                                 }
+                            }
 
-                                if (l_AtLeastOneFileRestarted)
+                            if (!l_SkipFile)
+                            {
+                                l_AtLeastOneFileRestarted = true;
+                                uint16_t l_BundleID = e.getBundleID();
+                                BBIO* l_IO = pTransferDef->iomap[l_BundleID];
+                                if (l_IO == NULL)
                                 {
-                                    // NOTE: For the third invocation of prepareForRestart(), pass pTransferDef as the 'old' transfer definition.
-                                    rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
+                                    switch(e.getBundleType())
+                                    {
+                                        case BBTransferTypeBSCFS:
+                                            l_IO = new BBIO_BSCFS(pContribId, pTransferDef);
+                                            break;
+                                        case BBTransferTypeRegular:
+                                            l_IO = new BBIO_Regular(pContribId, pTransferDef);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    pTransferDef->iomap[l_BundleID] = l_IO;
+                                }
+
+                                if (l_IO)
+                                {
+                                    if ((e.flags & BBI_TargetSSD) || (e.flags & BBI_TargetPFS))
+                                    {
+                                        uint32_t pfs_idx = (e.flags & BBI_TargetSSD) ? e.sourceindex : e.targetindex;
+                                        if (!l_AlreadyOpened[pfs_idx])
+                                        {
+                                            LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
+
+                                            mode_t l_Mode = 0;
+                                            if (e.flags & BBI_TargetPFS)
+                                            {
+                                                // NOTE: bbProxy filled in the stats for the source files that reside on the SSD.
+                                                //       We obtain the mode from those source file stats to pass on the open in case
+                                                //       the PFS file needs to be created.
+                                                // NOTE: The index is pfs_idx-1 because the sourceindex immediately precedes the target index.
+                                                l_Mode = ((*pStats)[pfs_idx-1])->st_mode;
+                                            }
+
+                                            rc = l_IO->open(pfs_idx, e.flags, pTransferDef->files[pfs_idx], l_Mode);
+                                            if (rc)
+                                            {
+                                                errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
+                                                bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                LOG_ERROR(errorText);
+                                                break;
+                                            }
+                                            l_AlreadyOpened[pfs_idx] = 1;
+
+                                            struct stat l_Stat;
+                                            if (((*pStats)[pfs_idx]) == 0)
+                                            {
+                                                if (e.flags & BBI_TargetSSD)
+                                                {
+                                                    // Stagein processing...  Need stats from the PFS file...
+                                                    rc = l_IO->fstat(pfs_idx, &l_Stat);
+                                                    if (!rc)
+                                                    {
+                                                        (*pStats)[pfs_idx] = new(struct stat);
+                                                        memcpy((void*)((*pStats)[pfs_idx]), &l_Stat, sizeof(l_Stat));
+                                                    }
+                                                    else
+                                                    {
+                                                        errorText << "Unable to get stats for file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx << ", transfer type PFS_to_SSD";
+                                                        bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                        LOG_ERROR(errorText);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (e.flags & BBI_TargetPFSPFS)
+                                    {
+                                        uint32_t pfs_idx = e.sourceindex;
+                                        mode_t l_Mode = 0;
+                                        if (!l_AlreadyOpened[pfs_idx])
+                                        {
+                                            LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
+
+                                            rc = l_IO->open(pfs_idx, e.flags | BBI_TargetSSD, pTransferDef->files[pfs_idx],l_Mode); //open readonly
+                                            if (rc)
+                                            {
+                                                errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
+                                                bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                LOG_ERROR(errorText);
+                                                break;
+                                            }
+                                            l_AlreadyOpened[pfs_idx] = 1;
+
+                                            (*pStats)[pfs_idx] = new(struct stat);
+                                            rc = l_IO->fstat(pfs_idx, (*pStats)[pfs_idx]);
+                                            if (rc)
+                                            {
+                                                delete (*pStats)[pfs_idx];
+                                                (*pStats)[pfs_idx]=NULL;
+
+                                                errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
+                                                bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                LOG_ERROR(errorText);
+                                                break;
+                                            }
+
+                                        }
+                                        if  ( (*pStats)[e.sourceindex] ) l_Mode = ((*pStats)[e.sourceindex])->st_mode;
+                                        pfs_idx = e.targetindex;
+
+
+                                        if (!l_AlreadyOpened[pfs_idx])
+                                        {
+                                            LOG(bb,debug) << "BBIO:  Opening index " << pfs_idx << "  file=" << pTransferDef->files[pfs_idx];
+
+                                            rc = l_IO->open(pfs_idx, e.flags | BBI_TargetPFS, pTransferDef->files[pfs_idx],l_Mode); //open trunc/creat/wronly
+                                            if (rc)
+                                            {
+                                                errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
+                                                bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                LOG_ERROR(errorText);
+                                                break;
+                                            }
+                                            l_AlreadyOpened[pfs_idx] = 1;
+
+                                            (*pStats)[pfs_idx] = new(struct stat);
+                                            rc = l_IO->fstat(pfs_idx, (*pStats)[pfs_idx]);
+                                            if (rc)
+                                            {
+                                                delete (*pStats)[pfs_idx];
+                                                (*pStats)[pfs_idx]=NULL;
+
+                                                errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
+                                                bberror << err("error.caller", __PRETTY_FUNCTION__);
+                                                LOG_ERROR(errorText);
+                                                break;
+                                            }
+
+                                        }
+
+
+                                    }
+
+                                    if (l_TransferDefinitionBuiltViaRetrieve)
+                                    {
+                                        char l_TransferType[64] = {'\0'};
+                                        getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
+                                        LOG(bb,info) << "Indicating to bbproxy to restart the transfer for the source file associated with jobid " \
+                                                     << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
+                                                     << (uint32_t)pContribId << ", source index " << e.sourceindex << ", transfer type " << l_TransferType;
+                                    }
                                 }
                                 else
                                 {
-                                    // Indicate to not restart this transfer definition
-                                    rc = 1;
-                                    LOG(bb,info) << "A restart transfer request was made for the transfer definition associated with " << *pLVKey \
-                                                 << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                                 << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
-                                                 << ", however no extents are left to be transferred for any file." \
-                                                 << " A restart for this transfer definition is not necessary.";
-                                    SET_RC(rc);
+                                    rc = -1;
+                                    errorText << "Unable to obtain/create I/O object for file associated with jobid=" << pJob.getJobId() \
+                                              << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", bundle type=" << e.getBundleType();
+                                    LOG_ERROR_TEXT_RC(errorText, rc);
+                                    break;
                                 }
                             }
+                            else
+                            {
+                                // Indicate to bbproxy to skip this source/target file pair
+                                // NOTE: We have a dependency that bbProxy will always insert extents into
+                                //       the extent vector in ascending sourcefile index order...
+                                if (!(*pStats)[l_NextSourceIndexToProcess])
+                                {
+                                    (*pStats)[l_NextSourceIndexToProcess] = new(struct stat);
+                                }
+                                ((*pStats)[l_NextSourceIndexToProcess])->st_dev = DO_NOT_TRANSFER_FILE;
+                                ((*pStats)[l_NextSourceIndexToProcess])->st_ino = DO_NOT_TRANSFER_FILE;
+                                char l_TransferType[64] = {'\0'};
+                                getStrFromTransferType(e.flags, l_TransferType, sizeof(l_TransferType));
+                                LOG(bb,info) << "Indicating to bbproxy to not restart the transfer for the source file associated with jobid " \
+                                             << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contribid " \
+                                             << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type " << l_TransferType;
+                            }
+                            l_NextSourceIndexToProcess = e.sourceindex + 2;
                         }
-                        else
+
+                        // All extents have been processed.  If this is a transfer definition built via retrieve,
+                        // perform the last updates to metadata to prepare for the restart.
+                        if (l_TransferDefinitionBuiltViaRetrieve)
                         {
-                            // Failed on bbProxy side...  Mark the handle/contribid as failed
-                            markTransferFailed(pLVKey, l_OrigTransferDef, pLV_Info, pHandle, pContribId);
+                            // bbproxy will skip all source/target file pairs from
+                            // the last pair processed up through the end of the file list...
+                            // NOTE: We have a dependency that bbProxy will always insert extents into
+                            //       the extent vector in ascending sourcefile index order...
+                            while ((size_t)l_NextSourceIndexToProcess < (pTransferDef->files).size())
+                            {
+                                LOG(bb,info) << "bbproxy will not restart the transfer for the source file associated with jobid " \
+                                             << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                             << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
+                                l_NextSourceIndexToProcess += 2;
+                            }
+
+                            if (l_AtLeastOneFileRestarted)
+                            {
+                                // NOTE: For the third invocation of prepareForRestart(), pass pTransferDef as the 'old' transfer definition.
+                                rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
+                            }
+                            else
+                            {
+                                // Indicate to not restart this transfer definition
+                                rc = 1;
+                                LOG(bb,info) << "A restart transfer request was made for the transfer definition associated with " << *pLVKey \
+                                             << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                             << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
+                                             << ", however no extents are left to be transferred for any file." \
+                                             << " A restart for this transfer definition is not necessary.";
+                                SET_RC(rc);
+                            }
                         }
                     }
                 }
                 else
                 {
-                    if (!pMarkFailedFromProxy)
+                    if (l_OrigTransferDef)
                     {
-                        if (l_OrigTransferDef)
-                        {
-                            rc = l_TagInfo->replaceExtentVector((uint32_t)pContribId, pTransferDef);
-                        }
-                        else
-                        {
-                            // Inconsistency with metadata....
-                            rc = -1;
-                            errorText << "On second pass, transfer definition could not be found for contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ".";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
-                        }
+                        rc = l_TagInfo->replaceExtentVector((uint32_t)pContribId, pTransferDef);
                     }
                     else
                     {
-                        // Failed on bbProxy side...  Mark the handle/contribid as failed
-                        markTransferFailed(pLVKey, l_OrigTransferDef, pLV_Info, pHandle, pContribId);
+                        // Inconsistency with metadata....
+                        rc = -1;
+                        errorText << "On second pass, transfer definition could not be found for contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ".";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
                     }
                 }
             }
@@ -3001,7 +2971,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
         }
 
         // Return the transfer handle
-        if ((!rc) && (!pMarkFailedFromProxy) && (!pHandle))
+        if ((!rc) && (!pHandle))
         {
             pHandle = l_TagInfo->getTransferHandle();
         }
@@ -3015,7 +2985,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
 // NOTE: pHandle comes in with a handle value in all cases but for the gethandle() path.  In that path, the handle comes in as zero.
 int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob, const uint64_t pTag, BBTransferDef* &pTransferDef,
                   const int32_t pContribId, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle, const uint32_t pPerformOperation,
-                  uint32_t &pMarkFailedFromProxy, vector<struct stat*>* pStats)
+                  vector<struct stat*>* pStats)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -3052,9 +3022,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                     }
                     else
                     {
-                        // This condition overrides any failure detected on bbProxy...
-                        pMarkFailedFromProxy = 0;
-
                         rc = -1;
                         errorText << "Stageout start has already been received for " << *pLVKey << " and the CN logical volume is being resized during stageout.  Additional transfers cannot be scheduled for restart.";
                         LOG_ERROR_TEXT_RC(errorText, rc);
@@ -3062,9 +3029,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                 }
                 else
                 {
-                    // This condition overrides any failure detected on bbProxy...
-                    pMarkFailedFromProxy = 0;
-
                     rc = -1;
                     errorText << "Stageout start has already been received for " << *pLVKey << ".  Additional transfers cannot be scheduled for start.";
                     LOG_ERROR_TEXT_RC(errorText, rc);
@@ -3075,9 +3039,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     else
     {
         // LVKey could not be found in taginfo2...
-        // This condition overrides any failure detected on bbProxy...
-        pMarkFailedFromProxy = 0;
-
         rc = -1;
         errorText << "queueTransfer():" << *pLVKey << " could not be found in taginfo2";
         LOG_ERROR_TEXT_RC(errorText, rc);
@@ -3086,163 +3047,160 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     if (!rc)
     {
         // Queue the taginfo...
-        rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation, pMarkFailedFromProxy);
+        rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation);
         if (!rc)
         {
-            if (!pMarkFailedFromProxy)
+            if (pTransferDef)
             {
-                if (pTransferDef)
+                if (pPerformOperation)
                 {
-                    if (pPerformOperation)
+                    // It is possible to enter this section of code without the local metadata locked.
+                    // We lock around the merging of the flags.
+                    l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "queueTransfer");
+
+                    // Merge in the flags from the transfer definition to the extent info...
+                    l_LV_Info->mergeFlags(pTransferDef->flags);
+
+                    BBTagInfo* l_TagInfo = l_LV_Info->getTagInfoMap()->getTagInfo(l_TagId);
+                    if (l_TagInfo)
                     {
-                        // It is possible to enter this section of code without the local metadata locked.
-                        // We lock around the merging of the flags.
-                        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "queueTransfer");
-
-                        // Merge in the flags from the transfer definition to the extent info...
-                        l_LV_Info->mergeFlags(pTransferDef->flags);
-
-                        BBTagInfo* l_TagInfo = l_LV_Info->getTagInfoMap()->getTagInfo(l_TagId);
-                        if (l_TagInfo)
+                        if (l_LocalMetadataWasLocked)
                         {
-                            if (l_LocalMetadataWasLocked)
-                            {
-                                l_LocalMetadataWasLocked = 0;
-                                unlockLocalMetadata(pLVKey, "queueTransfer");
-                            }
+                            l_LocalMetadataWasLocked = 0;
+                            unlockLocalMetadata(pLVKey, "queueTransfer");
+                        }
 
-                            l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
-                            if (l_TransferDef)
+                        l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
+                        if (l_TransferDef)
+                        {
+                            // Add the extents from the transfer definition to allExtents for this LVKey...
+                            // NOTE: l_TransferDef is the transfer definition that is associated with BBTagInfo.
+                            //       It is that transfer definition that has addressability to the BBIO objects.
+                            //       Therefore, it is that transfer definition that is used when constructing the
+                            //       ExtentInfo() objects.
+                            size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
+                            rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
+                            if (!rc)
                             {
-                                // Add the extents from the transfer definition to allExtents for this LVKey...
-                                // NOTE: l_TransferDef is the transfer definition that is associated with BBTagInfo.
-                                //       It is that transfer definition that has addressability to the BBIO objects.
-                                //       Therefore, it is that transfer definition that is used when constructing the
-                                //       ExtentInfo() objects.
-                                size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
-                                rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
-                                if (!rc)
+                                LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
+                                             << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
+                                             << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
+                                             << " extents";
+
+                                // NOTE: CurrentWrkQE must be set before sortExtents()
+                                WRKQE* l_WrkQE = 0;
+                                if (!CurrentWrkQE)
                                 {
-                                    LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
-                                                 << pContribId << "), TagID(" << l_JobStr.str()<< "," << l_TagId.getTag() << ") handle " << pHandle \
-                                                 << " is being changed from " << l_PreviousNumberOfExtents << " to " << l_TransferDef->getNumberOfExtents() \
-                                                 << " extents";
+                                    rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                }
+                                else
+                                {
+                                    l_WrkQE = CurrentWrkQE;
+                                }
 
-                                    // NOTE: CurrentWrkQE must be set before sortExtents()
-                                    WRKQE* l_WrkQE = 0;
-                                    if (!CurrentWrkQE)
-                                    {
-                                        rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
-                                    }
-                                    else
-                                    {
-                                        l_WrkQE = CurrentWrkQE;
-                                    }
+                                if ((!rc) && l_WrkQE)
+                                {
+                                    CurrentWrkQE = l_WrkQE;
+                                    lockTransferQueue(pLVKey, "queueTransfer");
 
-                                    if ((!rc) && l_WrkQE)
+                                    // If necessary, sort the extents...
+                                    rc = l_LV_Info->sortExtents(pLVKey);
+                                    if (!rc)
                                     {
-                                        CurrentWrkQE = l_WrkQE;
-                                        lockTransferQueue(pLVKey, "queueTransfer");
-
-                                        // If necessary, sort the extents...
-                                        rc = l_LV_Info->sortExtents(pLVKey);
-                                        if (!rc)
+                                        l_WrkQE->dump("debug", "Before pushing work onto this queue ");
+                                        bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
+                                        for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
                                         {
-                                            l_WrkQE->dump("debug", "Before pushing work onto this queue ");
-                                            bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
-                                            for (size_t i=0; i<(l_TransferDef->extents).size(); ++i)
-                                            {
-                                                LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
-                                                // Queue a WorkID object for every extent to the work queue
-                                                WorkID l_WorkId(*pLVKey, l_LV_Info, l_TagId);
+                                            LOG(bb,off) << "adding extent with flags " << l_TransferDef->extents[i].flags;
+                                            // Queue a WorkID object for every extent to the work queue
+                                            WorkID l_WorkId(*pLVKey, l_LV_Info, l_TagId);
 #if 0
-                                                // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
-                                                //       for cancel transfer or stop/restart processing
-                                                if (i+1 == (l_TransferDef->extents).size())
-                                                {
-                                                    // Validate work queue on last add...
-                                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
-                                                }
+                                            // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                            //       for cancel transfer or stop/restart processing
+                                            if (i+1 == (l_TransferDef->extents).size())
+                                            {
+                                                // Validate work queue on last add...
+                                                l_ValidateOption = VALIDATE_WORK_QUEUE;
+                                            }
 #endif
-                                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
-                                            }
-                                            l_WrkQE->dump("debug", "After pushing work onto this queue ");
-
-                                            // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
-                                            if ((l_TransferDef->extents).size())
-                                            {
-                                                l_LV_Info->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
-                                            }
+                                            l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
                                         }
-                                        else
+                                        l_WrkQE->dump("debug", "After pushing work onto this queue ");
+
+                                        // If extents were added to be transferred, make sure the 'all extents transferred flag' is now off for the extentinfo...
+                                        if ((l_TransferDef->extents).size())
                                         {
-                                            // Sort failed
-                                            errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
-                                            LOG_ERROR_TEXT_RC(errorText, rc);
-                                        }
-
-                                        unlockTransferQueue(pLVKey, "queueTransfer");
-
-                                        if (!rc)
-                                        {
-                                            // If all contribs have reported for this LVKey, then check to make sure
-                                            // we still have extents to transfer.  If not, then indicate that all
-                                            // extents have been transferred for this LVKey.
-                                            if (l_TagInfo->allContribsReported())
-                                            {
-                                                if (!(l_LV_Info->extentInfo.moreExtentsToTransfer((int64_t)l_TagInfo->getTransferHandle(), (int32_t)(-1), 0)))
-                                                {
-                                                    l_TagInfo->setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-                                                }
-                                            }
-
-                                            // Reset the extent for the minimum trim anchor point...
-                                            l_LV_Info->resetMinTrimAnchorExtent();
-
-                                            if (config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), 0))
-                                            {
-                                                metadata.dump(const_cast<char*>("info"));
-                                            }
+                                            l_LV_Info->extentInfo.setAllExtentsTransferred(pConnectionName, pLVKey, 0);
                                         }
                                     }
                                     else
                                     {
-                                        // Work queue not found....
-                                        rc = -1;
-                                        errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                                  << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
+                                        // Sort failed
+                                        errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                         LOG_ERROR_TEXT_RC(errorText, rc);
-                                        wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
+                                    }
+
+                                    unlockTransferQueue(pLVKey, "queueTransfer");
+
+                                    if (!rc)
+                                    {
+                                        // If all contribs have reported for this LVKey, then check to make sure
+                                        // we still have extents to transfer.  If not, then indicate that all
+                                        // extents have been transferred for this LVKey.
+                                        if (l_TagInfo->allContribsReported())
+                                        {
+                                            if (!(l_LV_Info->extentInfo.moreExtentsToTransfer((int64_t)l_TagInfo->getTransferHandle(), (int32_t)(-1), 0)))
+                                            {
+                                                l_TagInfo->setAllExtentsTransferred(pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                                            }
+                                        }
+
+                                        // Reset the extent for the minimum trim anchor point...
+                                        l_LV_Info->resetMinTrimAnchorExtent();
+
+                                        if (config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), 0))
+                                        {
+                                            metadata.dump(const_cast<char*>("info"));
+                                        }
                                     }
                                 }
                                 else
                                 {
-                                    // Add extents failed
-                                    errorText << "addExtents() failed, rc = " << rc;
-                                    LOG_ERROR(errorText);
-                                }
-
-                                if (!rc)
-                                {
-                                    // Indicate in the transfer definition/ContribId file that the extents are now enqueued
-                                    l_TransferDef->setExtentsEnqueued(pLVKey, pHandle, pContribId);
+                                    // Work queue not found....
+                                    rc = -1;
+                                    errorText << "Work queue for " << *pLVKey << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                              << ", handle " << pHandle << ", could not be found. The job may have ended.  The transfer is not scheduled.";
+                                    LOG_ERROR_TEXT_RC(errorText, rc);
+                                    wrkqmgr.dump("info", " Start transfer - Work queue not found", DUMP_UNCONDITIONALLY);
                                 }
                             }
                             else
                             {
-                                // Inconsistency with metadata....
-                                rc = -1;
-                                errorText << "queueTransfer(): Could not resolve to the transfer definition in the local metadata";
-                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                // Add extents failed
+                                errorText << "addExtents() failed, rc = " << rc;
+                                LOG_ERROR(errorText);
+                            }
+
+                            if (!rc)
+                            {
+                                // Indicate in the transfer definition/ContribId file that the extents are now enqueued
+                                l_TransferDef->setExtentsEnqueued(pLVKey, pHandle, pContribId);
                             }
                         }
                         else
                         {
                             // Inconsistency with metadata....
                             rc = -1;
-                            errorText << "queueTransfer(): Could not resolve to BBTagInfo object in the local metadata";
+                            errorText << "queueTransfer(): Could not resolve to the transfer definition in the local metadata";
                             LOG_ERROR_TEXT_RC(errorText, rc);
                         }
+                    }
+                    else
+                    {
+                        // Inconsistency with metadata....
+                        rc = -1;
+                        errorText << "queueTransfer(): Could not resolve to BBTagInfo object in the local metadata";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
                     }
                 }
             }
@@ -3259,24 +3217,21 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
 
     if (!rc)
     {
-        if (!pMarkFailedFromProxy)
+        if (pPerformOperation)
         {
-            if (pPerformOperation)
+            if (l_TransferDef)
             {
-                if (l_TransferDef)
-                {
-                    // Post each new extent...
-                    lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
-                    wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
-                    unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
-                }
-                else
-                {
-                    // Inconsistency with metadata....
-                    rc = -1;
-                    errorText << "queueTransfer(): Pointer to transfer definition found NULL prior to posting new extents to work queue";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
-                }
+                // Post each new extent...
+                lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+                wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
+                unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
+            }
+            else
+            {
+                // Inconsistency with metadata....
+                rc = -1;
+                errorText << "queueTransfer(): Pointer to transfer definition found NULL prior to posting new extents to work queue";
+                LOG_ERROR_TEXT_RC(errorText, rc);
             }
         }
     }
@@ -3361,8 +3316,8 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
             {
                 // Job/tag value could not be found...
                 BBTransferDef* l_TransferDef = 0;
-                uint32_t l_Dummy = 0;
-                rc = queueTransfer(pConnectionName, pLVKey, pJob, pTag, l_TransferDef, (int32_t)(-1), pNumContrib, pContrib, pHandle, 0, l_Dummy, (vector<struct stat*>*)0);
+                uint32_t l_PerformOperationDummy = 0;
+                rc = queueTransfer(pConnectionName, pLVKey, pJob, pTag, l_TransferDef, (int32_t)(-1), pNumContrib, pContrib, pHandle, l_PerformOperationDummy, (vector<struct stat*>*)0);
                 if (rc) {
                     // NOTE:  errstate already filled in...
                     errorText << "For " << l_JobStr.str() << ", handle " << pHandle << " could not be added to " << *pLVKey << " for the compute node.";

@@ -102,9 +102,9 @@ extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef,
 
 extern int prepareForRestartOriginalServerDead(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pHandle, BBJob pJob, const int32_t pContribId);
 
-extern int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob, const uint64_t pTag, BBTransferDef* &pTransferDef, \
-                         const int32_t pContribId, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle, const uint32_t pPerformOperation, \
-                         uint32_t &pMarkFailedFromProxy, vector<struct stat*>* pStats);
+extern int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob, const uint64_t pTag, BBTransferDef* &pTransferDef,
+                         const int32_t pContribId, uint64_t pNumContrib, uint32_t pContrib[], uint64_t& pHandle, const uint32_t pPerformOperation,
+                         vector<struct stat*>* pStats);
 
 extern int removeJobInfo(const string& pHostName, const uint64_t pJobId);
 
