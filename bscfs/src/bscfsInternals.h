@@ -549,5 +549,6 @@ int bscfs_global_flush_completed(void *data);
 int bscfs_forget(void *data);
 int bscfs_query_internal_files(void *data);
 int bscfs_install_internal_files(void *data);
+int bscfs_get_parameter(void *data);
 
 #endif //__BSCFS_INTERNALS_H__

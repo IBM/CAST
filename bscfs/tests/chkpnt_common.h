@@ -28,8 +28,8 @@ char *ProgName = NULL;
 char *ProgDir = NULL;
 int Rank = -1;
 int RankCount = 0;
-char *BSCFS_MNT_PATH = NULL;
-char *BSCFS_PFS_PATH = NULL;
+char BSCFS_MNT_PATH[256];
+char BSCFS_PFS_PATH[256];
 char *ChkpntDirSep = "";
 
 uint64_t ChkpntCount = 1;
@@ -331,11 +331,8 @@ void chkpnt_init(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &Rank);
     MPI_Comm_size(MPI_COMM_WORLD, &RankCount);
 
-    BSCFS_MNT_PATH = getenv("BSCFS_MNT_PATH");
-    Check(BSCFS_MNT_PATH != NULL, "getenv(%s) failed", "BSCFS_MNT_PATH", -1);
-
-    BSCFS_PFS_PATH = getenv("BSCFS_PFS_PATH");
-    Check(BSCFS_PFS_PATH != NULL, "getenv(%s) failed", "BSCFS_PFS_PATH", -1);
+	Check((BSCFS_GetParameter("BSCFS_MNT_PATH", sizeof(BSCFS_MNT_PATH), BSCFS_MNT_PATH) == 0), "BSCFS_GetParameter(%s) failed", "BSCFS_MNT_PATH", -1);
+	Check((BSCFS_GetParameter("BSCFS_PFS_PATH", sizeof(BSCFS_PFS_PATH), BSCFS_PFS_PATH) == 0), "BSCFS_GetParameter(%s) failed", "BSCFS_PFS_PATH", -1);
 
     if (ChkpntDir[0] != '\0') {
 	ChkpntDirSep = "/";

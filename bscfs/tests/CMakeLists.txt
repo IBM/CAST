@@ -14,6 +14,13 @@ target_link_libraries(chkpnt_write ${MPI_C_LIBRARIES})
 install(TARGETS chkpnt_write COMPONENT burstbuffer-tests
 	DESTINATION bscfs/tests)
 
+add_executable(chkpnt_write_blocking chkpnt_write_blocking.c)
+add_dependencies(chkpnt_write_blocking need_bbapi_version)
+target_include_directories(chkpnt_write_blocking PRIVATE ${MPI_C_INCLUDE_PATH})
+target_link_libraries(chkpnt_write_blocking ${MPI_C_LIBRARIES})
+install(TARGETS chkpnt_write_blocking COMPONENT burstbuffer-tests
+	DESTINATION bscfs/tests)
+
 add_executable(chkpnt_read chkpnt_read.c)
 add_dependencies(chkpnt_read need_bbapi_version)
 target_include_directories(chkpnt_read PRIVATE ${MPI_C_INCLUDE_PATH})

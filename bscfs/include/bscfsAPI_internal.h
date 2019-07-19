@@ -248,6 +248,28 @@ static inline int __BSCFS_InstallInternalFiles(const char *pathname,
     return request.return_code;
 }
 
+static inline int __BSCFS_GetParameter(const char* parmname, size_t value_length, char* value)
+{
+    if (!__BSCFS_CheckConnection()) return ENOSYS;
+
+    if (parmname == NULL) return EFAULT;
+    if (value == NULL) return EFAULT;
+
+    struct bscfs_get_parameter request;
+    request.return_code = 0;
+    memcpy(request.parameter, parmname, sizeof(request.parameter));
+    
+    int rc = ioctl(__BSCFS_ControlFD, BSCFS_IOC_GET_PARAMETER,
+		   &request);
+    if (rc < 0) return ENOSYS;
+    if (value != NULL)
+    {
+        memcpy(value, request.value, value_length);
+    }
+
+    return request.return_code;
+}
+
 #ifdef __cplusplus
 }
 #endif

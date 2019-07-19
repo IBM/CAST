@@ -398,6 +398,32 @@ static inline int BSCFS_InstallInternalFiles(const char *pathname,
     return __BSCFS_InstallInternalFiles(pathname, files_length, files, state);
 }
 
+/**
+ *  \brief Query for parameters used in BSCFS setup.
+ *  \par Description
+ *  BSCFS_GetParameter provides the capability to query settings used by the BSCFS agent on the compute node.
+
+ *  The available parameters are:
+ *  - BSCFS_MNT_PATH   The mount point of the BSCFS file system, typically /bscfs
+ *  - BSCFS_PFS_PATH   The mount point of the shadowed PFS file system
+ *
+ *  \param[in]  parameter     BSCFS parameter name to be returned
+ *  \param[in]  value_length  size (in bytes) of the value array
+ *  \param[out] value         space for provided parameter value
+ *
+ *  \return Error code
+ *  \retval 0     Success
+ *  \retval errno Positive non-zero values correspond with errno.
+ *  \ingroup bscfsapi
+ */
+static inline int BSCFS_GetParameter(const char* parameter,
+						size_t value_length,
+						char* value)
+{
+    return __BSCFS_GetParameter(parameter, value_length, value);
+}
+
+
 #ifdef __cplusplus
 }
 #endif
