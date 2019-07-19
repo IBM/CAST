@@ -2378,7 +2378,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                         e.len = srcfile_ptr->getsize();
                                         LOG(bb,info) << "Local copy complete for file " << srcfile_ptr->getfn() << ", handle = " << pHandle \
                                         << ", contribid = " << pContribId << ", sourceindex = " << e.sourceindex << ", size copied = " << e.len << " bytes" \
-                                        << ", copy time " << (double)l_Time/(double)g_TimeBaseScale << " seconds";;
+                                        << ", copy time " << (double)l_Time/(double)g_TimeBaseScale << " seconds";
                                         break;
 
                                     case BBFILE_FAILED:

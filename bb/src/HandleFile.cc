@@ -1534,7 +1534,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             // and other status indications...
             uint64_t l_AllFilesClosed = 1;           // Optimistic coding...
             uint64_t l_AllExtentsTransferred = 1;    // Optimistic coding...
-            uint64_t l_OrigNumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
+//            uint64_t l_OrigNumberOfHandleReportingContribs = l_HandleFile->getNumOfContribsReported();
             bool l_CanceledDefinitions = false;
             bool l_FailedDefinitions = false;
             bool l_StoppedDefinitions = false;
@@ -1714,24 +1714,26 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->totalTransferSize = (uint64_t)l_Size;
 
                 uint64_t l_EndingStatus = l_HandleFile->status;
-                if ( !(pNumOfContribsBump == 0 &&
-                     l_StartingTotalTransferSize == l_HandleFile->totalTransferSize &&
-                     l_StartingFlags == l_HandleFile->flags &&
-                     l_StartingStatus == l_EndingStatus) )
+                if (pNumOfContribsBump != 0 || l_StartingTotalTransferSize != l_HandleFile->totalTransferSize ||
+                    l_StartingFlags != l_HandleFile->flags || l_StartingStatus != l_EndingStatus)
                 {
-                    LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
+                    if (l_StartingTotalTransferSize != l_HandleFile->totalTransferSize || l_StartingStatus != l_EndingStatus)
+                    {
+                        LOG(bb,info) << "xbbServer: For jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ":";
+                    }
+#if 0
                     if (pNumOfContribsBump)
                     {
                         if (l_OrigNumberOfHandleReportingContribs < l_HandleFile->numReportingContribs)
                         {
-                            LOG(bb,info) << "           Number of reporting contributors increasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                            LOG(bb,debug) << "           Number of reporting contributors increasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
                         }
                         else
                         {
-                            LOG(bb,info) << "           Number of reporting contributors decreasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
+                            LOG(bb,debug) << "           Number of reporting contributors decreasing from " << l_OrigNumberOfHandleReportingContribs << " to " << l_HandleFile->numReportingContribs << ".";
                         }
                     }
-
+#endif
                     if (l_StartingTotalTransferSize != l_HandleFile->totalTransferSize)
                     {
                         if (l_StartingTotalTransferSize < l_HandleFile->totalTransferSize)
@@ -1743,12 +1745,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                             LOG(bb,info) << "           Handle transferred size decreasing from " << l_StartingTotalTransferSize << " to " << l_HandleFile->totalTransferSize << ".";
                         }
                     }
-
+#if 0
                     if (l_StartingFlags != l_HandleFile->flags)
                     {
                         LOG(bb,debug) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
                     }
-
+#endif
                     if (l_StartingStatus != l_EndingStatus)
                     {
                         char l_StartingStatusStr[64] = {'\0'};

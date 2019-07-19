@@ -43,15 +43,18 @@ class BBLV_ExtentInfo
   public:
     BBLV_ExtentInfo() :
         flags(0) {
-//        allExtents.reserve(4096);
+        allExtents = vector<ExtentInfo>();
+        minTrimAnchorExtent = Extent();
         BB_GetTime(processingTime);
+        inflight = map<InFlightKey, ExtentInfo>();
     }
 
     BBLV_ExtentInfo(const BBLV_ExtentInfo& src) {
         flags = src.flags;
         allExtents = src.allExtents;
-        inflight = src.inflight;
+        minTrimAnchorExtent = src.minTrimAnchorExtent;
         BB_GetTime(processingTime);
+        inflight = src.inflight;
     }
 
     // Compare operators for sorting extents

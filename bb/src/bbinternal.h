@@ -536,11 +536,11 @@ inline void BB_GetTime(uint64_t& pTime)
 {
 
 #ifdef __powerpc64__
-    asm ("mfspr %0,%1;"
-         : "=&r" (pTime) : "i" (SPRN_TBRO));
+    asm volatile("mfspr %0,%1;"
+                 : "=&r" (pTime) : "i" (SPRN_TBRO) : "memory");
 #elif __x86_64__
     unsigned hi, lo;
-    __asm__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
     pTime = ((uint64_t)hi << 32ull) | lo;
 #else
 #error not supported

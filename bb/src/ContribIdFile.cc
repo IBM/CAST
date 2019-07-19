@@ -1123,10 +1123,11 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                     //        in the rebuilt transfer definition.  It is not needed
                     //        as part of any restart transfer definition processing.
                     //        It will be zero.
-                    // NOTE:  Nor do be preserve the read/write operation stats
+                    // NOTE:  Nor do be preserve the read/write operation stats, processing time
                     pRebuiltTransferDef->sizeTransferred[i] = 0;
                     pRebuiltTransferDef->readOperations[i] = make_pair(0,0);
                     pRebuiltTransferDef->writeOperations[i] = make_pair(0,0);
+                    pRebuiltTransferDef->processingTime = 0;
                     uint16_t l_BundleId = BBFileBundleIDFromFlags(l_File->flags);
                     if (l_BundleId)
                     {
@@ -1152,10 +1153,11 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
                             //        in the rebuilt transfer definition.  It is not needed
                             //        as part of any restart transfer definition processing.
                             //        It will be zero.
-                            // NOTE:  Nor do be preserve the read/write operation stats
+                            // NOTE:  Nor do be preserve the read/write operation stats, processing time
                             pRebuiltTransferDef->sizeTransferred[i] = 0;
                             pRebuiltTransferDef->readOperations[i] = make_pair(0,0);
                             pRebuiltTransferDef->writeOperations[i] = make_pair(0,0);
+                            pRebuiltTransferDef->processingTime = 0;
                             LOG(bb,info) << "xbbServer: Flags and size transferred reset prior to restart for " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << i*2;
                         }
                     }
@@ -1253,6 +1255,7 @@ int ContribIdFile::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     l_TransferDef->sizeTransferred = vector<size_t>();      // No transfer sizes
     l_TransferDef->readOperations = vector<IO_Stats>();     // No read operation stats
     l_TransferDef->writeOperations = vector<IO_Stats>();    // No write operation stats
+    l_TransferDef->processingTime = 0;                      // No processing time
 
     l_TransferDef->setBuiltViaRetrieveTransferDefinition();
 

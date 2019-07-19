@@ -2453,7 +2453,7 @@ void startThreads(void)
 
 int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* pLV_Info, BBTagInfoMap* pTagInfoMap,
                  BBTagID& pTagId, BBJob pJob, BBTransferDef* &pTransferDef, int32_t pContribId, uint64_t pNumContrib,
-                 uint32_t pContrib[], uint64_t& pHandle, vector<struct stat*>* pStats, const uint32_t pPerformOperation)
+                 uint32_t pContrib[], uint64_t& pHandle, const uint32_t pPerformOperation, vector<struct stat*>* pStats)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -3051,7 +3051,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     if (!rc)
     {
         // Queue the taginfo...
-        rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pStats, pPerformOperation);
+        rc = queueTagInfo(pConnectionName, pLVKey, l_LV_Info, l_LV_Info->getTagInfoMap(), l_TagId, pJob, pTransferDef, pContribId, pNumContrib, pContrib, pHandle, pPerformOperation, pStats);
         if (!rc)
         {
             if (pTransferDef)
