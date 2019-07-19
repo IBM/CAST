@@ -2534,6 +2534,8 @@ int bscfs_ioctl(const char *name , int cmd, void *arg,
 	    return bscfs_query_internal_files(data);
 	case BSCFS_IOC_INSTALL_INTERNAL_FILES:
 	    return bscfs_install_internal_files(data);
+	case BSCFS_IOC_GET_PARAMETER:
+		return bscfs_get_parameter(data);
 	default:
 	    // not a BSCFS operation
 	    LOG(bscfsagent,info)
@@ -3388,4 +3390,29 @@ int bscfs_install_internal_files(void *data)
 		       index_path, data_path);
     request->return_code = -res;
     return 0;
+}
+
+int bscfs_get_parameter(void *data)
+{
+    FL_Write(FLAgent, BSCFS_get_parameter, "get_parameter called", 0,0,0,0);
+    struct bscfs_get_parameter* request = (struct bscfs_get_parameter *) data;
+
+    LOG(bscfsagent,trace) << "BSCFS_get_parameter() called with " << request->parameter;
+	if(strcmp(request->parameter, "BSCFS_MNT_PATH") == 0)
+	{
+		memcpy(request->value, bscfs_data.mount_path, sizeof(request->value));
+		request->value[sizeof(request->value)-1] = 0;
+		request->return_code = 0;
+	}
+	else if(strcmp(request->parameter, "BSCFS_PFS_PATH") == 0)
+	{
+		memcpy(request->value, bscfs_data.pfs_path, sizeof(request->value));
+		request->value[sizeof(request->value)-1] = 0;
+		request->return_code = 0;
+	}
+	else
+	{
+		request->return_code = EINVAL;
+	}
+	return 0;
 }
