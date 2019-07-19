@@ -1175,7 +1175,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
 
             if (!rc)
             {
-                stringstream l_HandleOutput("(");
+                stringstream l_HandleOutput;
                 l_NumAvailHandles = l_Handles.size();
                 if (l_NumAvailHandles < l_NumHandles)
                 {
@@ -1212,7 +1212,7 @@ void msgin_gettransferlist(txp::Id id, const std::string& pConnectionName, txp::
                 }
                 l_HandleOutput << ")";
 
-                errorText << ", numavailhandles=" << l_NumAvailHandles << ", handles(" << l_HandleOutput.str();
+                errorText << ", numavailhandles=" << l_NumAvailHandles << ", returned handles(" << l_HandleOutput.str();
                 LOG(bb,info) << errorText.str();
             }
             else
@@ -1716,17 +1716,17 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
 
         // NOTE: Only output l_MarkFailedFromProxy, all_CN_CP_TransfersInDefinition, and
         //       noStageinOrStageoutTransfersInDefinition attributes if they are true
-        stringstream s1("");
-        stringstream s2("");
-        stringstream s3("");
+        stringstream s1;
         if (l_MarkFailedFromProxy)
         {
             s1 << ", mark_failed_from_bbProxy=" << (l_MarkFailedFromProxy ? "true" : "false");
         }
+        stringstream s2;
         if (l_TransferPtr->all_CN_CP_TransfersInDefinition())
         {
             s2 << ", all_CN_CP_TransfersInDefinition=" << (l_TransferPtr->all_CN_CP_TransfersInDefinition() ? "true" : "false");
         }
+        stringstream s3;
         if (l_TransferPtr->noStageinOrStageoutTransfersInDefinition())
         {
             s3 << ", noStageinOrStageoutTransfersInDefinition=" << (l_TransferPtr->noStageinOrStageoutTransfersInDefinition() ? "true" : "false");
@@ -1963,7 +1963,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     {
                         LOG(bb,error) << "msgin_starttransfer (" << ((!l_PerformOperation) ? "1" : "2") << "): Error reported from bbProxy for " \
                                       << l_LVKey2 << ", hostname " << l_HostName << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", handle " \
-                                      << l_Handle << ", contribid " << l_ContribId << ", perform operation " << (l_PerformOperation ? "true" : "false") \
+                                      << l_Handle << ", contribid " << l_ContribId \
                                       << ". See the appropriate bbProxy console log. (Access to local metadata for this transfer definition was successful.)";
                         markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
                         // NOTE: errstate filled in by bbProxy
@@ -2416,9 +2416,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                     {
                         LOG(bb,error) << "msgin_starttransfer (" << ((!l_PerformOperation) ? "1" : "2") << "): Error reported from bbProxy for " \
                                       << l_LVKey << ", hostname " << l_HostName << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", handle " \
-                                      << l_Handle << ", contribid " << l_ContribId << ", perform operation " << (l_PerformOperation ? "true" : "false") \
+                                      << l_Handle << ", contribid " << l_ContribId \
                                       << ". See the appropriate bbProxy console log. (Access to local metadata for this transfer definition was not successful.)";
-                        markTransferFailed(&l_LVKey, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
                         // NOTE: errstate filled in by bbProxy
                         rc = -1;
                         SET_RC_AND_BAIL(rc);

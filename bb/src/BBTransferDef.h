@@ -94,7 +94,7 @@
         for (auto& io : readOperations) { \
             if (!(i++%2)) \
             { \
-                LOG(bb,SEV) << "Source index " << i << ": count:time " << io.first << ":" << io.second; \
+                LOG(bb,SEV) << "Source index " << i << ": count/raw time " << io.first << ":" << io.second; \
             } \
         } \
         LOG(bb,SEV) << ">>>>>   End: " << readOperations.size() << (readOperations.size()==1 ? " Read operation stat <<<<<" : " Read operation stats <<<<<"); \
@@ -105,7 +105,7 @@
         for (auto& io : writeOperations) { \
             if (!(i++%2)) \
             { \
-                LOG(bb,SEV) << "Source index " << i << ": count:time " << io.first << ":" << io.second; \
+                LOG(bb,SEV) << "Source index " << i << ": count/raw time " << io.first << ":" << io.second; \
             } \
         } \
         LOG(bb,SEV) << ">>>>>   End: " << writeOperations.size() << (writeOperations.size()==1 ? " Write operation stat <<<<<" : " Write operation stats <<<<<"); \

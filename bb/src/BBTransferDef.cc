@@ -956,8 +956,10 @@ int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     //       total transferred size for the handle.  Therefore, no 'old' values from this vector
     //       are needed as part of restart.
     l_TransferDef->sizeTransferred = vector<size_t>();      // No transfer sizes copied
+    // NOTE: No I/O read/write stats, nor any processing time, are copied
     l_TransferDef->readOperations = vector<IO_Stats>();     // No read operation stats copied
     l_TransferDef->writeOperations = vector<IO_Stats>();    // No write operation stats copied
+    l_TransferDef->processingTime = 0;
 
     l_TransferDef->setBuiltViaRetrieveTransferDefinition();
 
