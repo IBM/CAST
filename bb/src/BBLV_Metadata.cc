@@ -664,9 +664,9 @@ int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BB
                             //       above for the 'incorrect' LVKey....
                             l_LVKey = it2->first;
                             BBTransferDef* l_TransferDef = 0;
-                            uint32_t l_Dummy = 0;
+                            uint32_t l_PerformOperationDummy = 0;
 
-                            rc = queueTransfer(pConnectionName, &l_LVKey, pJob, l_TagId.getTag(), l_TransferDef, (int32_t)(-1), l_NumContrib, l_ContribArray, l_Handle, 0, l_Dummy, (vector<struct stat*>*)0);
+                            rc = queueTransfer(pConnectionName, &l_LVKey, pJob, l_TagId.getTag(), l_TransferDef, (int32_t)(-1), l_NumContrib, l_ContribArray, l_Handle, l_PerformOperationDummy, (vector<struct stat*>*)0);
                             if (!rc)
                             {
                                 l_HandleWasAdded = true;

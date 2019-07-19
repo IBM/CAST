@@ -426,6 +426,7 @@ void WRKQMGR::checkThrottleTimer()
         if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
         {
             dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
+            dumpTimerCount = 0;
         }
 
         // See if it is time to reload the work queue throttle buckets
@@ -639,10 +640,6 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                     lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                     numberOfSkippedDumpRequests = 0;
-
-                    // NOTE:  Only reset the dumpTimerCount if we actually dumped the work queue manager.
-                    //        Then, if no transfer activity for a while, we will dump the work queue manager
-                    //        the next time the throttle timer pops.
                     dumpTimerCount = 0;
                 }
                 else

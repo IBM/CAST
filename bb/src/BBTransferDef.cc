@@ -39,6 +39,13 @@ using namespace boost::archive;
 
 
 //
+// Static data
+//
+
+static LVKey LVKey_Null = LVKey();
+
+
+//
 // BBTransferDefs class
 //
 
@@ -755,7 +762,13 @@ size_t BBTransferDef::getTotalTransferSize(BBTransferDef* pTransferDef) {
 
     if (pTransferDef->extents.size()) {
         for (auto& e : pTransferDef->extents) {
-            l_TotalSize += e.len;
+            // NOTE: Any cp operation is NOT included in the size transferred
+            //       information.  We want to keep pure the size transferred as
+            //       the data that was actually pushed/pulled from bbServer.
+            if (!e.isCP_Transfer())
+            {
+                l_TotalSize += e.len;
+            }
         }
     }
 
@@ -932,7 +945,6 @@ int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     l_TransferDef->iomap = map<uint16_t, BBIO*>();      // No BBIO objects copied
     l_TransferDef->extents = vector<Extent>();                                      // Create an empty extent vector
     l_TransferDef->copyExtentsForRetrieveTransferDefinitions(this, pExtentInfo);    // Copy a single extent from each stopped file
-    l_TransferDef->sizeTransferred = vector<size_t>();  // No transfer sizes copied
     // NOTE: We don't currently save the values in the sizeTransferred vector because they are not
     //       needed as part of any restart transfer definition processing.  Only those files
     //       that have been successfully transferred and have reported their close back to bbServer
@@ -943,7 +955,11 @@ int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
     //       to the bbServer after the restart, then those transfer sizes w ill be added to the
     //       total transferred size for the handle.  Therefore, no 'old' values from this vector
     //       are needed as part of restart.
-//    l_TransferDef->sizeTransferred = sizeTransferred;
+    l_TransferDef->sizeTransferred = vector<size_t>();      // No transfer sizes copied
+    // NOTE: No I/O read/write stats, nor any processing time, are copied
+    l_TransferDef->readOperations = vector<IO_Stats>();     // No read operation stats copied
+    l_TransferDef->writeOperations = vector<IO_Stats>();    // No write operation stats copied
+    l_TransferDef->processingTime = 0;
 
     l_TransferDef->setBuiltViaRetrieveTransferDefinition();
 
@@ -1317,6 +1333,7 @@ int BBTransferDef::resetForRestart(const LVKey* pLVKey, const uint64_t pHandle, 
     // Reset the status for the ContribId and Handle files in the xbbServer data...
     rc = ContribIdFile::update_xbbServerContribIdFileResetForRestart(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId);
 
+
     return rc;
 }
 #endif
@@ -1439,9 +1456,12 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
     }
     SET_FLAG(BBTD_Failed, pValue);
 
-    // Now update the status for the ContribId and Handle files in the xbbServer data...
-    // NOTE: We do not handle the return code...
-    ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Failed, pValue);
+    if (pLVKey && (*pLVKey) != LVKey_Null)
+    {
+        // Now update the status for the ContribId and Handle files in the xbbServer data...
+        // NOTE: We do not handle the return code...
+        ContribIdFile::update_xbbServerContribIdFile(pLVKey, getJobId(), getJobStepId(), pHandle, pContribId, DO_NOT_ALLOW_BUMP_FOR_REPORTING_CONTRIBS, DO_NOT_LOCK_HANDLEFILE, BBTD_Failed, pValue);
+    }
 
     return;
 }

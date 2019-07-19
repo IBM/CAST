@@ -65,6 +65,8 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'option',                             # __u32
                           'performoperation',                   # __u32
                           'rate',                               # __u64
+                          'readcount',                          # __u64
+                          'readtime' ,                          # __u64
                           'returncode',                         # __s32
                           'serializeversion',                   # __u32
                           'sizetransferred',                    # __u64
@@ -72,6 +74,7 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'sourceindex',                        # __u32
                           'statinfo',                           # char*
                           'status',                             # __u64
+                          'totalProcessingTime',                # __u64
                           'totalTransferKeyLength',             # __u64
                           'totalTransferSize',                  # __u64
                           'transfercontribid',                  # __u32
@@ -83,6 +86,8 @@ ATTRIBUTE_NAMES_TO_ADD = ('bbjob_objectversion',                # __u32
                           'variable',                           # char*
                           'uuid',                               # char*
                           'workitemspertransfertimeinterval',   # __s32
+                          'writecount',                         # __u64
+                          'writetime' ,                         # __u64
                           'connectionKey',                      # char*
                          )
 

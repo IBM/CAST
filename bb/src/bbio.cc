@@ -188,6 +188,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
     int ssd_fd = -1;
     off_t offset_src;
     off_t offset_dst;
+    uint64_t l_Time;
     ssize_t bytesRead;
     ssize_t bytesWritten;
     size_t count = pExtent->len;
@@ -229,8 +230,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     setupTransferBuffer(pExtent->sourceindex);
 
                     FL_Write6(FLXfer, PREAD_PFS, "Extent %p, reading from target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->sourceindex, (uint64_t)threadTransferBuffer, MIN(transferBufferSize, count), offset_src, 0);
+
+                    transferDef->preProcessRead(l_Time);
                     //pread is bbio::pread derived
                     bytesRead = pread(pExtent->sourceindex, threadTransferBuffer, MIN(transferBufferSize, count), offset_src);
+                    transferDef->postProcessRead(pExtent->sourceindex, l_Time);
 
                     FL_Write(FLXfer, PREAD_PFSCMP, "Extent %p, reading from target index %ld.  bytesRead=%ld errno=%ld", (uint64_t)pExtent, pExtent->sourceindex, bytesRead,errno);
 
@@ -241,9 +245,13 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                             // last ditch sanity check
                             throw runtime_error(string("Extent offset into SSD too low.  Offset=") + to_string(offset_dst));
                         }
+
                         FL_Write(FLXfer, PWRITE_SSD, "Extent %p, writing to SSD.  File descriptor %ld, length %ld at offset 0x%lx", (uint64_t)pExtent, ssd_fd, bytesRead, offset_dst);
+
                         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpwritesyscall, ssd_fd,__LINE__, ssdWriteAdjust(bytesRead),offset_dst);
+                        transferDef->preProcessWrite(l_Time);
                         bytesWritten = ::pwrite(ssd_fd, threadTransferBuffer, ssdWriteAdjust(bytesRead), offset_dst);
+                        transferDef->postProcessWrite(pExtent->sourceindex, l_Time);
                         threadLocalTrackSyscallPtr->clearTrack();
 
                         if ( __glibc_likely(bytesWritten >= 0) )
@@ -271,6 +279,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         // BBIO subclass generated bberror and RAS
                     }
                 }
+
                 if (!rc)
                 {
                     LOG(bb,debug) << "Transfer complete to ssd fd=" << setw(3) << ssd_fd << " from pfs " << transferDef->files[pExtent->sourceindex];
@@ -330,8 +339,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     ssdReadOffset = offset_src & (~BLKSIZE);
 
                     FL_Write6(FLXfer, PREAD_SSD, "Reading from file descriptor %ld into %p, len=%ld at offset 0x%lx (pre-adjust was len=%ld offset=0x%lx)", ssd_fd, (uint64_t)threadTransferBuffer, ssdReadCount, ssdReadOffset, count, offset_src);
+
                     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpreadsyscall, ssd_fd,__LINE__, ssdReadCount,ssdReadOffset);
+                    transferDef->preProcessRead(l_Time);
                     bytesRead = ::pread(ssd_fd, threadTransferBuffer, ssdReadCount, ssdReadOffset);
+                    transferDef->postProcessRead(pExtent->sourceindex, l_Time);
                     threadLocalTrackSyscallPtr->clearTrack();
 
                     if ( __glibc_likely(bytesRead >= 0) )
@@ -342,9 +354,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         l_Length = MIN((ssize_t)count, bytesRead - (offset_src&BLKSIZE));
 
                         FL_Write6(FLXfer, PWRITE_PFS, "Extent %p, writing to target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->targetindex, (uint64_t)l_Buffer, l_Length, offset_dst, 0);
+
+                        transferDef->preProcessWrite(l_Time);
                         // bbio::pwrite derived
                         bytesWritten = pwrite(pExtent->targetindex, l_Buffer, l_Length, offset_dst);
-
+                        transferDef->postProcessWrite(pExtent->sourceindex, l_Time);
 
                         if ( __glibc_likely(bytesWritten >= 0) )
                         {

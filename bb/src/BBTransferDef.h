@@ -81,9 +81,34 @@
         LOG(bb,SEV) << ">>>>> Start: " << sizeTransferred.size() << (sizeTransferred.size()==1 ? " Size transferred <<<<<" : " Sizes transferred <<<<<"); \
         uint32_t i = 0; \
         for (auto& sz : sizeTransferred) { \
-            LOG(bb,SEV) << i++ << ": " << sz; \
+            if (!(i++%2)) \
+            { \
+                LOG(bb,SEV) << "Source index " << i << ": " << sz; \
+            } \
         } \
         LOG(bb,SEV) << ">>>>>   End: " << sizeTransferred.size() << (sizeTransferred.size()==1 ? " Size transferred <<<<<" : " Sizes transferred <<<<<"); \
+    } \
+    if (0==1 && readOperations.size()) { \
+        LOG(bb,SEV) << ">>>>> Start: " << readOperations.size() << (readOperations.size()==1 ? " Read operation stat <<<<<" : " Read operation stats <<<<<"); \
+        uint32_t i = 0; \
+        for (auto& io : readOperations) { \
+            if (!(i++%2)) \
+            { \
+                LOG(bb,SEV) << "Source index " << i << ": count/raw time " << io.first << ":" << io.second; \
+            } \
+        } \
+        LOG(bb,SEV) << ">>>>>   End: " << readOperations.size() << (readOperations.size()==1 ? " Read operation stat <<<<<" : " Read operation stats <<<<<"); \
+    } \
+    if (0==1 && writeOperations.size()) { \
+        LOG(bb,SEV) << ">>>>> Start: " << writeOperations.size() << (writeOperations.size()==1 ? " Write operation stat <<<<<" : " Write operation stats <<<<<"); \
+        uint32_t i = 0; \
+        for (auto& io : writeOperations) { \
+            if (!(i++%2)) \
+            { \
+                LOG(bb,SEV) << "Source index " << i << ": count/raw time " << io.first << ":" << io.second; \
+            } \
+        } \
+        LOG(bb,SEV) << ">>>>>   End: " << writeOperations.size() << (writeOperations.size()==1 ? " Write operation stat <<<<<" : " Write operation stats <<<<<"); \
     } \
 }
 
@@ -98,6 +123,11 @@ class BBLV_ExtentInfo;
  *******************************************************************************/
 const uint32_t ARCHIVE_TRANSFERDEFS_VERSION = 1;
 const uint32_t ARCHIVE_TRANSFERDEF_VERSION = 1;
+
+/*******************************************************************************
+ | Type definitions
+ *******************************************************************************/
+typedef std::pair<uint64_t, uint64_t> IO_Stats;     // First is the count; second is accumulated time
 
 /*******************************************************************************
  | Classes
@@ -252,6 +282,9 @@ class BBTransferDef
         pArchive & keyvalues;
         pArchive & extents;
         pArchive & sizeTransferred;
+        pArchive & readOperations;
+        pArchive & writeOperations;
+        pArchive & processingTime;
 
         return;
     }
@@ -269,14 +302,14 @@ class BBTransferDef
         hostname(UNDEFINED_HOSTNAME),
         update(PTHREAD_MUTEX_INITIALIZER),
         files(),
-        keyvalues(),
-        iomap(),
-        extents(),
-        sizeTransferred()
+        keyvalues()
         {
             iomap = map<uint16_t, BBIO*>();
             extents = vector<Extent>();
             sizeTransferred = vector<size_t>();
+            readOperations = vector<IO_Stats>();
+            writeOperations = vector<IO_Stats>();
+            BB_GetTime(processingTime);
         }
 
     BBTransferDef(const BBTransferDef& src) :
@@ -296,6 +329,9 @@ class BBTransferDef
         iomap = src.iomap;
         extents = src.extents;
         sizeTransferred = src.sizeTransferred;
+        readOperations = src.readOperations;
+        writeOperations = src.writeOperations;
+        BB_GetTime(processingTime);
     }
 
     ~BBTransferDef();
@@ -374,6 +410,12 @@ class BBTransferDef
 
     inline int builtViaRetrieveTransferDefinition() {
         RETURN_FLAG(BBTD_Built_Via_Retrieve_Transfer_Definition);
+    }
+
+    inline void calcProcessingTime(uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+
+        return;
     }
 
     inline int canceled() {
@@ -460,12 +502,52 @@ class BBTransferDef
         return files.size();
     }
 
+    inline void incrementReadTime(const uint64_t pSourceIndex, const uint64_t pTime) {
+        readOperations[pSourceIndex].first += 1;
+        readOperations[pSourceIndex].second += pTime;
+
+        return;
+    }
+
+    inline void incrementWriteTime(const uint64_t pSourceIndex, const uint64_t pTime) {
+        writeOperations[pSourceIndex].first += 1;
+        writeOperations[pSourceIndex].second += pTime;
+
+        return;
+    }
+
     inline uint64_t mergeFileFlags(uint64_t pFlags) {
         return pFlags | (flags & 0x000000000000FFFF);
     }
 
     inline int noStageinOrStageoutTransfersInDefinition() {
         RETURN_FLAG(BBTD_No_Stagein_Or_Stageout_Transfers);
+    }
+
+    inline void preProcessRead(uint64_t& pTime) {
+        BB_GetTime(pTime);
+
+        return;
+    }
+
+    inline void preProcessWrite(uint64_t& pTime) {
+        BB_GetTime(pTime);
+
+        return;
+    }
+
+    inline void postProcessRead(const uint64_t pSourceIndex, uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+        incrementReadTime(pSourceIndex, pTime);
+
+        return;
+    }
+
+    inline void postProcessWrite(const uint64_t pSourceIndex, uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+        incrementWriteTime(pSourceIndex, pTime);
+
+        return;
     }
 
     inline int resizeLogicalVolumeDuringStageOut() {
@@ -572,6 +654,11 @@ class BBTransferDef
     vector<Extent>          extents;
     vector<size_t>          sizeTransferred;    ///< Vector of the amount of data transferred.
                                                 ///< Only maintained on bbServer, in real time for source file indices.
+    vector<IO_Stats>        readOperations;     ///< Vector of read operation data.
+                                                ///< Only maintained on bbServer, in real time for source file indices.
+    vector<IO_Stats>        writeOperations;    ///< Vector of write operation data.
+                                                ///< Only maintained on bbServer, in real time for source file indices.
+    uint64_t                processingTime;     ///< Processing time from creation to final status
 #if BBAPI
     map<string,string>      tgt_src_whole_file; ///< for whole copy of target to source, watch for unique source
     int checkOneCPSourceToDest(const std::string& src, const std::string& tgt){

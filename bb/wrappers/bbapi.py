@@ -478,7 +478,7 @@ def BB_GetTransferList(pMatchStatus, pNumHandles):
 #        l_Output.append(l_HandleArray[i])
 
     bb.printLastErrorDetailsSummary()
-    print "BB_GetTransferList completed, %d handles available, %s" % (l_NumAvailHandles.value, l_Output)
+    print "BB_GetTransferList completed, %d handle(s) available, %s" % (l_NumAvailHandles.value, l_Output)
 
     return (l_NumAvailHandles.value, l_Output)
 
