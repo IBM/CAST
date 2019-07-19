@@ -93,6 +93,12 @@ struct bscfs_install_internal_files {
 	char files[BSCFS_INTERNAL_FILES_LENGTH_MAX];	// in
 };
 
+struct bscfs_get_parameter {
+	uint64_t return_code;				// out
+	char parameter[BSCFS_PATH_MAX];		// in
+	char value[256];					// out
+};
+
 #define BSCFS_IOC_START_LOCAL_FLUSH \
 	_IOWR('B', 1, struct bscfs_setup_local_flush)
 
@@ -116,6 +122,9 @@ struct bscfs_install_internal_files {
 
 #define BSCFS_IOC_INSTALL_INTERNAL_FILES \
 	_IOWR('B', 8, struct bscfs_install_internal_files)
+
+#define BSCFS_IOC_GET_PARAMETER \
+	_IOWR('B', 9, struct bscfs_get_parameter)
 
 #ifdef __cplusplus
 }
