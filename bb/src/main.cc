@@ -97,6 +97,7 @@ uint64_t determineTimeBaseScale()
 	char* ptr;
 	char line[256];
 	f = fopen("/proc/cpuinfo", "r");
+    assert(f != NULL);
 	while(!feof(f))
 	{
 	    char* str = fgets(line, sizeof(line), f);
