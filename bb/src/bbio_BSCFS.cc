@@ -27,7 +27,6 @@
     bberror << errloc(-1) \
 	<< err("error.text", errorText.str()) \
 	<< RAS(bb.internal.bscfs); \
-    LOG(bb,info) << "BBIO_BSCFS::" << __func__ << ": " << errorText.str(); \
 }
 
 #define SC_ERROR(text) { \
@@ -38,8 +37,6 @@
 	<< err("error.errno", errno) \
 	<< err("error.strerror", strerror(errno)) \
 	<< RAS(bb.sc.bscfs); \
-    LOG(bb,info) << "BBIO_BSCFS::" << __func__ << ": " << errorText.str() \
-	<< ", errno " << errno << " (" << strerror(errno) << ")"; \
 }
 
 static int CmpRegion(const void* r1, const void* r2)
