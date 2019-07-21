@@ -201,7 +201,7 @@ int LVLookup::getLVExtents(const string& vg, bool writeToSSD)
                 if (rc)
                 {
                     free(buffer);
-                    fclose(f);
+                    pclose(f);
                     FL_Write(FLExtents, statFailed, "getLVExtents: stat command failed with rc=%d", rc, 0, 0, 0);
                     LOG(bb,error) << "getLVExtents: stat command failed with rc=" << rc;
                     return rc;
@@ -239,7 +239,7 @@ int LVLookup::getLVExtents(const string& vg, bool writeToSSD)
                     if (fscanfrc != 1)
                     {
                         free(buffer);
-                        fclose(f);
+                        pclose(f);
                         FL_Write(FLExtents, fstatFailed2, "getLVExtents: fstat command failed with rc=%d", rc, 0, 0, 0);
                         LOG(bb, error) << "getLVExtents: fstat command failed with rc=" << rc;
                         return rc;
@@ -269,7 +269,7 @@ int LVLookup::getLVExtents(const string& vg, bool writeToSSD)
                 {
                     // Error is already logged
                     free(buffer);
-                    fclose(f);
+                    pclose(f);
                     throw;
                 }
 
@@ -301,7 +301,7 @@ int LVLookup::getLVExtents(const string& vg, bool writeToSSD)
             }
         }
 
-        fclose(f);
+        pclose(f);
 
         if (warningSent)
         {
