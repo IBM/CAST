@@ -37,7 +37,7 @@ bscfs blocking write multi-node
    	 [Timeout]  15 minutes
 	 Using SSD  256
 	 Using bscfs
-     ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+       ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	 Set num computes  ${maxnodes}
 	 
 	 bscfs cleanup	 
@@ -62,7 +62,7 @@ bscfs checkpoint write series multi-server
    	 [Timeout]  30 minutes
 	 Using SSD  256
 	 Using bscfs
-     ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+       ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	 Set num computes  ${maxnodes}
 	 
 	 bscfs cleanup	 
@@ -79,8 +79,10 @@ bscfs checkpoint read series single-node
       Set num computes  1
 
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
-      
+      ${result}=  bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
+      ${jobid}=  get jobid  ${result}
+	wait for stageout to complete  ${jobid}
+
       bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup
 
@@ -91,10 +93,12 @@ bscfs checkpoint read series multi-server
       Using SSD  256
       Using bscfs
       ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
-	  Set num computes  ${maxnodes}
+	Set num computes  ${maxnodes}
 
       bscfs cleanup
-      bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
+      ${result}=  bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir . --keep_all  0  30mins
+      ${jobid}=  get jobid  ${result}
+	wait for stageout to complete  ${jobid}
       
       bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_read --compute_time 40 --chkpnt_count 5 --header_size 4K --chkpnt_size 1G --stripe_size 512M --chkpnt_dir .  0  30mins
       bscfs cleanup
@@ -118,7 +122,7 @@ bscfs checkpoint write every kth checkpoint multi-server
       Using SSD  256
       Using bscfs
       ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
-	  Set num computes  ${maxnodes}
+	Set num computes  ${maxnodes}
       
       bscfs cleanup
       bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_combo -compute_time 40 --chkpnt_count 12 --chkpnt_start 0 --primary_interval 3 --header_size 4K --chkpnt_size 6G --stripe_size 512M --chkpnt_dir .  0  30mins
