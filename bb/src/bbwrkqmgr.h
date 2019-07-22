@@ -633,6 +633,7 @@ class WRKQMGR
     int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
+    string peekAtNextAsyncRequest(WorkID& pWorkItem);
     void post();
     void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
