@@ -310,6 +310,21 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     return rc;
 }
 
+void WRKQMGR::calcLastWorkQueueWithEntries()
+{
+    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
+    {
+        if (qe->second != HPWrkQE && qe->second->getWrkQ_Size())
+        {
+            // Update the last work with entries
+            setLastQueueWithEntries(qe->first);
+            break;
+        }
+    }
+
+    return;
+}
+
 void WRKQMGR::calcThrottleMode()
 {
     int l_LocalMetadataUnlockedInd = 0;
@@ -1309,16 +1324,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             {
                 if (l_RecalculateLastQueueWithEntries && (l_BucketValue >= 0))
                 {
-                    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
-                    {
-                        if (qe->second->getWrkQ_Size())
-                        {
-                            // Update the last work with entries
-                            setLastQueueWithEntries(qe->first);
-                            break;
-                        }
-                    }
-//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): Recalculated lastQueueWithEntries to " << lastQueueWithEntries;
+                    calcLastWorkQueueWithEntries();
                 }
 #if 0
                 if (l_BucketValue >= 0)
@@ -1381,9 +1387,16 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
     pWrkQE = 0;
     if (wrkqs.size() > 1)
     {
+        bool l_SelectNext = false;
+        bool l_RecalculateLastQueueWithEntries = (lastQueueWithEntries == LVKey_Null ? true : false);
         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
             // For each of the work queues...
+            if (qe->first == lastQueueWithEntries)
+            {
+                l_RecalculateLastQueueWithEntries = true;
+            }
+
             if (qe->second != HPWrkQE)
             {
                 // Not the HP workqueue...
@@ -1391,16 +1404,31 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                 {
                     // This workqueue has at least one entry.
                     l_LV_Info = qe->second->getLV_Info();
-                    if (l_LV_Info && ((l_LV_Info->hasCanceledExtents())))
+                    if (l_LV_Info && l_LV_Info->hasCanceledExtents())
                     {
                         // Next extent to be transferred is canceled...
-                        // Don't look any further and simply return this work queue.
                         pWrkQE = qe->second;
                         pWrkQE->dump("debug", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
-                        break;
+                        if (l_SelectNext || (lastQueueProcessed == lastQueueWithEntries))
+                        {
+                            // Return this queue now as it is the next in round robin order
+                            break;
+                        }
+                    }
+
+                    if ((!l_SelectNext) && qe->first == lastQueueProcessed)
+                    {
+                        // Just found the entry we last returned.  Return the next workqueue that has a canceled extent...
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE_WithCanceledExtents(): l_SelectNext = true";
+                        l_SelectNext = true;
                     }
                 }
             }
+        }
+
+        if (l_RecalculateLastQueueWithEntries && pWrkQE)
+        {
+            calcLastWorkQueueWithEntries();
         }
     }
 
@@ -1809,7 +1837,7 @@ void WRKQMGR::post()
 void WRKQMGR::post_multiple(const size_t pCount)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "post_multiple");
-    lockWorkQueueMgr((LVKey*)0, "post_multiple");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post_multiple");
 
     for (size_t i=0; i<pCount; i++)
     {
@@ -1817,7 +1845,10 @@ void WRKQMGR::post_multiple(const size_t pCount)
     }
 //    verify();
 
-    unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    }
     if (l_TransferQueueUnlocked)
     {
         lockTransferQueue((LVKey*)0, "post_multiple");
