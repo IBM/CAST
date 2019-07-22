@@ -625,7 +625,7 @@ class WRKQMGR
     size_t getSizeOfAllWorkQueues();
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
-    int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();

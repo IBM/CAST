@@ -889,39 +889,32 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
         if (getCheckForCanceledExtents())
         {
             // Search for any LVKey work queue with a canceled extent at the front...
-            rc = getWrkQE_WithCanceledExtents(pWrkQE);
+            getWrkQE_WithCanceledExtents(pWrkQE);
         }
 
-        if (!rc)
+        if (!pWrkQE)
         {
-            if (!pWrkQE)
+            // No work queue exists with canceled extents.
+            // Next, check the high priority work queue...
+            if (HPWrkQE->getWrkQ()->size() &&
+                getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests() &&
+                (getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() ||
+                 peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) != "cancel"))
             {
-                // No work queue exists with canceled extents.
-                // Next, check the high priority work queue...
-                if (HPWrkQE->getWrkQ()->size() &&
-                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests() &&
-                    (getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() ||
-                     peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) != "cancel"))
-                {
-                    // High priority work exists...  Pass the high priority queue back...
-                    pWrkQE = HPWrkQE;
-                }
-                else
-                {
-                    // No high priorty work exists that we want to schedule.
-                    // Find 'real' work on one of the LVKey work queues...
-                    rc = getWrkQE((LVKey*)0, pWrkQE);
-                }
+                // High priority work exists...  Pass the high priority queue back...
+                pWrkQE = HPWrkQE;
             }
             else
             {
-                // Work queue exists with canceled extents.
-                // Return that work queue...
+                // No high priorty work exists that we want to schedule.
+                // Find 'real' work on one of the LVKey work queues...
+                rc = getWrkQE((LVKey*)0, pWrkQE);
             }
         }
         else
         {
-            // Can't get here today...
+            // Work queue exists with canceled extents.
+            // Return that work queue...
         }
     }
 
@@ -1374,9 +1367,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     return rc;
 }
 
-int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
+void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 {
-    int rc = 0;
     LVKey l_Key;
     BBLV_Info* l_LV_Info = 0;
 
@@ -1434,7 +1426,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
         setCheckForCanceledExtents(0);
     }
 
-    return rc;
+    return;
 }
 
 void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
