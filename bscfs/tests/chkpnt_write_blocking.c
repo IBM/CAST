@@ -54,6 +54,9 @@ int main(int argc, char **argv)
         struct timespec time0;
         clock_gettime(CLOCK_REALTIME, &time0);
 
+        Print(&timer, "syncing MPI ranks\n", 0);
+        MPI_Barrier(MPI_COMM_WORLD);
+        Print(&timer, "filling memory buffers\n", 0);
         // fill memory stripes as part of the computation
         for (i = 0; i < stripe_count; i++) 
         {
@@ -74,15 +77,21 @@ int main(int argc, char **argv)
             }
         }
 
-
+        MPI_Barrier(MPI_COMM_WORLD);
         Print(&timer, "Writing checkpoint %d.\n", n);
         struct timespec bw_timer = timer;
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        Print(&timer, "open file\n", 0);
         int fd = open(Chkpnt(n), O_WRONLY|O_CREAT, 0640);
         Check(fd >= 0, "open(%s) failed", Chkpnt(n), errno);
         if ((Rank == 0) && (HeaderSize > 0)) {
             rc = pwrite(fd, header, HeaderSize, 0);
             Check(rc == HeaderSize, "pwrite(%s header) failed", Chkpnt(n), 0);
         }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        Print(&timer, "write file\n", 0);
         for (i = 0; i < stripe_count; i++) {
             mem_start = memory + (i * StripeSize);
             file_start = HeaderSize + (((i * RankCount) + Rank) * StripeSize);
@@ -94,14 +103,19 @@ int main(int argc, char **argv)
             Check(rc == size, "pwrite(%s) truncated", Chkpnt(n), 0);
             }
         }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        Print(&timer, "fsync file\n", 0);
         rc = fsync(fd);
         Check(rc == 0, "fsync(%s) failed", Chkpnt(n), errno);
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        Print(&timer, "close file\n", 0);
         rc = close(fd);
         Check(rc == 0, "close(%s) failed", Chkpnt(n), errno);
 
-        Print(&timer, "Checkpoint %d write to SSD complete:\n", n);
         MPI_Barrier(MPI_COMM_WORLD);
-
+        Print(&timer, "Checkpoint %d write to SSD complete:\n", n);
         PrintBandwidth(&timer, &bw_timer);
         bw_timer = timer;
 

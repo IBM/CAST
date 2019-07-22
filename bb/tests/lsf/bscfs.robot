@@ -28,7 +28,7 @@ bscfs blocking write single-node
 	 Using bscfs
 	 
 	 bscfs cleanup	 
-	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write_blocking --chkpnt_count 2 --chkpnt_size 16G --chunk_size 16M --chkpnt_dir . --keep_all  0  15mins
+	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write_blocking --chkpnt_count 2 --chkpnt_size 16G --stripe_size 16M --chkpnt_dir . --keep_all  0  15mins
 	 
 	 bscfs cleanup
 
@@ -41,7 +41,7 @@ bscfs blocking write multi-node
 	 Set num computes  ${maxnodes}
 	 
 	 bscfs cleanup	 
-	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write_blocking --chkpnt_count 2 --chkpnt_size 16G --chunk_size 16M --chkpnt_dir . --keep_all  0  15mins
+	 bsub&wait  ${jsrun} ${WORKDIR}/bscfs/tests/chkpnt_write_blocking --chkpnt_count 2 --chkpnt_size 16G --stripe_size 16M --chkpnt_dir . --keep_all  0  15mins
 	 
 	 bscfs cleanup
 
