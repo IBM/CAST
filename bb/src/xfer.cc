@@ -2022,6 +2022,7 @@ void* transferWorker(void* ptr)
     double l_TotalDelay = 0;
     int l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
     bool l_Repost = false;
+    size_t l_DelayRepost = 0;
     threadLocalTrackSyscallPtr = getSysCallTracker();
 
     uint64_t l_ConsecutiveSnoozes = 0;
@@ -2062,6 +2063,7 @@ void* transferWorker(void* ptr)
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
             bool l_WorkRemains = true;
+            bool l_ProcessNextWorkItem = false;
 
             if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
             {
@@ -2201,7 +2203,7 @@ void* transferWorker(void* ptr)
                 //         (very likely).  If this is the case, simply fall out, and attempt to find more work...
                 if (l_WrkQ)
                 {
-                    bool l_ProcessNextWorkItem = true;
+                    l_ProcessNextWorkItem = true;
                     if (l_WrkQE->isSuspended())
                     {
                         // Work queue is suspended
@@ -2351,6 +2353,14 @@ void* transferWorker(void* ptr)
                 {
                     // Another thread is already snoozing...
                     l_Repost = false;
+
+                    if (l_ProcessNextWorkItem)
+                    {
+                        // We will repost this after we find work for
+                        // a non-suspended work queue
+                        ++l_DelayRepost;
+                    }
+                    LOG(bb,debug)  << "transferWorker(): Another thread is already snoozing, l_DelayRepost " << l_DelayRepost;
                 }
             }
             else
@@ -2365,8 +2375,21 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists on one workqueue, so repost to the semaphore...
-                l_Repost = false;
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Reposting");
+
                 wrkqmgr.post();
+            }
+
+            if (l_DelayRepost && l_WrkQE && (l_WrkQE != HPWrkQE) &&
+                ((!l_WrkQE->isSuspended()) || (l_LV_Info && l_LV_Info->hasCanceledExtents())))
+            {
+                // NOTE: At least one workqueue entry exists on one non-suspended workqueue, so repost to the semaphore
+                //       any delayed reposts...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
+
+                wrkqmgr.post_multiple(l_DelayRepost);
+                LOG(bb,debug)  << "transferWorker(): All " << l_DelayRepost << " delayed repost(s), have been reposted to the semaphore";
+                l_DelayRepost = 0;
             }
 
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
@@ -2385,7 +2408,10 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                l_Repost = false;
+                // NOTE: We don't consider l_DelayRepost in exception handling.  We will wait for
+                //       the next iteration...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
+
                 wrkqmgr.post();
             }
 
@@ -2403,7 +2429,10 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                l_Repost = false;
+                // NOTE: We don't consider l_DelayRepost in exception handling.  We will wait for
+                //       the next iteration...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
+
                 wrkqmgr.post();
             }
 
@@ -3717,8 +3746,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_WorkItemLV_Info = l_WorkId.getLV_Info();
                             if (l_WorkItemLV_Info)
                             {
+                                // Only need to process the first/last extent
                                 ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
-                                transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
+                                Extent* l_Extent = l_ExtentInfo.getExtent();
+                                if (l_Extent->isFirstExtent() || l_Extent->isLastExtent())
+                                {
+                                    transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
+                                }
                             }
                             else
                             {
