@@ -898,14 +898,10 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             {
                 // No work queue exists with canceled extents.
                 // Next, check the high priority work queue...
-                // NOTE: If we have high priority work items available and we have reached the maximum number of concurrent
-                //       cancel requests, we don't check the contents of the next high priority work item.
-                //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
-                //       working on a cancel request before dequeuing that high priority work item.
-                //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
                 if (HPWrkQE->getWrkQ()->size() &&
-                    getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() &&
-                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
+                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests() &&
+                    (getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() ||
+                     peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) != "cancel"))
                 {
                     // High priority work exists...  Pass the high priority queue back...
                     pWrkQE = HPWrkQE;
@@ -919,8 +915,8 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             }
             else
             {
-                // Currently, rc will always be returned as zero by getWrkQE_WithCanceledExtents().
-                // If we get here, at least one work queue has canceled extents...
+                // Work queue exists with canceled extents.
+                // Return that work queue...
             }
         }
         else
@@ -1800,6 +1796,47 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
     }
 
     return l_FilePtr;
+}
+
+string WRKQMGR::peekAtNextAsyncRequest(WorkID& pWorkItem)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+
+    AsyncRequest l_Request = AsyncRequest();
+    rc = wrkqmgr.getAsyncRequest(pWorkItem, l_Request);
+
+    if (!rc)
+    {
+        if (!l_Request.sameHostName())
+        {
+            // Peek the request
+            char l_Str1[64] = {'\0'};
+            char l_Str2[64] = {'\0'};
+            uint64_t l_JobId = UNDEFINED_JOBID;
+            uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
+            uint64_t l_Handle = UNDEFINED_HANDLE;
+            uint32_t l_ContribId = UNDEFINED_CONTRIBID;
+            uint64_t l_CancelScope = 0;
+
+            rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
+            if (rc != 8)
+            {
+                // Failure when attempting to parse the request...  Log it and continue...
+                LOG(bb,error) << "peekAtNextAsyncRequest: Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
+            }
+        }
+    }
+    else
+    {
+        // Error when retrieving the request
+        LOG(bb,error) << "peekAtNextAsyncRequest: Error when attempting to retrieve the async request at offset " << pWorkItem.getTag();
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return string(l_Cmd);
 }
 
 void WRKQMGR::post()
