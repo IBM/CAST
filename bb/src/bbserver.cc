@@ -2904,8 +2904,8 @@ int bb_main(std::string who)
         //       efficient removal of canceled extents from the work queue(s).
         uint32_t l_NumberOfTransferThreads = (uint32_t)(config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS));
 
-        wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 4 ? l_NumberOfTransferThreads/2 : 1);
-        wrkqmgr.setNumberOfAllowedConcurrentHPRequests(l_NumberOfTransferThreads >= 4 ? l_NumberOfTransferThreads/4 : 1);
+        wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 16 ? l_NumberOfTransferThreads/16 : 1);
+        wrkqmgr.setNumberOfAllowedConcurrentHPRequests(l_NumberOfTransferThreads >= 2 ? l_NumberOfTransferThreads/2 : 1);
         wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
         wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
