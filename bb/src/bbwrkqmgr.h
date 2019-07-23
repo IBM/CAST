@@ -514,6 +514,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setLastDumpedNumberOfWorkQueueItemsProcessed(const int pValue)
+    {
+        lastDumpedNumberOfWorkQueueItemsProcessed = pValue;
+
+        return;
+    }
+
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
