@@ -2032,11 +2032,10 @@ void* transferWorker(void* ptr)
     double l_ThreadDelay = 0;
     double l_TotalDelay = 0;
     int l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-    bool l_Repost = false;
-    size_t l_DelayRepost = 0;
     threadLocalTrackSyscallPtr = getSysCallTracker();
 
     uint64_t l_ConsecutiveSnoozes = 0;
+    size_t l_SuspendedRepost = 0;
 
     while (1)
     {
@@ -2046,13 +2045,14 @@ void* transferWorker(void* ptr)
         l_WrkQE = 0;
         l_LV_Info = 0;
         l_Extent = 0;
-        l_Repost = true;
 
         verifyInitLockState();
 
         // Start new work
         wrkqmgr.wait();
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Start work item");
+
+        bool l_Repost = true;
 
         try
         {
@@ -2262,23 +2262,6 @@ void* transferWorker(void* ptr)
                             // Perform the transfer
 //                            l_WrkQE->dump("info", " Extent being transferred -> ");
                             transferExtent(l_LV_Info, l_WorkItem, l_ExtentInfo);
-                            if (!Throttle_Timer.isSnoozing())
-                            {
-                                int l_NumberOfPosts = 0;
-
-                                unlockTransferQueue((LVKey*)0, "Throttle_Timer - before sem_getvalue");
-                                wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer - before sem_getvalue");
-
-                                sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
-
-                                wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer - after sem_getvalue");
-                                lockTransferQueue((LVKey*)0, "Throttle_Timer -  after sem_getvalue");
-
-                                if (l_NumberOfPosts)
-                                {
-                                    l_Repost = false;
-                                }
-                            }
                         }
                         else
                         {
@@ -2296,7 +2279,7 @@ void* transferWorker(void* ptr)
 
                         if (++l_ConsecutiveSuspendedWorkQueuesNotProcessed >= CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD)
                         {
-                            // If we have not processed several suspended work queues consecutively, then treat
+                            // If we have processed several suspended work queues consecutively, then treat
                             // this situation as if no work remains.  We will delay below for a while before retrying
                             // to find additional work.
                             l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
@@ -2339,7 +2322,7 @@ void* transferWorker(void* ptr)
                     {
                         if (!(++l_ConsecutiveSnoozes % 40))
                         {
-                            LOG(bb,debug) << "Snoozing...";
+                            LOG(bb,off) << "Snoozing...";
                         }
                         Throttle_Timer.setSnooze(true);
                         int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(&l_Key, "%transferWorker - Before snoozing");
@@ -2364,14 +2347,13 @@ void* transferWorker(void* ptr)
                 {
                     // Another thread is already snoozing...
                     l_Repost = false;
-
-                    if (l_ProcessNextWorkItem)
+                    if (l_WrkQE && l_WrkQE->isSuspended())
                     {
                         // We will repost this after we find work for
                         // a non-suspended work queue
-                        ++l_DelayRepost;
+                        ++l_SuspendedRepost;
                     }
-                    LOG(bb,debug)  << "transferWorker(): Another thread is already snoozing, l_DelayRepost " << l_DelayRepost;
+                    LOG(bb,info)  << "transferWorker(): Another thread is already snoozing, l_SuspendedRepost " << l_SuspendedRepost;
                 }
             }
             else
@@ -2391,16 +2373,16 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            if (l_DelayRepost && l_WrkQE && (l_WrkQE != HPWrkQE) &&
+            if (l_SuspendedRepost && l_WrkQE && (l_WrkQE != HPWrkQE) &&
                 ((!l_WrkQE->isSuspended()) || (l_LV_Info && l_LV_Info->hasCanceledExtents())))
             {
                 // NOTE: At least one workqueue entry exists on one non-suspended workqueue, so repost to the semaphore
                 //       any delayed reposts...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
 
-                wrkqmgr.post_multiple(l_DelayRepost);
-                LOG(bb,debug)  << "transferWorker(): All " << l_DelayRepost << " delayed repost(s), have been reposted to the semaphore";
-                l_DelayRepost = 0;
+                wrkqmgr.post_multiple(l_SuspendedRepost);
+                LOG(bb,info)  << "transferWorker(): All " << l_SuspendedRepost << " suspended repost(s), have been reposted to the semaphore";
+                l_SuspendedRepost = 0;
             }
 
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
@@ -2419,7 +2401,7 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                // NOTE: We don't consider l_DelayRepost in exception handling.  We will wait for
+                // NOTE: We don't consider l_SuspendedRepost in exception handling.  We will wait for
                 //       the next iteration...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
 
@@ -2440,7 +2422,7 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                // NOTE: We don't consider l_DelayRepost in exception handling.  We will wait for
+                // NOTE: We don't consider l_SuspendedRepost in exception handling.  We will wait for
                 //       the next iteration...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
 
