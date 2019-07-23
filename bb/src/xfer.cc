@@ -2035,7 +2035,6 @@ void* transferWorker(void* ptr)
     threadLocalTrackSyscallPtr = getSysCallTracker();
 
     uint64_t l_ConsecutiveSnoozes = 0;
-    size_t l_SuspendedRepost = 0;
 
     while (1)
     {
@@ -2349,11 +2348,11 @@ void* transferWorker(void* ptr)
                     l_Repost = false;
                     if (l_WrkQE && l_WrkQE->isSuspended())
                     {
-                        // We will repost this after we find work for
-                        // a non-suspended work queue
-                        ++l_SuspendedRepost;
+                        // We will repost after this work
+                        // queue is resumed again
+                        l_WrkQE->incrementSuspendedReposts();
+                        LOG(bb,debug)  << "transferWorker(): Another thread is already snoozing. " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) exist for " << l_Key;
                     }
-                    LOG(bb,info)  << "transferWorker(): Another thread is already snoozing, l_SuspendedRepost " << l_SuspendedRepost;
                 }
             }
             else
@@ -2373,16 +2372,16 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            if (l_SuspendedRepost && l_WrkQE && (l_WrkQE != HPWrkQE) &&
+            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) &&
                 ((!l_WrkQE->isSuspended()) || (l_LV_Info && l_LV_Info->hasCanceledExtents())))
             {
                 // NOTE: At least one workqueue entry exists on one non-suspended workqueue, so repost to the semaphore
                 //       any delayed reposts...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
 
-                wrkqmgr.post_multiple(l_SuspendedRepost);
-                LOG(bb,info)  << "transferWorker(): All " << l_SuspendedRepost << " suspended repost(s), have been reposted to the semaphore";
-                l_SuspendedRepost = 0;
+                wrkqmgr.post_multiple((size_t)l_WrkQE->getSuspendedReposts());
+                LOG(bb,debug)  << "transferWorker(): All " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) have been reposted to the semaphore for " << l_Key;
+                l_WrkQE->setSuspendedReposts(0);
             }
 
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
@@ -2401,7 +2400,7 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                // NOTE: We don't consider l_SuspendedRepost in exception handling.  We will wait for
+                // NOTE: We don't consider suspended reposts in exception handling.  We will wait for
                 //       the next iteration...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
 
@@ -2422,7 +2421,7 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                // NOTE: We don't consider l_SuspendedRepost in exception handling.  We will wait for
+                // NOTE: We don't consider suspended reposts in exception handling.  We will wait for
                 //       the next iteration...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
 

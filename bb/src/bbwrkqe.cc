@@ -84,6 +84,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
 
     size_t l_NumberOfWorkItems = getNumberOfWorkItems();
     size_t l_NumberOfWorkItemsProcessed = getNumberOfWorkItemsProcessed();
+    string l_SuspendedReposts = to_string(getSuspendedReposts());
 
     if (wrkq)
     {
@@ -102,7 +103,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             if (l_LV_Info)
             {
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
-
                 l_NumberOfInFlightExtents = getNumberOfInFlightExtents();
                 l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
                 l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
@@ -121,6 +121,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
         if (suspended || pDataInd == DUMP_ALL_DATA)
         {
             l_Output += ", Susp " + l_Suspended;
+            l_Output += ", SuspRpst " + l_SuspendedReposts;
         }
         if (l_ActiveTransferDefs.size())
         {
