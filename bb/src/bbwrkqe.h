@@ -70,6 +70,7 @@ class WRKQE
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
+        suspendedReposts(0),
         lvinfo(0) {
         init();
     };
@@ -89,6 +90,7 @@ class WRKQE
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
+        suspendedReposts(0),
         lvinfo(pLV_Info) {
         init();
     };
@@ -145,9 +147,21 @@ class WRKQE
         return rate;
     };
 
+    inline uint64_t getSuspendedReposts()
+    {
+        return suspendedReposts;
+    };
+
     inline void incrementNumberOfWorkItemsProcessed()
     {
         ++numberOfWorkItemsProcessed;
+
+        return;
+    };
+
+    inline void incrementSuspendedReposts()
+    {
+        ++suspendedReposts;
 
         return;
     };
@@ -217,6 +231,13 @@ class WRKQE
         return;
     };
 
+    inline void setSuspendedReposts(const uint64_t pValue)
+    {
+        suspendedReposts = pValue;
+
+        return;
+    };
+
     inline void setThrottleWait(const int pValue)
     {
         throttleWait = pValue;
@@ -272,6 +293,8 @@ class WRKQE
     volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
+    uint64_t            suspendedReposts;           // Access is serialized with the
+                                                    // work queue manager lock
     BBLV_Info*          lvinfo;
     queue<WorkID>*      wrkq;
     pthread_mutex_t     lock_transferqueue;
