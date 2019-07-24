@@ -62,7 +62,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
     string l_ContribId = "";
     string l_Rate = "";
     string l_Bucket = "";
-    string l_ThrottleWait = "";
     string l_WorkQueueReturnedWithNegativeBucket = "";
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId;
@@ -112,7 +111,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
                 {
                     l_Rate = (HPWrkQE != this ? to_string(rate) : "H");
                     l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
-                    l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
                     l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
                 }
             }
@@ -148,10 +146,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             if (l_Bucket.size())
             {
                 l_Output += ", Bkt " + l_Bucket;
-            }
-            if (l_ThrottleWait.size())
-            {
-                l_Output += ", TW " + l_ThrottleWait;
             }
             if (l_WorkQueueReturnedWithNegativeBucket.size())
             {
@@ -377,7 +371,6 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                 bucket = 0;
             }
         }
-        setThrottleWait(0);
     }
 
     if (l_MadeBucketModification)

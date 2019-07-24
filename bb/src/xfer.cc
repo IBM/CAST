@@ -2073,13 +2073,15 @@ void* transferWorker(void* ptr)
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
             bool l_WorkRemains = true;
+            bool l_SuspendedWorkRemains = false;
             bool l_ProcessNextWorkItem = false;
 
-            if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
+            if (wrkqmgr.findWork((LVKey*)0, l_WrkQE) == 1)
             {
-                // Work was returned
+                // Work exists
                 if (l_WrkQE)
                 {
+                    // Work was returned
                     CurrentWrkQE = l_WrkQE;
                     lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
                     // NOTE:  Indicate critical section of code where the transfer queue
@@ -2195,14 +2197,16 @@ void* transferWorker(void* ptr)
                     }
                     else
                     {
-                        // A work queue with no entries was returned.  Tolerate the situation,
+                        // A work queue with no entries was returned.  Log the situation, tolerate,
                         // fall through, attempt to find more work.
+                        errorText << "Empty work queue returned when attempting to find additional work";
+                        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_3);
                     }
                 }
                 else
                 {
-                    errorText << "Null work queue returned when attempting to find additional work";
-                    LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_3);
+                    // Work exists, but was not returned on this invocation.
+                    // Fall through and attempt to find more work.
                 }
 
                 //  NOTE:  When we get here, l_WrkQ addresses a workqueue with one or more extents
@@ -2279,10 +2283,10 @@ void* transferWorker(void* ptr)
                         if (++l_ConsecutiveSuspendedWorkQueuesNotProcessed >= CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD)
                         {
                             // If we have processed several suspended work queues consecutively, then treat
-                            // this situation as if no work remains.  We will delay below for a while before retrying
-                            // to find additional work.
+                            // this situation similar to 'no work remains'.  We will delay below for a while
+                            // before retrying to find additional work.
                             l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-                            l_WorkRemains = false;
+                            l_SuspendedWorkRemains = true;
                         }
 
                         // Indicate transfer queue lock can be released
@@ -2306,9 +2310,10 @@ void* transferWorker(void* ptr)
                 l_WorkRemains = false;
             }
 
-            if (!l_WorkRemains)
+            if ((!l_WorkRemains) || l_SuspendedWorkRemains)
             {
-                // No work remains...  We need to post to the semaphore at least every time interval
+                // No work remains -or- suspended work remains and we want to snooze.
+                // We need to post to the semaphore at least every time interval
                 // so that we can check for requests in the async file...
                 // NOTE: If the Throttle_Timer is snoozing, that indicates another thread is
                 //       already delaying to post to the semaphore.  We only need a single thread
@@ -2345,13 +2350,23 @@ void* transferWorker(void* ptr)
                 else
                 {
                     // Another thread is already snoozing...
-                    l_Repost = false;
-                    if (l_WrkQE && l_WrkQE->isSuspended())
+                    LOG(bb,off) << "transferWorker(): Another thread snoozing, l_WrkQE " << l_WrkQE;
+                    if (l_WorkRemains)
                     {
-                        // We will repost after this work
-                        // queue is resumed again
-                        l_WrkQE->incrementSuspendedReposts();
-                        LOG(bb,debug)  << "transferWorker(): Another thread is already snoozing. " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) exist for " << l_Key;
+                        if (l_WrkQE)
+                        {
+                            if (l_WrkQE->isSuspended())
+                            {
+                                // We will repost after this work queue is resumed again
+                                LOG(bb,off)  << "transferWorker(): Another thread is already snoozing, suspended work queue, " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) exist for " << l_Key;
+                                l_WrkQE->incrementSuspendedReposts();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No work remains, so do not repost to the semaphore...
+                        l_Repost = false;
                     }
                 }
             }
@@ -3116,14 +3131,14 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 WRKQE* l_WrkQE = 0;
                                 if (!CurrentWrkQE)
                                 {
-                                    rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                    wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
                                 }
                                 else
                                 {
                                     l_WrkQE = CurrentWrkQE;
                                 }
 
-                                if ((!rc) && l_WrkQE)
+                                if (l_WrkQE)
                                 {
                                     CurrentWrkQE = l_WrkQE;
                                     lockTransferQueue(pLVKey, "queueTransfer");
@@ -3586,17 +3601,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // Stageout end not started
             try
             {
-                int rc2 = 0;
                 if (!CurrentWrkQE)
                 {
-                    rc2 = wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
+                    wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
                 }
                 else
                 {
                     l_WrkQE = CurrentWrkQE;
                 }
 
-                if ((!rc2) && l_WrkQE)
+                if (l_WrkQE)
                 {
                     CurrentWrkQE = l_WrkQE;
                     l_WrkQ = l_WrkQE->getWrkQ();

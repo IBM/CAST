@@ -1793,6 +1793,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 {
                     if (!l_MarkFailedFromProxy)
                     {
+                        rc = 0;
                         // Check to see if the hostname is suspended and whether this is a start or restart for the transfer definition
                         // NOTE:  bbServer cannot catch the case of a suspended hostname and this is the first transfer definition to be started.
                         //        Such a check would have to be in the else leg of getInfo().  We rely on bbProxy to prevent that from happening...
@@ -1808,11 +1809,10 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                             //       bbServer, but we have not finished registering all of the LVKeys.
                             //       If necessary, spin for up to 2 minutes waiting for the work queue.
                             int l_Continue = DELAY_SECONDS;
-                            rc = -1;
-                            while (rc && l_Continue--)
+                            while ((!CurrentWrkQE) && l_Continue--)
                             {
-                                rc = wrkqmgr.getWrkQE(&l_LVKey2, CurrentWrkQE);
-                                if (rc || (!CurrentWrkQE))
+                                wrkqmgr.getWrkQE(&l_LVKey2, CurrentWrkQE);
+                                if (!CurrentWrkQE)
                                 {
                                     unlockLocalMetadata(&l_LVKey2, "msgin_starttransfer (restart) - Waiting for LVKey's work queue");
                                     {
@@ -1840,7 +1840,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                     }
                                 }
                             }
-                            if (!rc)
+                            if (CurrentWrkQE)
                             {
                                 // We drop the lock on the local metadata here so other threads can process in parallel.
                                 // We may have some I/O intensive paths later, like acquiring stats for source files,
@@ -2393,7 +2393,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                               << " The necessary local metadata for the transfer definition could not be found on this server." \
                                               << " This is caused by residual jobs/transfer definitions that are not currently active" \
                                               << " being found in the metadata by the retrieve/stop processing.";
-                                    LOG_INFO_TEXT_AND_BAIL(errorText);                            }
+                                    LOG_INFO_TEXT_AND_BAIL(errorText);
+                                }
                                 else
                                 {
                                     // A non-restart scenario.  A failover occurred between the create of the logical volume
