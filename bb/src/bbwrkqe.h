@@ -212,11 +212,10 @@ class WRKQE
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
-        if (!rate)
-        {
-            bucket = 0;
-            workQueueReturnedWithNegativeBucket = 0;
-        }
+        // NOTE:  No matter what the new rate value is,
+        //        we want to reset the bucket value
+        bucket = 0;
+        workQueueReturnedWithNegativeBucket = 0;
 
         return;
     };
