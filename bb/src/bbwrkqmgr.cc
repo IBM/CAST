@@ -915,7 +915,7 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 // work exists on the HP work queue, return 1.
                 // NOTE:  Even if pWrkQE is not set by getWrkQE(),
                 //        if any work did exist, rc is set to 1.
-                if (((!rc) && (!pWrkQE)) && HPWrkQE->getWrkQ()->size())
+                if ((rc != 1) && HPWrkQE->getWrkQ()->size())
                 {
                     rc = 1;
                 }

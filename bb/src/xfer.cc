@@ -2273,6 +2273,7 @@ void* transferWorker(void* ptr)
                             processAsyncRequest(l_WorkItem);
                         }
                         wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                        l_Repost = false;
                     }
                     else
                     {
@@ -2366,6 +2367,7 @@ void* transferWorker(void* ptr)
                     else
                     {
                         // No work remains, so do not repost to the semaphore...
+                        LOG(bb,off) << "transferWorker(): No work remains";
                         l_Repost = false;
                     }
                 }
