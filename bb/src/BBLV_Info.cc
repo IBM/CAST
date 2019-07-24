@@ -83,8 +83,11 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
     // NOTE: pLockWasReleased intentionally not initialized
 
     // NOTE: CurrentWrkQE must be set prior to sortExtents()
-    int rc = wrkqmgr.getWrkQE(pLVKey, CurrentWrkQE);
-    if ((!rc) && CurrentWrkQE)
+    if (!CurrentWrkQE)
+    {
+        wrkqmgr.getWrkQE(pLVKey, CurrentWrkQE);
+    }
+    if (CurrentWrkQE)
     {
         size_t l_NumberOfNewExtentsCanceled = 0;
         extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);

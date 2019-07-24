@@ -903,18 +903,29 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             {
                 // High priority work exists...  Pass the high priority queue back...
                 pWrkQE = HPWrkQE;
+                rc = 1;
             }
             else
             {
-                // No high priorty work exists that we want to schedule.
+                // No high priority work exists that we want to schedule.
                 // Find 'real' work on one of the LVKey work queues...
                 rc = getWrkQE((LVKey*)0, pWrkQE);
+
+                // If we did not find any work that we wanted to return, but
+                // work exists on the HP work queue, return 1.
+                // NOTE:  Even if pWrkQE is not set by getWrkQE(),
+                //        if any work did exist, rc is set to 1.
+                if (((!rc) && (!pWrkQE)) && HPWrkQE->getWrkQ()->size())
+                {
+                    rc = 1;
+                }
             }
         }
         else
         {
             // Work queue exists with canceled extents.
             // Return that work queue...
+            rc = 1;
         }
     }
 
@@ -1119,15 +1130,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       this routine without any remaining work queue entries for a given work queue, for a workqueue that
     //       no longer exists, or where there are no existing work queues.
     //
-    //       In these cases, pWorkQE is always returned as NULL.  If ANY work queue exists with at least
-    //       one entry, rc is returned as zero.  If no entry exists on any work queue
-    //       (except for the high priority work queue), rc is returned as -1.
+    //       In these cases, pWrkQE is always returned as NULL.  If ANY work queue exists with at least
+    //       one entry, rc is returned as 1.  If no entry exists on any work queue,
+    //       (except for the high priority work queue), rc is returned as 0.
     //
-    //       A zero return code indicates that even if a work queue entry was not found, a repost should
-    //       be performed to the semaphore.  A return code of -1 indicates that a repost is not necessary.
+    //       A 1 return code indicates that even if a work queue entry was not found, a repost should
+    //       be performed to the semaphore.  A return code of 0 indicates that a repost is not necessary.
     //
     // NOTE: Suspended work queues are returned by this method.  The reason for this is that an entry can
-    //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
+    //       still be removed from a suspended work queue if the extent(s) exist for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
@@ -1268,6 +1279,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 //                                LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
                             }
                         }
+                        rc = 1;
                     }
 
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
@@ -1284,10 +1296,6 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 // NOTE: We don't update the last queue processed here because our invoker may choose to not take action on our returned
                 //       data.  The last queue processed is updated just before an item of work is removed from a queue.
                 pWrkQE = l_WrkQE;
-                if (pWrkQE->getRate() > 0)
-                {
-                    pWrkQE->setThrottleWait(1);
-                }
                 if ((!l_RecalculateLastQueueWithEntries) && (!l_EarlyExit))
                 {
                     l_RecalculateLastQueueWithEntries = true;
@@ -1296,18 +1304,16 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             else
             {
                 // WRKQMGR::getWrkQE(): No extents left on any workqueue
-                rc = -1;
-//                LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
+                LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
             }
         }
         else
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
-            rc = -1;
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
         }
 
-        if (!rc)
+        if (rc == 1)
         {
             if (pWrkQE)
             {
@@ -1342,13 +1348,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             // NOTE: In this path since a specific LVKey was passed, we do not interrogate the
             //       rate/bucket values.  We simply return the work queue associated with the LVKey.
             pWrkQE = it->second;
+            rc = 1;
         }
         else
         {
             // WRKQMGR::getWrkQE(): Workqueue no longer exists
             //
-            // NOTE: rc is returned as a zero in this case.  We do not know if
-            //       any other workqueue has an entry...
+            // NOTE: rc is returned as a zero in this case.  We are not concerned about
+            //       other work queues in this path.  We return 0 if the requested work
+            //       queue cannot be found.
             LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
             dump("info", " Work Queue Mgr (Specific workqueue not found)", DUMP_ALWAYS);
         }
