@@ -7,3 +7,6 @@
  * @{
  */
 
+typedef struct csmi_allocation_t csmi_allocation_t;
+
+

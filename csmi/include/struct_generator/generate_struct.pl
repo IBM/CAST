@@ -316,7 +316,7 @@ STRUCT
 # Else build just the alias.
 if ( $alias_name  eq "" )
 {
-    $struct .=  "typedef struct {${NFIELDS}${struct_def}} ${struct_name};";
+    $struct .= "typedef struct ${struct_name} ${struct_name};\nstruct ${struct_name} {${NFIELDS}${struct_def}};";
     
     # Write the contents of the struct
     open(my $o,">>",$output_h_type ) or die "Could not open $output_h_type";

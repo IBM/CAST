@@ -23,12 +23,13 @@ extern "C" {
 /**
  * @brief Defines payload for Burst Buffer Command multicasts.
  */
-typedef struct {
+typedef struct csmi_bb_cmd_payload_t csmi_bb_cmd_payload_t;
+struct csmi_bb_cmd_payload_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t bb_cmd_int; /**< The user id on the spawn, error code on the response. */
     char* bb_cmd_str; /**< The arguments for the command executable on the spawn, execution message on the response.. */
     char* hostname; /**< The hostname of the node. */
-} csmi_bb_cmd_payload_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.

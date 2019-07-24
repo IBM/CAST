@@ -157,7 +157,7 @@ check_return_flag_nz $? 4 "Test Case 14: csm_allocation_query job id does not ex
 
 # Test Case 15: csm_allocation_query more than 1 allocation with job_id=1
 ${CSM_PATH}/csm_allocation_query -j 1 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 15: csm_allocation_query more than 1 allocation with job_id=1"
+check_return_flag_nz $? 0 "Test Case 15: csm_allocation_query more than 1 allocation with job_id=1"
 
 # Test Case 16: csm_allocation_query invalid -a option
 ${CSM_PATH}/csm_allocation_query -a xxx > ${TEMP_LOG} 2>&1
