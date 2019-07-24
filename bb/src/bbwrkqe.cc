@@ -104,7 +104,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
                 l_NumberOfInFlightExtents = getNumberOfInFlightExtents();
                 l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
-                l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
+                l_JobStepId = (l_ExtentInfo.getTransferDef() ? to_string(l_ExtentInfo.getTransferDef()->getJobStepId()) : "None");
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
                 if (rate || pDataInd == DUMP_ALL_DATA)
