@@ -38,9 +38,9 @@ using namespace boost;
 #include <chrono>
 #endif
 
-#if BBSERVER
+
 void checkForStuckSyscall();
-#endif
+
 
 #include "bbapi.h"
 #include "bbproxy_flightlog.h"
@@ -404,9 +404,9 @@ void* mountMonitorThread(void* ptr)
    struct rusage l_rusage[2];
    struct rusage l_rusage_base;
    struct rusage l_rusageDelta;
-#ifdef BBSERVER
+
    time_t lastCheck = 0;
-#endif
+
 
    int getrusage_rc = getrusage(RUSAGE_SELF, &l_rusage_base  );
    if(getrusage_rc)
@@ -503,7 +503,6 @@ void* mountMonitorThread(void* ptr)
            checkForStaleMsg(600);  //a stale message is a message older than (seconds)
         }
 #endif
-#if BBSERVER
         {
             checkForStuckSyscall(); //any file system IO taking unduly long or stuck?
 
@@ -519,7 +518,6 @@ void* mountMonitorThread(void* ptr)
                 }
             }
         }
-#endif
         sleep(l_sleepValue);
     }
 
