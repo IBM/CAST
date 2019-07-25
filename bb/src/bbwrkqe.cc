@@ -62,7 +62,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
     string l_ContribId = "";
     string l_Rate = "";
     string l_Bucket = "";
-    string l_ThrottleWait = "";
     string l_WorkQueueReturnedWithNegativeBucket = "";
     string l_Suspended = (suspended ? "Y" : "N");
     string l_Output = "Job " + l_JobId;
@@ -84,6 +83,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
 
     size_t l_NumberOfWorkItems = getNumberOfWorkItems();
     size_t l_NumberOfWorkItemsProcessed = getNumberOfWorkItemsProcessed();
+    string l_SuspendedReposts = to_string(getSuspendedReposts());
 
     if (wrkq)
     {
@@ -102,17 +102,15 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             if (l_LV_Info)
             {
                 ExtentInfo l_ExtentInfo = l_LV_Info->getNextExtentInfo();
-
                 l_NumberOfInFlightExtents = getNumberOfInFlightExtents();
                 l_ActiveTransferDefs = to_string(l_LV_Info->getNumberOfTransferDefsWithOutstandingWorkItems());
-                l_JobStepId = to_string(l_ExtentInfo.getTransferDef()->getJobStepId());
+                l_JobStepId = (l_ExtentInfo.getTransferDef() ? to_string(l_ExtentInfo.getTransferDef()->getJobStepId()) : "None");
                 l_Handle = to_string(l_ExtentInfo.getHandle());
                 l_ContribId = to_string(l_ExtentInfo.getContrib());
                 if (rate || pDataInd == DUMP_ALL_DATA)
                 {
                     l_Rate = (HPWrkQE != this ? to_string(rate) : "H");
                     l_Bucket = (HPWrkQE != this ? to_string(bucket) : "H");
-                    l_ThrottleWait = (HPWrkQE != this ? to_string(throttleWait) : "H");
                     l_WorkQueueReturnedWithNegativeBucket = (HPWrkQE != this ? to_string(workQueueReturnedWithNegativeBucket) : "H");
                 }
             }
@@ -121,6 +119,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
         if (suspended || pDataInd == DUMP_ALL_DATA)
         {
             l_Output += ", Susp " + l_Suspended;
+            l_Output += ", SuspRpst " + l_SuspendedReposts;
         }
         if (l_ActiveTransferDefs.size())
         {
@@ -147,10 +146,6 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             if (l_Bucket.size())
             {
                 l_Output += ", Bkt " + l_Bucket;
-            }
-            if (l_ThrottleWait.size())
-            {
-                l_Output += ", TW " + l_ThrottleWait;
             }
             if (l_WorkQueueReturnedWithNegativeBucket.size())
             {
@@ -376,7 +371,6 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
                 bucket = 0;
             }
         }
-        setThrottleWait(0);
     }
 
     if (l_MadeBucketModification)

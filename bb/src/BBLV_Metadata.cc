@@ -1129,6 +1129,16 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
         rc = 0;
     }
 
+    if (l_NumberSet)
+    {
+        // Reset lastDumpedNumberOfWorkQueueItemsProcessed so that the
+        // work queue manager is dumped to the console log 'next time'...
+        int l_LocalMetadataUnlockedInd = 0;
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBLV_Metadata::setSuspended", &l_LocalMetadataUnlockedInd);
+        wrkqmgr.setLastDumpedNumberOfWorkQueueItemsProcessed(0);
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBLV_Metadata::setSuspended", &l_LocalMetadataUnlockedInd);
+    }
+
     string l_HostNamePrt = "For CN host name " + pCN_HostName + ", ";
     if (!pCN_HostName.size())
     {

@@ -310,6 +310,21 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     return rc;
 }
 
+void WRKQMGR::calcLastWorkQueueWithEntries()
+{
+    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
+    {
+        if (qe->second != HPWrkQE && qe->second->getWrkQ_Size())
+        {
+            // Update the last work with entries
+            setLastQueueWithEntries(qe->first);
+            break;
+        }
+    }
+
+    return;
+}
+
 void WRKQMGR::calcThrottleMode()
 {
     int l_LocalMetadataUnlockedInd = 0;
@@ -874,43 +889,43 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
         if (getCheckForCanceledExtents())
         {
             // Search for any LVKey work queue with a canceled extent at the front...
-            rc = getWrkQE_WithCanceledExtents(pWrkQE);
+            getWrkQE_WithCanceledExtents(pWrkQE);
         }
 
-        if (!rc)
+        if (!pWrkQE)
         {
-            if (!pWrkQE)
+            // No work queue exists with canceled extents.
+            // Next, check the high priority work queue...
+            if (HPWrkQE->getWrkQ()->size() &&
+                getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests() &&
+                (getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() ||
+                 peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) != "cancel"))
             {
-                // No work queue exists with canceled extents.
-                // Next, check the high priority work queue...
-                // NOTE: If we have high priority work items available and we have reached the maximum number of concurrent
-                //       cancel requests, we don't check the contents of the next high priority work item.
-                //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
-                //       working on a cancel request before dequeuing that high priority work item.
-                //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
-                if (HPWrkQE->getWrkQ()->size() &&
-                    getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() &&
-                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
-                {
-                    // High priority work exists...  Pass the high priority queue back...
-                    pWrkQE = HPWrkQE;
-                }
-                else
-                {
-                    // No high priorty work exists that we want to schedule.
-                    // Find 'real' work on one of the LVKey work queues...
-                    rc = getWrkQE((LVKey*)0, pWrkQE);
-                }
+                // High priority work exists...  Pass the high priority queue back...
+                pWrkQE = HPWrkQE;
+                rc = 1;
             }
             else
             {
-                // Currently, rc will always be returned as zero by getWrkQE_WithCanceledExtents().
-                // If we get here, at least one work queue has canceled extents...
+                // No high priority work exists that we want to schedule.
+                // Find 'real' work on one of the LVKey work queues...
+                rc = getWrkQE((LVKey*)0, pWrkQE);
+
+                // If we did not find any work that we wanted to return, but
+                // work exists on the HP work queue, return 1.
+                // NOTE:  Even if pWrkQE is not set by getWrkQE(),
+                //        if any work did exist, rc is set to 1.
+                if ((rc != 1) && HPWrkQE->getWrkQ()->size())
+                {
+                    rc = 1;
+                }
             }
         }
         else
         {
-            // Can't get here today...
+            // Work queue exists with canceled extents.
+            // Return that work queue...
+            rc = 1;
         }
     }
 
@@ -1115,15 +1130,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       this routine without any remaining work queue entries for a given work queue, for a workqueue that
     //       no longer exists, or where there are no existing work queues.
     //
-    //       In these cases, pWorkQE is always returned as NULL.  If ANY work queue exists with at least
-    //       one entry, rc is returned as zero.  If no entry exists on any work queue
-    //       (except for the high priority work queue), rc is returned as -1.
+    //       In these cases, pWrkQE is always returned as NULL.  If ANY work queue exists with at least
+    //       one entry, rc is returned as 1.  If no entry exists on any work queue,
+    //       (except for the high priority work queue), rc is returned as 0.
     //
-    //       A zero return code indicates that even if a work queue entry was not found, a repost should
-    //       be performed to the semaphore.  A return code of -1 indicates that a repost is not necessary.
+    //       A 1 return code indicates that even if a work queue entry was not found, a repost should
+    //       be performed to the semaphore.  A return code of 0 indicates that a repost is not necessary.
     //
     // NOTE: Suspended work queues are returned by this method.  The reason for this is that an entry can
-    //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
+    //       still be removed from a suspended work queue if the extent(s) exist for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
@@ -1264,6 +1279,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 //                                LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
                             }
                         }
+                        rc = 1;
                     }
 
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
@@ -1280,10 +1296,6 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 // NOTE: We don't update the last queue processed here because our invoker may choose to not take action on our returned
                 //       data.  The last queue processed is updated just before an item of work is removed from a queue.
                 pWrkQE = l_WrkQE;
-                if (pWrkQE->getRate() > 0)
-                {
-                    pWrkQE->setThrottleWait(1);
-                }
                 if ((!l_RecalculateLastQueueWithEntries) && (!l_EarlyExit))
                 {
                     l_RecalculateLastQueueWithEntries = true;
@@ -1292,33 +1304,22 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             else
             {
                 // WRKQMGR::getWrkQE(): No extents left on any workqueue
-                rc = -1;
-//                LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
+                LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
             }
         }
         else
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
-            rc = -1;
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
         }
 
-        if (!rc)
+        if (rc == 1)
         {
             if (pWrkQE)
             {
                 if (l_RecalculateLastQueueWithEntries && (l_BucketValue >= 0))
                 {
-                    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
-                    {
-                        if (qe->second->getWrkQ_Size())
-                        {
-                            // Update the last work with entries
-                            setLastQueueWithEntries(qe->first);
-                            break;
-                        }
-                    }
-//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): Recalculated lastQueueWithEntries to " << lastQueueWithEntries;
+                    calcLastWorkQueueWithEntries();
                 }
 #if 0
                 if (l_BucketValue >= 0)
@@ -1347,13 +1348,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             // NOTE: In this path since a specific LVKey was passed, we do not interrogate the
             //       rate/bucket values.  We simply return the work queue associated with the LVKey.
             pWrkQE = it->second;
+            rc = 1;
         }
         else
         {
             // WRKQMGR::getWrkQE(): Workqueue no longer exists
             //
-            // NOTE: rc is returned as a zero in this case.  We do not know if
-            //       any other workqueue has an entry...
+            // NOTE: rc is returned as a zero in this case.  We are not concerned about
+            //       other work queues in this path.  We return 0 if the requested work
+            //       queue cannot be found.
             LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
             dump("info", " Work Queue Mgr (Specific workqueue not found)", DUMP_ALWAYS);
         }
@@ -1372,18 +1375,24 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     return rc;
 }
 
-int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
+void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 {
-    int rc = 0;
     LVKey l_Key;
     BBLV_Info* l_LV_Info = 0;
 
     pWrkQE = 0;
     if (wrkqs.size() > 1)
     {
+        bool l_SelectNext = false;
+        bool l_RecalculateLastQueueWithEntries = (lastQueueWithEntries == LVKey_Null ? true : false);
         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
             // For each of the work queues...
+            if (qe->first == lastQueueWithEntries)
+            {
+                l_RecalculateLastQueueWithEntries = true;
+            }
+
             if (qe->second != HPWrkQE)
             {
                 // Not the HP workqueue...
@@ -1391,16 +1400,31 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                 {
                     // This workqueue has at least one entry.
                     l_LV_Info = qe->second->getLV_Info();
-                    if (l_LV_Info && ((l_LV_Info->hasCanceledExtents())))
+                    if (l_LV_Info && l_LV_Info->hasCanceledExtents())
                     {
                         // Next extent to be transferred is canceled...
-                        // Don't look any further and simply return this work queue.
                         pWrkQE = qe->second;
                         pWrkQE->dump("debug", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
-                        break;
+                        if (l_SelectNext || (lastQueueProcessed == lastQueueWithEntries))
+                        {
+                            // Return this queue now as it is the next in round robin order
+                            break;
+                        }
+                    }
+
+                    if ((!l_SelectNext) && qe->first == lastQueueProcessed)
+                    {
+                        // Just found the entry we last returned.  Return the next workqueue that has a canceled extent...
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE_WithCanceledExtents(): l_SelectNext = true";
+                        l_SelectNext = true;
                     }
                 }
             }
+        }
+
+        if (l_RecalculateLastQueueWithEntries && pWrkQE)
+        {
+            calcLastWorkQueueWithEntries();
         }
     }
 
@@ -1410,7 +1434,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
         setCheckForCanceledExtents(0);
     }
 
-    return rc;
+    return;
 }
 
 void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
@@ -1774,6 +1798,47 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
     return l_FilePtr;
 }
 
+string WRKQMGR::peekAtNextAsyncRequest(WorkID& pWorkItem)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+
+    AsyncRequest l_Request = AsyncRequest();
+    rc = wrkqmgr.getAsyncRequest(pWorkItem, l_Request);
+
+    if (!rc)
+    {
+        if (!l_Request.sameHostName())
+        {
+            // Peek the request
+            char l_Str1[64] = {'\0'};
+            char l_Str2[64] = {'\0'};
+            uint64_t l_JobId = UNDEFINED_JOBID;
+            uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
+            uint64_t l_Handle = UNDEFINED_HANDLE;
+            uint32_t l_ContribId = UNDEFINED_CONTRIBID;
+            uint64_t l_CancelScope = 0;
+
+            rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
+            if (rc != 8)
+            {
+                // Failure when attempting to parse the request...  Log it and continue...
+                LOG(bb,error) << "peekAtNextAsyncRequest: Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
+            }
+        }
+    }
+    else
+    {
+        // Error when retrieving the request
+        LOG(bb,error) << "peekAtNextAsyncRequest: Error when attempting to retrieve the async request at offset " << pWorkItem.getTag();
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return string(l_Cmd);
+}
+
 void WRKQMGR::post()
 {
     // NOTE: It is a requirement that the invoker must have first
@@ -1809,7 +1874,7 @@ void WRKQMGR::post()
 void WRKQMGR::post_multiple(const size_t pCount)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "post_multiple");
-    lockWorkQueueMgr((LVKey*)0, "post_multiple");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post_multiple");
 
     for (size_t i=0; i<pCount; i++)
     {
@@ -1817,7 +1882,10 @@ void WRKQMGR::post_multiple(const size_t pCount)
     }
 //    verify();
 
-    unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    }
     if (l_TransferQueueUnlocked)
     {
         lockTransferQueue((LVKey*)0, "post_multiple");

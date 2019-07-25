@@ -219,8 +219,8 @@
 	  "tw_3" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "A null work queue was returned when attempting to find additional work.",
-	      "description" : "The transfer worker left wait state but an exception thrown in transferExtent() did not find any work queue to process."
+	      "message" : "An empty work queue was returned when attempting to find additional work.",
+	      "description" : "An empty work queue was returned when attempting to find additional work."
 	  },
 	  "tw_4" :
 	  {

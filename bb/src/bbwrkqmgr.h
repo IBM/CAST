@@ -514,6 +514,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setLastDumpedNumberOfWorkQueueItemsProcessed(const int pValue)
+    {
+        lastDumpedNumberOfWorkQueueItemsProcessed = pValue;
+
+        return;
+    }
+
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
@@ -607,6 +614,7 @@ class WRKQMGR
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
     int addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
+    void calcLastWorkQueueWithEntries();
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
     void checkThrottleTimer();
@@ -624,7 +632,7 @@ class WRKQMGR
     size_t getSizeOfAllWorkQueues();
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
-    int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
@@ -632,6 +640,7 @@ class WRKQMGR
     int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
+    string peekAtNextAsyncRequest(WorkID& pWorkItem);
     void post();
     void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
