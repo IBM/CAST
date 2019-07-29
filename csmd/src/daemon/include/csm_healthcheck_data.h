@@ -292,9 +292,7 @@ private:
   template <class Archive>
   void serialize(Archive &ar, const unsigned int version)
   {
-    const HealthNodeInfo *hni = dynamic_cast<const HealthNodeInfo*>(this);
-    if( hni != NULL )
-      ar & (*dynamic_cast<HealthNodeInfo*>(this));
+    ar & (*dynamic_cast<HealthNodeInfo*>(this));
   }
 
 public:
