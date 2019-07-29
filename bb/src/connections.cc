@@ -975,7 +975,19 @@ void waitReplyErase(ResponseDescriptor& reply)
 
 int addReply(txp::Msg* msg, txp::Msg* response_msg)
 {
-    response_msg->addAttribute(msg->retrieveAttrs()->at(txp::responseHandle));
+    if (msg->retrieveAttrs()->find(txp::responseHandle) != msg->retrieveAttrs()->end())
+    {
+        response_msg->addAttribute(msg->retrieveAttrs()->at(txp::responseHandle));
+    }
+    else
+    {
+        // The message didn't have a responseHandle, which means we will never be able to
+        // associate this reply with the original bbProxy request message.  This is most
+        // likely the case where we have different BB levels on bbProxy/bbServer and this
+        // is the initial hello/authenticate handshake.  Do not provide a responseHandle
+        // in the response_msg.
+        LOG(bb,error) << "addReply:  No response handle found in the request message";
+    }
 
     return 0;
 }
