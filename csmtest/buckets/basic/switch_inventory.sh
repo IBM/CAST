@@ -71,7 +71,7 @@ check_return_exit $? 0 "Test Case 6: Calling switch_attributes_query_history"
 
 # Test Case 7: Validating query history output 
 check_all_output "switch_001" "my comment"
-check_return_flag $? "Test Case 3: switch_attributes_query_history returns invalid data after update"
+check_return_flag_value $? 0 "Test Case 3: switch_attributes_query_history returns invalid data after update"
 
 # Test Case 8: Calling switch_attributes_query_details
 ${CSM_PATH}/csm_switch_attributes_query_details -s switch_001 > ${TEMP_LOG} 2>&1
@@ -79,7 +79,7 @@ check_return_exit $? 0 "Test Case 8: Calling switch_attributes_query_details"
 
 # Test Case 9: Validating switch_attributes_query_details output
 check_all_output "switch_001" "Test Comment"
-check_return_flag $? "Test Case 9: Validating switch_attributes_query_details output"
+check_return_flag_value $? 0 "Test Case 9: Validating switch_attributes_query_details output"
 
 rm -f ${TEMP_LOG}
 su -c "psql -d csmdb -c 'DELETE FROM csm_switch ;'" postgres > /dev/null

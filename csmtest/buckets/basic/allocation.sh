@@ -59,12 +59,12 @@ rm -f ${TEMP_LOG}
 # Test Case 2.1: Validating cgroup assigned allocation cpus correctly
 xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/allocation_${allocation_id}/cpuset.cpus" > ${TEMP_LOG} 2>&1
 check_all_output "0-175"
-check_return_flag $? "Test Case 2.1: Validating cgroup assigned allocation cpus correctly"
+check_return_flag_value $? 0 "Test Case 2.1: Validating cgroup assigned allocation cpus correctly"
 
 # Test Case 2.2: Validating cgroup assigned system cpus correctly
 xdsh ${SINGLE_COMPUTE} "cat /sys/fs/cgroup/cpuset/csm_system/cpuset.cpus" > ${TEMP_LOG} 2>&1
 check_all_output "0-175"
-check_return_flag $? "Test Case 2.2: Validating cgroup assigned system cpus correctly"
+check_return_flag_value $? 0 "Test Case 2.2: Validating cgroup assigned system cpus correctly"
 
 # Test Case 3: csm_allocation_query_active_all (success)
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
@@ -102,7 +102,7 @@ check_return_exit $? 0 "Test Case 9: Calling csm_allocation_query_details on All
 
 # Test Case 10: check csm_allocation_query_details for state=complete
 check_all_output "complete"
-check_return_flag $? "Test Case 10: Checking csm_allocation_query_details for state=complete"
+check_return_flag_value $? 0 "Test Case 10: Checking csm_allocation_query_details for state=complete"
 
 rm -f ${TEMP_LOG}
 # Test Case 11: csm_allocation_update_history
@@ -114,20 +114,20 @@ rm -f ${TEMP_LOG}
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 12: Calling csm_allocation_query on Allocation ID = ${allocation_id}"
 check_all_output "test_comment"
-check_return_flag $? "Test Case 12: Checking allocation history table updated with test_comment..."
+check_return_flag_value $? 0 "Test Case 12: Checking allocation history table updated with test_comment..."
 
 # Test Case 13: csm_allocation_create with launch node input
 # Get utility node name
 utility_node=`nodels utility | head -1`
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -l ${utility_node} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 13: csm_allocation_create with launch node input"
+check_return_flag_value $? 0 "Test Case 13: csm_allocation_create with launch node input"
 
 # Test Case 13: Validate launch node in csm_allocation_query
 # Get allocation ID
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "launch_node_name:               ${utility_node}"
-check_return_flag $? "Test Case 13: Validate launch node in csm_allocation_query"
+check_return_flag_value $? 0 "Test Case 13: Validate launch node in csm_allocation_query"
 
 # Clean Up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1

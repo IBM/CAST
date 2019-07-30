@@ -66,7 +66,7 @@ check_return_exit $? 0 "Test Case 3: Calling csm_allocation_step_begin"
 
 # Test Case 4: Calling csm_allocation_step_query_active_all
 ${CSM_PATH}/csm_allocation_step_query_active_all -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 4: Calling csm_allocation_step_query_active_all"
+check_return_flag_value $? 0 "Test Case 4: Calling csm_allocation_step_query_active_all"
 
 # Test Case 5: Calling csm_allocation_step_end
 ${CSM_PATH}/csm_allocation_step_end -a ${allocation_id} -s 1 -e 1 -E "error" -c "cpu_good" -t 0.0 -T 1.5 -n "t_num_threads_good" -G "gpu_s_good" -m "mem_sts_good" -M 512 -i "io_sts_good" > ${TEMP_LOG} 2>&1
@@ -75,24 +75,24 @@ check_return_exit $? 0 "Test Case 5: Calling csm_allocation_step_end"
 # Test Case 6: Calling csm_allocation_step_query_active_all
 ${CSM_PATH}/csm_allocation_step_query_active_all -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "No matching records found."
-check_return_flag $? "Test Case 6: Calling csm_allocation_step_query_active_all"
+check_return_flag_value $? 0 "Test Case 6: Calling csm_allocation_step_query_active_all"
 
 # Test Case 7: Calling csm_allocation_step_query
 ${CSM_PATH}/csm_allocation_step_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 7: Calling csm_allocation_step_query"
+check_return_flag_value $? 0 "Test Case 7: Calling csm_allocation_step_query"
 
 # Test Case 8: Calling csm_allocation_step_query_details
 ${CSM_PATH}/csm_allocation_step_query_details -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 8: Calling csm_allocation_step_query_details"
+check_return_flag_value $? 0 "Test Case 8: Calling csm_allocation_step_query_details"
 
 # Test Case 9: Calling csm_allocation_delete
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 9: Calling csm_allocation_delete"
+check_return_flag_value $? 0 "Test Case 9: Calling csm_allocation_delete"
 
 # Test Case 10: Calling csm_allocation_query_active_all
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
 check_all_output "No matching records found"
-check_return_flag $? "Test Case 10: Calling csm_allocation_query_active_all"
+check_return_flag_value $? 0 "Test Case 10: Calling csm_allocation_query_active_all"
 
 # Remove temp log
 rm -f ${TEMP_LOG}

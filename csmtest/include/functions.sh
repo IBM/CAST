@@ -112,7 +112,7 @@ check_return_flag () {
 }
 
 # ----------------------------------------------------------------
-# check_return_flag_nz
+# check_return_flag_value
 # Input 1: return come from command line API
 # Input 2: expected return code from command line API
 # Input 3: Test Case name
@@ -121,7 +121,7 @@ check_return_flag () {
 #                Additionally, the contents of the temp log will 
 #                be appended to a flag log.
 # ----------------------------------------------------------------
-check_return_flag_nz () {
+check_return_flag_value () {
         if [ $1 -ne $2 ]
         then
                 FLAGS+="\n$3"
