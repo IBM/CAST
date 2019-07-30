@@ -779,9 +779,9 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
     {
         stringstream l_JobStr;
         pJob.getStr(l_JobStr);
-        LOG(bb,info) << "BBLV_Metadata::getLVKey(): LVKey not found for connection " << pConnectionName \
-                     << ", job" << l_JobStr.str() << ", tag " << pTag << ", number of contribs " << pNumContrib \
-                     << ". Connection name was " << (l_ConnectionNameFound ? "" : "not ") << "found in the local cache.";
+        LOG(bb,debug) << "BBLV_Metadata::getLVKey(): LVKey not found for connection " << pConnectionName \
+                      << ", job" << l_JobStr.str() << ", tag " << pTag << ", number of contribs " << pNumContrib \
+                      << ". Connection name was " << (l_ConnectionNameFound ? "" : "not ") << "found in the local cache.";
     }
 
     return rc;
