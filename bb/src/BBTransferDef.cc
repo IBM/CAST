@@ -1518,206 +1518,266 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
 
     bool l_StopDefinition = false;
 
-    if (pJobStepId == UNDEFINED_JOBSTEPID || job.getJobStepId() == pJobStepId)
-    {
-        // NOTE: We cannot check the local metadata for stopped() nor canceled().
-        //       In the case where a transfer definition has already failed over
-        //       once, the local metadata will still show that the definition is
-        //       already stopped when attempting to fail back.
-        //       Must check the cross bbServer metadata, which is current.
-        // NOTE: We may have to spin for a while waiting for the extents to be
-        //       enqueued on the work queue.  This is the case where we are
-        //       performing a start transfer for this definition but it hasn't
-        //       completed the processing performed by the second volley from
-        //       bbProxy.  We have to make sure that the extents are first enqueued
-        //       so that the stop processing is properly performed.
-        // NOTE: We only wait 1/2 of the normal getDeclareServerDeadCount(), as
-        //       this transfer definition originated on this bbServer.  The
-        //       bbServer attempting to take over will wait the full amount of
-        //       time.  So if possible, we want the original server to process
-        //       first.
-        string l_ConnectionName = string();
-        uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId)/2;
-        uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
-        while (!rc && l_Continue--)
-        {
-            rc = extentsAreEnqueued();
-            if (!rc)
-            {
-                if (l_Continue)
-                {
-                    // NOTE: The handle file will not have been already locked in this path...
-                    unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
-                    {
-                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                        int l_SecondsWaiting = l_OriginalDeclareServerDeadCount - l_Continue;
-                        if ((l_SecondsWaiting % 15) == 5)
-                        {
-                            // Display this message every 15 seconds, after an initial wait of 5 seconds...
-                            FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
-                                      pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
-                            LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
-                                         << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
-                                         << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
-                                         << " seconds remain waiting for the extents to be enqueued.";
-                        }
-                        usleep((useconds_t)1000000);    // Delay 1 second
-                    }
-                    lockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
-                }
+    string l_ServerHostName;
+    activecontroller->gethostname(l_ServerHostName);
 
-                // Check to make sure the job still exists after releasing/re-acquiring the lock
-                // NOTE: The connection name is optional, and is potentially different for every
-                //       transfer definition that is being stopped from the retrieve transfer archive.
-                if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
-                {
-                    rc = -1;
-                    l_Continue = 0;
-                }
-            }
+    try
+    {
+        string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pJobId, pJobStepId), pHandle, pContribId);
+        if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
+        {
+            rc = -2;
+            errorText << "Transfer definition for jobid " << pJobId << ", jobstepid " << pJobStepId \
+                      << ", handle " << pHandle << ", contribid " << pContribId << " is currently being serviced by " \
+                      << l_ServicedByHostname << ". This bbServer cannot service this transfer definition.";
+            LOG_ERROR_TEXT_AND_BAIL(errorText);
         }
 
-        // NOTE: We still have the handle file lock here...  Must retain it until we get done marking the contribid file...
-        bool l_UnconditionalRestart = false;
-        switch (rc)
+        if (pJobStepId == UNDEFINED_JOBSTEPID || job.getJobStepId() == pJobStepId)
         {
-            case 0:
+            // NOTE: We cannot check the local metadata for stopped() nor canceled().
+            //       In the case where a transfer definition has already failed over
+            //       once, the local metadata will still show that the definition is
+            //       already stopped when attempting to fail back.
+            //       Must check the cross bbServer metadata, which is current.
+            // NOTE: We may have to spin for a while waiting for the extents to be
+            //       enqueued on the work queue.  This is the case where we are
+            //       performing a start transfer for this definition but it hasn't
+            //       completed the processing performed by the second volley from
+            //       bbProxy.  We have to make sure that the extents are first enqueued
+            //       so that the stop processing is properly performed.
+            // NOTE: We only wait 1/2 of the normal getDeclareServerDeadCount(), as
+            //       this transfer definition originated on this bbServer.  The
+            //       bbServer attempting to take over will wait the full amount of
+            //       time.  So if possible, we want the original server to process
+            //       first.
+            string l_ConnectionName = string();
+            uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId)/2;
+            uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
+            while (!rc && l_Continue--)
             {
-                l_UnconditionalRestart = true;
-                LOG(bb,info) << "Transfer definition associated with CN host " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                             << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
-                             << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
-                             << " The transfer definition will be stopped and then restarted.";
-            }
-            // Fall through is intended...
-
-            case 1:
-            {
-                rc = 0;
-                ContribIdFile* l_ContribIdFile = 0;
-                if (!l_UnconditionalRestart)
+                rc = extentsAreEnqueued();
+                if (!rc)
                 {
-                    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
-                    l_HandleFilePath /= bfs::path(to_string(pJobId));
-                    l_HandleFilePath /= bfs::path(to_string(pJobStepId));
-                    l_HandleFilePath /= bfs::path(to_string(pHandle));
-                    int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
-                    switch (rc)
+                    if (l_Continue)
                     {
-                        case 1:
+                        // NOTE: The handle file will not have been already locked in this path...
+                        unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
                         {
-                            // We stop any transfer definition that does not have all of its files transferred/closed -or-
-                            // has a failed transfer
-                            if (!l_ContribIdFile->notRestartable())
+                            pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+                            int l_SecondsWaiting = l_OriginalDeclareServerDeadCount - l_Continue;
+                            if ((l_SecondsWaiting % 15) == 5)
                             {
-                                l_StopDefinition = true;
+                                // Display this message every 15 seconds, after an initial wait of 5 seconds...
+                                FL_Write6(FLDelay, StopTransferWaitForExtentsEnqueued, "Attempting to stop a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld, waiting for the extents to be enqueued. Delay of 1 second before retry. %ld seconds remain waiting for the extents to be enqueued.",
+                                          pJobId, pJobStepId, pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
+                                LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer: Attempting to stop a transfer definition for jobid " << pJobId \
+                                             << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                             << ", waiting for the extents to be enqueued. Delay of 1 second before retry. " << l_Continue \
+                                             << " seconds remain waiting for the extents to be enqueued.";
                             }
+                            usleep((useconds_t)1000000);    // Delay 1 second
+                        }
+                        lockLocalMetadata(pLVKey, "stopTransfer - Waiting for transfer definition's extents to be enqueued");
+                    }
 
-                            break;
-                        }
-                        case 0:
-                        {
-                            LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-
-                            break;
-                        }
-                        default:
-                        {
-                            LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
-                        }
+                    // Check to make sure the job still exists after releasing/re-acquiring the lock
+                    // NOTE: The connection name is optional, and is potentially different for every
+                    //       transfer definition that is being stopped from the retrieve transfer archive.
+                    if (!jobStillExists(l_ConnectionName, pLVKey, (BBLV_Info*)0, (BBTagInfo*)0, pJobId, pContribId))
+                    {
+                        rc = -1;
+                        errorText << "Job no longer exists for the transfer definition associated with host " << pCN_HostName \
+                                  << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                                  << ".  Stop transfer request ignored.";
+                        LOG_ERROR_TEXT_AND_BAIL(errorText);
                     }
                 }
-                else
-                {
-                    l_StopDefinition = true;
-                }
+            }
 
-                if (l_StopDefinition)
+            bool l_UnconditionalRestart = false;
+            switch (rc)
+            {
+                case 0:
                 {
-                    rc = becomeUser(getUserId(), getGroupId());
-                    if (!rc)
+                    // Ensure that this bbServer should still process this transfer definition.
+                    // Restart/failover activity could have unconditionally switched the processing of this
+                    // transfer definition to another bbServer.  This is especially true if we timed out
+                    // waiting for the extents to be enqueued.
+                    string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pJobId, pJobStepId), pHandle, pContribId);
+                    if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
                     {
-                        // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
-                        //       bbServer that is attempting to restart/stop other transfer definitions for this handle.
-                        rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
-                        if (!rc)
-                        {
-                            // Mark the transfer definition as stopped
-                            markAsStopped(pLVKey, pHandle, pContribId);
+                        rc = -2;
+                        errorText << "Transfer definition for jobid " << pJobId << ", jobstepid " << pJobStepId \
+                                  << ", handle " << pHandle << ", contribid " << pContribId << " is currently being serviced by " \
+                                  << l_ServicedByHostname << ". This bbServer cannot service this transfer definition.";
+                        LOG_ERROR_TEXT_AND_BAIL(errorText);
+                    }
 
-                            // If an unconditional restart, in addition to marking the transfer definition
-                            // as stopped, indicate that all extents have been enqueued/processed and all files closed.
-                            // NOTE:  No extents were enqueued/processed for an unconditional restart so these bits
-                            //        need to be set on here...
-                            if (l_UnconditionalRestart)
+                    l_UnconditionalRestart = true;
+                    LOG(bb,info) << "Transfer definition associated with CN host " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                                 << ", handle " << pHandle << ", contribId " << pContribId << " was interrupted during the processing of the original start transfer request."\
+                                 << " The transfer definition does not currently have any enqueued extents to transfer for any file, but the original start transfer request is not responding." \
+                                 << " The transfer definition will be stopped and then restarted.";
+                }
+                // Fall through is intended...
+
+                case 1:
+                {
+                    rc = 0;
+                    ContribIdFile* l_ContribIdFile = 0;
+                    if (!l_UnconditionalRestart)
+                    {
+                        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                        l_HandleFilePath /= bfs::path(to_string(pJobId));
+                        l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+                        l_HandleFilePath /= bfs::path(to_string(pHandle));
+                        int rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
+                        switch (rc)
+                        {
+                            case 1:
                             {
-                                setExtentsEnqueued(pLVKey, pHandle, pContribId);
-                                setAllExtentsTransferred(pLVKey, pHandle, pContribId);
-                                setAllFilesClosed(pLVKey, pHandle, pContribId);
+                                // We stop any transfer definition that does not have all of its files transferred/closed -or-
+                                // has a failed transfer
+                                if (!l_ContribIdFile->notRestartable())
+                                {
+                                    l_StopDefinition = true;
+                                }
+
+                                break;
                             }
+                            case 0:
+                            {
+                                LOG(bb,error) << "ContribId " << pContribId << "could not be found in the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
 
-                            // Update the contribid file with the proposed new servicing bbServer
-                            ContribIdFile::update_xbbServerContribIdFileNewHostName(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
-
-                            rc = 1;
+                                break;
+                            }
+                            default:
+                            {
+                                LOG(bb,error) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", " << *pLVKey << ", using handle path " << l_HandleFilePath;
+                            }
                         }
-                        else
-                        {
-                            // Could not lock handle file
-                            LOG(bb,error) << "Could not lock the handle file when attempting to restart the transfer definition for jobid " << pJobId \
-                                          << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
-                                          << ".  The transfer definition will not be restarted.";
-                        }
-                        becomeUser(0,0);
                     }
                     else
                     {
-                        rc = -2;
-                        errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pCN_HostName \
-                                  << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                                  << " when attempting to become uid=" << getUserId() << ", gid=" << getGroupId();
-                        bberror << err("error.uid", getUserId()) << err("error.gid", getGroupId());
-                        LOG_ERROR_TEXT_RC(errorText, rc);
+                        l_StopDefinition = true;
+                    }
+
+                    if (l_StopDefinition)
+                    {
+                        rc = becomeUser(getUserId(), getGroupId());
+                        if (!rc)
+                        {
+                            // NOTE: The handle file is locked exclusive here to serialize between this bbServer and another
+                            //       bbServer that is attempting to restart/stop other transfer definitions for this handle.
+                            rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+                            if (!rc)
+                            {
+                                // Mark the transfer definition as stopped
+                                markAsStopped(pLVKey, pHandle, pContribId);
+
+                                // If an unconditional restart, in addition to marking the transfer definition
+                                // as stopped, indicate that all extents have been enqueued/processed and all files closed.
+                                // NOTE:  No extents were enqueued/processed for an unconditional restart so these bits
+                                //        need to be set on here...
+                                if (l_UnconditionalRestart)
+                                {
+                                    setExtentsEnqueued(pLVKey, pHandle, pContribId);
+                                    setAllExtentsTransferred(pLVKey, pHandle, pContribId);
+                                    setAllFilesClosed(pLVKey, pHandle, pContribId);
+                                }
+
+                                // Update the contribid file with the proposed new servicing bbServer
+                                ContribIdFile::update_xbbServerContribIdFileNewHostName(pLVKey, pHostName, pJobId, pJobStepId, pHandle, pContribId);
+
+                                rc = 1;
+                            }
+                            else
+                            {
+                                // Could not lock handle file
+                                LOG(bb,error) << "Could not lock the handle file when attempting to restart the transfer definition for jobid " << pJobId \
+                                              << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId \
+                                              << ".  The transfer definition will not be restarted.";
+                            }
+                            becomeUser(0,0);
+                        }
+                        else
+                        {
+                            rc = -2;
+                            errorText << "becomeUser failed when attempting to stop the transfer definition associated with host " << pCN_HostName \
+                                      << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
+                                      << " when attempting to become uid=" << getUserId() << ", gid=" << getGroupId();
+                            bberror << err("error.uid", getUserId()) << err("error.gid", getGroupId());
+                            LOG_ERROR_TEXT_RC(errorText, rc);
+                        }
+                    }
+                    else
+                    {
+                        LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                                     << ", handle " << pHandle << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef), rc = " << rc \
+                                     << ". Stop transfer request ignored.";
+                        rc = 2;
+                    }
+
+                    if (l_ContribIdFile)
+                    {
+                        delete l_ContribIdFile;
+                        l_ContribIdFile = NULL;
                     }
                 }
-                else
-                {
-                    LOG(bb,info) << "A stop transfer request was made for the transfer definition associated with " << *pLVKey << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                                 << ", handle " << pHandle << ", contribid " << pContribId << ", however no extents are left to be transferred (via BBTransferDef), rc = " << rc \
-                                 << ". Stop transfer request ignored.";
-                    rc = 2;
-                }
+                break;
 
-                if (l_ContribIdFile)
+                default:
                 {
-                    delete l_ContribIdFile;
-                    l_ContribIdFile = NULL;
+                    // Should not get here...
                 }
+            }
+
+            if (l_HandleFileName)
+            {
+                delete[] l_HandleFileName;
+                l_HandleFileName = 0;
+            }
+
+            if (l_HandleFile)
+            {
+                l_HandleFile->close(l_LockFeedback);
+                delete l_HandleFile;
+                l_HandleFile = 0;
+            }
+        }
+    }
+    catch (ExceptionBailout& e)
+    {
+        switch (rc)
+        {
+            case -2:
+            {
+                // This bbServer No longer services this transfer definition.
+                // Specific error text already set and logged above.
+                // This error is rolled into 'numberNotFoundOnThisServer'.
+                rc = 0;
             }
             break;
 
+            case -1:
+            {
+                // Jobid no longer exists.
+                // Specific error text already set and logged above.
+                // This error is rolled into 'numberNotFoundOnThisServer'.
+                rc = 0;
+            }
+
             default:
             {
-                // rc already -1
-                errorText << "Job no longer exists or the handle file could not be locked for the transfer definition associated with host " << pCN_HostName \
-                          << ", jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribId " << pContribId \
-                          << ".  Stop transfer request ignored.";
-                LOG_ERROR_TEXT_RC(errorText, rc);
+                // Should not get here...
             }
         }
-
-        if (l_HandleFileName)
-        {
-            delete[] l_HandleFileName;
-            l_HandleFileName = 0;
-        }
-
-        if (l_HandleFile)
-        {
-            l_HandleFile->close(l_LockFeedback);
-            delete l_HandleFile;
-            l_HandleFile = 0;
-        }
+    }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     return rc;

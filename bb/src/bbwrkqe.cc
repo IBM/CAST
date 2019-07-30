@@ -147,9 +147,12 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             {
                 l_Output += ", Bkt " + l_Bucket;
             }
-            if (l_WorkQueueReturnedWithNegativeBucket.size())
+            if (pDataInd == DUMP_ALL_DATA)
             {
-                l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
+                if (l_WorkQueueReturnedWithNegativeBucket.size())
+                {
+                    l_Output += ", WQRNegB " + l_WorkQueueReturnedWithNegativeBucket;
+                }
             }
         }
 
