@@ -101,6 +101,7 @@ def BasicTransfers(pEnv):
             sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
             sudo_ChangeMode(pEnv, l_Mountpoint, l_Mode)
 
+            '''
             # This should fail because the logical volume has not yet been created.
             #
             # This error should be handled, as handleError() will tolerate all
@@ -118,6 +119,7 @@ def BasicTransfers(pEnv):
             except BBError as error:
                 if not error.handleError():
                     raise
+            '''
 
             # Create the logical volume for the mountpoint...
             sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
