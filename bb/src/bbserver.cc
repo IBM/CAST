@@ -655,7 +655,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     return;
 }
 
-#define DELAY_SECONDS 120
+#define DELAY_SECONDS 20
 void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -751,11 +751,11 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                     //
                     // Continue to wait...
 
-                    // Hang out for a bit (120 x 1 second each, 2 minutes total) and see if the necessary LVKey appears...
+                    // Hang out for a bit (20 x 1 second each, 20 seconds total) and see if the necessary LVKey appears...
                     int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
-                    if ((l_SecondsWaiting % 15) == 1)
+                    if ((l_SecondsWaiting % 8) == 1)
                     {
-                        // Display this message every 15 seconds...
+                        // Display this message every 8 seconds...
                         FL_Write(FLDelay, GetHandleWaitForLVKey, "Attempting to get the transfer handle for jobid %ld, jobstepid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
                                  l_Job.getJobId(), l_Job.getJobStepId(), (uint64_t)l_Continue, 0);
                         LOG(bb,info) << ">>>>> DELAY <<<<< msgin_gettransferhandle: Hostname " << l_HostName << ", " << l_LVKey \
