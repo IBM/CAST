@@ -317,6 +317,11 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentCancelRequests()
     {
         --numberOfConcurrentCancelRequests;
+        if (numberOfConcurrentCancelRequests > 999999)
+        {
+            LOG(bb,error) << "decrementNumberOfConcurrentCancelRequests(): numberOfConcurrentCancelRequests is out of range with a value of " << numberOfConcurrentCancelRequests;
+            endOnError();
+        }
 
         return;
     }
@@ -324,6 +329,11 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentHPRequests()
     {
         --numberOfConcurrentHPRequests;
+        if (numberOfConcurrentHPRequests > 999999)
+        {
+            LOG(bb,error) << "decrementNumberOfConcurrentHPRequests(): numberOfConcurrentHPRequests is out of range with a value of " << numberOfConcurrentHPRequests;
+            endOnError();
+        }
 
         return;
     }

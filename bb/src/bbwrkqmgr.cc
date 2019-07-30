@@ -584,7 +584,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
                                       << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (l_CheckForCanceledExtents)
+                        if (numberOfConcurrentCancelRequests)
                         {
                             LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
                         }
@@ -620,7 +620,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
                         LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
                                      << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (l_CheckForCanceledExtents)
+                        if (numberOfConcurrentCancelRequests)
                         {
                             LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
                         }
@@ -870,6 +870,8 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
 {
     int rc = 0;
     pWrkQE = 0;
+    bool l_LogAsyncActivity = false;
+    string l_NextHP_WorkCommand = "";
 
     if (pLVKey)
     {
@@ -896,16 +898,41 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
         {
             // No work queue exists with canceled extents.
             // Next, check the high priority work queue...
-            if (HPWrkQE->getWrkQ()->size() &&
-                getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests() &&
-                (getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() ||
-                 peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) != "cancel"))
+            if (HPWrkQE->getWrkQ()->size())
             {
-                // High priority work exists...  Pass the high priority queue back...
-                pWrkQE = HPWrkQE;
-                rc = 1;
+                if (getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
+                {
+                    if (getNumberOfConcurrentCancelRequests() >= getNumberOfAllowedConcurrentCancelRequests())
+                    {
+                        // Maximum number of concurrent cancel/stoprequest operations already being processed
+                        l_NextHP_WorkCommand = peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front());
+                        if (l_NextHP_WorkCommand != "cancel" && l_NextHP_WorkCommand != "stoprequest")
+                        {
+                            // High priority work exists...  Pass the high priority queue back...
+                            pWrkQE = HPWrkQE;
+                            rc = 1;
+                        }
+                        else
+                        {
+                            // Next HP request is another cancel/stoprequest
+                            l_LogAsyncActivity = true;
+                        }
+                    }
+                    else
+                    {
+                        // High priority work exists...  Pass the high priority queue back...
+                        pWrkQE = HPWrkQE;
+                        rc = 1;
+                    }
+                }
+                else
+                {
+                    // Maximum number of concurrent async requests already being processed
+                    l_LogAsyncActivity = true;
+                }
             }
-            else
+
+            if (!pWrkQE)
             {
                 // No high priority work exists that we want to schedule.
                 // Find 'real' work on one of the LVKey work queues...
@@ -927,6 +954,16 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
             // Return that work queue...
             rc = 1;
         }
+    }
+
+    if (l_LogAsyncActivity && g_LogAllAsyncRequestActivity)
+    {
+        LOG(bb,info) << "AsyncRequest -> findWork(): Skipping HP queue work. getNumberOfConcurrentHPRequests() = " << getNumberOfConcurrentHPRequests() \
+                     << ", getNumberOfAllowedConcurrentHPRequests() = " << getNumberOfAllowedConcurrentHPRequests() \
+                     << ", getNumberOfConcurrentCancelRequests() = " << getNumberOfConcurrentCancelRequests() \
+                     << ", getNumberOfAllowedConcurrentCancelRequests() = " << getNumberOfAllowedConcurrentCancelRequests() \
+                     << ", peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) = " << peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) \
+                     << ", rc = " << rc;
     }
 
     return rc;
