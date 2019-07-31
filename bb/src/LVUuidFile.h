@@ -39,7 +39,7 @@ namespace bfs = boost::filesystem;
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_LVUUID_VERSION = 1;
-const int MAXIMUM_LVUUIDFILE_LOADTIME = 30;
+const int MAXIMUM_LVUUIDFILE_LOADTIME = 10;     // In seconds
 
 /*******************************************************************************
  | Classes
