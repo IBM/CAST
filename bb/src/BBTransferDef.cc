@@ -1446,7 +1446,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
     if (pValue)
     {
         LOG(bb,info) << "For " << *pLVKey << ", I/O for one or more extents failed for one or more file(s), a final close failed for one or more file(s)," \
-                        " a cancel operation occurred for the contributor, or some other failure occurred for the transfer definition associated with contribid " << pContribId;
+                        " a cancel or stop transfer operation occurred for the contributor, or some other failure occurred for the transfer definition associated with contribid " << pContribId;
     }
 
     if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
