@@ -24,6 +24,7 @@ class BBTagInfo;
 class BBTransferDef;
 
 #ifdef BBSERVER
+extern uint32_t getContribIdForTransferDef(BBTransferDef* pTransferDef);
 extern void endOnError();
 #endif
 
