@@ -197,6 +197,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
 }
 
 void BBLV_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
+//    pExtentInfo.verify();
     InFlightSubKey l_SubKey = make_pair((pExtentInfo.extent)->targetindex, pExtentInfo.getTransferDef());
     InFlightKey l_Key = make_pair((pExtentInfo.extent)->lba.maxkey, l_SubKey);
     inflight.insert(make_pair(l_Key, pExtentInfo));
@@ -436,6 +437,7 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
+//            it->second.verify();
             if ((pHandle <= 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == (it->second).contrib))
             {
                 LOG(bb,debug) << "moreExtentsToTransfer: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", extent: " << *((it->second).extent);
@@ -453,6 +455,7 @@ int BBLV_ExtentInfo::moreExtentsToTransfer(const int64_t pHandle, const int32_t 
     {
         for (auto& e : allExtents)
         {
+//            e.verify();
             if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib))
             {
                 rc = 1;
@@ -502,6 +505,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
+//            it->second.verify();
             if ((pHandle <= 0 || (uint64_t)pHandle == (it->second).handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == (it->second).contrib) && (pSourceIndex == (it->second).getSourceIndex()))
             {
                 LOG(bb,debug) << "moreExtentsToTransferForFile: Matched handle: " << (it->second).handle << ", contribid: " << (it->second).contrib << ", source index: " << (it->second).getSourceIndex() << ", extent: " << *((it->second).extent);
@@ -519,6 +523,7 @@ int BBLV_ExtentInfo::moreExtentsToTransferForFile(const int64_t pHandle, const i
     {
         for (auto& e : allExtents)
         {
+//            e.verify();
             if ((pHandle <= 0 || (uint64_t)pHandle == e.handle) && (pContrib < 0 || pContrib == UNDEFINED_CONTRIBID || (uint32_t)pContrib == e.contrib) && (pSourceIndex == e.getSourceIndex()))
             {
                 rc = 1;
@@ -567,6 +572,7 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
     {
         for (auto it=inflight.begin(); it!=inflight.end(); ++it)
         {
+//            it->second.verify();
             if ((pHandle == 0 || pHandle == (it->second).handle) && (pContrib == UNDEFINED_CONTRIBID || (pContrib == (it->second).contrib)))
             {
                 rc = 1;
@@ -643,11 +649,10 @@ void BBLV_ExtentInfo::removeFromInFlight(const LVKey* pLVKey, ExtentInfo& pExten
                   << ", handle " << pExtentInfo.getHandle() << ", contribid " << pExtentInfo.getContrib() << ", source index " << pExtentInfo.getSourceIndex() \
                   << ", extent 0x" << pExtentInfo.getExtent() << ", current in-flight depth " << (uint64_t)inflight.size();
         LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.removeinflight);
-//        abort();
+        dumpInFlight("info");
+        dump("info", "removeFromInFlight() failure");
+        endOnError();
     }
-
-//    dumpInFlight("info");
-//    dump("info", "After remove");
 
     return;
 }
@@ -870,6 +875,8 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
     //       does not take into account those extents removed because they were non-first or non-last canceled extents.
     //       However, our invoker only cares that there are ANY newly marked canceled extents and at least one of those
     //       newly marked extents will remain as the 'last' extent for that sourceindex.
+    // NOTE: The transfer queue lock CANNOT be released/reacquired during this method.  The change to allExtents must
+    //       be atomic.
     pNumberOfNewExtentsCanceled = 0;
 
     int l_TransferQueueLocked = lockTransferQueueIfNeeded(pLVKey, "sort extents");
@@ -904,6 +911,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
                     for (size_t i=0; i<allExtents.size(); ++i)
                     {
+//                        allExtents[i].verify();
                         l_ExtentPtr = allExtents[i].getExtent();
 
                         // Remember if this sourceindex had a 'first' extent
@@ -915,6 +923,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
                         // Reset the extent for sort processing
                         l_ExtentPtr->resetForSort();
+//                        allExtents[i].verify();
 
                         if (l_ExtentPtr->flags & BBI_TargetSSDSSD || (!l_ExtentPtr->len))
                         {
@@ -982,6 +991,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 
                             ++l_NotMarkedAsCanceledBSCFS;
                         }
+//                        allExtents[i].verify();
                     }
 
                     if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
@@ -1008,6 +1018,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                     map<FileKey, FileValue>::iterator it_FileMap;
                     for (size_t i=0; i<allExtents.size(); ++i)
                     {
+//                        allExtents[i].verify();
                         l_ExtentPtr = allExtents[i].getExtent();
                         l_TransferDef = allExtents[i].getTransferDef();
                         // Now bookkeep the first/last per (BBTransferDef,sourceindex)
@@ -1024,12 +1035,14 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                             l_Value = make_pair(l_ExtentPtr, l_ExtentPtr);
                         }
                         l_FileMap[l_Key] = l_Value;
+//                        allExtents[i].verify();
                     }
 
                     // Set the first/last values in the sorted vector
                     map<FileKey, bool>::iterator it_StartingExtentMap;
                     for (size_t i=0; i<allExtents.size(); ++i)
                     {
+//                        allExtents[i].verify();
                         l_ExtentPtr = allExtents[i].getExtent();
                         l_TransferDef = allExtents[i].getTransferDef();
                         // Now find the entry in the map giving the first/last extents for this (transfer definition,sourceindex)
@@ -1048,6 +1061,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                         {
                             l_ExtentPtr->flags |= BBI_Last_Extent;
                         }
+//                        allExtents[i].verify();
                     }
 
                     // Remove all canceled extents that are not marked as a
@@ -1059,6 +1073,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                         l_AllDone = true;
                         for (auto it=allExtents.begin(); it!=allExtents.end(); ++it)
                         {
+//                            it->verify();
                             l_ExtentPtr = it->getExtent();
                             if (l_ExtentPtr->isCanceled())
                             {
