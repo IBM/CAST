@@ -237,19 +237,19 @@ void BBLV_Info::cleanUpAll(const LVKey* pLVKey)
 void BBLV_Info::dump(char* pSev, const char* pPrefix)
 {
     if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << ">>>>> Start: TagInfo2 <<<<<";
+        LOG(bb,debug) << ">>>>> Start: BBLV_Info <<<<<";
         LOG(bb,debug) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
                       << jobid << setfill(' ') << nouppercase << dec;
         extentInfo.dump(pSev);
         tagInfoMap.dump(pSev);
-        LOG(bb,debug) << ">>>>>   End: TagInfo2 <<<<<";
+        LOG(bb,debug) << ">>>>>   End: BBLV_Info <<<<<";
     } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << ">>>>> Start: TagInfo2 <<<<<";
+        LOG(bb,info) << ">>>>> Start: BBLV_Info <<<<<";
         LOG(bb,info) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
                      << jobid << setfill(' ') << nouppercase << dec;
         extentInfo.dump(pSev);
         tagInfoMap.dump(pSev);
-        LOG(bb,info) << ">>>>>   End: TagInfo2 <<<<<";
+        LOG(bb,info) << ">>>>>   End: BBLV_Info <<<<<";
     }
 
     return;
@@ -409,6 +409,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     bool l_UpdateTransferStatus = false;
     bool l_LocalMetadataLocked = false;
     bool l_LocalMetadataUnlocked = false;
+
+//    pExtentInfo.verify();
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on

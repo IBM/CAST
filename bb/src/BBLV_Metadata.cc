@@ -506,26 +506,26 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
         if (!strcmp(pSev,"debug")) {
             LOG(bb,debug) << "";
-            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                           << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             for (auto& it : metaDataMap) {
                 const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
                 LOG(bb,debug) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
                 it.second.dump(pSev);
             }
-            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                           << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             LOG(bb,debug) << "";
         } else if (!strcmp(pSev,"info")) {
             LOG(bb,info) << "";
-            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             for (auto& it : metaDataMap) {
                 const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
                 LOG(bb,info) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
                 it.second.dump(pSev);
             }
-            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             LOG(bb,info) << "";
         }
@@ -563,6 +563,25 @@ void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
     return;
 }
 
+BBLV_Info* BBLV_Metadata::getAnyLV_InfoForUuid(const LVKey* pLVKey) const {
+    BBLV_Info* l_TagInfo = (BBLV_Info*)0;
+
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getAnyLV_InfoForUuid");
+    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+        if ((it->first).second == pLVKey->second) {
+            l_TagInfo = const_cast <BBLV_Info*> (&(it->second));
+            break;
+        }
+    }
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getAnyLV_InfoForUuid");
+    }
+
+    return l_TagInfo;
+}
+
 // NOTE:  This method returns any LVKey with the input LV Uuid and jobid...
 int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId) {
     int rc = -2;    // LVKey not registered with bbserver
@@ -585,25 +604,6 @@ int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
     }
 
     return rc;
-}
-
-BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
-    BBLV_Info* l_TagInfo = (BBLV_Info*)0;
-
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
-        if ((it->first).second == pLVKey->second) {
-            l_TagInfo = const_cast <BBLV_Info*> (&(it->second));
-            break;
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
-    {
-        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
-    }
-
-    return l_TagInfo;
 }
 
 int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {

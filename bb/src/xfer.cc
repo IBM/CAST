@@ -2185,7 +2185,7 @@ void* transferWorker(void* ptr)
                             }
                             else
                             {
-                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (taginfo2)";
+                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info)";
                                 LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
                             }
                         }
@@ -3080,9 +3080,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -1;
-        errorText << "queueTransfer():" << *pLVKey << " could not be found in taginfo2";
+        errorText << "queueTransfer():" << *pLVKey << " could not be found in BBLV_Info";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
@@ -3486,7 +3486,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
 
     try
     {
-        l_LV_Info = metadata.getAnyTagInfo2ForUuid(pLVKey);
+        l_LV_Info = metadata.getAnyLV_InfoForUuid(pLVKey);
         if (l_LV_Info)
         {
             // At least one LVKey value was found for the logical volume to be removed...
@@ -3501,7 +3501,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
         }
         else
         {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             LOG(bb,warning) << "removeLogicalVolume: Logical volume to be removed by bbproxy, however " << *pLVKey << " was not found in the bbserver metadata.";
         }
     }
@@ -3591,7 +3591,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
     if (l_LV_Info)
     {
-        // LVKey value found in taginfo2...
+        // LVKey value found in BBLV_Info...
 
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_LV_Info->stageOutStarted()) {
@@ -3619,7 +3619,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     lockTransferQueue((LVKey*)0, "stageoutEnd");
                     l_TransferQueueLocked = 1;
 
-                    // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
+                    // NOTE:  First, mark BBLV_Info as StageOutEnded before processing any extents associated with the jobid.
                     //        Doing so will ensure that such extents are not actually transferred.
                     l_LV_Info->setStageOutEnded(&l_LVKey, l_LV_Info->getJobId());
 
@@ -3796,7 +3796,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 l_LV_Info->cleanUpAll(&l_LVKey);
 
                 if (!pForced) {
-                    // Remove taginfo2 that is currently associated with this LVKey value...
+                    // Remove BBLV_Info that is currently associated with this LVKey value...
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
@@ -3834,7 +3834,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -2;
         errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
         LOG_INFO_TEXT_RC(errorText, rc);
@@ -3860,7 +3860,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
         l_LV_Info = metadata.getLV_Info(pLVKey);
         if (l_LV_Info)
         {
-            // Key found in taginfo2...
+            // Key found in BBLV_Info...
             if (!(l_LV_Info->stageOutStarted()))
             {
                 LOG(bb,info) << "Stageout: Started: " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
@@ -3901,9 +3901,9 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         } else {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             rc = -1;
-            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in taginfo2";
+            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in BBLV_Info";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
     }
