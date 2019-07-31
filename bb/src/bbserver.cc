@@ -102,6 +102,11 @@ int hasContribId(const uint32_t pContribId, const uint64_t pNumOfContribsInArray
     return rc;
 }
 
+uint32_t getContribIdForTransferDef(BBTransferDef* pTransferDef)
+{
+     return pTransferDef->getContribId();
+}
+
 void processContrib(std::vector<uint32_t>* pContrib, uint32_t* &pContribArray, stringstream &pContribStr)
 {
     pContribStr.clear();
