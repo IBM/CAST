@@ -474,53 +474,8 @@ int BBTagParts::stopTransfer(const LVKey* pLVKey, const string& pHostName, const
         //       IS NOT associated with the correct LVKey.  This LVKey has already been failed over...
         if ((pContribId == UNDEFINED_CONTRIBID || it->first == pContribId) && (!(it->second).stopped()))
         {
-            uint32_t l_ContribId = it->first;
-            // NOTE: If we are using multiple transfer threads, we have to make sure that there are
-            //       no extents for this transfer definition currently in-flight on this bbServer...
-            //       If so, delay for a bit...
-            // NOTE: In the normal case, the work queue for the CN hostname on this bbServer should
-            //       be suspended, so no new extents should start processing when we release/re-acquire
-            //       the lock below...
-            uint32_t i = 0;
-            int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
-            int l_DelayMsgLogged = 0;
-            while (pLV_Info->getExtentInfo()->moreInFlightExtentsForTransferDefinition(pHandle, l_ContribId, l_DumpOption))
-            {
-                unlockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
-
-                {
-                    // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i++ % 60) == 48)
-                    {
-                        FL_Write(FLDelay, StopTransfer, "Waiting for in-flight queue to clear of extents for handle %ld, contribid %ld.",
-                                 pHandle, l_ContribId, 0, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< stopTransfer(): Waiting for in-flight queue to clear of extents for handle " << pHandle \
-                                     << ", contribid " << l_ContribId;
-                        l_DelayMsgLogged = 1;
-                    }
-                    usleep((useconds_t)250000);
-                    // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i % 60) == 48)
-                    {
-                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
-                    }
-                    else
-                    {
-                        l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
-                    }
-                }
-
-                lockLocalMetadata(pLVKey, "stopTransfer - Waiting for in-flight queue to clear");
-            }
-
-            if (l_DelayMsgLogged)
-            {
-                LOG(bb,info) << ">>>>> RESUME <<<<< stopTransfer(): In-flight queue now clear of extents for handle " << pHandle \
-                             << ", contribid " << l_ContribId;
-            }
-
             BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
-            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, l_ContribId, pLockWasReleased);
+            rc = l_TransferDef->stopTransfer(pLVKey, pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, it->first, pLockWasReleased);
         }
     }
 

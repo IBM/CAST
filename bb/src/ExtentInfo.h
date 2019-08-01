@@ -87,7 +87,7 @@ class ExtentInfo
         uint32_t l_TransferDefContribId = getContribIdForTransferDef(transferDef);
         if (l_TransferDefContribId != contrib)
         {
-            LOG(bb,error) << "ExtentInfo::verify(): Inconsistent contrib, l_TransferDefContribId " << l_TransferDefContribId << ", contrib " << contrib;;
+            LOG(bb,error) << "ExtentInfo::verify(): Inconsistent contrib, l_TransferDefContribId " << l_TransferDefContribId << ", contrib " << contrib;
             endOnError();
         }
 
