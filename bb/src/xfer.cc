@@ -561,8 +561,12 @@ void processAsyncRequest(WorkID& pWorkItem)
 
     if (!rc)
     {
-        // Increment the number of concurrent cancel reqeusts
+        // Increment the number of concurrent HP requests
+        // NOTE: This count limits the number of threads that can be processing the HP
+        //       requests.  Some HP requests require that other threads are available to
+        //       process extents.
         wrkqmgr.incrementNumberOfConcurrentHPRequests();
+
         if (!l_Request.sameHostName())
         {
             if (!wrkqmgr.startProcessingHP_Request(l_Request))
@@ -3042,6 +3046,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
     int l_LocalMetadataWasLocked = 0;
+    int l_TransferQueueWasLocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -3120,8 +3125,13 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             //       It is that transfer definition that has addressability to the BBIO objects.
                             //       Therefore, it is that transfer definition that is used when constructing the
                             //       ExtentInfo() objects.
+                            // NOTE: In the normal case, addExtents() locks the transfer queue and returns with it locked.
+                            //       If no extents are added, the transfer queue lock will NOT be held on return.
+                            //       Therefore, all unlocks of the transfer queue in this method uses 'IfNeeded'.
                             size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
                             rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
+                            l_TransferQueueWasLocked = 1;
+
                             if (!rc)
                             {
                                 LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
@@ -3143,7 +3153,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 if (l_WrkQE)
                                 {
                                     CurrentWrkQE = l_WrkQE;
-                                    lockTransferQueue(pLVKey, "queueTransfer");
 
                                     // If necessary, sort the extents...
                                     rc = l_LV_Info->sortExtents(pLVKey);
@@ -3181,8 +3190,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                         LOG_ERROR_TEXT_RC(errorText, rc);
                                     }
-
-                                    unlockTransferQueue(pLVKey, "queueTransfer");
 
                                     if (!rc)
                                     {
@@ -3222,6 +3229,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 errorText << "addExtents() failed, rc = " << rc;
                                 LOG_ERROR(errorText);
                             }
+
+                            l_TransferQueueWasLocked = 0;
+                            unlockTransferQueueIfNeeded(pLVKey, "queue transfer");
 
                             if (!rc)
                             {
@@ -3278,8 +3288,14 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        l_TransferQueueWasLocked = 0;
+        unlockTransferQueueIfNeeded(pLVKey, "queueTransfer_Exit");
+    }
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, "queueTransfer_Exit");
     }
 
