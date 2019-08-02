@@ -75,6 +75,8 @@ check_return_flag $? "Test Case 4: Calling csm_ras_msg_type_update"
 ${CSM_PATH}/csm_ras_event_create -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1
 check_return_flag $? "Test Case 5: Calling csm_ras_event_create"
 
+sleep 1
+
 # Test Case 6: Calling csm_ras_event_query
 ${CSM_PATH}/csm_ras_event_query -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1 
 check_return_flag $? "Test Case 6: Calling csm_ras_event_query"
