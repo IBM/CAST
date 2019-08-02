@@ -71,7 +71,7 @@ check_return_exit $? 0 "Test Case 4: Calling ib_cable_query_history"
 
 # Test Case 5: Validating query history output
 check_all_output "ib_001" 
-check_return_flag $? "Test Case 3: ib_cable_query_history returns invalid data after update" 
+check_return_flag_value $? 0 "Test Case 3: ib_cable_query_history returns invalid data after update" 
 
 rm -f ${TEMP_LOG}
 su -c "psql -d csmdb -c 'DELETE FROM csm_ib_cable ;'" postgres > /dev/null

@@ -58,7 +58,7 @@ check_return_exit $? 0 "Test Case 3: Calling csm_bb_vg_query using vg name"
 
 # Test Case 4: Validating csm_bb_vg_query output
 check_all_output "Total_Records: 1" "vg_name:.*vg_01" "node_name:.*${SINGLE_COMPUTE}" "total_size:.*500" "available_size:.*500" "scheduler:.*t"
-check_return_flag $? "Test Case 4: Validating csm_bb_vg_query output"
+check_return_flag_value $? 0 "Test Case 4: Validating csm_bb_vg_query output"
 
 # Test Case 5: Calling csm_bb_vg_query using node name
 ${CSM_PATH}/csm_bb_vg_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -82,7 +82,7 @@ check_return_exit $? 0 "Test Case 8: Calling csm_bb_lv_query using allocation ID
 
 # Test Case 9: Validating csm_bb_lv_query output
 check_all_output "logical_volume_name: lv_01" "allocation_id:       ${allocation_id}" "node_name:           ${SINGLE_COMPUTE}" "vg_name:             vg_01"
-check_return_flag $? "Test Case 9: Validating csm_bb_lv_query_output"
+check_return_flag_value $? 0 "Test Case 9: Validating csm_bb_lv_query_output"
 
 # Test Case 10: Calling csm_bb_lv_query using logical volume name
 ${CSM_PATH}/csm_bb_lv_query -L lv_01 > ${TEMP_LOG} 2>&1
@@ -90,7 +90,7 @@ check_return_exit $? 0 "Test Case 10: Calling csm_bb_lv_query using logical volu
 
 # Test Case 11: Validating csm_bb_lv_query output
 check_all_output "logical_volume_name: lv_01" "allocation_id:       ${allocation_id}" "node_name:           ${SINGLE_COMPUTE}" "vg_name:             vg_01"
-check_return_flag $? "Test Case 11: Validating csm_bb_lv_query output"
+check_return_flag_value $? 0 "Test Case 11: Validating csm_bb_lv_query output"
 
 # Test Case 12: Calling csm_bb_lv_query using node name
 ${CSM_PATH}/csm_bb_lv_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -98,7 +98,7 @@ check_return_exit $? 0 "Test Case 12: Calling csm_bb_lv_query using node name"
 
 # Test Case 13: Validating csm_bb_lv_query output
 check_all_output "logical_volume_name: lv_01" "allocation_id:       ${allocation_id}" "node_name:           ${SINGLE_COMPUTE}" "vg_name:             vg_01"
-check_return_flag $? "Test Case 13: Validating csm_bb_lv_query output"
+check_return_flag_value $? 0 "Test Case 13: Validating csm_bb_lv_query output"
 
 # Test Case 14: Calling csm_bb_lv_delete
 ${CSM_PATH}/csm_bb_lv_delete -a ${allocation_id} -l lv_01 -n ${SINGLE_COMPUTE} -r 1 -w 1 > ${TEMP_LOG} 2>&1
@@ -119,7 +119,7 @@ check_return_exit $? 0 "Test Case 16: Cascading allocation/LV delete - create lv
 
 # Test Case 16: Cascading allocation/LV delete - query lv_02
 ${CSM_PATH}/csm_bb_lv_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 16: Cascading allocation/LV delete - query lv_02"
+check_return_flag_value $? 0 "Test Case 16: Cascading allocation/LV delete - query lv_02"
 
 # Test Case 16: Cascading allocation/LV delete - delete allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
@@ -127,12 +127,12 @@ check_return_exit $? 0 "Test Case 16: Cascading allocation/LV delete - delete al
 
 # Test Case 16: Cascading allocation/LV delete - verify lv_02 deleted
 ${CSM_PATH}/csm_bb_lv_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 4 "Test Case 16: Cascading allocation/LV delete - verify lv_02 deleted"
+check_return_flag_value $? 4 "Test Case 16: Cascading allocation/LV delete - verify lv_02 deleted"
 
 # Test Case 16; Cascading allocation/LV delete - verify lv_02 in history table
 su -c "psql -d csmdb -c 'select * from csm_lv_history ;'" postgres > ${TEMP_LOG} 2>&1
 check_all_output "lv_02 .* D"
-check_return_flag $? "Test Case 16; Cascading allocation/LV delete - verify lv_02 in history table"
+check_return_flag_value $? 0 "Test Case 16; Cascading allocation/LV delete - verify lv_02 in history table"
 
 # Test Case 17: Calling csm_bb_vg_delete
 ${CSM_PATH}/csm_bb_vg_delete -n ${SINGLE_COMPUTE} -V vg_01 > ${TEMP_LOG} 2>&1

@@ -49,7 +49,7 @@ check_return_exit $? 0 "Shutting down daemons"
 
 # Delete current rpms from single compute node
 xdsh ${SINGLE_COMPUTE} "rpm -e ibm-flightlog-1.* ibm-csm-api-* ibm-csm-core-* ibm-csm-hcdiag-*" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Deleting current rpms from ${SINGLE_COMPUTE}"
+check_return_flag_value $? 0 "Deleting current rpms from ${SINGLE_COMPUTE}"
 
 # Download old RPMs
 xdcp ${SINGLE_COMPUTE} -R ${OLD_INSTALL_DIR} /root/ > ${TEMP_LOG} 2>&1
@@ -57,13 +57,13 @@ check_return_exit $? 0 "Downloading old RPMs to ${SINGLE_COMPUTE}"
 
 # Install old RPMs
 xdsh ${SINGLE_COMPUTE} "rpm -ivh /root/old_rpms/ibm-flightlog-1.*" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Installing old flightlog rpm on ${SINGLE_COMPUTE}"
+check_return_flag_value $? 0 "Installing old flightlog rpm on ${SINGLE_COMPUTE}"
 xdsh ${SINGLE_COMPUTE} "rpm -ivh /root/old_rpms/ibm-csm-core-*" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Installing old csm-core rpm on ${SINGLE_COMPUTE}"
+check_return_flag_value $? 0 "Installing old csm-core rpm on ${SINGLE_COMPUTE}"
 xdsh ${SINGLE_COMPUTE} "rpm -ivh /root/old_rpms/ibm-csm-api-*" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Installing old csm-api rpm on ${SINGLE_COMPUTE}"
+check_return_flag_value $? 0 "Installing old csm-api rpm on ${SINGLE_COMPUTE}"
 xdsh ${SINGLE_COMPUTE} "rpm -ivh /root/old_rpms/ibm-csm-hcdiag-*" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Installing old csm-hcdiag rpm on ${SINGLE_COMPUTE}"
+check_return_flag_value $? 0 "Installing old csm-hcdiag rpm on ${SINGLE_COMPUTE}"
 
 # Start daemons
 systemctl start csmd-master > ${TEMP_LOG} 2>&1
@@ -82,13 +82,13 @@ check_return_exit $? 0 "Test Case 1: Check Master status"
 sleep 5
 # Test Case 2: Check Compute is not active
 xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 1 "Test Case 2: Check Compute is not active"
+check_return_flag_value $? 1 "Test Case 2: Check Compute is not active"
 
 # Test Case 3: Check Compute log for VERSION MISTMATCH
 sleep 10
 xdsh ${SINGLE_COMPUTE} "cat /var/log/ibm/csm/csm_compute.log" > ${TEMP_LOG} 2>&1
 check_all_output "VERSION MISMATCH" "Transition from RUNMODE_CLEANUP to: RUNMODE_EXIT Reason: EXIT"
-check_return_flag $? "Test Case 3: Check Compute log for VERSION MISTMATCH"
+check_return_flag_value $? 0 "Test Case 3: Check Compute log for VERSION MISTMATCH"
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "       Error Injected Versioning Bucket COMPLETED" >> ${LOG}

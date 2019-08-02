@@ -45,18 +45,18 @@ echo "------------------------------------------------------------" >> ${LOG}
 
 # Test Case 1: csm_allocation_create NO ARGS
 ${CSM_PATH}/csm_allocation_create > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 1: csm_allocation_create NO ARGS"
+check_return_flag_value $? 9 "Test Case 1: csm_allocation_create NO ARGS"
 
 # Test Case 2: csm_allocation_create node is out of service
 # set and verify node is out of service
 ${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "OUT_OF_SERVICE" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - update to OUT_OF_SERVICE"
+check_return_flag_value $? 0 "Test Case 2: csm_allocation_create node is out of service - update to OUT_OF_SERVICE"
 ${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_all_output "OUT_OF_SERVICE"
-check_return_flag $? "Test Case 2: csm_allocation_create node is out of service - verify OUT_OF_SERVICE"
+check_return_flag_value $? 0 "Test Case 2: csm_allocation_create node is out of service - verify OUT_OF_SERVICE"
 # create
 ${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 48 "Test Case 2: csm_allocation_create node is out of service"
+check_return_flag_value $? 48 "Test Case 2: csm_allocation_create node is out of service"
 # set and verify back in service
 ${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - set back to IN_SERVICE"
@@ -74,7 +74,7 @@ check_return_exit $? 0 "Test Case 4: csm_allocation_create prolog error 255 - co
 ${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 49 "Test Case 4: csm_allocation_create prolog error 255"
 check_all_output "Privileged script execution failure detected. Invalid allocation flags"
-check_return_flag $? "Test Case 4: csm_allocation_create prolog error 255 - verify error message"
+check_return_flag_value $? 0 "Test Case 4: csm_allocation_create prolog error 255 - verify error message"
 
 # Test Case 5: csm_allocation_create prolog error generic
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_generic /opt/ibm/csm/prologs/privileged_prolog
@@ -82,7 +82,7 @@ check_return_exit $? 0 "Test Case 5: csm_allocation_create prolog error generic 
 ${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 17 "Test Case 5: csm_allocation_create prolog error generic"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
-check_return_flag $? "Test Case 5: csm_allocation_create prolog error generic - verify error message"
+check_return_flag_value $? 0 "Test Case 5: csm_allocation_create prolog error generic - verify error message"
 
 # Test Case 6: csm_allocation_create prolog error timeout
 xdcp ${SINGLE_COMPUTE} ${FVT_PATH}/include/prologs/privileged_prolog_timeout /opt/ibm/csm/prologs/privileged_prolog
@@ -90,7 +90,7 @@ check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout 
 ${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 5 "Test Case 6: csm_allocation_create prolog error timeout"
 check_all_output "Request timeout detected"
-check_return_flag $? "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
+check_return_flag_value $? 0 "Test Case 6: csm_allocation_create prolog error timeout - verify error message"
 # set node back to IN_SERVICE after timeout
 ${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s "IN_SERVICE" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 6: csm_allocation_create prolog error timeout - set node back to IN_SERVICE after timeout"
@@ -109,144 +109,144 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 # Test Case 3: csm_allocation_create node does not exist
 ${CSM_PATH}/csm_allocation_create -j 123 -n doesnotexist > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 46 "Test Case 3: csm_allocation_create node does not exist"
+check_return_flag_value $? 46 "Test Case 3: csm_allocation_create node does not exist"
 
 # Test Case 4: csm_allocation_create allocation already exists
 ${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 47 "Test Case 4: csm_allocation_create allocation already exists"
+check_return_flag_value $? 47 "Test Case 4: csm_allocation_create allocation already exists"
 
 # Test Case 5: csm_allocation_create new job, but node is busy
 ${CSM_PATH}/csm_allocation_create -j 2 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 47 "Test Case 5: csm_allocation_create new job, but node is busy"
+check_return_flag_value $? 47 "Test Case 5: csm_allocation_create new job, but node is busy"
 
 # Test Case 6: csm_allocation_create invalid -j input
 ${CSM_PATH}/csm_allocation_create -j xxx -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 6: csm_allocation_create invalid -j input"
+check_return_flag_value $? 9 "Test Case 6: csm_allocation_create invalid -j input"
 
 # Test Case 7: csm_allocation_create invalid option
 ${CSM_PATH}/csm_allocation_create -l > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 7: csm_allocation_create invalid option"
+check_return_flag_value $? 9 "Test Case 7: csm_allocation_create invalid option"
 
 # Test Case 8: csm_allocation_resources_query NO ARGS
 ${CSM_PATH}/csm_allocation_resources_query > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 8 "Test Case 8: csm_allocation_resources_query NO ARGS"
+check_return_flag_value $? 8 "Test Case 8: csm_allocation_resources_query NO ARGS"
 
 # Test Case 9: csm_allocation_resources_query allocation does not exist / is inactive
 ${CSM_PATH}/csm_allocation_resources_query -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 4 "Test Case 9: csm_allocation_resources_query allocation does not exist / is inactive"
+check_return_flag_value $? 4 "Test Case 9: csm_allocation_resources_query allocation does not exist / is inactive"
 
 # Test Case 10: csm_allocation_resources_query invalid option
 ${CSM_PATH}/csm_allocation_resources_query -x 123 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 10: csm_allocation_resources_query invalid option"
+check_return_flag_value $? 9 "Test Case 10: csm_allocation_resources_query invalid option"
 
 # Test Case 11: csm_allocation_resources_query invalid -a input
 ${CSM_PATH}/csm_allocation_resources_query -a abc > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 11: csm_allocation_resources_query invalid -a input"
+check_return_flag_value $? 9 "Test Case 11: csm_allocation_resources_query invalid -a input"
 
 # Test Case 12: csm_allocation_query NO ARGS
 ${CSM_PATH}/csm_allocation_query > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 8 "Test Case 12: csm_allocation_query NO ARGS"
+check_return_flag_value $? 8 "Test Case 12: csm_allocation_query NO ARGS"
 
 # Test Case 13: csm_allocation_query allocation does not exist
 ${CSM_PATH}/csm_allocation_query -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 4 "Test Case 13: csm_allocation_query allocation does not exist"
+check_return_flag_value $? 4 "Test Case 13: csm_allocation_query allocation does not exist"
 
 # Test Case 14: csm_allocation_query job id does not exist
 ${CSM_PATH}/csm_allocation_query -j 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 4 "Test Case 14: csm_allocation_query job id does not exist"
+check_return_flag_value $? 4 "Test Case 14: csm_allocation_query job id does not exist"
 
 # Test Case 15: csm_allocation_query more than 1 allocation with job_id=123
 ${CSM_PATH}/csm_allocation_query -j 123 > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 15: csm_allocation_query more than 1 allocation with job_id=123"
+check_return_flag_value $? 0 "Test Case 15: csm_allocation_query more than 1 allocation with job_id=123"
 
 # Test Case 15: csm_allocation_query more than 1 allocation with job_id=123 - verify num_allocations
 check_all_output "num_allocations: 4"
-check_return_flag $? "Test Case 15: csm_allocation_query more than 1 allocation with job_id=123 - verify num_allocations"
+check_return_flag_value $? 0 "Test Case 15: csm_allocation_query more than 1 allocation with job_id=123 - verify num_allocations"
 
 # Test Case 16: csm_allocation_query invalid -a option
 ${CSM_PATH}/csm_allocation_query -a xxx > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 16: csm_allocation_query invalid -a option"
+check_return_flag_value $? 9 "Test Case 16: csm_allocation_query invalid -a option"
 
 # Test Case 17: csm_allocation_query invalid -j option
 ${CSM_PATH}/csm_allocation_query -j xxx > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 17: csm_allocation_query invalid -j option"
+check_return_flag_value $? 9 "Test Case 17: csm_allocation_query invalid -j option"
 
 # Test Case 18: csm_allocation_query invalid -J option
 ${CSM_PATH}/csm_allocation_query -J xxx > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 18: csm_allocation_query invalid -J option"
+check_return_flag_value $? 9 "Test Case 18: csm_allocation_query invalid -J option"
 
 # Test Case 19: csm_allocation_query -J option can not stand alone in valid query
 ${CSM_PATH}/csm_allocation_query -J 0 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 8 "Test Case 19: csm_allocation_query -J option can not stand alone in valid query"
+check_return_flag_value $? 8 "Test Case 19: csm_allocation_query -J option can not stand alone in valid query"
 
 # Test Case 20: csm_allocation_query invalid option
 ${CSM_PATH}/csm_allocation_query -l > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 20: csm_allocation_query invalid option"
+check_return_flag_value $? 9 "Test Case 20: csm_allocation_query invalid option"
 
 # Test Case 21: csm_allocation_query_details NO ARGS
 ${CSM_PATH}/csm_allocation_query_details > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 21: csm_allocation_query_details NO ARGS"
+check_return_flag_value $? 9 "Test Case 21: csm_allocation_query_details NO ARGS"
 
 # Test Case 22: csm_allocation_query_details allocation does not exist
 ${CSM_PATH}/csm_allocation_query_details -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 4 "Test Case 22: csm_allocation_query_details allocation does not exist"
+check_return_flag_value $? 4 "Test Case 22: csm_allocation_query_details allocation does not exist"
 
 # Test Case 23: csm_allocation_query_details invalid -a input
 ${CSM_PATH}/csm_allocation_query_details -a xxx > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 23: csm_allocation_query_details invalid -a input"
+check_return_flag_value $? 9 "Test Case 23: csm_allocation_query_details invalid -a input"
 
 # Test Case 24: csm_allocation_query_details invalid option
 ${CSM_PATH}/csm_allocation_query_details -l 1 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 24: csm_allocation_query_details invalid option" 
+check_return_flag_value $? 9 "Test Case 24: csm_allocation_query_details invalid option" 
 
 # Test Case 25: csm_allocation_update_state NO ARGS
 ${CSM_PATH}/csm_allocation_update_state > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 25: csm_allocation_update_state NO ARGS"
+check_return_flag_value $? 9 "Test Case 25: csm_allocation_update_state NO ARGS"
 
 # Test Case 26: csm_allocation_update_state invalid -s input
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "invalid" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 26: csm_allocation_update_state invalid -s input"
+check_return_flag_value $? 9 "Test Case 26: csm_allocation_update_state invalid -s input"
 
 # Test Case 27: csm_allocation_update_state running->running not allowed
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "running" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 27: csm_allocation_update_state running->running not allowed"
+check_return_flag_value $? 25 "Test Case 27: csm_allocation_update_state running->running not allowed"
 
 # Test Case 28: Checking allocation state still running
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "running"
-check_return_flag $? "Test Case 28: Checking allocation state still running"
+check_return_flag_value $? 0 "Test Case 28: Checking allocation state still running"
 
 # Test Case 29: csm_allocation_update_state allocation does not exist
 ${CSM_PATH}/csm_allocation_update_state -a 123456789 -s "running" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 29: csm_allocation_update_state allocation does not exist"
+check_return_flag_value $? 25 "Test Case 29: csm_allocation_update_state allocation does not exist"
 
 # Test Case 30: csm_allocation_update_state invalid -a input
 ${CSM_PATH}/csm_allocation_update_state -a xxx -s "running" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 30: csm_allocation_update_state invalid -a input"
+check_return_flag_value $? 9 "Test Case 30: csm_allocation_update_state invalid -a input"
 
 # Test Case 31: csm_allocation_update_state invalid option
 ${CSM_PATH}/csm_allocation_update_state -l 1 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 31: csm_allocation_update_state invalid option"
+check_return_flag_value $? 9 "Test Case 31: csm_allocation_update_state invalid option"
 
 # Test Case 32: csm_allocation_delete NO ARGS
 ${CSM_PATH}/csm_allocation_delete > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
+check_return_flag_value $? 9 "Test Case 32: csm_allocation_delete NO ARGS"
 
 # Test Case 33: csm_allocation_delete allocation does not exist
 ${CSM_PATH}/csm_allocation_delete -a 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
+check_return_flag_value $? 50 "Test Case 33: csm_allocation_delete allocation does not exist"
 
 # Test Case 34: csm_allocation_delete primary job id does not exist
 ${CSM_PATH}/csm_allocation_delete -j 123456789 > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 50 "Test Case 34: csm_allocation_delete primary job id does not exist"
+check_return_flag_value $? 50 "Test Case 34: csm_allocation_delete primary job id does not exist"
 
 # Test Case 34: csm_allocation_delete invalid -a input
 ${CSM_PATH}/csm_allocation_delete -a xxx > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 34: csm_allocation_delete invalid -a input"
+check_return_flag_value $? 9 "Test Case 34: csm_allocation_delete invalid -a input"
 
 # Test Case 35: csm_allocation_update_state running->staging-out success
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 35: csm_allocation_update_state running->staging-out success"
+check_return_flag_value $? 0 "Test Case 35: csm_allocation_update_state running->staging-out success"
 
 # Test Case 36: Checking allocation state updated to staging-out
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
@@ -255,7 +255,7 @@ check_return_exit $? 0 "Test Case 36: Checking allocation state updated to stagi
 
 # Test Case 37: csm_allocation_update_state staging-out->running not allowed
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "running" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 37: csm_allocation_update_state staging-out->running not allowed"
+check_return_flag_value $? 25 "Test Case 37: csm_allocation_update_state staging-out->running not allowed"
 
 # Test Case 38: Checking allocation state still staging-out
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
@@ -264,35 +264,35 @@ check_return_exit $? 0 "Test Case 38: Checking allocation state still staging-ou
 
 # Test Case 39: csm_allocation_update_history before allocation deleted (i.e. added to history table)
 ${CSM_PATH}/csm_allocation_update_history -a ${allocation_id} -c "test comment" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 39: csm_allocation_update_history before allocation deleted (i.e. added to history table)"
+check_return_flag_value $? 25 "Test Case 39: csm_allocation_update_history before allocation deleted (i.e. added to history table)"
 
 # Test Case 40: csm_allocation_delete permission denied
 su -c "${CSM_PATH}/csm_allocation_delete -a ${allocation_id}" plundgr > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 16 "Test Case 40: csm_allocation_delete permission denied"
+check_return_flag_value $? 16 "Test Case 40: csm_allocation_delete permission denied"
 
 # Test Case 40: csm_allocation_delete success
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 40: csm_allocation_delete success"
+check_return_flag_value $? 0 "Test Case 40: csm_allocation_delete success"
 
 # Test Case 41: csm_allocation_update_history NO ARGS
 ${CSM_PATH}/csm_allocation_update_history > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 8 "Test Case 41: csm_allocation_update_history NO ARGS"
+check_return_flag_value $? 8 "Test Case 41: csm_allocation_update_history NO ARGS"
 
 # Test Case 42: csm_allocation_update_history allocation does not exist in history table
 ${CSM_PATH}/csm_allocation_update_history -a 123456789 -c "test comment" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 25 "Test Case 42: csm_allocation_update_history allocation does not exist in history table"
+check_return_flag_value $? 25 "Test Case 42: csm_allocation_update_history allocation does not exist in history table"
 
 # Test Case 43: csm_allocation_update_history missing required argument
 ${CSM_PATH}/csm_allocation_update_history -c "test comment" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 8 "Test Case 43: csm_allocation_update_history missing required argument"
+check_return_flag_value $? 8 "Test Case 43: csm_allocation_update_history missing required argument"
 
 # Test Case 44: csm_allocation_update_history invalid option
 ${CSM_PATH}/csm_allocation_update_history -a ${allocation_id} -x "test comment" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 44: csm_allocation_update_history invalid option"
+check_return_flag_value $? 9 "Test Case 44: csm_allocation_update_history invalid option"
 
 # Test Case 45: csm_allocation_update_history invalid input for required argument
 ${CSM_PATH}/csm_allocation_update_history -a testcase -c "test comment" > ${TEMP_LOG} 2>&1
-check_return_flag_nz $? 9 "Test Case 45: csm_allocation_update_history invalid input for required argument"
+check_return_flag_value $? 9 "Test Case 45: csm_allocation_update_history invalid input for required argument"
 
 # Create allocation for next test case
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -304,7 +304,7 @@ check_return_exit $? 0 "Test Case 46: csm_allocation_delete generic epilog error
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_exit $? 17 "Test Case 46: csm_allocation_delete generic epilog error"
 check_all_output "Privileged script execution failure detected. Error code received: 2"
-check_return_flag $? "Test Case 46: csm_allocation_delete generic epilog error - verify error message"
+check_return_flag_value $? 0 "Test Case 46: csm_allocation_delete generic epilog error - verify error message"
 
 # Create allocation for next test case
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
@@ -316,7 +316,7 @@ check_return_exit $? 0 "Test Case 46: csm_allocation_delete epilog timeout error
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_return_exit $? 5 "Test Case 46: csm_allocation_delete epilog timeout error"
 check_all_output "Request timeout detected"
-check_return_flag $? "Test Case 46: csm_allocation_delete epilog timeout error - verify error message"
+check_return_flag_value $? 0 "Test Case 46: csm_allocation_delete epilog timeout error - verify error message"
 
 # Verify allocation deleted
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
