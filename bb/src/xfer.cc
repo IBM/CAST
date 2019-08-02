@@ -553,7 +553,6 @@ void processAsyncRequest(WorkID& pWorkItem)
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    int l_HP_TransferQueueUnlocked = 0;
     int l_LocalMetadataLocked = 0;
 
     AsyncRequest l_Request = AsyncRequest();
@@ -605,9 +604,12 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         // Release the transfer queue lock and acquire the local metadata lock
                         unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
-                        l_HP_TransferQueueUnlocked = 1;
                         lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
                         l_LocalMetadataLocked = 1;
+
+                        // NOTE: Reset CurrentWrkQE.  It addresses the HPWrkQE and it
+                        //       needs to be redetermined based on the specific request.
+                        CurrentWrkQE = NULL;
 
                         LOG(bb,info) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
@@ -717,14 +719,16 @@ void processAsyncRequest(WorkID& pWorkItem)
 
                     if (!strstr(l_Cmd, "heartbeat"))
                     {
+                        // Return to the lock state as it was at the beginning of this method
                         if (l_LocalMetadataLocked)
                         {
                             unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
                         }
-                        if (l_HP_TransferQueueUnlocked)
-                        {
-                            lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
-                        }
+                        // NOTE: CurrentWrkQE may or may not be set.  If set, we do not attempt to
+                        //       unlock the transfer queue, as the code to proess the specific request
+                        //       should have already performed the unlock.
+                        CurrentWrkQE = HPWrkQE;
+                        lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
                     }
                 }
                 else
@@ -1562,7 +1566,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
     return rc;
 }
 
-void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
+void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId, uint32_t* pSourceIndex)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
@@ -1584,7 +1588,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
             // Sort the extents, moving the extents for the failed file, and all other files
             // for the transfer definition, to the front of the work queue so they are immediately removed...
             LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, pSourceIndex, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
         }
     }
     else
@@ -1931,7 +1935,8 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
 
                 l_MarkFailed = false;
                 // Mark the transfer definition and associated handle as failed
-                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib);
+                uint32_t l_SourceIndex = pExtentInfo.getSourceIndex();
+                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib, &l_SourceIndex);
 
                 l_LockTransferQueue = false;
                 lockTransferQueue(&l_Key, "transferExtent - After markTransferFailed()");
@@ -3796,6 +3801,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
 
                 LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
 
+
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                 //       the work queue lock is removed by that method.
@@ -3811,7 +3817,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 // Perform cleanup for the LVKey value
                 l_LV_Info->cleanUpAll(&l_LVKey);
 
-                if (!pForced) {
+                // NOTE:  Not sure of the original intent of pForced, but this method is always
+                //        invoked with pForced = FORCED (1)
+                // NOTE:  For now, keep BBLV_Info around so that the dump of the work queue manager
+                //        shows the depleted allExtents/inflight queues until removejobinfo() removes the
+                //        LVKey entry and LVInfo object.
+                // NOTE:  If we ever want to invoke cleanLVKeyOnly() here, need to fix the problem when
+                //        removejobinfo() is later invoked and attempts -  metaDataMap.erase(it);
+                //        Probably would have to erase the entire entry here also...
+                if (0==1 ||(!pForced))
+                {
                     // Remove BBLV_Info that is currently associated with this LVKey value...
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
