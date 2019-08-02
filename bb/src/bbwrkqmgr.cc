@@ -1556,13 +1556,23 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
     if (!workQueueMgrIsLocked())
     {
         // Verify lock protocol
+        if (HPWrkQE)
+        {
+            if (HPWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the HP transfer queue lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the HP transfer queue lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+                endOnError();
+            }
+        }
         if (CurrentWrkQE)
         {
             if (CurrentWrkQE->transferQueueIsLocked())
             {
-                FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+                FL_Write(FLError, lockPV_TQLock3, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm3)
                 endOnError();
             }
         }
@@ -1570,9 +1580,9 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
         {
             if (!pLocalMetadataUnlockedInd)
             {
-                FL_Write(FLError, lockPV_MDLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
+                FL_Write(FLError, lockPV_MDLock3, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the local metadata lock is held";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm3)
                 endOnError();
             }
             else
