@@ -506,26 +506,26 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
         char l_Temp[LENGTH_UUID_STR] = {'\0'};
         if (!strcmp(pSev,"debug")) {
             LOG(bb,debug) << "";
-            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                           << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             for (auto& it : metaDataMap) {
                 const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
                 LOG(bb,debug) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
                 it.second.dump(pSev);
             }
-            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                           << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             LOG(bb,debug) << "";
         } else if (!strcmp(pSev,"info")) {
             LOG(bb,info) << "";
-            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             for (auto& it : metaDataMap) {
                 const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
                 LOG(bb,info) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
                 it.second.dump(pSev);
             }
-            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo2") << ", " \
+            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
             LOG(bb,info) << "";
         }
@@ -563,6 +563,25 @@ void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
     return;
 }
 
+BBLV_Info* BBLV_Metadata::getAnyLV_InfoForUuid(const LVKey* pLVKey) const {
+    BBLV_Info* l_TagInfo = (BBLV_Info*)0;
+
+    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getAnyLV_InfoForUuid");
+    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
+        if ((it->first).second == pLVKey->second) {
+            l_TagInfo = const_cast <BBLV_Info*> (&(it->second));
+            break;
+        }
+    }
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getAnyLV_InfoForUuid");
+    }
+
+    return l_TagInfo;
+}
+
 // NOTE:  This method returns any LVKey with the input LV Uuid and jobid...
 int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId) {
     int rc = -2;    // LVKey not registered with bbserver
@@ -585,25 +604,6 @@ int BBLV_Metadata::getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyI
     }
 
     return rc;
-}
-
-BBLV_Info* BBLV_Metadata::getAnyTagInfo2ForUuid(const LVKey* pLVKey) const {
-    BBLV_Info* l_TagInfo = (BBLV_Info*)0;
-
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
-        if ((it->first).second == pLVKey->second) {
-            l_TagInfo = const_cast <BBLV_Info*> (&(it->second));
-            break;
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
-    {
-        unlockLocalMetadata(pLVKey, "BBLV_Metadata::getAnyTagInfo2ForUuid");
-    }
-
-    return l_TagInfo;
 }
 
 int BBLV_Metadata::getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID &pTagId, const BBJob pJob, std::vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId) {
@@ -1180,17 +1180,16 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
     string l_ServerHostName;
     activecontroller->gethostname(l_ServerHostName);
     string l_Result = ", the transfer definition was not found on the bbServer at " + l_ServerHostName;
-
     string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pJobId, pJobStepId), pHandle, pContribId);
-    bool l_Restart = true;
-    bool l_Continue = true;
-    while (l_Restart && l_Continue)
+    if (l_ServerHostName == l_ServicedByHostname)
     {
-        l_Restart = false;
-        l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-        for(auto it = metaDataMap.begin(); ((!rc) && it != metaDataMap.end()); ++it)
+        bool l_Restart = true;
+        bool l_Continue = true;
+        while (l_Restart && l_Continue)
         {
-            if (l_ServerHostName == l_ServicedByHostname)
+            l_Restart = false;
+            l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
+            for(auto it = metaDataMap.begin(); ((!rc) && it != metaDataMap.end()); ++it)
             {
                 l_Continue = false;
                 rc = it->second.stopTransfer(&(it->first), pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, l_LockWasReleased);
@@ -1262,6 +1261,7 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                         l_Result = ", processing during the search for the transfer definition caused a failure.";
                         LOG(bb,error) << "Failed when processing a stop transfer request for CN hostname " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId
                                       << ", handle " << pHandle << ", contribId " << pContribId << ", rc=" << rc << ". Stop transfer processing continues for the remaining transfer definitions in the set.";
+                        rc = 0;
                         l_Continue = true;
 
                         break;
@@ -1279,28 +1279,8 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                     break;
                 }
             }
-            else
-            {
-                // The transfer definition being searched for is not being serviced by this bbServer.
-                // Categorize as the transfer definition was not found on this bbServer.
-                // NOTE: The transfer definition could actually be present on this bbServer, if
-                //       this happens to be the second failover processing for the transfer definition.
-                //       However, such a transfer definition should have had all of its extents already
-                //       processed (stopped or completed) and a restart operation is more than likely
-                //       to follow this stop request on this bbServer to restart and reuse the transfer
-                //       definition.
-            }
         }
-    }
 
-    if (sameHostName(pHostName) && rc <= 0)
-    {
-        // NOTE: It is possible for a given hostname to be found in more than one bbServer.
-        //       Append the stop operation for the stop transfer request to the async request file.
-        appendAsyncRequestForStopTransfer(pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, (uint64_t)BBSCOPETRANSFER);
-    }
-    else
-    {
         if (!rc)
         {
             rc = attemptToUnconditionallyStopThisTransferDefinition(pHostName, pCN_HostName, pJobId, pJobStepId, pHandle, pContribId);
@@ -1313,10 +1293,28 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                 l_Result = ", the transfer definition was successfully stopped using information from the cross bbServer metadata.";
             }
         }
+
+        LOG(bb,info) << "For host name " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
+                     << ", handle " << pHandle << ", and contribid " << pContribId << l_Result;
+    }
+    else
+    {
+        // The transfer definition being searched for is not being serviced by this bbServer.
+        // Categorize as the transfer definition was not found on this bbServer.
+        // NOTE: The transfer definition could actually be present on this bbServer, if
+        //       this happens to be the second failover processing for the transfer definition.
+        //       However, such a transfer definition should have had all of its extents already
+        //       processed (stopped or completed) and a restart operation is more than likely
+        //       to follow this stop request on this bbServer to restart and reuse the transfer
+        //       definition.
     }
 
-    LOG(bb,info) << "For host name " << pCN_HostName << ", jobid " << pJobId << ", jobstepid " << pJobStepId \
-                 << ", handle " << pHandle << ", and contribid " << pContribId << l_Result;
+    if (sameHostName(pHostName) && rc <= 0)
+    {
+        // NOTE: It is possible for a given hostname to be found in more than one bbServer.
+        //       Append the stop operation for the stop transfer request to the async request file.
+        appendAsyncRequestForStopTransfer(pCN_HostName, pJobId, pJobStepId, pHandle, pContribId, (uint64_t)BBSCOPETRANSFER);
+    }
 
     return rc;
 }

@@ -553,7 +553,6 @@ void processAsyncRequest(WorkID& pWorkItem)
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    int l_HP_TransferQueueUnlocked = 0;
     int l_LocalMetadataLocked = 0;
 
     AsyncRequest l_Request = AsyncRequest();
@@ -561,8 +560,12 @@ void processAsyncRequest(WorkID& pWorkItem)
 
     if (!rc)
     {
-        // Increment the number of concurrent cancel reqeusts
+        // Increment the number of concurrent HP requests
+        // NOTE: This count limits the number of threads that can be processing the HP
+        //       requests.  Some HP requests require that other threads are available to
+        //       process extents.
         wrkqmgr.incrementNumberOfConcurrentHPRequests();
+
         if (!l_Request.sameHostName())
         {
             if (!wrkqmgr.startProcessingHP_Request(l_Request))
@@ -601,9 +604,12 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         // Release the transfer queue lock and acquire the local metadata lock
                         unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
-                        l_HP_TransferQueueUnlocked = 1;
                         lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
                         l_LocalMetadataLocked = 1;
+
+                        // NOTE: Reset CurrentWrkQE.  It addresses the HPWrkQE and it
+                        //       needs to be redetermined based on the specific request.
+                        CurrentWrkQE = NULL;
 
                         LOG(bb,info) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
@@ -713,14 +719,16 @@ void processAsyncRequest(WorkID& pWorkItem)
 
                     if (!strstr(l_Cmd, "heartbeat"))
                     {
+                        // Return to the lock state as it was at the beginning of this method
                         if (l_LocalMetadataLocked)
                         {
                             unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
                         }
-                        if (l_HP_TransferQueueUnlocked)
-                        {
-                            lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
-                        }
+                        // NOTE: CurrentWrkQE may or may not be set.  If set, we do not attempt to
+                        //       unlock the transfer queue, as the code to proess the specific request
+                        //       should have already performed the unlock.
+                        CurrentWrkQE = HPWrkQE;
+                        lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
                     }
                 }
                 else
@@ -1558,7 +1566,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
     return rc;
 }
 
-void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
+void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId, uint32_t* pSourceIndex)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
@@ -1580,7 +1588,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
             // Sort the extents, moving the extents for the failed file, and all other files
             // for the transfer definition, to the front of the work queue so they are immediately removed...
             LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, pSourceIndex, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
         }
     }
     else
@@ -1927,7 +1935,8 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
 
                 l_MarkFailed = false;
                 // Mark the transfer definition and associated handle as failed
-                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib);
+                uint32_t l_SourceIndex = pExtentInfo.getSourceIndex();
+                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib, &l_SourceIndex);
 
                 l_LockTransferQueue = false;
                 lockTransferQueue(&l_Key, "transferExtent - After markTransferFailed()");
@@ -2185,7 +2194,7 @@ void* transferWorker(void* ptr)
                             }
                             else
                             {
-                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (taginfo2)";
+                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info)";
                                 LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
                             }
                         }
@@ -3042,6 +3051,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
     int l_LocalMetadataWasLocked = 0;
+    int l_TransferQueueWasLocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -3080,9 +3090,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -1;
-        errorText << "queueTransfer():" << *pLVKey << " could not be found in taginfo2";
+        errorText << "queueTransfer():" << *pLVKey << " could not be found in BBLV_Info";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
@@ -3120,8 +3130,13 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             //       It is that transfer definition that has addressability to the BBIO objects.
                             //       Therefore, it is that transfer definition that is used when constructing the
                             //       ExtentInfo() objects.
+                            // NOTE: In the normal case, addExtents() locks the transfer queue and returns with it locked.
+                            //       If no extents are added, the transfer queue lock will NOT be held on return.
+                            //       Therefore, all unlocks of the transfer queue in this method uses 'IfNeeded'.
                             size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
                             rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
+                            l_TransferQueueWasLocked = 1;
+
                             if (!rc)
                             {
                                 LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
@@ -3143,7 +3158,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 if (l_WrkQE)
                                 {
                                     CurrentWrkQE = l_WrkQE;
-                                    lockTransferQueue(pLVKey, "queueTransfer");
 
                                     // If necessary, sort the extents...
                                     rc = l_LV_Info->sortExtents(pLVKey);
@@ -3181,8 +3195,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                         LOG_ERROR_TEXT_RC(errorText, rc);
                                     }
-
-                                    unlockTransferQueue(pLVKey, "queueTransfer");
 
                                     if (!rc)
                                     {
@@ -3222,6 +3234,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 errorText << "addExtents() failed, rc = " << rc;
                                 LOG_ERROR(errorText);
                             }
+
+                            l_TransferQueueWasLocked = 0;
+                            unlockTransferQueueIfNeeded(pLVKey, "queue transfer");
 
                             if (!rc)
                             {
@@ -3278,8 +3293,14 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         }
     }
 
+    if (l_TransferQueueWasLocked)
+    {
+        l_TransferQueueWasLocked = 0;
+        unlockTransferQueueIfNeeded(pLVKey, "queueTransfer_Exit");
+    }
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, "queueTransfer_Exit");
     }
 
@@ -3486,7 +3507,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
 
     try
     {
-        l_LV_Info = metadata.getAnyTagInfo2ForUuid(pLVKey);
+        l_LV_Info = metadata.getAnyLV_InfoForUuid(pLVKey);
         if (l_LV_Info)
         {
             // At least one LVKey value was found for the logical volume to be removed...
@@ -3501,7 +3522,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
         }
         else
         {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             LOG(bb,warning) << "removeLogicalVolume: Logical volume to be removed by bbproxy, however " << *pLVKey << " was not found in the bbserver metadata.";
         }
     }
@@ -3591,7 +3612,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
     if (l_LV_Info)
     {
-        // LVKey value found in taginfo2...
+        // LVKey value found in BBLV_Info...
 
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_LV_Info->stageOutStarted()) {
@@ -3619,7 +3640,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     lockTransferQueue((LVKey*)0, "stageoutEnd");
                     l_TransferQueueLocked = 1;
 
-                    // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
+                    // NOTE:  First, mark BBLV_Info as StageOutEnded before processing any extents associated with the jobid.
                     //        Doing so will ensure that such extents are not actually transferred.
                     l_LV_Info->setStageOutEnded(&l_LVKey, l_LV_Info->getJobId());
 
@@ -3780,6 +3801,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
 
                 LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
 
+
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                 //       the work queue lock is removed by that method.
@@ -3795,8 +3817,17 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 // Perform cleanup for the LVKey value
                 l_LV_Info->cleanUpAll(&l_LVKey);
 
-                if (!pForced) {
-                    // Remove taginfo2 that is currently associated with this LVKey value...
+                // NOTE:  Not sure of the original intent of pForced, but this method is always
+                //        invoked with pForced = FORCED (1)
+                // NOTE:  For now, keep BBLV_Info around so that the dump of the work queue manager
+                //        shows the depleted allExtents/inflight queues until removejobinfo() removes the
+                //        LVKey entry and LVInfo object.
+                // NOTE:  If we ever want to invoke cleanLVKeyOnly() here, need to fix the problem when
+                //        removejobinfo() is later invoked and attempts -  metaDataMap.erase(it);
+                //        Probably would have to erase the entire entry here also...
+                if (0==1 ||(!pForced))
+                {
+                    // Remove BBLV_Info that is currently associated with this LVKey value...
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
@@ -3834,7 +3865,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -2;
         errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
         LOG_INFO_TEXT_RC(errorText, rc);
@@ -3860,7 +3891,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
         l_LV_Info = metadata.getLV_Info(pLVKey);
         if (l_LV_Info)
         {
-            // Key found in taginfo2...
+            // Key found in BBLV_Info...
             if (!(l_LV_Info->stageOutStarted()))
             {
                 LOG(bb,info) << "Stageout: Started: " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
@@ -3901,9 +3932,9 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         } else {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             rc = -1;
-            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in taginfo2";
+            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in BBLV_Info";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
     }

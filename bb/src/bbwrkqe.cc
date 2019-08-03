@@ -45,6 +45,11 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     incrementNumberOfWorkItems();
 
+    if (g_LogAllAsyncRequestActivity && this == HPWrkQE)
+    {
+        LOG(bb,info) << "AsyncRequest -> incrementNumberOfHP_WorkItems: numberOfWorkItems " << HPWrkQE->getNumberOfWorkItems();
+    }
+
     return;
 };
 

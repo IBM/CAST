@@ -102,6 +102,11 @@ int hasContribId(const uint32_t pContribId, const uint64_t pNumOfContribsInArray
     return rc;
 }
 
+uint32_t getContribIdForTransferDef(BBTransferDef* pTransferDef)
+{
+     return pTransferDef->getContribId();
+}
+
 void processContrib(std::vector<uint32_t>* pContrib, uint32_t* &pContribArray, stringstream &pContribStr)
 {
     pContribStr.clear();
@@ -359,8 +364,9 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
 
                             // Sort the extents, moving the canceled extents to the front of
                             // the work queue so they are immediately removed...
+                            uint32_t* l_SourceIndex = NULL;
                             LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, 0, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
+                            l_LV_Info->cancelExtents(l_LVKey, &l_Handle, &l_ContribId, l_SourceIndex, 0, l_LockWasReleased, REMOVE_TARGET_PFS_FILES);
                         }
                         else
                         {
@@ -1965,7 +1971,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                       << l_LVKey2 << ", hostname " << l_HostName << ", job" << l_JobStr.str() << ", tag " << l_Tag << ", handle " \
                                       << l_Handle << ", contribid " << l_ContribId \
                                       << ". See the appropriate bbProxy console log. (Access to local metadata for this transfer definition was successful.)";
-                        markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
+                        uint32_t* l_SourceIndex = NULL;
+                        markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId, l_SourceIndex);
                         // NOTE: errstate filled in by bbProxy
                         rc = -1;
                         SET_RC_AND_BAIL(rc);
@@ -2554,7 +2561,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                 // we got far enough along to insert this transfer definition into the local metadata
                 if (l_PerformOperation || (l_TransferPtr != l_OrgTransferPtr))
                 {
-                    markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId);
+                    uint32_t* l_SourceIndex = NULL;
+                    markTransferFailed(&l_LVKey2, l_TransferPtr, l_LV_Info, l_Handle, l_ContribId, l_SourceIndex);
                 }
             }
         }

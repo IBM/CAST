@@ -201,14 +201,14 @@
 	  "te_7" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "An exception was thrown in transferExtent() when attempting to access the local metadata (taginfo2).",
-	      "description" : "An exception was caught when attempting to access the local metadata (taginfo2)."
+	      "message" : "An exception was thrown in transferExtent() when attempting to access the local metadata (BBLV_Info).",
+	      "description" : "An exception was caught when attempting to access the local metadata (BBLV_Info)."
 	  },
 	  "tw_1" :
 	  {
 	      "severity" : "WARNING",
-	      "message" : "An error occurred in transferExtent() when attempting to access the local metadata (taginfo2).",
-	      "description" : "The taginfo2 was NULL."
+	      "message" : "An error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info).",
+	      "description" : "The BBLV_Info was NULL."
 	  },
 	  "tw_2" :
 	  {
@@ -410,17 +410,17 @@
 	      "message" : "Lock protocol violation when attempting to unlock the transfer queue (2).",
 	      "description" : "Lock protocol violation when attempting to unlock the transfer queue (2)."
 	  },
-	  "lockwqm1" :
-	  {
-	      "severity" : "WARNING",
-	      "message" : "Lock protocol violation when attempting to lock the work queue manager (1).",
-	      "description" : "Lock protocol violation when attempting to lock the work queue manager (1)."
-	  },
 	  "lockwqm2" :
 	  {
 	      "severity" : "WARNING",
 	      "message" : "Lock protocol violation when attempting to lock the work queue manager (2).",
 	      "description" : "Lock protocol violation when attempting to lock the work queue manager (2)."
+	  },
+	  "lockwqm3" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "Lock protocol violation when attempting to lock the work queue manager (3).",
+	      "description" : "Lock protocol violation when attempting to lock the work queue manager (3)."
 	  }
       }
       },

@@ -1446,7 +1446,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
     if (pValue)
     {
         LOG(bb,info) << "For " << *pLVKey << ", I/O for one or more extents failed for one or more file(s), a final close failed for one or more file(s)," \
-                        " a cancel operation occurred for the contributor, or some other failure occurred for the transfer definition associated with contribid " << pContribId;
+                        " a cancel or stop transfer operation occurred for the contributor, or some other failure occurred for the transfer definition associated with contribid " << pContribId;
     }
 
     if ((((flags & BBTD_Failed) == 0) && pValue) || ((flags & BBTD_Failed) && (!pValue)))
@@ -1546,13 +1546,16 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             //       completed the processing performed by the second volley from
             //       bbProxy.  We have to make sure that the extents are first enqueued
             //       so that the stop processing is properly performed.
-            // NOTE: We only wait 1/2 of the normal getDeclareServerDeadCount(), as
-            //       this transfer definition originated on this bbServer.  The
+            // NOTE: We only wait 1/8 of the normal getDeclareServerDeadCount(), as
+            //       this transfer definition originated on this bbServer.  If the
+            //       second volley doesn't occur rather quickly, most likely the
+            //       failover occurred between the two volleys.  Therefore, we
+            //       don't wait for the fill amount of time here.  The
             //       bbServer attempting to take over will wait the full amount of
             //       time.  So if possible, we want the original server to process
             //       first.
             string l_ConnectionName = string();
-            uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId)/2;
+            uint64_t l_OriginalDeclareServerDeadCount = wrkqmgr.getDeclareServerDeadCount(BBJob(pJobId, pJobStepId), pHandle, pContribId)/8;
             uint64_t l_Continue = l_OriginalDeclareServerDeadCount;
             while (!rc && l_Continue--)
             {
