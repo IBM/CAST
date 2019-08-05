@@ -206,7 +206,7 @@ void INV_AGGREGATOR_HANDLER::Process( const csm::daemon::CoreEvent &aEvent, std:
         const csm::network::Address_sptr addr = GetAddrFromSystemEvent(aEvent);
         csm::daemon::ConnectedNodeStatus *nInfo = GetDaemonState()->GetNodeInfo( addr );
 
-        LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: detected "  << nInfo->_ConnectionType
+        LOG(csmd, info) << "INV_AGGREGATOR_HANDLER: detected "  << ((nInfo != NULL ) ? nInfo->_ConnectionType : csm::daemon::ConnectionType::ANY )
             << " connection failure. Type: " << addr->GetAddrType()
             << " Addr: " << addr->Dump();
         if(( addr->GetAddrType() == csm::network::CSM_NETWORK_TYPE_PTP ) &&

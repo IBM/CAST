@@ -225,8 +225,10 @@ public:
     }
 
     std::stringstream ss;
+    const HealthNodeInfo *hni = dynamic_cast<const HealthNodeInfo*>(this);
+    if( hni != NULL )
+      ss << hni->Dump( verbose_option );
 
-    ss << dynamic_cast<const HealthNodeInfo*>(this)->Dump( verbose_option );
     ss << "\n\tActive_primary: " << active_list.size() << "\n";
     ss << "\tUnresponsive_primary: " << disconnected_list.size() << "\n";
     ss << "\tActive_secondary: " << active_list2.size() << "\n";
@@ -297,7 +299,10 @@ public:
   std::string Dump(bool verbose_option) const
   {
     std::stringstream ss;
-    ss << dynamic_cast<const HealthNodeInfo*>(this)->Dump( verbose_option );
+    const HealthNodeInfo *hni = dynamic_cast<const HealthNodeInfo*>(this);
+    if( hni == NULL )
+      return ss.str();
+    ss << hni->Dump( verbose_option );
     return ss.str();
   }
 };
