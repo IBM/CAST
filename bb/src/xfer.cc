@@ -3606,7 +3606,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     WRKQE* l_WrkQE = 0;
     BBLV_Info* l_LV_Info;
     int l_TransferQueueLocked = 0;
-    int l_LocalMetadataLocked = 1;
+    int l_LocalMetadataUnlocked = 0;
 
     LVKey l_LVKey = *pLVKey;
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
@@ -3667,13 +3667,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         }
                         l_TransferQueueLocked = 0;
                         unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataLocked = 0;
+                        l_LocalMetadataUnlocked = 1;
                         unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         {
                             usleep((useconds_t)250000);
                         }
                         lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataLocked = 1;
+                        l_LocalMetadataUnlocked = 0;
                         lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_TransferQueueLocked = 1;
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
@@ -3801,7 +3801,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
 
                 LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
 
-
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                 //       the work queue lock is removed by that method.
@@ -3843,10 +3842,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     l_TransferQueueLocked = 0;
                     unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
-                if (l_LocalMetadataLocked)
+                if (l_LocalMetadataUnlocked)
                 {
-                    l_LocalMetadataLocked = 0;
-                    unlockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
+                    l_LocalMetadataUnlocked = 0;
+                    lockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
             }
         }
