@@ -33,27 +33,20 @@ Create Logical Volume
 Resize Logical Volume
     [Arguments]  ${path}  ${size}  ${roptions}=BB_NONE  ${expect_rc}=0
     [Timeout]  60 seconds
-    Directory should exist  ${path}  "${path} does not exist!"
-    Should be true  '${roptions}' == 'BB_NONE' or '${roptions}' == 'BB_DO_NOT_PRESERVE_FS'
     bbcmd  resize  --mount=${path}  --roptions=${roptions}   --size=${size}
     Status should be  ${expect_rc}
-    Append to list  ${MOUNTLVS}  ${path}
 
 Resize Logical Volume No ROPTIONCHECK
     [Arguments]  ${path}  ${size}  ${roptions}=BB_NONE  ${expect_rc}=0
     [Timeout]  60 seconds
-    Directory should exist  ${path}  "${path} does not exist!"
     bbcmd  resize  --mount=${path}  --roptions=${roptions}   --size=${size}
     Status should be  ${expect_rc}
-    Append to list  ${MOUNTLVS}  ${path}
 
 Resize Logical Volume check ROPTION default
     [Arguments]  ${path}  ${size}  ${expect_rc}=0
     [Timeout]  60 seconds
-    Directory should exist  ${path}  "${path} does not exist!"
     bbcmd  resize  --mount=${path}  --size=${size}
     Status should be  ${expect_rc}
-    Append to list  ${MOUNTLVS}  ${path}
 
 Set Logical Volume Throttle Rate
     [Arguments]  ${path}  ${rate}  ${expect_rc}=0
