@@ -250,11 +250,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -496,11 +500,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -742,11 +750,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -988,11 +1000,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -1234,11 +1250,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -1480,11 +1500,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -1726,11 +1750,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -1972,11 +2000,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -2218,11 +2250,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -2464,11 +2500,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -2710,11 +2750,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -2956,11 +3000,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -3202,11 +3250,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -3448,11 +3500,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -3694,11 +3750,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
@@ -3940,11 +4000,15 @@ INIT_FUNCT(CSMI_STRUCT_NAME)
 {
     if (!target) return; //< If the target is null return. TODO Error throwing.
     
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
+    
     // Initialize the members.
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata)\
         INIT_##serial_type(name, init_value, length_member)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 #undef STRUCT_DEF
