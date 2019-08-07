@@ -235,16 +235,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -485,16 +488,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -735,16 +741,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -985,16 +994,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -1235,16 +1247,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -1485,16 +1500,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -1735,16 +1753,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -1985,16 +2006,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -2235,16 +2259,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -2485,16 +2512,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -2735,16 +2765,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -2985,16 +3018,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -3235,16 +3271,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -3485,16 +3524,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -3735,16 +3777,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -3985,16 +4030,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -4235,16 +4283,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -4485,16 +4536,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -4735,16 +4789,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
@@ -4985,16 +5042,19 @@ FREE_FUNCT(CSMI_STRUCT_NAME)
     uint32_t i = 0;             //< A counter variable.
     #endif
 
+    // Get the version the user is supplying.
+    uint64_t version_id    = target->_metadata <= CSM_VERSION_ID ? target->_metadata : CSM_MIN_VERSION;
+
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_ARRAY_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 
     #define CSMI_STRUCT_MEMBER(type, name, serial_type, length_member, init_value, metadata) \
         FREE_##serial_type(type, name, length_member, metadata)
-    #define CSMI_VERSION_START(version)
-    #define CSMI_VERSION_END(hash)
+    #define CSMI_VERSION_START(version) if (version_id >= version ) {
+    #define CSMI_VERSION_END(hash) } 
     #include STRUCT_DEF
 }
 
