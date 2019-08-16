@@ -740,12 +740,14 @@ void processAsyncRequest(WorkID& pWorkItem)
                 if (l_LogAsInfo)
                 {
                     LOG(bb,info) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                 << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
                 else
                 {
                     LOG(bb,debug) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                  << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
                 wrkqmgr.endProcessingHP_Request(l_Request);
             }
@@ -2051,8 +2053,6 @@ void* transferWorker(void* ptr)
 
         l_WrkQ = 0;
         l_WrkQE = 0;
-        l_LV_Info = 0;
-        l_Extent = 0;
 
         verifyInitLockState();
 
@@ -2106,17 +2106,58 @@ void* transferWorker(void* ptr)
                         {
                             // A work queue associated with an LVKey was returned
                             //
-                            // Retrieve the LVKey, WorkID, and BBLV_Info*
-                            // from the next item of work from the returned queue...
-                            l_WorkItem = l_WrkQE->getWrkQ()->front();
-                            l_Key = l_WorkItem.getLVKey();
-                            l_LV_Info = l_WorkItem.getLV_Info();
-                            if (l_LV_Info)
+                            // Retrieve the next 'valid' work item
+                            bool l_RemoveWorkItem = true;
+                            while (l_RemoveWorkItem && l_WrkQE->getWrkQ_Size())
                             {
-                                l_TagId = l_WorkItem.getTagId();
-                                l_ExtentInfo = l_LV_Info->getNextExtentInfo();
-                                l_Extent = l_ExtentInfo.getExtent();
+                                l_RemoveWorkItem = false;
+                                l_Extent = 0;
+                                l_WorkItem = l_WrkQE->getWrkQ()->front();
+                                l_LV_Info = l_WorkItem.getLV_Info();
+                                if (l_LV_Info)
+                                {
+                                    l_ExtentInfo = l_LV_Info->getNextExtentInfo();
+                                    l_Extent = l_ExtentInfo.getExtent();
+                                    // NOTE: In stageoutEnd(), the work queue manager lock is obtained before
+                                    //       the work queue is removed and then the related transfer definitions
+                                    //       are removed for the LVKey.  However, for efficiencies, the work
+                                    //       queue manager lock is not obtained prior to removing all remaining
+                                    //       extents to be transferred for those transfer definitions.
+                                    //       Therefore, the l_LV_Info->getNextExtentInfo() performed above may
+                                    //       yield an 'empty' l_ExtentInfo above.  Check for that here by making
+                                    //       sure the pointers to the Extent, BBTagInfo, and BBTransferDef are set.
+                                    //       If not set, then there is no more work for this work queue.
+                                    // NOTE: On the 2nd through nth iterations, we continue to look for a
+                                    //       valid l_ExtentInfo for completeness.  We shouldn't have to
+                                    //       check after the first attempt.
+                                    if (!(l_Extent && l_ExtentInfo.getTagInfo() && l_ExtentInfo.getTransferDef()))
+                                    {
+                                        // Empty l_ExtentInfo...  Indicate to remove this work item
+                                        // and iterate to process the next work item.
+                                        l_LV_Info = 0;
+                                        l_RemoveWorkItem = true;
+                                    }
+                                }
+                                else
+                                {
+                                    // Not expected...  Log the situation, indicate to remove the work item,
+                                    // and iterate to process the next work item.
+                                    l_RemoveWorkItem = true;
+                                    errorText << "Error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info)";
+                                    LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
+                                }
+                                if (l_RemoveWorkItem)
+                                {
+                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                                    wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                                }
+                            }
 
+                            if (l_Extent)
+                            {
+                                // Valid extent to process
+                                l_Key = l_WorkItem.getLVKey();
+                                l_TagId = l_WorkItem.getTagId();
                                 if (!l_WrkQE->getRate())
                                 {
                                     FL_Write6(FLWrkQMgr, FindNext, "Jobid %ld, jobstepid %ld, tag %ld, work queue %p currently has %ld entries remaining.",
@@ -2194,8 +2235,8 @@ void* transferWorker(void* ptr)
                             }
                             else
                             {
-                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info)";
-                                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
+                                // Work queue no longer has a valid extent to process.
+                                // Simply continue on to find more work.
                             }
                         }
                         else
@@ -3607,6 +3648,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     BBLV_Info* l_LV_Info;
     int l_TransferQueueLocked = 0;
     int l_LocalMetadataUnlocked = 0;
+    int l_WorkQueueMgrLocked = 0;
 
     LVKey l_LVKey = *pLVKey;
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
@@ -3799,7 +3841,16 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
                 }
 
-                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
+                // NOTE: The work queue manager lock is now obtained before we remove
+                //       the work queue and remove all related transfer definitions.
+                //       This is done to hold out any more work being handed out by
+                //       findWork().
+                l_TransferQueueLocked = 0;
+                unlockTransferQueue(&l_LVKey, "stageoutEnd - Before removing work queue");
+                wrkqmgr.lockWorkQueueMgr(&l_LVKey, "stageoutEnd - Before removing work queue", &l_LocalMetadataUnlocked);
+                l_WorkQueueMgrLocked = 1;
+                lockTransferQueue(&l_LVKey, "stageoutEnd - Before removing work queue");
+                l_TransferQueueLocked = 1;
 
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
@@ -3814,6 +3865,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 }
 
                 // Perform cleanup for the LVKey value
+                // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
+                //       associated with this LVKey.
                 l_LV_Info->cleanUpAll(&l_LVKey);
 
                 // NOTE:  Not sure of the original intent of pForced, but this method is always
@@ -3831,7 +3884,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
 
+                l_WorkQueueMgrLocked = 0;
+                wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - After cleanUpAll()", &l_LocalMetadataUnlocked);
+
                 l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
+                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
             }
             catch (ExceptionBailout& e) { }
             catch (exception& e)
@@ -3841,6 +3898,11 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 {
                     l_TransferQueueLocked = 0;
                     unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
+                }
+                if (l_WorkQueueMgrLocked)
+                {
+                    l_WorkQueueMgrLocked = 0;
+                    wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - Exception thrown", &l_LocalMetadataUnlocked);
                 }
                 if (l_LocalMetadataUnlocked)
                 {
