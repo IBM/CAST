@@ -69,7 +69,6 @@ class BBTagInfoMap
     int hasContribId(const uint32_t pContribId);
     int isUniqueHandle(uint64_t pHandle);
     void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
-    void removeTransferDef(const BBTagID& pTagId, const uint32_t pContribId);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
     void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);

@@ -191,10 +191,6 @@ class BBTagInfo
         }
     }
 
-    inline void removeTransferDef(const uint32_t pContribId) {
-        return parts.removeTransferDef(pContribId);
-    }
-
     inline int replaceExtentVector(const uint32_t pContribId, BBTransferDef* pTransferDef) {
         return parts.replaceExtentVector(this, pContribId, pTransferDef);
     }
