@@ -1436,8 +1436,20 @@ void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
                 if (qe->second->wrkq->size())
                 {
                     // This workqueue has at least one entry.
+                    //
+                    // Now, peek at the next extent to be transferred.  This work queue
+                    // can be returned if the next extent is marked as canceled or if there
+                    // are no additional extents remaining.
+                    // NOTE:  If no extents remain, then treat the workqueue as if it has
+                    //        a canceled extent.  Cancel extent processing only keep the
+                    //        first and last extent for a file in allExtents to be processed
+                    //        so that the appropriate metadata is updated.  All other canceled
+                    //        extents are simply removed.  Therefore, all work items for the
+                    //        non-first and non-last extents remain enqueued.  We want to
+                    //        prioritize the removal of these enqueued work items, so we
+                    //        treat them as canceled.
                     l_LV_Info = qe->second->getLV_Info();
-                    if (l_LV_Info && l_LV_Info->hasCanceledExtents())
+                    if (l_LV_Info && ((!l_LV_Info->getNumberOfExtents()) || l_LV_Info->hasCanceledExtents()))
                     {
                         // Next extent to be transferred is canceled...
                         pWrkQE = qe->second;
@@ -2069,7 +2081,7 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
     int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    lockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
@@ -2116,7 +2128,10 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    }
     if (l_LocalMetadataUnlocked)
     {
         lockLocalMetadata(pLVKey, "rmvWrkQ");
@@ -2314,6 +2329,7 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* 
         if (pLocalMetadataUnlockedInd && *pLocalMetadataUnlockedInd)
         {
             lockLocalMetadata(pLVKey, "unlockWorkQueueMgr");
+            *pLocalMetadataUnlockedInd = 0;
         }
     }
     else

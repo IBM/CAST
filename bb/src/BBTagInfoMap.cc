@@ -296,16 +296,6 @@ void BBTagInfoMap::removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle
     return;
 }
 
-void BBTagInfoMap::removeTransferDef(const BBTagID& pTagId, const uint32_t pContribId)
-{
-    BBTagParts* l_TagParts = getParts(pTagId);
-    if (l_TagParts) {
-        l_TagParts->removeTransferDef(pContribId);
-    }
-
-    return;
-}
-
 int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo)
 {
     int rc = 0;
