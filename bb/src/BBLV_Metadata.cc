@@ -499,41 +499,51 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
     return;
 }
 
-void BBLV_Metadata::dump(char* pSev, const char* pPrefix) {
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::dump");
-
-    if (metaDataMap.size()) {
-        char l_Temp[LENGTH_UUID_STR] = {'\0'};
-        if (!strcmp(pSev,"debug")) {
-            LOG(bb,debug) << "";
-            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
-                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            for (auto& it : metaDataMap) {
-                const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
-                LOG(bb,debug) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
-                it.second.dump(pSev);
-            }
-            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
-                          << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            LOG(bb,debug) << "";
-        } else if (!strcmp(pSev,"info")) {
-            LOG(bb,info) << "";
-            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
-                         << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            for (auto& it : metaDataMap) {
-                const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
-                LOG(bb,info) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
-                it.second.dump(pSev);
-            }
-            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
-                         << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            LOG(bb,info) << "";
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
+void BBLV_Metadata::dump(char* pSev, const char* pPrefix)
+{
+    if (wrkqmgr.checkLoggingLevel(pSev))
     {
-        unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::dump");
+        int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::dump");
+
+        if (metaDataMap.size())
+        {
+            char l_Temp[LENGTH_UUID_STR] = {'\0'};
+            if (!strcmp(pSev,"debug"))
+            {
+                LOG(bb,debug) << "";
+                LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
+                              << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                for (auto& it : metaDataMap)
+                {
+                    const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
+                    LOG(bb,debug) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
+                    it.second.dump(pSev);
+                }
+                LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
+                              << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                LOG(bb,debug) << "";
+            }
+            else if (!strcmp(pSev,"info"))
+            {
+                LOG(bb,info) << "";
+                LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
+                             << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                for (auto& it : metaDataMap)
+                {
+                    const_cast <Uuid*> (&(it.first.second))->copyTo(l_Temp);
+                    LOG(bb,info) << "LVKey -> Local Port: " << it.first.first << "   Uuid: " << l_Temp;
+                    it.second.dump(pSev);
+                }
+                LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "BBLV_Metadata") << ", " \
+                             << metaDataMap.size() << (metaDataMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                LOG(bb,info) << "";
+            }
+        }
+
+        if (l_LocalMetadataWasLocked)
+        {
+            unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::dump");
+        }
     }
 }
 

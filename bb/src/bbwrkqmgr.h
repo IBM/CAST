@@ -627,6 +627,7 @@ class WRKQMGR
     void calcLastWorkQueueWithEntries();
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
+    int checkLoggingLevel(const char* pSev);
     void checkThrottleTimer();
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);

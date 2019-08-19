@@ -293,17 +293,24 @@ void BBTagInfo::calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const ui
     return;
 }
 
-void BBTagInfo::dump(const char* pSev) {
-    stringstream l_Temp;
-    expectContribToSS(l_Temp);
-    if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-        LOG(bb,debug) << "Expect Contrib:  " << l_Temp.str();
-        parts.dump(pSev);
-    } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-        LOG(bb,info) << "Expect Contrib:  " << l_Temp.str();
-        parts.dump(pSev);
+void BBTagInfo::dump(const char* pSev)
+{
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+        stringstream l_Temp;
+        expectContribToSS(l_Temp);
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
+            LOG(bb,debug) << "Expect Contrib:  " << l_Temp.str();
+            parts.dump(pSev);
+        }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
+            LOG(bb,info) << "Expect Contrib:  " << l_Temp.str();
+            parts.dump(pSev);
+        }
     }
 
     return;

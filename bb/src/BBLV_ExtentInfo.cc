@@ -217,29 +217,37 @@ void BBLV_ExtentInfo::addToInFlight(const string& pConnectionName, const LVKey* 
     return;
 }
 
-void BBLV_ExtentInfo::dump(const char* pSev, const char* pPrefix) const {
-    if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << ">>>>> Start: ExtentInfo <<<<<";
-        LOG(bb,debug) << hex << uppercase << setfill('0') << "Flags: 0x" << setw(4) << flags << setfill(' ') << nouppercase << dec;
-        if (minTrimAnchorExtent.lba.maxkey != 0) {
-            LOG(bb,debug) << ">>>>> Start: Minimum Trim Anchor Extent <<<<<";
-            LOG(bb,debug) << minTrimAnchorExtent;
-            LOG(bb,debug) << ">>>>>   End: Minimum Trim Anchor Extent <<<<<";
+void BBLV_ExtentInfo::dump(const char* pSev, const char* pPrefix) const
+{
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << ">>>>> Start: ExtentInfo <<<<<";
+            LOG(bb,debug) << hex << uppercase << setfill('0') << "Flags: 0x" << setw(4) << flags << setfill(' ') << nouppercase << dec;
+            if (minTrimAnchorExtent.lba.maxkey != 0)
+            {
+                LOG(bb,debug) << ">>>>> Start: Minimum Trim Anchor Extent <<<<<";
+                LOG(bb,debug) << minTrimAnchorExtent;
+                LOG(bb,debug) << ">>>>>   End: Minimum Trim Anchor Extent <<<<<";
+            }
+            dumpInFlight(pSev);
+            dumpExtents(pSev, pPrefix);
+            LOG(bb,debug) << ">>>>>   End: ExtentInfo <<<<<";
         }
-        dumpInFlight(pSev);
-        dumpExtents(pSev, pPrefix);
-        LOG(bb,debug) << ">>>>>   End: ExtentInfo <<<<<";
-    } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << ">>>>> Start: ExtentInfo <<<<<";
-        LOG(bb,info) << hex << uppercase << setfill('0') << "Flags: 0x" << setw(4) << flags << setfill(' ') << nouppercase << dec;
-        if (minTrimAnchorExtent.lba.maxkey != 0) {
-            LOG(bb,info) << ">>>>> Start: Minimum Trim Anchor Extent <<<<<";
-            LOG(bb,info) << minTrimAnchorExtent;
-            LOG(bb,info) << ">>>>>   End: Minimum Trim Anchor Extent <<<<<";
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << ">>>>> Start: ExtentInfo <<<<<";
+            LOG(bb,info) << hex << uppercase << setfill('0') << "Flags: 0x" << setw(4) << flags << setfill(' ') << nouppercase << dec;
+            if (minTrimAnchorExtent.lba.maxkey != 0) {
+                LOG(bb,info) << ">>>>> Start: Minimum Trim Anchor Extent <<<<<";
+                LOG(bb,info) << minTrimAnchorExtent;
+                LOG(bb,info) << ">>>>>   End: Minimum Trim Anchor Extent <<<<<";
+            }
+            dumpInFlight(pSev);
+            dumpExtents(pSev, pPrefix);
+            LOG(bb,info) << ">>>>>   End: ExtentInfo <<<<<";
         }
-        dumpInFlight(pSev);
-        dumpExtents(pSev, pPrefix);
-        LOG(bb,info) << ">>>>>   End: ExtentInfo <<<<<";
     }
 
     return;

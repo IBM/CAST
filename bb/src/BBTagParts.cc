@@ -176,35 +176,44 @@ void BBTagParts::cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId)
     return;
 }
 
-void BBTagParts::dump(const char* pSev) {
-
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::dump");
-
-    if (tagParts.size()) {
-        if (!strcmp(pSev,"debug")) {
-            LOG(bb,debug) << ">>>>> Start: " << tagParts.size() \
-                          << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
-            for (auto& part : tagParts) {
-                LOG(bb,debug) << "Contrib: " << part.first;
-                part.second.dump(pSev);
-            }
-            LOG(bb,debug) << ">>>>>   End: " << tagParts.size() \
-                          << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
-        } else if (!strcmp(pSev,"info")) {
-            LOG(bb,info) << ">>>>> Start: " << tagParts.size() \
-                         << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
-            for (auto& part : tagParts) {
-                LOG(bb,info) << "Contrib: " << part.first;
-                part.second.dump(pSev);
-            }
-            LOG(bb,info) << ">>>>>   End: " << tagParts.size() \
-                         << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
+void BBTagParts::dump(const char* pSev)
+{
+    if (wrkqmgr.checkLoggingLevel(pSev))
     {
-        unlockLocalMetadata((LVKey*)0, "BBTagParts::dump");
+        int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::dump");
+
+        if (tagParts.size())
+        {
+            if (!strcmp(pSev,"debug"))
+            {
+                LOG(bb,debug) << ">>>>> Start: " << tagParts.size() \
+                              << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
+                for (auto& part : tagParts)
+                {
+                    LOG(bb,debug) << "Contrib: " << part.first;
+                    part.second.dump(pSev);
+                }
+                LOG(bb,debug) << ">>>>>   End: " << tagParts.size() \
+                              << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
+            }
+            else if (!strcmp(pSev,"info"))
+            {
+                LOG(bb,info) << ">>>>> Start: " << tagParts.size() \
+                             << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
+                for (auto& part : tagParts)
+                {
+                    LOG(bb,info) << "Contrib: " << part.first;
+                    part.second.dump(pSev);
+                }
+                LOG(bb,info) << ">>>>>   End: " << tagParts.size() \
+                             << (tagParts.size()==1 ? " transfer definition <<<<<" : " transfer definitions <<<<<");
+            }
+        }
+
+        if (l_LocalMetadataWasLocked)
+        {
+            unlockLocalMetadata((LVKey*)0, "BBTagParts::dump");
+        }
     }
 
     return;

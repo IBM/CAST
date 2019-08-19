@@ -426,6 +426,24 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
     return l_CurrentNumber + l_NumberAdded;
 }
 
+int WRKQMGR::checkLoggingLevel(const char* pSev)
+{
+    int rc = 1;
+
+    // Simplistic logging level check for early exit for dump() methods...
+    // NOTE: Currently, pSev can only come in as "info" or "debug"
+    string l_Sev = string(pSev);
+    if (((loggingLevel == "info") && (l_Sev == "debug")) ||
+        (loggingLevel == "off") ||
+        (loggingLevel == "disable"))
+    {
+        rc = 0;
+    }
+
+    return rc;
+};
+
+
 void WRKQMGR::checkThrottleTimer()
 {
     HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
@@ -508,175 +526,176 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
     // NOTE: We early exit based on the logging level because we don't want to 'reset'
     //       dump counters, etc. if the logging facility filters out an entry.
-
-    int l_TransferQueueUnlocked = 0;
-    int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueMgrLocked = 0;
-    int l_HP_TransferQueueUnlocked = 0;
-
-    if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+    if (wrkqmgr.checkLoggingLevel(pSev))
     {
-        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
-        l_HP_TransferQueueUnlocked = 1;
-    }
-    if (!workQueueMgrIsLocked())
-    {
-        l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before lock of WRKQMGR");
-        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
-        l_WorkQueueMgrLocked = 1;
-    }
-
-    if (pSev == loggingLevel)
-    {
-        const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
-        char* l_PostfixStr = const_cast<char*>(pPostfix);
-
-        if (allowDump)
+        int l_TransferQueueUnlocked = 0;
+        int l_LocalMetadataUnlockedInd = 0;
+        int l_WorkQueueMgrLocked = 0;
+        int l_HP_TransferQueueUnlocked = 0;
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
         {
-            if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
+            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
+            l_HP_TransferQueueUnlocked = 1;
+        }
+        if (!workQueueMgrIsLocked())
+        {
+            l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before lock of WRKQMGR");
+            lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
+            l_WorkQueueMgrLocked = 1;
+        }
+
+        if (pSev == loggingLevel)
+        {
+            const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
+            char* l_PostfixStr = const_cast<char*>(pPostfix);
+
+            if (allowDump)
             {
-                bool l_DumpIt = false;
-                if (pDumpOption != DUMP_UNCONDITIONALLY)
+                if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
                 {
-                    if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                    bool l_DumpIt = false;
+                    if (pDumpOption != DUMP_UNCONDITIONALLY)
                     {
-                        l_DumpIt = true;
+                        if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                        {
+                            l_DumpIt = true;
+                        }
+                        else
+                        {
+                            if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
+                            {
+                                l_DumpIt = true;
+                                l_PostfixStr = const_cast<char*>(l_PostfixOverride);
+                            }
+                        }
                     }
                     else
                     {
-                        if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
-                        {
-                            l_DumpIt = true;
-                            l_PostfixStr = const_cast<char*>(l_PostfixOverride);
-                        }
+                        l_DumpIt = true;
                     }
-                }
-                else
-                {
-                    l_DumpIt = true;
-                }
 
-                if (HPWrkQE && l_DumpIt)
-                {
-                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
-
-                    stringstream l_OffsetStr;
-                    if (outOfOrderOffsets.size())
+                    if (HPWrkQE && l_DumpIt)
                     {
-                        // Build an output stream for the out of order async request offsets...
-                        l_OffsetStr << "(";
-                        size_t l_NumberOfOffsets = outOfOrderOffsets.size();
-                        for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+
+                        stringstream l_OffsetStr;
+                        if (outOfOrderOffsets.size())
                         {
-                            if (i!=l_NumberOfOffsets-1) {
-                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
-                            } else {
-                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                            // Build an output stream for the out of order async request offsets...
+                            l_OffsetStr << "(";
+                            size_t l_NumberOfOffsets = outOfOrderOffsets.size();
+                            for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                            {
+                                if (i!=l_NumberOfOffsets-1) {
+                                    l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
+                                } else {
+                                    l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                                }
                             }
+                            l_OffsetStr << ")";
                         }
-                        l_OffsetStr << ")";
-                    }
 
-                    int l_CheckForCanceledExtents = checkForCanceledExtents;
-                    if (!strcmp(pSev,"debug"))
+                        int l_CheckForCanceledExtents = checkForCanceledExtents;
+                        if (!strcmp(pSev,"debug"))
+                        {
+                            LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                            LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                            LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                          << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                            if (numberOfConcurrentCancelRequests)
+                            {
+                                LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                            }
+                            if (numberOfConcurrentHPRequests)
+                            {
+                                LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
+                            }
+//                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                            LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                            LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                          << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                          << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                            if (outOfOrderOffsets.size())
+                            {
+                                LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                            }
+                            LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                            for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
+                            {
+                                qe->second->dump(pSev, "          ");
+                            }
+
+                            LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        }
+                        else if (!strcmp(pSev,"info"))
+                        {
+                            LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                            LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                            LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                         << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                            if (numberOfConcurrentCancelRequests)
+                            {
+                                LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                            }
+                            if (numberOfConcurrentHPRequests)
+                            {
+                                LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
+                            }
+//                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                            LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                            LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                         << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                            if (outOfOrderOffsets.size())
+                            {
+                                LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                            }
+                            LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                            for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
+                            {
+                                qe->second->dump(pSev, "          ");
+                            }
+
+                            LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        }
+
+                        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+
+                        lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
+                        numberOfSkippedDumpRequests = 0;
+                        dumpTimerCount = 0;
+                    }
+                    else
                     {
-                        LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                      << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (numberOfConcurrentCancelRequests)
-                        {
-                            LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
-                        }
-                        if (numberOfConcurrentHPRequests)
-                        {
-                            LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
-                        }
-//                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                        LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
-//                        LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                        LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                        LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                      << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
-                        if (outOfOrderOffsets.size())
-                        {
-                            LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                        }
-                        LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
-                        {
-                            qe->second->dump(pSev, "          ");
-                        }
-
-                        LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        // Not dumped...
+                        ++numberOfSkippedDumpRequests;
                     }
-                    else if (!strcmp(pSev,"info"))
-                    {
-                        LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                     << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (numberOfConcurrentCancelRequests)
-                        {
-                            LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
-                        }
-                        if (numberOfConcurrentHPRequests)
-                        {
-                            LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
-                        }
-//                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                        LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                        LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                        LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                     << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
-                        if (outOfOrderOffsets.size())
-                        {
-                            LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                        }
-                        LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
-
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
-                        {
-                            qe->second->dump(pSev, "          ");
-                        }
-
-                        LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                    }
-
-                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
-
-                    lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
-                    numberOfSkippedDumpRequests = 0;
-                    dumpTimerCount = 0;
-                }
-                else
-                {
-                    // Not dumped...
-                    ++numberOfSkippedDumpRequests;
                 }
             }
         }
-    }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
-    }
-    if (l_TransferQueueUnlocked)
-    {
-        lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
-    }
-    if (l_HP_TransferQueueUnlocked)
-    {
-        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
+        if (l_WorkQueueMgrLocked)
+        {
+            unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
+        }
+        if (l_TransferQueueUnlocked)
+        {
+            lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
+        }
+        if (l_HP_TransferQueueUnlocked)
+        {
+            HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
+        }
     }
 
     return;
