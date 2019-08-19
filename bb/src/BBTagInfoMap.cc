@@ -99,33 +99,42 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
 
 void BBTagInfoMap::dump(char* pSev, const char* pPrefix)
 {
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::dump");
-
-    if (tagInfoMap.size()) {
-        if (!strcmp(pSev,"debug")) {
-            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo") << ", " \
-                          << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            for (auto& it : tagInfoMap) {
-                const_cast <BBTagID*>(&(it.first))->dump(pSev);
-                it.second.dump(pSev);
-            }
-            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo") << ", " \
-                          << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-        } else if (!strcmp(pSev,"info")) {
-            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo") << ", " \
-                         << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-            for (auto& it : tagInfoMap) {
-                const_cast <BBTagID*>(&(it.first))->dump(pSev);
-                it.second.dump(pSev);
-            }
-            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo") << ", " \
-                         << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
+    if (wrkqmgr.checkLoggingLevel(pSev))
     {
-        unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::dump");
+        int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::dump");
+
+        if (tagInfoMap.size())
+        {
+            if (!strcmp(pSev,"debug"))
+            {
+                LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo") << ", " \
+                              << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                for (auto& it : tagInfoMap)
+                {
+                    const_cast <BBTagID*>(&(it.first))->dump(pSev);
+                    it.second.dump(pSev);
+                }
+                LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo") << ", " \
+                              << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+            }
+            else if (!strcmp(pSev,"info"))
+            {
+                LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "taginfo") << ", " \
+                             << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+                for (auto& it : tagInfoMap)
+                {
+                    const_cast <BBTagID*>(&(it.first))->dump(pSev);
+                    it.second.dump(pSev);
+                }
+                LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "taginfo") << ", " \
+                             << tagInfoMap.size() << (tagInfoMap.size()==1 ? " entry <<<<<" : " entries <<<<<");
+            }
+        }
+
+        if (l_LocalMetadataWasLocked)
+        {
+            unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::dump");
+        }
     }
 
     return;

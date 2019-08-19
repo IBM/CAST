@@ -331,36 +331,43 @@ void BBTransferDefs::demarshall(string& pMarshalledTransferDefs)
 
 void BBTransferDefs::dump(const char* pSev, const char* pPrefix)
 {
-    int i = 1;
+#if BBSERVER
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+#endif
+        int i = 1;
 
-    if (!strcmp(pSev,"debug"))
-    {
-        LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definitions");
-    }
-    else if (!strcmp(pSev,"info"))
-    {
-        LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
-    }
-
-    char l_Prefix[64] = {'\0'};
-    for (auto& def : transferdefs)
-    {
-        if (def)
+        if (!strcmp(pSev,"debug"))
         {
-            snprintf(l_Prefix, sizeof(l_Prefix), "Definition number %d", i);
-            def->dump(pSev, l_Prefix);
+            LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definitions");
         }
-        ++i;
-    }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
+        }
 
-    if (!strcmp(pSev,"debug"))
-    {
-        LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
+        char l_Prefix[64] = {'\0'};
+        for (auto& def : transferdefs)
+        {
+            if (def)
+            {
+                snprintf(l_Prefix, sizeof(l_Prefix), "Definition number %d", i);
+                def->dump(pSev, l_Prefix);
+            }
+            ++i;
+        }
+
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
+        }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definitions");
+        }
+#if BBSERVER
     }
-    else if (!strcmp(pSev,"info"))
-    {
-        LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definitions");
-    }
+#endif
 
     return;
 }
@@ -969,50 +976,73 @@ int BBTransferDef::copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferD
 }
 #endif
 
-void BBTransferDef::dumpExtents(const char* pSev, const char* pPrefix) const {
-    if (extents.size()) {
-        if (!strcmp(pSev,"debug")) {
-            LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
-                          << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
-            for (auto& e : extents)
+void BBTransferDef::dumpExtents(const char* pSev, const char* pPrefix) const
+{
+#if BBSERVER
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+#endif
+        if (extents.size())
+        {
+            if (!strcmp(pSev,"debug"))
             {
-                LOG(bb,debug) << e;
+                LOG(bb,debug) << ">>>>> Start: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
+                              << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
+                for (auto& e : extents)
+                {
+                    LOG(bb,debug) << e;
+                }
+                LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
+                              << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
             }
-            LOG(bb,debug) << ">>>>>   End: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
-                          << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
-        } else if (!strcmp(pSev,"info")) {
-            LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
-                         << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
-            for (auto& e : extents)
+            else if (!strcmp(pSev,"info"))
             {
-                LOG(bb,info) << e;
+                LOG(bb,info) << ">>>>> Start: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
+                             << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
+                for (auto& e : extents)
+                {
+                    LOG(bb,info) << e;
+                }
+                LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
+                             << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
             }
-            LOG(bb,info) << ">>>>>   End: " << (pPrefix ? pPrefix : "Extent Vector") << ", " << extents.size() \
-                         << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
         }
+#if BBSERVER
     }
+#endif
 
     return;
 }
 
-void BBTransferDef::dump(const char* pSev, const char* pPrefix) {
-    stringstream l_Job;
-    job.getStr(l_Job);
-    if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
-        DUMP_TRANSDEF(debug,l_Job.str());
-//        dumpExtents(pSev);
-        LOG(bb,debug) << "Extent Vector has " << extents.size() \
-                      << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
-        LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
-    } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
-        DUMP_TRANSDEF(info,l_Job.str());
-//        dumpExtents(pSev);
-        LOG(bb,info) << "Extent Vector has " << extents.size() \
-                      << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
-        LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
+void BBTransferDef::dump(const char* pSev, const char* pPrefix)
+{
+#if BBSERVER
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+#endif
+        stringstream l_Job;
+        job.getStr(l_Job);
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
+            DUMP_TRANSDEF(debug,l_Job.str());
+//            dumpExtents(pSev);
+            LOG(bb,debug) << "Extent Vector has " << extents.size() \
+                          << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
+            LOG(bb,debug) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
+        }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "Transfer Definition");
+            DUMP_TRANSDEF(info,l_Job.str());
+//            dumpExtents(pSev);
+            LOG(bb,info) << "Extent Vector has " << extents.size() \
+                          << (extents.size()==1 ? " extent <<<<<" : " extents <<<<<");
+            LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "Transfer Definition");
+        }
+#if BBSERVER
     }
+#endif
 
     return;
 }
