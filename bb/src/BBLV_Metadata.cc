@@ -490,6 +490,10 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
                 {
                     it = metaDataMap.erase(it);
                 }
+
+                // NOTE: Reset CurrentWrkQE for the next iteration...
+                CurrentWrkQE = NULL;
+
                 l_Restart = true;
                 break;
             }
@@ -1053,6 +1057,10 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
         for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
             it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, l_LockWasReleased, pRemoveOption);
+
+            // NOTE: Reset CurrentWrkQE for the next iteration...
+            CurrentWrkQE = NULL;
+
             if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
             {
                 l_Restart = true;
@@ -1267,6 +1275,9 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                         break;
                     }
                 }
+
+                // NOTE: Reset CurrentWrkQE for the next iteration...
+                CurrentWrkQE = NULL;
 
                 if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
                 {
