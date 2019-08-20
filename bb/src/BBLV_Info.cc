@@ -300,6 +300,10 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED
         {
             LOG(bb,error) << "BBLV_Info::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
         }
+        // NOTE: The local metadata lock is always released/re-acquired in stageoutEnd() processing.
+        //       This is because the work queue manager lock has to be acquired when the work queue
+        //       is removed/deleted, which requires the local metadata lock to be temporarily released.
+        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
     }
     else
     {

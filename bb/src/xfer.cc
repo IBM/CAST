@@ -3842,9 +3842,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 }
 
                 // NOTE: The work queue manager lock is now obtained before we remove
-                //       the work queue and remove all related transfer definitions.
-                //       This is done to hold out any more work being handed out by
-                //       findWork().
+                //       the work queue.  This is done to hold out any more work being
+                //       handed out by findWork().
                 l_TransferQueueLocked = 0;
                 unlockTransferQueue(&l_LVKey, "stageoutEnd - Before removing work queue");
                 wrkqmgr.lockWorkQueueMgr(&l_LVKey, "stageoutEnd - Before removing work queue", &l_LocalMetadataUnlocked);
@@ -3863,6 +3862,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,warning) << "stageoutEnd: Failure occurred when attempting to remove the work queue for " << l_LVKey;
                     rc = 0;
                 }
+
+                // Unlock the work queue manager, re-acquiring the local metadata lock
+                l_WorkQueueMgrLocked = 0;
+                wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - After cleanUpAll()", &l_LocalMetadataUnlocked);
 
                 // Perform cleanup for the LVKey value
                 // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
@@ -3883,9 +3886,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
-
-                l_WorkQueueMgrLocked = 0;
-                wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - After cleanUpAll()", &l_LocalMetadataUnlocked);
 
                 l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
                 LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();

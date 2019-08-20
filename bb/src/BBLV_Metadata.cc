@@ -550,23 +550,13 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix)
 void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
 
     // Ensure stage-out ended for the given LVKey
-    bool l_AllDone = false;
     LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-
-    while (!l_AllDone)
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
-        for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+        if ((it->first) == *pLVKey)
         {
-            l_AllDone = true;
-            if ((it->first) == *pLVKey)
-            {
-                (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
-                if (l_LockWasReleased)
-                {
-                    l_AllDone = false;
-                }
-                break;
-            }
+            (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
+            break;
         }
     }
 
