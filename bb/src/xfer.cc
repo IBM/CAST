@@ -2439,11 +2439,9 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) &&
-                ((!l_WrkQE->isSuspended()) || (l_LV_Info && l_LV_Info->hasCanceledExtents())))
+            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) && (!l_WrkQE->isSuspended()))
             {
-                // NOTE: At least one workqueue entry exists on one non-suspended workqueue, so repost to the semaphore
-                //       any delayed reposts...
+                // NOTE: Suspended reposts exist for this non-suspended workqueue.  Repost those now...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
 
                 wrkqmgr.post_multiple((size_t)l_WrkQE->getSuspendedReposts());
