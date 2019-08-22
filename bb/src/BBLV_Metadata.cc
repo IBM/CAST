@@ -794,6 +794,7 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     BBLV_Info* l_BBLV_Info = 0;
 
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
@@ -806,6 +807,11 @@ BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLV_Info");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue(pLVKey, "BBLV_Metadata::getLV_Info");
     }
 
     return l_BBLV_Info;

@@ -443,8 +443,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
-    bool l_LocalMetadataLocked = false;
-    bool l_LocalMetadataUnlocked = false;
+    int l_LocalMetadataLocked = 0;
+    int l_LocalMetadataUnlocked = 0;
 
 //    pExtentInfo.verify();
 
@@ -497,7 +497,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                 if (l_LocalMetadataUnlocked)
                 {
-                    l_LocalMetadataUnlocked = false;
+                    l_LocalMetadataUnlocked = 0;
                     lockLocalMetadata(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
                 }
                 lockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
@@ -562,7 +562,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                     if (l_LocalMetadataUnlocked)
                     {
-                        l_LocalMetadataUnlocked = false;
+                        l_LocalMetadataUnlocked = 0;
                         lockLocalMetadata(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
                     }
                 }

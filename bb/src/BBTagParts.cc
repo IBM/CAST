@@ -371,9 +371,11 @@ size_t BBTagParts::getTotalTransferSize(BBTagInfo* pTagInfo, const uint32_t pCon
 BBTransferDef* BBTagParts::getTransferDef(BBTagInfo* pTagInfo, const uint32_t pContribId) const {
     BBTransferDef* l_TransferDefPtr = 0;
 
+    int l_TransferQueueWasUnlocked = 0;
     int l_LocalMetadataWasLocked = 0;
     if (pTagInfo->localMetadataLockRequired())
     {
+        l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagParts::getTransferDef");
         l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagParts::getTransferDef");
     }
 
@@ -387,6 +389,11 @@ BBTransferDef* BBTagParts::getTransferDef(BBTagInfo* pTagInfo, const uint32_t pC
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata((LVKey*)0, "BBTagParts::getTransferDef");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "BBTagParts::getTransferDef");
     }
 
     return l_TransferDefPtr;

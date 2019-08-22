@@ -485,6 +485,7 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
     char* l_HandleFileName = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
 
     if (pLockOption == LOCK_HANDLEFILE)
@@ -617,7 +618,14 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
 
     if (l_LocalMetadataLocked)
     {
+        l_LocalMetadataLocked = 0;
         unlockLocalMetadata(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
     }
 
     if (l_ContribIdFile)

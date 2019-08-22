@@ -142,6 +142,9 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    unlockTransferQueue(pLVKey, "BBTagInfo::addTransferDef");
+    int l_TransferQueueUnlocked = 1;
+
     lockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef");
     int l_LocalMetadataLocked = 1;
 
@@ -238,6 +241,12 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     {
         l_LocalMetadataLocked = 0;
         unlockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef - Exit");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "BBTagInfo::addTransferDef - Exit");
     }
 
     if (l_HandleFileName)

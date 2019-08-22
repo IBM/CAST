@@ -182,6 +182,7 @@ BBTagInfo* BBTagInfoMap::getTagInfo(const BBTagID& pTagId)
 {
     BBTagInfo* l_TagInfo = (BBTagInfo*)0;
 
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
 
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
@@ -194,6 +195,11 @@ BBTagInfo* BBTagInfoMap::getTagInfo(const BBTagID& pTagId)
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata((LVKey*)0, "BBTagInfoMap::getTagInfo");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "BBTagInfoMap::getTagInfo");
     }
 
     return l_TagInfo;
