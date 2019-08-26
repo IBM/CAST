@@ -1548,13 +1548,16 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
                 if(!bfs::is_directory(lvuuid)) continue;
+                ++l_NumberOfLVUuidFiles;
                 bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
                 ContribFile* l_ContribFile = 0;
                 rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
                 if (!rc)
                 {
+                    ++l_NumberOfContribFiles;
                     for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                     {
+                        ++l_NumberOfContribids;
                         if ((ce->second.flags & BBTD_All_Extents_Transferred) == 0)
                         {
                             // Not all extents have been transferred yet...
