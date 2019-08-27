@@ -2263,8 +2263,8 @@ void* transferWorker(void* ptr)
                     {
                         // A work queue with no entries was returned.  Log the situation, tolerate,
                         // fall through, attempt to find more work.
-                        errorText << "Empty work queue returned when attempting to find additional work";
-                        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_3);
+                        // NOTE: This is possible because cancelExtents() can remove items from a work
+                        //       queue and not have the work queue manager lock.
                     }
                 }
                 else
