@@ -354,7 +354,8 @@ class BBTransferDef
     // Non-static methods
     void cleanUp();
     void cleanUpIOMap();
-    #if BBSERVER
+#if BBSERVER
+    size_t calcTotalSizeTransferred();
     void copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLV_ExtentInfo* pExtentInfo);
     int copyForRetrieveTransferDefinitions(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
 #endif

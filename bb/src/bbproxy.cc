@@ -3596,6 +3596,7 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
     uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
     uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
+    uint64_t l_TotalTransferSize = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalTransferSize))->getData();
     BBSTATUS l_Status = (BBSTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
     char l_StatusStr[64] = {'\0'};
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
@@ -3624,6 +3625,7 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     }
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for contribid " << l_ContribId << ", LV device = " \
                  << l_DevName << ", handle = " << l_Handle << ", status " << l_StatusStr \
+                 << ", total transfer size " << l_TotalTransferSize \
                  << ", total processing time " << (double)l_TotalProcessingTime/(double)g_TimeBaseScale << " seconds";
 
     EXIT(__FILE__,__FUNCTION__);

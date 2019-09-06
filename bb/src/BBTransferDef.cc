@@ -883,6 +883,17 @@ void BBTransferDef::cleanUp() {
 }
 
 #if BBSERVER
+size_t BBTransferDef::calcTotalSizeTransferred()
+{
+    size_t l_TotalSizeTransferred = 0;
+    for (auto& size : sizeTransferred)
+    {
+        l_TotalSizeTransferred += size;
+    }
+
+    return l_TotalSizeTransferred;
+};
+
 void BBTransferDef::copyExtentsForRetrieveTransferDefinitions(BBTransferDef* pSourceTransferDef, BBLV_ExtentInfo* pExtentInfo)
 {
     for (size_t i=0; i<files.size(); i=i+2)

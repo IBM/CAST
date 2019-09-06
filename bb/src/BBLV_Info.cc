@@ -708,9 +708,10 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
 
     // Calculate the total processing time for this transfer definition
     pTransferDef->calcProcessingTime(pTransferDef->processingTime);
+    size_t l_TotalSizeTransferred = pTransferDef->calcTotalSizeTransferred();
 
     LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ", " \
-                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr \
+                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr  << ", total size transferred " << l_TotalSizeTransferred \
                  << ", total processing time " << (double)pTransferDef->processingTime/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
@@ -721,6 +722,7 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     l_Complete->addAttribute(txp::contribid, pContribId);
     l_Complete->addAttribute(txp::status, (int64_t)l_Status);
     l_Complete->addAttribute(txp::totalProcessingTime, pTransferDef->processingTime);
+    l_Complete->addAttribute(txp::totalTransferSize, (uint64_t)l_TotalSizeTransferred);
 
     //    std::string pConnectionName=getConnectionName(pConnection); // $$$mea
     try{
