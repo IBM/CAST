@@ -227,14 +227,20 @@ void look4NVMFtargetDevices(){
             const string bbserverConst = "bb.server";
             string temp = values[0].substr (bbserverConst.length());
             size_t colonSpot = temp.find (":");
-            temp = temp.substr(0, colonSpot );
-            vector<string> valuesDot = buildTokens(temp, "_");
-            temp = valuesDot[0]
-                    + "." + valuesDot[1]
-                    + "." + valuesDot[2]
-                    + "." + valuesDot[3]
-                    ;
-            KeyByHostname[temp] = hostpath.path().filename().string();
+            if(colonSpot != temp.string::npos)
+            {
+                temp = temp.substr(0, colonSpot );
+                vector<string> valuesDot = buildTokens(temp, "_");
+                if(valuesDot.size() == 4)
+                {
+                    temp = valuesDot[0]
+                            + "." + valuesDot[1]
+                            + "." + valuesDot[2]
+                            + "." + valuesDot[3]
+                            ;
+                    KeyByHostname[temp] = hostpath.path().filename().string();
+                }
+            }
         }
 
         if (USE_NVMF) // \TODO remove in an updated
