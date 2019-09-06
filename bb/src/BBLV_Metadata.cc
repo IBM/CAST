@@ -135,7 +135,19 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
 
         if(bfs::exists(job))
         {
-            bfs::remove_all(job);
+            if (!g_AsyncRemoveJobInfo)
+            {
+                unlockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
+                bfs::remove_all(job);
+                lockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
+            }
+            else
+            {
+                bfs::path hidejob(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                string hidejobname = "." + to_string(pJobId);
+                hidejob /= bfs::path(hidejobname);
+                bfs::rename(job, hidejob);
+            }
             LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
         }
         else
@@ -148,8 +160,8 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
-        // NOTE: There is a window between checking for the job above and subsequently removing
-        //       the job.  This is the most likely exception...  Return -2...
+        // NOTE: There is a window between checking for the job above and subsequently renaming/removing
+        //       the job directory.  This is the most likely exception...  Return -2...
         //       Also, if a script sends a RemoveJobInfo command to each CN, it is a big race condition
         //       as to which bbServer actually removes the job from the cross bbServer metadata and
         //       which servers 'may' take an exception trying to concurrently remove the data.

@@ -85,6 +85,10 @@ bool g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
 // Log all Async Request Activity Indicator
 bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 
+// Async RemoveJobInfo
+bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
+double g_AsyncRemoveJobInfoInterval = DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE;
+
 
 //*****************************************************************************
 //  Support routines
@@ -2984,6 +2988,12 @@ int bb_main(std::string who)
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
         g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
         g_LogUpdateHandleStatusElapsedTimeClipValue = config.get(process_whoami+".bringup.logUpdateHandleStatusElapsedTimeClipValue", DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE);
+        g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
+        g_AsyncRemoveJobInfoInterval = 0;
+        if (g_AsyncRemoveJobInfo)
+        {
+            g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
+        }
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
@@ -3009,6 +3019,10 @@ int bb_main(std::string who)
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_create(&tid, &attr, mountMonitorThread, NULL);
         pthread_create(&tid, &attr, diskstatsMonitorThread, NULL);
+        if (g_AsyncRemoveJobInfo)
+        {
+            pthread_create(&tid, &attr, asyncRemoveJobInfo, NULL);
+        }
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
