@@ -70,6 +70,8 @@ class WRKQE
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         suspendedReposts(0),
+        accumulatedTime(0),
+        currentStartTime(0),
         lvinfo(0) {
         init();
     };
@@ -89,6 +91,8 @@ class WRKQE
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
         suspendedReposts(0),
+        accumulatedTime(0),
+        currentStartTime(0),
         lvinfo(pLV_Info) {
         init();
     };
@@ -252,7 +256,9 @@ class WRKQE
     }
 
     // Methods
+    void addToAccumulatedTime();
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    double calcTotalAccumulatedTime();
     void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
     int getIssuingWorkItem();
     uint64_t getNumberOfInFlightExtents();
@@ -282,6 +288,8 @@ class WRKQE
     uint64_t            numberOfWorkItemsProcessed;
     uint64_t            suspendedReposts;           // Access is serialized with the
                                                     // work queue manager lock
+    uint64_t            accumulatedTime;            // in ticks
+    uint64_t            currentStartTime;           // in ticks
     BBLV_Info*          lvinfo;
     queue<WorkID>*      wrkq;
     pthread_mutex_t     lock_transferqueue;
