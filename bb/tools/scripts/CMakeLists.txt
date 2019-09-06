@@ -1,0 +1,5 @@
+install(PROGRAMS analyze.py COMPONENT burstbuffer DESTINATION bb/tools/scripts)
+install(PROGRAMS common.py COMPONENT burstbuffer DESTINATION bb/tools/scripts)
+install(PROGRAMS generateErrorsListing.py COMPONENT burstbuffer DESTINATION bb/tools/scripts)
+install(PROGRAMS generateWorkQueueMgrDumps.py COMPONENT burstbuffer DESTINATION bb/tools/scripts)
+install(PROGRAMS processConsoleLogs.py COMPONENT burstbuffer DESTINATION bb/tools/scripts)
