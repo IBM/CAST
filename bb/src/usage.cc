@@ -535,7 +535,7 @@ void* diskstatsMonitorThread(void* ptr)
     int     rate = config.get(process_whoami+".diskstatrate", 60);
     char    cmd[256];
 
-    snprintf(cmd, sizeof(cmd), "/usr/bin/iostat %d", rate);
+    snprintf(cmd, sizeof(cmd), "/usr/bin/iostat -x -p ALL %d", rate);
     f = popen(cmd, "r");
     if (f)
     {
