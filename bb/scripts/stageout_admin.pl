@@ -113,22 +113,41 @@ sub phase4
     bpost("BB: Removing logical volume $BBPATH and metadata");
     
     print "Removing logical volume $BBPATH\n";
-    bbcmd("$TARGET_ALL remove --mount=$BBPATH");
-    
+    $result = bbcmd("$TARGET_ALL remove --mount=$BBPATH");
+    if(bbgetrc($result) != 0)
+    {
+        bpost("BB: Remove logical volume on mount $BBPATH failed with rc " . bbgetrc($result));
+    }
+
     print "Removing directory $BBPATH\n";
-    bbcmd("$TARGET_ALL rmdir --path=$BBPATH");
+    $result = bbcmd("$TARGET_ALL rmdir --path=$BBPATH");
+    if(bbgetrc($result) != 0)
+    {
+        bpost("BB: Remove directory $BBPATH failed with rc " . bbgetrc($result));
+    }
 
     # Check for failures before removing metadata
     $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBPARTIALSUCCESS");
-    $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-    if($numfailed > 0)
+    if(bbgetrc($result) != 0)
     {
-        bpost("BB: Transfer(s) marked in BBPARTIALSUCCESS (failed) state");
-        $exitstatus = 1;
+        bpost("BB: Get Transfers failed with rc " . bbgetrc($result));
+    }
+    else
+    {
+        $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
+        if($numfailed > 0)
+        {
+            bpost("BB: Transfer(s) marked in BBPARTIALSUCCESS (failed) state");
+            $exitstatus = 1;
+        }
     }
     
     print "Removing job metadata\n";
-    bbcmd("$TARGET_NODE0 removejobinfo");
+    $result = bbcmd("$TARGET_NODE0 removejobinfo");
+    if(bbgetrc($result) != 0)
+    {
+        bpost("BB: Remove job metadata failed with rc " . bbgetrc($result));
+    }
     
     if($exitstatus == 0)
     {
