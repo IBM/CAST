@@ -593,39 +593,46 @@ void* asyncRemoveJobInfo(void* ptr)
 
     while(1)
     {
-        if (g_AsyncRemoveJobInfoInterval)
+        try
         {
-            uint64_t l_NewTime = l_Time;
-            BB_GetTimeDifference(l_NewTime);
-            double l_ElapsedTime = (double)l_NewTime/(double)g_TimeBaseScale;
-            if (l_ElapsedTime >= g_AsyncRemoveJobInfoInterval)
+            if (g_AsyncRemoveJobInfoInterval)
             {
-                int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds);
-                if (!rc)
+                uint64_t l_NewTime = l_Time;
+                BB_GetTimeDifference(l_NewTime);
+                double l_ElapsedTime = (double)l_NewTime/(double)g_TimeBaseScale;
+                if (l_ElapsedTime >= g_AsyncRemoveJobInfoInterval)
                 {
-                    bool l_AllDone = false;
-                    while (!l_AllDone)
+                    int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds);
+                    if (!rc)
                     {
-                        l_AllDone = true;
-                        for (size_t i=0; i<l_PathJobIds.size(); i++)
+                        bool l_AllDone = false;
+                        while (!l_AllDone)
                         {
-                            size_t l_Index = l_PathJobIds[i].rfind('/');
-                            if (l_Index != string::npos && l_Index < (l_PathJobIds[i].length()-1))
+                            l_AllDone = true;
+                            for (size_t i=0; i<l_PathJobIds.size(); i++)
                             {
-                                if (l_PathJobIds[i][l_Index+1] == '.')
+                                size_t l_Index = l_PathJobIds[i].rfind('/');
+                                if (l_Index != string::npos && l_Index < (l_PathJobIds[i].length()-1))
                                 {
-                                    bfs::path job = bfs::path(l_PathJobIds[i]);
-                                    if (bfs::exists(job))
+                                    if (l_PathJobIds[i][l_Index+1] == '.')
                                     {
-                                        bfs::remove_all(job);
+                                        bfs::path job = bfs::path(l_PathJobIds[i]);
+                                        if (bfs::exists(job))
+                                        {
+                                            bfs::remove_all(job);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    BB_GetTime(l_Time);
                 }
-                BB_GetTime(l_Time);
             }
+        }
+        catch (std::exception& e)
+        {
+            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
         }
 
         sleep(SLEEP);
