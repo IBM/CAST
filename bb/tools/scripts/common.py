@@ -16,8 +16,10 @@
 import os
 import pickle
 import pprint
+import re
 
-import Common as cmn
+import datetime as dt
+
 
 # Establishes environmental values in the context, overriding defaults with command line options
 def getOptions(pCtx, pArgs):
@@ -25,6 +27,8 @@ def getOptions(pCtx, pArgs):
 
     # Set the default values
     pCtx["ROOTDIR"] = "."
+    pCtx["OUTPUT_DIRECTORY_NAME"] = "Analysis"
+    pCtx["PICKLE_FILENAME"] = "ConsoleData.pickle"
     pCtx["PRINT_PICKLED_RESULTS"] = False
 
     # Process the input args
@@ -34,6 +38,7 @@ def getOptions(pCtx, pArgs):
 
     # Normalize the input root path name
     pCtx["ROOTDIR"] = os.path.abspath(os.path.normpath(pCtx["ROOTDIR"]))
+    pCtx["OUTPUT_DIRECTORY"] = os.path.join(pCtx["ROOTDIR"], pCtx["OUTPUT_DIRECTORY_NAME"])
 
     # Print out the environment
     print "Environmental data"
@@ -42,25 +47,27 @@ def getOptions(pCtx, pArgs):
 
     return
 
-def saveData(pCtx, pData):
-    # Store the data as a pickle file in the input root directory
-    l_PicklePathFileName = os.path.join(pCtx["ROOTDIR"], "ConsoleData.pickle")
+def saveData(pCtx):
+    # Store the data as a pickle file in the input root directory/Analysis
+    l_PicklePathFileName = os.path.join(pCtx["OUTPUT_DIRECTORY"], pCtx["PICKLE_FILENAME"])
     l_PickleFile = open(l_PicklePathFileName, "wb")
-    pickle.dump(pData, l_PickleFile)
+    pickle.dump(pCtx["ServerData"], l_PickleFile)
+    pickle.dump(pCtx["ElapsedTimeData"], l_PickleFile)
     l_PickleFile.close()
     print "Console data results saved to %s" % l_PicklePathFileName
 
     return
 
 def loadData(pCtx):
-    # Store the data as a pickle file in the input root directory
-    l_PicklePathFileName = os.path.join(pCtx["ROOTDIR"], "ConsoleData.pickle")
+    # Load the data as a pickle file from the input root directory/Analysis
+    l_PicklePathFileName = os.path.join(pCtx["OUTPUT_DIRECTORY"], pCtx["PICKLE_FILENAME"])
     l_PickleFile = open(l_PicklePathFileName, "rb")
-    l_Data = pickle.load(l_PickleFile)
+    pCtx["ServerData"] = pickle.load(l_PickleFile)
+    pCtx["ElapsedTimeData"] = pickle.load(l_PickleFile)
     l_PickleFile.close()
     print "Console data results loaded from %s" % l_PicklePathFileName
 
-    return l_Data
+    return
 
 def printFormattedData(pCtx, pData):
     # Print out the data, formatted
@@ -80,17 +87,57 @@ def printFormattedFile(pCtx, pFileName, pData):
 
     return
 
-def ensure(pPathName):
-    if not os.path.exists(pPathName):
-        os.makedirs(pPathName)
-
-    return
-
 def writeOutput(pCtx, pFileName, pOutput):
     l_File = open(pFileName, "w")
     l_File.writelines(pOutput)
     l_File.close()
     print "Results saved to %s" % pFileName
+
+    return
+
+def calculateTimeDifferenceInSeconds(pDateTime1, pDateTime2):
+    # NOTE: Extremely simplistic.  Currently , we ignore the date value and only factor in the time values.
+    #       Current code WILL NOT work if job spans midnight...
+    SPLIT_TIME = re.compile("(\d+):(\d+):(\d+)\.(\d+)")
+
+    l_Seconds = None
+    if (pDateTime1[1] == None or pDateTime2[1] == None):
+        print "DateTime values are not available"
+    else:
+        l_Success = SPLIT_TIME.search(pDateTime1[1])
+        if l_Success:
+            l_Args = map(int, l_Success.groups(0))
+            l_Time1 = dt.timedelta(hours=l_Args[0], minutes=l_Args[1], seconds=l_Args[2], microseconds=l_Args[3])
+            l_Success = SPLIT_TIME.search(pDateTime2[1])
+            if l_Success:
+                l_Args = map(int, l_Success.groups(0))
+                l_Time2 = dt.timedelta(hours=l_Args[0], minutes=l_Args[1], seconds=l_Args[2], microseconds=l_Args[3])
+                l_TimeDelta = l_Time1 - l_Time2
+                l_Seconds = float(l_TimeDelta.total_seconds())
+            else:
+                print "pDataTime2 cannot be parsed"
+                l_Seconds = None
+        else:
+            print "pDataTime1 cannot be parsed"
+            l_Seconds = None
+
+    return l_Seconds
+
+def compareTimes(pDateTime1, pDateTime2):
+    # NOTE: Extremely simplistic.  Currently , we do a string compare on the time values.
+    #       Current code WILL NOT work if job spans midnight...
+    if pDateTime1[1] < pDateTime2[1]:
+        rc = -1
+    elif pDateTime1[1] > pDateTime2[1]:
+        rc = 1
+    else:
+        rc = 0
+
+    return rc
+
+def ensure(pPathName):
+    if not os.path.exists(pPathName):
+        os.makedirs(pPathName)
 
     return
 
@@ -105,7 +152,7 @@ def getJobIds(pData):
 
     l_Servers = getServers(pData)
     for l_Server in l_Servers:
-        l_JobIdsToAdd = cmn.getJobIdsForServer(pData, l_Server)
+        l_JobIdsToAdd = getJobIdsForServer(pData, l_Server)
         if l_JobIdsToAdd:
             for l_JobId in l_JobIdsToAdd:
                 l_JobIds.add(l_JobId)
@@ -123,7 +170,7 @@ def getHandlesForServer(pData, pServer):
 def getJobIdsForServer(pData, pServer):
     l_JobIds = set()
 
-    l_Handles = cmn.getHandlesForServer(pData, pServer)
+    l_Handles = getHandlesForServer(pData, pServer)
     for l_Handle in l_Handles:
         if "JobId" in pData[pServer]["Handles"][l_Handle]:
             l_JobIds.add(pData[pServer]["Handles"][l_Handle]["JobId"])

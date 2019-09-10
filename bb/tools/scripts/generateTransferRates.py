@@ -1,6 +1,6 @@
 #!/usr/bin/python
 ###########################################################
-#     generateErrorsListing.py
+#     generateTransferRates.py
 #
 #     Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -27,28 +27,14 @@ def main(*pArgs):
 
     # Load the data as a pickle file from the input root directory
     cmn.loadData(l_Ctx)
-    l_Data = l_Ctx["ServerData"]
+    l_Data = l_Ctx["ElapsedTimeData"]
 
-    # Print the results
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
         cmn.printFormattedData(l_Ctx, l_Data)
 
-    l_Output = []
-    # Perform the reduction
-    l_Servers = cmn.getServers(l_Data)
-    for l_Server in l_Servers:
-        l_Output.append("Errors for Server %s%s" % (l_Server, os.linesep))
-        l_Errors = cmn.getErrorsForServer(l_Data, l_Server)
-        l_TimeStamps = l_Errors.keys()
-        l_TimeStamps.sort()
-        for l_TimeStamp in l_TimeStamps:
-            l_Output.append("%s:  %s%s" % (l_TimeStamp, l_Errors[l_TimeStamp], os.linesep))
-        l_Output.append(os.linesep)
-
-    # Output the results
-    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Errors.txt")
-    cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
-    print "Results written to %s" % l_PathFileName
+    # Print the results to a file
+    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "TransferRates.txt")
+    cmn.printFormattedFile(l_Ctx, l_PathFileName, l_Data)
 
     return
 

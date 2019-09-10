@@ -19,11 +19,60 @@ import re
 import pprint
 import sys
 
-import Common as cmn
+import common as cmn
+
+
+#
+# Helper routines for ElapsedTimeData
+#
+
+def addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["JobIds"]
+
+    l_ElapsedTimeEntry[pJobId] = {}
+    l_ElapsedTimeEntry[pJobId]["StartDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pJobId]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pJobId]["SizeTransferred"] = pSizeTransferred
+
+    l_ElapsedTimeEntry[pJobId]["Servers"] = {}
+    addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
+
+    l_ElapsedTimeEntry[pJobId]["Servers"][pServerName]["Connections"] = {}
+    addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
+
+    return
+
+def addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["JobIds"][pJobId]["Servers"]
+
+    l_ElapsedTimeEntry[pServerName] = {}
+    l_ElapsedTimeEntry[pServerName]["StartDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pServerName]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pServerName]["SizeTransferred"] = pSizeTransferred
+
+    l_ElapsedTimeEntry[pServerName]["Connections"] = {}
+    addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
+
+    return
+
+def addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["JobIds"][pJobId]["Servers"][pServerName]["Connections"]
+
+    l_ElapsedTimeEntry[pConnection] = {}
+    l_ElapsedTimeEntry[pConnection]["StartDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pConnection]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pConnection]["SizeTransferred"] = pSizeTransferred
+
+    return
+
+
+#
+# Routines to handle a given line of output from a console log
+#
 
 # NOTE: Handles aren't always requested 'everywhere', so we don't search for this entry anymore...
 def GetHandle(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pHostName, pConnection, pConnectionIP, pLVUuid, pJobId, pJobStepId, pTag, pNumContrib, pContribs, pHandle = pArgs[0]
+    pServerName, pLogDate, pLogTime, pHostName, pConnection, pConnectionIP, pLVUuid, pJobId, pJobStepId, pTag, pNumContrib, pContribs, pHandle = pArgs[0]
     l_GetHandleEntry = pData["Handles"][pHandle]
     # l_GetHandleEntry["LogDate"] = pLogDate
     # l_GetHandleEntry["LogTime"] = pLogTime
@@ -36,11 +85,14 @@ def GetHandle(pCtx, pData, *pArgs):
     return
 
 def FileCompletion(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pFileName, pConnection, pConnectionIP, pLVUuid, pHandle, pContribId, pSourceIndex, pStatus, pTransferType, pTransferSize, pReadCount, pReadTime, pWriteCount, pWriteTime = pArgs[0]
+    pServerName, pLogDate, pLogTime, pFileName, pConnection, pConnectionIP, pLVUuid, pHandle, pContribId, pSourceIndex, pStatus, pTransferType, pTransferSize, pReadCount, pReadTime, pWriteCount, pWriteTime = pArgs[0]
+
+    # Add data to the appropriate file entry
     if "Files" not in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
         pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["Files"] = {}
     pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["Files"][pFileName] = {}
     l_FileEntry = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["Files"][pFileName]
+    l_FileEntry["LogDate"] = pLogDate
     l_FileEntry["LogTime"] = pLogTime
     l_FileEntry["SourceIndex"] = int(pSourceIndex)
     l_FileEntry["Status"] = pStatus
@@ -54,36 +106,92 @@ def FileCompletion(pCtx, pData, *pArgs):
     return
 
 def ContribIdCompletion(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pContribId, pConnection, pConnectionIP, pLVUuid, pHandle, pStatus, pProcessingTime = pArgs[0]
+    pServerName, pLogDate, pLogTime, pContribId, pConnection, pConnectionIP, pLVUuid, pHandle, pStatus, pDummy, pSizeTransferred, pProcessingTime = pArgs[0]
+
+    # Add data to the appropriate contribid entry
     l_ContribIdEntry = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]
+    l_ContribIdEntry["LogDate"] = pLogDate
     l_ContribIdEntry["LogTime"] = pLogTime
     l_ContribIdEntry["Status"] = pStatus
+    if pSizeTransferred != None:
+        l_ContribIdEntry["SizeTransferred"] = pSizeTransferred
+    else:
+        l_ContribIdEntry["SizeTransferred"] = 0
+        l_FileEntry = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["Files"]
+        for l_FileData in l_FileEntry.values():
+            l_ContribIdEntry["SizeTransferred"] += l_FileData["TransferSize"]
     l_ContribIdEntry["ProcessingTime"] = pProcessingTime
+
+    # If necessary, add to the elapsed time data
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]
+    if "JobId" in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
+        l_JobId = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["JobId"]
+
+        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["JobIds"][l_JobId]["EndDateTime"]) == 1:
+            l_ElapsedTimeEntry["JobIds"][l_JobId]["EndDateTime"] = (pLogDate, pLogTime)
+        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["EndDateTime"]) == 1:
+            l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["EndDateTime"] = (pLogDate, pLogTime)
+        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["Connections"][pConnection]["EndDateTime"]) == 1:
+            l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["Connections"][pConnection]["EndDateTime"] = (pLogDate, pLogTime)
+
+        l_ElapsedTimeEntry["JobIds"][l_JobId]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+        l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+        l_ElapsedTimeEntry["JobIds"][l_JobId]["Servers"][pServerName]["Connections"][pConnection]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+    else:
+        print "JobId was not found for handle %d, connection %s, LVUuid %s, contribid %d.  Related transfer rate(s) will not be accurate."
 
     return
 
 def HandleCompletion(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pHandle, pConnection, pConnectionIP, pLVUuid, pStatus = pArgs[0]
+    pServerName, pLogDate, pLogTime, pHandle, pConnection, pConnectionIP, pLVUuid, pStatus = pArgs[0]
+
+    # Add data to the appropriate handle entry
     l_HandleEntry = pData["Handles"][pHandle]
+    l_HandleEntry["LogDate"] = pLogDate
     l_HandleEntry["LogTime"] = pLogTime
     l_HandleEntry["Status"] = pStatus
 
     return
 
 def StartTransfer(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pConnection, pConnectionIP, pLVUuid, pHostName, pJobId, pJobStepId, pHandle, pContribId, pRestart = pArgs[0]
+    pServerName, pLogDate, pLogTime, pConnection, pConnectionIP, pLVUuid, pHostName, pJobId, pJobStepId, pHandle, pContribId, pRestart = pArgs[0]
+
+    # Add jobid and jobstepid to the appropriate handle entry
     l_GetHandleEntry = pData["Handles"][pHandle]
     l_GetHandleEntry["JobId"] = pJobId
     l_GetHandleEntry["JobStepId"] = pJobStepId
+
+    # Add data to the appropriate start transfer entry
     l_StartTransferEntry = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]
+    l_StartTransferEntry["LogDate"] = pLogDate
+    l_StartTransferEntry["LogTime"] = pLogTime
     l_StartTransferEntry["JobId"] = pJobId
     l_StartTransferEntry["JobStepId"] = pJobStepId
     l_StartTransferEntry["Restart"] = pRestart
 
+    # If necessary, add to the elapsed time data
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]
+    l_SizeTransferred = 0
+    if pJobId not in l_ElapsedTimeEntry["JobIds"]:
+        addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+    else:
+        if cmn.compareTimes((pLogDate,pLogTime), l_ElapsedTimeEntry["JobIds"][pJobId]["StartDateTime"]) == -1:
+            l_ElapsedTimeEntry["JobIds"][pJobId]["StartDateTime"] = (pLogDate,pLogTime)
+        if pServerName not in l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"]:
+            addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+        else:
+            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"][pServerName]["StartDateTime"]) == -1:
+                l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"][pServerName]["StartDateTime"] = (pLogDate, pLogTime)
+            if pConnection not in l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"][pServerName]["Connections"]:
+                addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+            else:
+                if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"][pServerName]["Connections"][pConnection]["StartDateTime"]) == -1:
+                    l_ElapsedTimeEntry["JobIds"][pJobId]["Servers"][pServerName]["Connections"][pConnection]["StartDateTime"] = (pLogDate, pLogTime)
+
     return
 
 def StartDumpWorkQueueMgr(pCtx, pData, *pArgs):
-    pLineData = pArgs[0][0]
+    pServerName, pLineData = pArgs[0]
     if pCtx["WORK_QUEUE_MGR_DATA"] == None:
         pCtx["WORK_QUEUE_MGR_DATA"] = []
     pCtx["WORK_QUEUE_MGR_DATA"].append(pLineData[:-1])
@@ -91,8 +199,8 @@ def StartDumpWorkQueueMgr(pCtx, pData, *pArgs):
     return
 
 def EndDumpWorkQueueMgr(pCtx, pData, *pArgs):
-    pLineData, pLogDate, pLogTime = pArgs[0]
-    StartDumpWorkQueueMgr(pCtx, pData, (pLineData,))
+    pServerName, pLineData, pLogDate, pLogTime = pArgs[0]
+    StartDumpWorkQueueMgr(pCtx, pData, (pServerName, pLineData,))
     pCtx["WORK_QUEUE_MGR_DATA"].append("")
 
     l_DumpWorkQueueMgrEntry = pData["WorkQueueMgr"]
@@ -102,9 +210,7 @@ def EndDumpWorkQueueMgr(pCtx, pData, *pArgs):
     return
 
 def Error(pCtx, pData, *pArgs):
-    pLogDate, pLogTime, pErrorData = pArgs[0]
-    if "Errors" not in pData:
-        pData["Errors"] = {}
+    pServerName, pLogDate, pLogTime, pErrorData = pArgs[0]
     l_ErrorEntry = pData["Errors"]
     l_ErrorEntry[pLogTime] = pErrorData
 
@@ -133,15 +239,15 @@ SEARCHES = (
      (7, 4, 5, 6, 8),
      (str, str, str, str, str, str, int, int, int, str, str, int, int, float, int, float,),
      FileCompletion),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+contribid\s*(\d+),\s*LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+handle\s+(\d+),\s*status\s*([A-Z_]+), total\s*processing\s*time\s*([0-9.]+)\s*seconds"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+contribid\s+(\d+),\s+LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+handle\s+(\d+),\s+status\s+([A-Z_]+),\s+(total\s+size\s+transferred\s+([0-9.]+),\s+)*total\s+processing\s+time\s+([0-9.]+)\s+seconds"),
      (7, 4, 5, 6, 3),
-     (str, str, int, str, str, str, int, str, float,),
+     (str, str, int, str, str, str, int, str, str, int, float,),
      ContribIdCompletion),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+handle\s*(\d+),\s*LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+status\s+([A-Z_]+)"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+handle\s+(\d+),\s+LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+status\s+([A-Z_]+)"),
      (3, 4, 5, 6, 0),
      (str, str, int, str, str, str, str,),
      HandleCompletion),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::error\s*\|\s*(.*)"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::error\s+\|\s+(.*)"),
      (0, 0, 0, 0, 0),
      (str, str, str,),
      Error),
@@ -154,7 +260,11 @@ SEARCHES = (
      (str, str, str,),
      EndDumpWorkQueueMgr),
 )
-WORK_QUEUE_MGR_DATA = re.compile("Throttle\s*Mode:|Last\s*Queue\s*Processed:|Async\s*Seq#:|Number\s*of\s*Workqueue\s*Entries:|LVKey\(None,[f-]+\),\s+Job\s+\d+|LVKey\([a-z0-9.]+\s+\([0-9.]+\),[a-z0-9-]+\),\s+Job\s+\d+")
+
+OLDLOGS = re.compile("oldlogs")
+TRAILING_LOGNUMBER = re.compile("\d+\.log\d+")
+
+WORK_QUEUE_MGR_DATA = re.compile("Throttle\s+Mode:|Last\s+Queue\s+Processed:|Async\s+Seq#:|Number\s+of\s+Workqueue\s+Entries:|LVKey\(None,[f-]+\),\s+Job\s+\d+|LVKey\([a-z0-9.]+\s+\([0-9.]+\),[a-z0-9-]+\),\s+Job\s+\d+")
 
 # Establishes environmental values in the context, overriding defaults with command line options
 def getOptions(pCtx, pArgs):
@@ -162,6 +272,8 @@ def getOptions(pCtx, pArgs):
 
     # Set the default values
     pCtx["ROOTDIR"] = "."
+    pCtx["OUTPUT_DIRECTORY_NAME"] = "Analysis"
+    pCtx["PICKLE_FILENAME"] = "ConsoleData.pickle"
     pCtx["NAME_PATTERN"] = ("console.*", re.compile("console.*"))
     pCtx["INPUT_SERVER_NAME"] = None
     pCtx["ALL_SERVER_NAMES_PRIMED"] = False
@@ -177,8 +289,10 @@ def getOptions(pCtx, pArgs):
                 if len(pArgs) >= 4:
                     pCtx["INPUT_SERVER_NAME"] = pArgs[3]
 
+
     # Normalize the input root path name
     pCtx["ROOTDIR"] = os.path.abspath(os.path.normpath(pCtx["ROOTDIR"]))
+    pCtx["OUTPUT_DIRECTORY"] = os.path.join(pCtx["ROOTDIR"], pCtx["OUTPUT_DIRECTORY_NAME"])
     pCtx["WORK_QUEUE_MGR_DATA"] = None
 
     # Print out the environment
@@ -201,8 +315,43 @@ def getServerName(pCtx, pPath):
 
     return l_ServerName
 
+# Calculate transfer rates for the jobids/servers/connections
+def calculateTransferRates(pCtx):
+    print "Start: Transfer rate calculations..."
+    if "JobIds" in pCtx["ElapsedTimeData"]:
+        for l_JobId in pCtx["ElapsedTimeData"]["JobIds"]:
+            l_JobIdEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]
+            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_JobIdEntry["EndDateTime"], l_JobIdEntry["StartDateTime"]))
+            l_JobIdEntry["ElapsedTime (secs)"] = l_ElapsedTime
+            if l_ElapsedTime:
+                l_JobIdEntry["TransferRate (GB/sec)"] = (float(l_JobIdEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10**9)
+            else:
+                l_JobIdEntry["TransferRate (GB/sec)"] = None
+            if "Servers" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]:
+                for l_Server in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"]:
+                    l_ServerEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]
+                    l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ServerEntry["EndDateTime"], l_ServerEntry["StartDateTime"]))
+                    l_ServerEntry["ElapsedTime (secs)"] = l_ElapsedTime
+                    if l_ElapsedTime:
+                        l_ServerEntry["TransferRate (GB/sec)"] = (float(l_ServerEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9)
+                    else:
+                        l_ServerEntry["TransferRate (GB/sec)"] = None
+                    if "Connections" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]:
+                        for l_Connection in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"]:
+                            l_ConnectionEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"][l_Connection]
+                            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ConnectionEntry["EndDateTime"], l_ConnectionEntry["StartDateTime"]))
+                            l_ConnectionEntry["ElapsedTime (secs)"] = l_ElapsedTime
+                            if l_ElapsedTime:
+                                l_ConnectionEntry["TransferRate (GB/sec)"] = (float(l_ConnectionEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9)
+                            else:
+                                l_ConnectionEntry["TransferRate (GB/sec)"] = None
+    print "  End: Transfer rate calculations..."
+    print
+
+    return
+
 # Parse/process a given line of output
-def processLine(pCtx, pData, pLine):
+def processLine(pCtx, pServerName, pData, pLine):
     l_DoProcessLine = False
     l_ArgsIsEntireLine = False
 
@@ -256,78 +405,136 @@ def processLine(pCtx, pData, pLine):
 
     if l_DoProcessLine:
         # Build the argument list
+        l_Args = [pServerName]
         if not l_ArgsIsEntireLine:
-            l_Args = [l_Search[2][i](l_Success.group(i + 1)) for i in xrange(len(l_Search[2]))]
+            for i in xrange(len(l_Search[2])):
+                if l_Success.group(i + 1) != None:
+                    l_Args.append(l_Search[2][i](l_Success.group(i + 1)))
+                else:
+                    l_Args.append(None)
+# NOTE: Replace the above with the commented out line when we no longer process contribid complete messages without a transfer size
+#       Make similar change to the SEARCH definition above...
+#            l_Args = [l_Search[2][i](l_Success.group(i + 1)) for i in xrange(len(l_Search[2]))]
         else:
-            l_Args = (pLine,)
+            l_Args.append(pLine)
         # Invoke the procedure to handle this parsed data
         l_Search[3](pCtx, pData, l_Args)
 
-# Process files for a given path
-def processFiles(pCtx, pData, pPath, pFiles):
+# Process a console log
+def processFile(pCtx, *pArgs):
+    pServerName, pData, pFullFileName = pArgs[0]
+
+    print "Start: Processing %s as a console log..." % (pFullFileName)
+    with open(pFullFileName) as l_File:
+        while (True):
+            l_Lines = l_File.readlines(64 * 1024)
+            if (l_Lines):
+                for l_Line in l_Lines:
+                    processLine(pCtx, pServerName, pData, l_Line)
+            else:
+                break
+    # NOTE: If we split in the middle of a work queue mgr dump, we lose that data...
+    pCtx["WORK_QUEUE_MGR_DATA"] = None
+    print "  End: Processing %s as a console log..." % (pFullFileName)
+
+    return
+
+def processFiles(pCtx):
+    l_Files = pCtx["FilesToProcess"].keys()
+    l_Files.sort()
+
+    l_FirstPass = []
+    l_SecondPass = []
+    l_ThirdPass = []
+    for l_File in l_Files:
+        l_Success = OLDLOGS.search(pCtx["FilesToProcess"][l_File][2])
+        if l_Success:
+            l_Success = TRAILING_LOGNUMBER.search(pCtx["FilesToProcess"][l_File][2])
+            if l_Success:
+                l_FirstPass.append(pCtx["FilesToProcess"][l_File])
+            else:
+                l_SecondPass.append(pCtx["FilesToProcess"][l_File])
+        else:
+            l_ThirdPass.append(pCtx["FilesToProcess"][l_File])
+
+    for l_Pass in (l_FirstPass, l_SecondPass, l_ThirdPass):
+        for l_FileData in l_Pass:
+            processFile(pCtx, l_FileData)
+    print
+
+    return
+
+# Find console logs for a given path
+def findFiles(pCtx, pServerName, pData, pPath, pFiles):
     for l_FileName in pFiles:
         l_FullFileName = os.path.join(pPath,l_FileName)
         if os.path.isfile(l_FullFileName) and (not os.path.islink(l_FullFileName)):
             l_Success = pCtx["NAME_PATTERN"][1].search(l_FileName)
             if l_Success:
-                print "%sStart: Processing %s as a console log..." % (4*" ", l_FullFileName)
-                with open(l_FullFileName) as l_File:
-                    while (True):
-                        l_Lines = l_File.readlines(64*1024)
-                        if (l_Lines):
-                            for l_Line in l_Lines:
-                               processLine(pCtx, pData, l_Line)
-                        else:
-                            break
-                # NOTE: If we split in the middle of a work queue mgr dump, we lose that data...
-                pCtx["WORK_QUEUE_MGR_DATA"] = None
-                print "%s  End: Processing %s as a console log..." % (4*" ", l_FullFileName)
+                print "File %s will be processed as a console log..." % (l_FullFileName)
+                pCtx["FilesToProcess"][l_FullFileName] = (pServerName, pData, l_FullFileName)
             else:
-                print "%sSkipping %s, does not match file pattern..." % (4*" ", l_FullFileName)
+                print "%sSkipping file %s, does not match file pattern..." % (4*" ", l_FullFileName)
         else:
-            print "%sSkipping %s, not a file or is a link..." % (4*" ", l_FullFileName)
+            print "%sSkipping file %s, not a file or is a link..." % (4*" ", l_FullFileName)
 
     return
 
 # Walk the root path, processing subdirectories/files along the way
-def walkPaths(pCtx, pData, pPath):
+def walkPaths(pCtx, pPath):
+    l_Data = pCtx["ServerData"]
     for l_Path, l_SubDirs, l_Files in os.walk(pPath):
         if not pCtx["ALL_SERVER_NAMES_PRIMED"]:
             if pCtx["INPUT_SERVER_NAME"] == None:
                 for l_SubDir in l_SubDirs:
-                    pData[l_SubDir] = {}
-                    pData[l_SubDir]["Handles"] = {}
-                    pData[l_SubDir]["WorkQueueMgr"] = {}
+                    if l_SubDir != pCtx["OUTPUT_DIRECTORY_NAME"]:
+                        l_Data[l_SubDir] = {}
+                        l_Data[l_SubDir]["Errors"] = {}
+                        l_Data[l_SubDir]["Handles"] = {}
+                        l_Data[l_SubDir]["WorkQueueMgr"] = {}
             else:
-                pData[pCtx["INPUT_SERVER_NAME"]] = {}
-                pData[pCtx["INPUT_SERVER_NAME"]]["Handles"] = {}
-                pData[pCtx["INPUT_SERVER_NAME"]]["WorkQueueMgr"] = {}
+                l_Data[pCtx["INPUT_SERVER_NAME"]] = {}
+                l_Data[pCtx["INPUT_SERVER_NAME"]]["Handles"] = {}
+                l_Data[pCtx["INPUT_SERVER_NAME"]]["WorkQueueMgr"] = {}
             pCtx["ALL_SERVER_NAMES_PRIMED"] = True
 
         if l_Files:
             l_ServerName = getServerName(pCtx, l_Path)
-            if l_ServerName:
-                print "Adding data for bbServer:", l_ServerName
-                processFiles(pCtx, pData[l_ServerName], l_Path, l_Files)
-                print
+            if l_ServerName != pCtx["OUTPUT_DIRECTORY_NAME"]:
+                if l_ServerName:
+                    findFiles(pCtx, l_ServerName, l_Data[l_ServerName], l_Path, l_Files)
+    print
 
     return
 
 # Main routine
 def main(*pArgs):
-    l_Ctx = {}     # Environmental context
-    l_Data = {}    # All data is stored here
+    l_Ctx = {}                    # Environmental context
+    l_Ctx["FilesToProcess"] = {}
+    l_Ctx["ServerData"] = {}      # Server data is stored here
+    l_Ctx["ElapsedTimeData"] = {} # Start/end time, transfer sizes stored here by jobid/server/connection
+    l_Ctx["ElapsedTimeData"]["JobIds"] = {}
 
     # Establish the context
     getOptions(l_Ctx, pArgs[0])
+    # Ensure that the output directory exists...
+    cmn.ensure(l_Ctx["OUTPUT_DIRECTORY"])
+
     # Walk the paths processing data along the way, starting with the input root directory
-    walkPaths(l_Ctx, l_Data, l_Ctx["ROOTDIR"])
+    walkPaths(l_Ctx, l_Ctx["ROOTDIR"])
+
+    # Process the files
+    processFiles(l_Ctx)
+
+    # Calculate the transfer rates
+    calculateTransferRates(l_Ctx)
 
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
-        cmn.printFormattedData(l_Ctx, l_Data)
+        cmn.printFormattedData(l_Ctx, l_Ctx["ServerData"])
+        cmn.printFormattedData(l_Ctx, l_Ctx["ElapsedTimeData"])
 
     if l_Ctx["SAVE_PICKLED_RESULTS"]:
-        cmn.saveData(l_Ctx, l_Data)
+        cmn.saveData(l_Ctx)
     else:
         print "Results not saved"
 
