@@ -315,41 +315,6 @@ def getServerName(pCtx, pPath):
 
     return l_ServerName
 
-# Calculate transfer rates for the jobids/servers/connections
-def calculateTransferRates(pCtx):
-    print "Start: Transfer rate calculations..."
-    if "JobIds" in pCtx["ElapsedTimeData"]:
-        for l_JobId in pCtx["ElapsedTimeData"]["JobIds"]:
-            l_JobIdEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]
-            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_JobIdEntry["EndDateTime"], l_JobIdEntry["StartDateTime"]))
-            l_JobIdEntry["ElapsedTime (secs)"] = l_ElapsedTime
-            if l_ElapsedTime:
-                l_JobIdEntry["TransferRate (GB/sec)"] = (float(l_JobIdEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10**9)
-            else:
-                l_JobIdEntry["TransferRate (GB/sec)"] = None
-            if "Servers" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]:
-                for l_Server in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"]:
-                    l_ServerEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]
-                    l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ServerEntry["EndDateTime"], l_ServerEntry["StartDateTime"]))
-                    l_ServerEntry["ElapsedTime (secs)"] = l_ElapsedTime
-                    if l_ElapsedTime:
-                        l_ServerEntry["TransferRate (GB/sec)"] = (float(l_ServerEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9)
-                    else:
-                        l_ServerEntry["TransferRate (GB/sec)"] = None
-                    if "Connections" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]:
-                        for l_Connection in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"]:
-                            l_ConnectionEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"][l_Connection]
-                            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ConnectionEntry["EndDateTime"], l_ConnectionEntry["StartDateTime"]))
-                            l_ConnectionEntry["ElapsedTime (secs)"] = l_ElapsedTime
-                            if l_ElapsedTime:
-                                l_ConnectionEntry["TransferRate (GB/sec)"] = (float(l_ConnectionEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9)
-                            else:
-                                l_ConnectionEntry["TransferRate (GB/sec)"] = None
-    print "  End: Transfer rate calculations..."
-    print
-
-    return
-
 # Parse/process a given line of output
 def processLine(pCtx, pServerName, pData, pLine):
     l_DoProcessLine = False
@@ -525,9 +490,6 @@ def main(*pArgs):
 
     # Process the files
     processFiles(l_Ctx)
-
-    # Calculate the transfer rates
-    calculateTransferRates(l_Ctx)
 
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
         cmn.printFormattedData(l_Ctx, l_Ctx["ServerData"])

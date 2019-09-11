@@ -18,6 +18,44 @@ import sys
 
 import common as cmn
 
+# Calculate transfer rates for the jobids/servers/connections
+def calculateTransferRates(pCtx):
+    print "Start: Transfer rate calculations..."
+    if "JobIds" in pCtx["ElapsedTimeData"]:
+        for l_JobId in pCtx["ElapsedTimeData"]["JobIds"]:
+            l_JobIdEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]
+            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_JobIdEntry["EndDateTime"], l_JobIdEntry["StartDateTime"]))
+            l_JobIdEntry["ElapsedTime (secs)"] = l_ElapsedTime
+            if l_ElapsedTime:
+                l_JobIdEntry["JobId TransferRate (GB/sec)"] = round((float(l_JobIdEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10**9),3)
+            else:
+                l_JobIdEntry["JobId TransferRate (GB/sec)"] = None
+            l_JobIdEntry["SizeTransferred"] = cmn.numericFormat(l_JobIdEntry["SizeTransferred"])
+            if "Servers" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]:
+                for l_Server in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"]:
+                    l_ServerEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]
+                    l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ServerEntry["EndDateTime"], l_ServerEntry["StartDateTime"]))
+                    l_ServerEntry["ElapsedTime (secs)"] = l_ElapsedTime
+                    if l_ElapsedTime:
+                        l_ServerEntry["Server TransferRate (GB/sec)"] = round((float(l_ServerEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9),3)
+                    else:
+                        l_ServerEntry["Server TransferRate (GB/sec)"] = None
+                    l_ServerEntry["SizeTransferred"] = cmn.numericFormat(l_ServerEntry["SizeTransferred"])
+                    if "Connections" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]:
+                        for l_Connection in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"]:
+                            l_ConnectionEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"][l_Connection]
+                            l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ConnectionEntry["EndDateTime"], l_ConnectionEntry["StartDateTime"]))
+                            l_ConnectionEntry["ElapsedTime (secs)"] = l_ElapsedTime
+                            if l_ElapsedTime:
+                                l_ConnectionEntry["Connection TransferRate (GB/sec)"] = round((float(l_ConnectionEntry["SizeTransferred"]) / float(l_ElapsedTime)) / float(10 ** 9),3)
+                            else:
+                                l_ConnectionEntry["Connection TransferRate (GB/sec)"] = None
+                            l_ConnectionEntry["SizeTransferred"] = cmn.numericFormat(l_ConnectionEntry["SizeTransferred"])
+    print "  End: Transfer rate calculations..."
+    print
+
+    return
+
 # Main routine
 def main(*pArgs):
     l_Ctx = {}     # Environmental context
@@ -31,6 +69,9 @@ def main(*pArgs):
 
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
         cmn.printFormattedData(l_Ctx, l_Data)
+
+    # Calculate the transfer rates
+    calculateTransferRates(l_Ctx)
 
     # Print the results to a file
     l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "TransferRates.txt")

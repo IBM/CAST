@@ -22,6 +22,8 @@ import datetime as dt
 
 
 # Establishes environmental values in the context, overriding defaults with command line options
+# NOTE: This getOptions is used in all of the scripts after processConsoleLogs has run.
+#       processConsoleLogs has it's own getOptions() routine.
 def getOptions(pCtx, pArgs):
     # \todo Input/verification of args needs to be beefed up...
 
@@ -141,6 +143,19 @@ def ensure(pPathName):
 
     return
 
+def numericFormat(pNumber):
+    l_Number = None
+
+    if type(pNumber) in [type(0), type(0L)]:
+        l_Temp = []
+        while pNumber >= 1000:
+            pNumber, l_Temp2 = divmod(pNumber, 1000)
+            l_Temp.insert(0, "%03d" % l_Temp2)
+        l_Temp.insert(0, str(pNumber))
+        l_Number = ",".join(l_Temp)
+
+    return l_Number
+
 def getServers(pData):
     l_Servers = pData.keys()
     l_Servers.sort()
@@ -230,6 +245,21 @@ def getHandlesForServer(pData, pServer):
     l_Handles.sort()
 
     return l_Handles
+
+def getHandlesPerConnection(pData, pJobId, pServer):
+    l_ReturnedHandles = {}
+    l_Servers = getServersForJobid(pData, pJobId)
+    for l_Server in l_Servers:
+        if l_Server == pServer:
+            l_Handles = getHandlesForServer(pData, l_Server)
+            for l_Handle in pData[l_Server]["Handles"]:
+                if l_Handle in l_Handles:
+                    for l_Connection in pData[l_Server]["Handles"][l_Handle]["Connections"]:
+                        if l_Connection not in l_ReturnedHandles:
+                            l_ReturnedHandles[l_Connection] = []
+                        l_ReturnedHandles[l_Connection].append(l_Handle)
+
+    return l_ReturnedHandles
 
 def getErrorsForServer(pData, pServer):
 

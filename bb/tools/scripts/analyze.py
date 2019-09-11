@@ -38,27 +38,20 @@ def main(*pArgs):
     # Determine list of servers
     l_TestOutput.append("List of Servers%s" % (os.linesep))
     l_Servers = cmn.getServers(l_Data)
-    l_TestOutput.append("%d servers, %s%s" % (len(l_Servers), `l_Servers`, os.linesep))
+    l_TestOutput.append("%d server(s), %s%s" % (len(l_Servers), `l_Servers`, os.linesep))
     l_TestOutput.append("%s" % (os.linesep))
 
     # Determine list of jobids
     l_TestOutput.append("List of JobIds%s" % (os.linesep))
     l_JobIds = cmn.getJobIds(l_Data)
-    l_TestOutput.append("%d jobids, %s%s" % (len(l_JobIds), `l_JobIds`, os.linesep))
-    l_TestOutput.append("%s" % (os.linesep))
-
-    # Determine handles per server
-    l_TestOutput.append("List of Handles per Server%s" % (os.linesep))
-    for l_Server in l_Servers:
-        l_Handles = cmn.getHandlesForServer(l_Data, l_Server)
-        l_TestOutput.append("For server %s, %d handles, %s%s" % (l_Server, len(l_Handles), `l_Handles`, os.linesep))
+    l_TestOutput.append("%d jobid(s), %s%s" % (len(l_JobIds), `l_JobIds`, os.linesep))
     l_TestOutput.append("%s" % (os.linesep))
 
     # Determine jobids per server
     l_TestOutput.append("List of JobIds per Server%s" % (os.linesep))
     for l_Server in l_Servers:
         l_JobIds = cmn.getJobIdsForServer(l_Data, l_Server)
-        l_TestOutput.append("For server %s, %d jobids, %s%s" % (l_Server, len(l_JobIds), `l_JobIds`, os.linesep))
+        l_TestOutput.append("For server %s, %d jobid(s), %s%s" % (l_Server, len(l_JobIds), `l_JobIds`, os.linesep))
     l_TestOutput.append("%s" % (os.linesep))
 
     # Determinne servers per jobid
@@ -66,8 +59,20 @@ def main(*pArgs):
     l_JobIds = cmn.getJobIds(l_Data)
     for l_JobId in l_JobIds:
         l_Servers = cmn.getServersForJobid(l_Data, l_JobId)
-        l_TestOutput.append("For jobid %d, %d servers, %s%s" % (l_JobId, len(l_Servers), `l_Servers`, os.linesep))
+        l_TestOutput.append("For jobid %d, %d server(s), %s%s" % (l_JobId, len(l_Servers), `l_Servers`, os.linesep))
     l_TestOutput.append("%s" % (os.linesep))
+
+    # Determine handles per jobid, per server, per connection
+    l_TestOutput.append("List of Handles per JobId, per Server, per Connection%s" % (os.linesep))
+    for l_JobId in l_JobIds:
+        l_Servers = cmn.getServersForJobid(l_Data, l_JobId)
+        l_TestOutput.append("%sJobId %d, %d server(s)%s" % (2*" ", l_JobId, len(l_Servers), os.linesep))
+        for l_Server in l_Servers:
+            l_ConnectionHandles = cmn.getHandlesPerConnection(l_Data, l_JobId, l_Server)
+            l_TestOutput.append("%sServer %s, %d connection(s)%s" % (4*" ", l_Server, len(l_ConnectionHandles), os.linesep))
+            for l_Connection, l_Handles in l_ConnectionHandles.items():
+                l_TestOutput.append("%sConnection %s. %d handle(s), %s%s" % (6*" ", l_Connection, len(l_Handles), `l_Handles`, os.linesep))
+        l_TestOutput.append("%s" % (os.linesep))
 
     # Write out the basic results
     l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "BasicData.txt")
@@ -217,6 +222,18 @@ def main(*pArgs):
                     if (l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][1][1] > l_ServerProcessingTimes[1][1]):
                         l_ServerProcessingTimes[1] = l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][1]
         l_Output[l_JobId]["ProcessingTimes (All Servers ContribId Min/Max)"] = l_ServerProcessingTimes
+
+        # Format some of the data
+        for l_JobId in l_Output:
+            for l_Server in l_Output[l_JobId]:
+                # NOTE: Not every l_Server element is a server name.
+                #       We only want to process those with a "Handles" key.
+                try:
+                    if "SizeTransferred" in l_Output[l_JobId][l_Server]["Handles"]:
+                        if l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"]:
+                            l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"] = cmn.numericFormat(l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"])
+                except Exception:
+                    pass
 
         # Output the results
 #        pprint.pprint(l_Output)

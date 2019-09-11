@@ -44,3 +44,11 @@ add_executable(removefiles removefiles.cc)
 install(TARGETS removefiles  COMPONENT burstbuffer-tools DESTINATION bb/tools)
 target_link_libraries(removefiles fsutil ${Boost_LIBRARIES})
 target_compile_definitions(removefiles PRIVATE -DUSE_SC_LOGGER=1)
+
+
+install(FILES scripts/analyze.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
+install(FILES scripts/common.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
+install(FILES scripts/generateErrorsListing.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
+install(FILES scripts/generateWorkQueueMgrDumps.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
+install(FILES scripts/generateTransferRates.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
+install(FILES scripts/processConsoleLogs.py COMPONENT burstbuffer-tools DESTINATION bb/tools/scripts)
