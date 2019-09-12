@@ -21,9 +21,9 @@ import common as cmn
 # Calculate transfer rates for the jobids/servers/connections
 def calculateTransferRates(pCtx):
     print "Start: Transfer rate calculations..."
-    if "JobIds" in pCtx["ElapsedTimeData"]:
-        for l_JobId in pCtx["ElapsedTimeData"]["JobIds"]:
-            l_JobIdEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]
+    if "jobIds" in pCtx["ElapsedTimeData"]:
+        for l_JobId in pCtx["ElapsedTimeData"]["jobIds"]:
+            l_JobIdEntry = pCtx["ElapsedTimeData"]["jobIds"][l_JobId]
             l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_JobIdEntry["EndDateTime"], l_JobIdEntry["StartDateTime"]))
             l_JobIdEntry["ElapsedTime (secs)"] = l_ElapsedTime
             if l_ElapsedTime:
@@ -31,9 +31,9 @@ def calculateTransferRates(pCtx):
             else:
                 l_JobIdEntry["JobId TransferRate (GB/sec)"] = None
             l_JobIdEntry["SizeTransferred"] = cmn.numericFormat(l_JobIdEntry["SizeTransferred"])
-            if "Servers" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]:
-                for l_Server in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"]:
-                    l_ServerEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]
+            if "Servers" in pCtx["ElapsedTimeData"]["jobIds"][l_JobId]:
+                for l_Server in pCtx["ElapsedTimeData"]["jobIds"][l_JobId]["servers"]:
+                    l_ServerEntry = pCtx["ElapsedTimeData"]["jobIds"][l_JobId]["servers"][l_Server]
                     l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ServerEntry["EndDateTime"], l_ServerEntry["StartDateTime"]))
                     l_ServerEntry["ElapsedTime (secs)"] = l_ElapsedTime
                     if l_ElapsedTime:
@@ -41,9 +41,9 @@ def calculateTransferRates(pCtx):
                     else:
                         l_ServerEntry["Server TransferRate (GB/sec)"] = None
                     l_ServerEntry["SizeTransferred"] = cmn.numericFormat(l_ServerEntry["SizeTransferred"])
-                    if "Connections" in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]:
-                        for l_Connection in pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"]:
-                            l_ConnectionEntry = pCtx["ElapsedTimeData"]["JobIds"][l_JobId]["Servers"][l_Server]["Connections"][l_Connection]
+                    if "Connections" in pCtx["ElapsedTimeData"]["jobIds"][l_JobId]["servers"][l_Server]:
+                        for l_Connection in pCtx["ElapsedTimeData"]["jobIds"][l_JobId]["servers"][l_Server]["connections"]:
+                            l_ConnectionEntry = pCtx["ElapsedTimeData"]["jobIds"][l_JobId]["servers"][l_Server]["connections"][l_Connection]
                             l_ElapsedTime = float(cmn.calculateTimeDifferenceInSeconds(l_ConnectionEntry["EndDateTime"], l_ConnectionEntry["StartDateTime"]))
                             l_ConnectionEntry["ElapsedTime (secs)"] = l_ElapsedTime
                             if l_ElapsedTime:

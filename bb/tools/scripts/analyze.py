@@ -68,9 +68,13 @@ def main(*pArgs):
         l_Servers = cmn.getServersForJobid(l_Data, l_JobId)
         l_TestOutput.append("%sJobId %d, %d server(s)%s" % (2*" ", l_JobId, len(l_Servers), os.linesep))
         for l_Server in l_Servers:
-            l_ConnectionHandles = cmn.getHandlesPerConnection(l_Data, l_JobId, l_Server)
+            l_ConnectionHandleData = cmn.getHandlesPerConnectionForJobId(l_Data, l_Server, l_JobId)
+            l_ConnectionHandles = l_ConnectionHandleData.keys()
+            l_ConnectionHandles.sort()
             l_TestOutput.append("%sServer %s, %d connection(s)%s" % (4*" ", l_Server, len(l_ConnectionHandles), os.linesep))
-            for l_Connection, l_Handles in l_ConnectionHandles.items():
+            for l_Connection in l_ConnectionHandles:
+                l_Handles = l_ConnectionHandleData[l_Connection]
+                l_Handles.sort()
                 l_TestOutput.append("%sConnection %s. %d handle(s), %s%s" % (6*" ", l_Connection, len(l_Handles), `l_Handles`, os.linesep))
         l_TestOutput.append("%s" % (os.linesep))
 
@@ -93,11 +97,11 @@ def main(*pArgs):
         l_Servers = cmn.getServersForJobid(l_Data, l_JobId)
         for l_Server in l_Servers:
             l_Output[l_JobId][l_Server] = {}
-            l_Output[l_JobId][l_Server]["Handles"] = {}
-            l_Output[l_JobId][l_Server]["Handles"]["NumberOfConnections"] = 0
-            l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"] = 0
+            l_Output[l_JobId][l_Server]["handles"] = {}
+            l_Output[l_JobId][l_Server]["handles"]["NumberOfConnections"] = 0
+            l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"] = 0
             l_Output[l_JobId][l_Server]["NotSuccessfulHandles"] = []
-            l_Output[l_JobId][l_Server]["Handles"]["Connections"] = {}
+            l_Output[l_JobId][l_Server]["handles"]["connections"] = {}
 
             # For each handle...
             l_Handles = cmn.getHandlesForServer(l_Data, l_Server)
@@ -112,20 +116,20 @@ def main(*pArgs):
                     l_NumberOfHandlesForAllServers = l_NumberOfHandlesForAllServers + 1
                     if l_Data[l_Server]["Handles"][l_Handle]["Status"] != "BBFULLSUCCESS":
                         l_NotSuccessfulHandles.append((l_Handle, l_Data[l_Server]["Handles"][l_Handle]["Status"]))
-                    l_NumberOfConnections = l_Output[l_JobId][l_Server]["Handles"]["NumberOfConnections"]
-                    l_SizeTransferred = l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"]
+                    l_NumberOfConnections = l_Output[l_JobId][l_Server]["handles"]["NumberOfConnections"]
+                    l_SizeTransferred = l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"]
 
                     # For each connection...
                     l_Connections = l_Data[l_Server]["Handles"][l_Handle]["Connections"]
                     for l_Connection in l_Connections:
-                        if l_Connection not in l_Output[l_JobId][l_Server]["Handles"]["Connections"]:
+                        if l_Connection not in l_Output[l_JobId][l_Server]["handles"]["connections"]:
                             l_NumberOfConnections = l_NumberOfConnections + 1
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection] = {}
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"] = {}
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NumberOfContribIds"] = 0
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ProcessingTimes (File Min/Max)"] = [None,None]
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ReadTimes (File Min/Max)"] = [None,None]
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["WriteTimes (File Min/Max)"] = [None,None]
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection] = {}
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"] = {}
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NumberOfContribIds"] = 0
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["processingTimes (File Min/Max)"] = [None,None]
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"] = [None,None]
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"] = [None,None]
 
                         # For each LVUuid...
                         l_LVUuids = l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"]
@@ -133,8 +137,8 @@ def main(*pArgs):
 
                             # For each ContribId...
                             l_ContribIds = l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"]
-                            l_ProcessingTimes = l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ProcessingTimes (File Min/Max)"]
-                            l_NumberOfContribIds = l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NumberOfContribIds"]
+                            l_ProcessingTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["processingTimes (File Min/Max)"]
+                            l_NumberOfContribIds = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NumberOfContribIds"]
                             l_NotSuccessfulContribIds = []
                             for l_ContribId in l_ContribIds:
                                 l_NumberOfContribIds = l_NumberOfContribIds + 1
@@ -159,12 +163,13 @@ def main(*pArgs):
                                     if (l_ProcessingTimes[1][1] > l_HandleProcessingTimes[1][1]):
                                         l_HandleProcessingTimes[1] = l_ProcessingTimes[1]
 
-                                l_ReadTimes = l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ReadTimes (File Min/Max)"]
-                                l_WriteTimes = l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["WriteTimes (File Min/Max)"]
+                                l_ReadTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"]
+                                l_WriteTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"]
                                 if "Files" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]:
                                     l_Files = l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"]
 
                                     # For each file...
+                                    l_TransferType = set()
                                     for l_File in l_Files:
                                         l_ReadTime = (l_ContribId, l_File,
                                                       (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["ReadCount"],
@@ -186,27 +191,27 @@ def main(*pArgs):
                                                 l_WriteTimes[0] = l_WriteTime
                                             if (l_WriteTime[2][1] > l_WriteTimes[1][2][1]):
                                                 l_WriteTimes[1] = l_WriteTime
+                                        l_TransferType.add(l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["TransferType"])
                                 # End of files...
-                                l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ReadTimes (File Min/Max)"] = l_ReadTimes
-                                l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["WriteTimes (File Min/Max)"] = l_WriteTimes
+                                l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"] = l_ReadTimes
+                                l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"] = l_WriteTimes
+                                l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["transferTypes"] = l_TransferType
                             # End of contribids...
                             if l_NotSuccessfulContribIds:
-                                if "NotSuccessfulContribIds" not in l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]:
-                                    l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NotSuccessfulContribIds"]
-                                l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NotSuccessfulContribIds"] = l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NotSuccessfulContribIds"] + l_NotSuccessfulContribIds
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["NumberOfContribIds"] = l_NumberOfContribIds
-                            l_Output[l_JobId][l_Server]["Handles"]["Connections"][l_Connection]["ContribIds"]["ProcessingTimes (File Min/Max)"] = l_ProcessingTimes
+                                if "NotSuccessfulContribIds" not in l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]:
+                                    l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NotSuccessfulContribIds"] = []
+                                l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NotSuccessfulContribIds"] = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NotSuccessfulContribIds"] + l_NotSuccessfulContribIds
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["NumberOfContribIds"] = l_NumberOfContribIds
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["processingTimes (File Min/Max)"] = l_ProcessingTimes
                     # End of connections...
-                    l_Output[l_JobId][l_Server]["Handles"]["NumberOfConnections"] = l_NumberOfConnections
+                    l_Output[l_JobId][l_Server]["handles"]["NumberOfConnections"] = l_NumberOfConnections
                     if l_SizeTransferred:
-                        l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"] = l_SizeTransferred
+                        l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"] = l_SizeTransferred
             # End of handles...
-            if not l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"]:
-                del l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"]
             if l_NotSuccessfulHandles:
                 l_Output[l_JobId][l_Server]["NotSuccessfulHandles"] = l_Output[l_JobId][l_Server]["NotSuccessfulHandles"] + l_NotSuccessfulHandles
-            l_Output[l_JobId][l_Server]["Handles"]["NumberOfHandles"] = l_NumberOfHandles
-            l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"] = l_HandleProcessingTimes
+            l_Output[l_JobId][l_Server]["handles"]["NumberOfHandles"] = l_NumberOfHandles
+            l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"] = l_HandleProcessingTimes
         # End of servers...
         l_Output[l_JobId]["NumberOfHandlesForAllServers"] = l_NumberOfHandlesForAllServers
 
@@ -215,23 +220,24 @@ def main(*pArgs):
         for l_Server in l_Output[l_JobId].keys():
             if type(l_Output[l_JobId][l_Server]) == dict:
                 if l_ServerProcessingTimes == [None, None]:
-                    l_ServerProcessingTimes = l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"]
+                    l_ServerProcessingTimes = l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"]
                 else:
-                    if (l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][0][1] < l_ServerProcessingTimes[0][1]):
-                        l_ServerProcessingTimes[0] = l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][0]
-                    if (l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][1][1] > l_ServerProcessingTimes[1][1]):
-                        l_ServerProcessingTimes[1] = l_Output[l_JobId][l_Server]["Handles"]["ProcessingTimes (ContribId Min/Max)"][1]
+                    if (l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"][0][1] < l_ServerProcessingTimes[0][1]):
+                        l_ServerProcessingTimes[0] = l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"][0]
+                    if (l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"][1][1] > l_ServerProcessingTimes[1][1]):
+                        l_ServerProcessingTimes[1] = l_Output[l_JobId][l_Server]["handles"]["ProcessingTimes (ContribId Min/Max)"][1]
         l_Output[l_JobId]["ProcessingTimes (All Servers ContribId Min/Max)"] = l_ServerProcessingTimes
 
-        # Format some of the data
+        # Format data/add average size transferred per handle data
         for l_JobId in l_Output:
             for l_Server in l_Output[l_JobId]:
                 # NOTE: Not every l_Server element is a server name.
                 #       We only want to process those with a "Handles" key.
                 try:
-                    if "SizeTransferred" in l_Output[l_JobId][l_Server]["Handles"]:
-                        if l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"]:
-                            l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"] = cmn.numericFormat(l_Output[l_JobId][l_Server]["Handles"]["SizeTransferred"])
+                    if "SizeTransferred" in l_Output[l_JobId][l_Server]["handles"]:
+                        if l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"]:
+                            l_Output[l_JobId][l_Server]["handles"]["Avg SizeTransferred/Handle"] = cmn.numericFormat(round(float(l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"])/float(l_Output[l_JobId][l_Server]["handles"]["NumberOfHandles"]),3))
+                            l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"] = cmn.numericFormat(l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"])
                 except Exception:
                     pass
 

@@ -146,13 +146,28 @@ def ensure(pPathName):
 def numericFormat(pNumber):
     l_Number = None
 
-    if type(pNumber) in [type(0), type(0L)]:
+    if type(pNumber) in [type(0), type(0L), type(0.0)]:
         l_Temp = []
+
+        l_NegativeValue = ""
+        l_DecimalPortion = ""
+        l_Temp2 = str(pNumber).find("-")
+        if (l_Temp2 >= 0):
+            l_NegativeValue = "-"
+            pNumber *= -1
+        l_Number = str(pNumber)
+        l_Temp2 = str(pNumber).find(".")
+        if (l_Temp2 >= 0):
+            l_DecimalPortion = l_Number[l_Temp2:]
+            if l_Temp2 != 0:
+                pNumber = int(l_Number[:l_Temp2])
+            else:
+                pNumber = 0
         while pNumber >= 1000:
             pNumber, l_Temp2 = divmod(pNumber, 1000)
             l_Temp.insert(0, "%03d" % l_Temp2)
         l_Temp.insert(0, str(pNumber))
-        l_Number = ",".join(l_Temp)
+        l_Number = l_NegativeValue + ",".join(l_Temp) + l_DecimalPortion
 
     return l_Number
 
@@ -246,12 +261,18 @@ def getHandlesForServer(pData, pServer):
 
     return l_Handles
 
-def getHandlesPerConnection(pData, pJobId, pServer):
+def getHandlesForServerForJobId(pData, pServer, pJobId):
+    l_Handles = [l_Handle for l_Handle in pData[pServer]["Handles"].keys() if "JobId" in pData[pServer]["Handles"][l_Handle] and pData[pServer]["Handles"][l_Handle]["JobId"] == pJobId]
+    l_Handles.sort()
+
+    return l_Handles
+
+def getHandlesPerConnectionForJobId(pData, pServer, pJobId):
     l_ReturnedHandles = {}
     l_Servers = getServersForJobid(pData, pJobId)
     for l_Server in l_Servers:
         if l_Server == pServer:
-            l_Handles = getHandlesForServer(pData, l_Server)
+            l_Handles = getHandlesForServerForJobId(pData, l_Server, pJobId)
             for l_Handle in pData[l_Server]["Handles"]:
                 if l_Handle in l_Handles:
                     for l_Connection in pData[l_Server]["Handles"][l_Handle]["Connections"]:
