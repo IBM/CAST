@@ -20,6 +20,7 @@
 #include <map>
 #include <string>
 
+#include <boost/filesystem.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/regex.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -28,10 +29,13 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include "bbinternal.h"
 #include "connections.h"
+#include "HandleFile.h"
 
 using namespace std;
 using namespace boost;
+namespace bfs = boost::filesystem;
 
 #ifdef PROF_TIMING
 #include <ctime>
@@ -57,7 +61,7 @@ map<dev_t, class BBUsageExtended>   bbxfer_usage;
 
 #define sectorsize 512  /// \todo calculate sector size using fdisk -l (or /sys/block/<block>/queue/hw_sector_size
 
-class BBUsageExtended 
+class BBUsageExtended
 {
   public:
 
@@ -70,7 +74,7 @@ class BBUsageExtended
         _burstBytesRead=0;
         _burstBytesWritten=0;
     }
-    ~BBUsageExtended() 
+    ~BBUsageExtended()
     {
         FL_Write(FLBBUsage,TareUsageFreed,"Freed localTareRead=%ld localTareWritten=%ld sectorsize=%lu", _localTareRead,_localTareWritten,sectorsize,0);
     }
@@ -82,31 +86,31 @@ class BBUsageExtended
         _localTareWriteCount=0;
         _burstBytesRead=0;
         _burstBytesWritten=0;
-        
+
         uint32_t major = major(pDev);
         uint32_t minor = minor(pDev);
         _statpath = string("/sys/dev/block/") + to_string(major) + ":" + to_string(minor) + "/stat";
         getLocalReadWrite(_localTareRead, _localTareWritten, _localTareReadCount, _localTareWriteCount);
         FL_Write6(FLBBUsage,SetUsageTare, "localTareRead=%ld localTareWritten=%ld major=%lu minor=%lu sectorsize=%lu", _localTareRead,_localTareWritten,major,minor,sectorsize,0);
     }
-    
+
     int getlocalUsage(uint64_t& pLocalRead, uint64_t& pLocalWrite, uint64_t& pLocalReadCount, uint64_t& pLocalWriteCount)
     {
         pLocalRead=0;
         pLocalWrite=0;
         pLocalReadCount=0;
         pLocalWriteCount=0;
-        
+
         int rc=getLocalReadWrite( pLocalRead, pLocalWrite, pLocalReadCount, pLocalWriteCount);
         if(rc) return rc;
         pLocalRead  -= _localTareRead;
-        pLocalWrite -= _localTareWritten;   
+        pLocalWrite -= _localTareWritten;
         pLocalReadCount  -= _localTareReadCount;
-        pLocalWriteCount -= _localTareWriteCount;   
+        pLocalWriteCount -= _localTareWriteCount;
         // FL_Write(FLBBUsage,GetUsageLocal, "LocalRead=%ld LocalWrite=%ld sectorsize=%lu", pLocalRead,pLocalWrite,sectorsize);
         return 0;
     }
-    
+
     void bumpBurstUsage(uint64_t byteswritten, uint64_t bytesread)
     {
         _burstBytesRead    += bytesread;
@@ -118,9 +122,9 @@ class BBUsageExtended
         pBurstWrite = _burstBytesWritten;
         return 0;
     }
-    
+
 private:
-    int getLocalReadWrite(uint64_t& pLocalRead, uint64_t& pLocalWrite, uint64_t& pLocalReadCount, uint64_t& pLocalWriteCount) 
+    int getLocalReadWrite(uint64_t& pLocalRead, uint64_t& pLocalWrite, uint64_t& pLocalReadCount, uint64_t& pLocalWriteCount)
     {
         int rc = 0;
         char*  line = NULL;
@@ -128,35 +132,35 @@ private:
         FILE* fd = fopen(_statpath.c_str(), "r");
         if(fd == NULL)
             return -1;
-        
+
         ssize_t llen = getline(&line, &linelength, fd);
         fclose(fd);
         if(llen < 1)
             return -1;
         string line_str = line;
         free(line);
-        
+
         vector<uint64_t> values;
         boost::char_separator<char> sep(" ");
         tokenizer< boost::char_separator<char>  > tok(line_str, sep);
         for(tokenizer< boost::char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
             values.push_back(stoull(*beg));
-        
+
         pLocalRead       = values[6-4] * sectorsize;
         pLocalWrite      = values[10-4] * sectorsize;
         pLocalReadCount  = values[4-4];
         pLocalWriteCount = values[8-4];
         return rc;
     }
-    
+
     uint64_t _localTareWritten;
     uint64_t _localTareRead;
     uint64_t _localTareWriteCount;
     uint64_t _localTareReadCount;
     uint64_t _burstBytesRead;     ///< Number of bytes written to the logical volume via burst buffer transfers
     uint64_t _burstBytesWritten;  ///< Number of bytes read from the logical volume via burst buffer transfers
-    
-    std::string _statpath;  
+
+    std::string _statpath;
 };
 
 static int getDevice(const char* mountpoint, dev_t& devinfo)
@@ -164,7 +168,7 @@ static int getDevice(const char* mountpoint, dev_t& devinfo)
     struct stat statbuf;
     int rc=stat(mountpoint,&statbuf);
     if(rc) return rc;
-    
+
     devinfo = statbuf.st_dev;
     return 0;
 }
@@ -173,10 +177,10 @@ int   proxy_regLV4Usage(const char* mountpoint)
 {
     int rc;
     dev_t dinfo;
-    
+
     rc = getDevice(mountpoint, dinfo);
     if (rc) return rc;
-    
+
     pthread_mutex_lock(&rwUsageLock);
     bbxfer_usage[dinfo].init(dinfo);
     pthread_mutex_unlock(&rwUsageLock);
@@ -184,20 +188,20 @@ int   proxy_regLV4Usage(const char* mountpoint)
 }
 
 int   proxy_deregLV4Usage(const char* mountpoint)
-{ 
+{
     int rc;
     dev_t dinfo;
-    
+
     rc = getDevice(mountpoint, dinfo);
     if (rc) return rc;
-    
+
     // remove monitor map entry
     pthread_mutex_lock(&monitorlock);
     monitorlist.erase(mountpoint);
     pthread_mutex_unlock(&monitorlock);
-    
+
     pthread_mutex_lock(&rwUsageLock);
-    bbxfer_usage.erase(dinfo); 
+    bbxfer_usage.erase(dinfo);
     pthread_mutex_unlock(&rwUsageLock);
   return 0;
 }
@@ -212,11 +216,11 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
 #endif
 
     memset(&usage, 0, sizeof(usage));
-    
+
     dev_t dinfo;
     rc = getDevice(mountpoint, dinfo);
     if(rc) return rc;
-    
+
     if (bbxfer_usage.find(dinfo) != bbxfer_usage.end() )
     {
 #if BBUSAGE_COUNT
@@ -227,17 +231,17 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
 #endif
         if(rc == 0)
             rc = bbxfer_usage[dinfo].getburstUsage(usage.burstBytesRead, usage.burstBytesWritten);
-        
+
         if(rc == 0)
         {
             usage.totalBytesRead    = usage.localBytesRead    + usage.burstBytesRead;
             usage.totalBytesWritten = usage.localBytesWritten + usage.burstBytesWritten;
-            FL_Write6(FLBBUsage,GetUsageLV, "LocalRead=%ld LocalWrite=%ld BurstRead=%lu BurstWrite=%lu dev=%lu",usage.localBytesRead,usage.localBytesWritten,usage.burstBytesRead,usage.burstBytesWritten,0,0);  
+            FL_Write6(FLBBUsage,GetUsageLV, "LocalRead=%ld LocalWrite=%ld BurstRead=%lu BurstWrite=%lu dev=%lu",usage.localBytesRead,usage.localBytesWritten,usage.burstBytesRead,usage.burstBytesWritten,0,0);
         }
     }
-    else 
+    else
     {
-        rc=ENOENT;  
+        rc=ENOENT;
         LOG(bb,error)<<"No usage entry for mountpoint="<<mountpoint;
     }
 #ifdef PROF_TIMING
@@ -251,7 +255,7 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
 
 int proxy_BumpBBUsage(dev_t pDev, uint64_t byteswritten, uint64_t bytesread)
 {
-    pthread_mutex_lock(&rwUsageLock); 
+    pthread_mutex_lock(&rwUsageLock);
     bbxfer_usage[pDev].bumpBurstUsage(byteswritten,bytesread);
     pthread_mutex_unlock(&rwUsageLock);
     return 0;
@@ -264,9 +268,9 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
 #ifdef PROF_TIMING
     chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
 #endif
-    
+
     map<string,string> field;
-    
+
     memset(&usage,0,sizeof(BBDeviceUsage_t) );
     string cmd = get_bb_nvmecliPath();
     string device = getNVMeByIndex(devicenum);
@@ -275,7 +279,7 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
     {
         if(line.find("Smart Log") != string::npos)
             continue;
-        
+
         auto tokens = buildTokens(line, ":");
 
         string name = tokens[0];
@@ -286,17 +290,17 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
         {
             val.erase(index,1);
         }
-        
+
         LOG(bb,always) << "name=" << name << ".   val=" << val << ".";
         field[name] = val;
     }
-    
+
     field["data_read"]    = to_string(stoull(field["data_units_read"])*512000);
     field["data_written"] = to_string(stoull(field["data_units_written"])*512000);
     field["num_read_commands"] = field["host_read_commands"];
     field["num_write_commands"] = field["host_write_commands"];
     field["busy_time"] = field["controller_busy_time"];
-    
+
 #define copyi(name) usage.name = stoull(field[#name]);
 #define copyd(name) usage.name = stod(field[#name]);
     copyi(critical_warning);
@@ -313,7 +317,7 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
     copyi(unsafe_shutdowns);
     copyi(media_errors);
     copyi(num_err_log_entries);
-    
+
     FL_Write6(FLBBUsage,GetDeviceUsage, "temperature=%ld percentage_used==%ld data_read=%ld  data_written==%ld num_read_commands=%ld num_write_commands=%ld ",usage.temperature,usage.percentage_used,usage.data_read,usage.data_written,usage.num_read_commands,usage.num_write_commands);
 
     LOG(bb,info) << "usage.temperature="<< usage.temperature<<" available_spare="<<usage.available_spare << " percentage_used="<<usage.percentage_used<<" critical_warning="<<usage.critical_warning<< " data_read="<< usage.data_read<< " data_written="<< usage.data_written<< " num_read_commands="<< usage.num_read_commands<< " num_write_commands="<< usage.num_write_commands;
@@ -414,7 +418,7 @@ void* mountMonitorThread(void* ptr)
        LOG(bb,error) << "mountMonitorThread:  initial getrusage() failed.  Exiting";
        return NULL;
    }
-   
+
    LOG(bb,always) <<"MEM: "<< __PRETTY_FUNCTION__<<" base memory usage="<< l_rusage_base;
    l_rusage[rusage_index] = l_rusage_base;
    FL_Write6(FLMem,GetRuInit, " maximum resident set size=%ld(kB) hard page faults=%ld block input op=%ld lblock output op=%ld vol context switches=%ld invol context switches=%ld ",l_rusage[rusage_index].ru_maxrss,l_rusage[rusage_index].ru_majflt,l_rusage[rusage_index].ru_inblock,l_rusage[rusage_index].ru_oublock,l_rusage[rusage_index].ru_nvcsw,l_rusage[rusage_index].ru_nivcsw);
@@ -576,3 +580,66 @@ void* diskstatsMonitorThread(void* ptr)
     }
     return NULL;
 }
+
+#if BBSERVER
+#define SLEEP 60
+void* asyncRemoveJobInfo(void* ptr)
+{
+    uint64_t l_Time;
+    BB_GetTime(l_Time);
+
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
+
+    while(1)
+    {
+        try
+        {
+            if (g_AsyncRemoveJobInfoInterval)
+            {
+                uint64_t l_NewTime = l_Time;
+                BB_GetTimeDifference(l_NewTime);
+                double l_ElapsedTime = (double)l_NewTime/(double)g_TimeBaseScale;
+                if (l_ElapsedTime >= g_AsyncRemoveJobInfoInterval)
+                {
+                    int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds);
+                    if (!rc)
+                    {
+                        bool l_AllDone = false;
+                        while (!l_AllDone)
+                        {
+                            l_AllDone = true;
+                            for (size_t i=0; i<l_PathJobIds.size(); i++)
+                            {
+                                size_t l_Index = l_PathJobIds[i].rfind('/');
+                                if (l_Index != string::npos && l_Index < (l_PathJobIds[i].length()-1))
+                                {
+                                    if (l_PathJobIds[i][l_Index+1] == '.')
+                                    {
+                                        bfs::path job = bfs::path(l_PathJobIds[i]);
+                                        if (bfs::exists(job))
+                                        {
+                                            bfs::remove_all(job);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    BB_GetTime(l_Time);
+                }
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+        }
+
+        sleep(SLEEP);
+    }
+
+    return NULL;
+}
+#undef SLEEP
+#endif
+

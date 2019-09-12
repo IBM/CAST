@@ -300,6 +300,10 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED
         {
             LOG(bb,error) << "BBLV_Info::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
         }
+        // NOTE: The local metadata lock is always released/re-acquired in stageoutEnd() processing.
+        //       This is because the work queue manager lock has to be acquired when the work queue
+        //       is removed/deleted, which requires the local metadata lock to be temporarily released.
+        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
     }
     else
     {
@@ -439,8 +443,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     bool l_UpdateTransferStatus = false;
-    bool l_LocalMetadataLocked = false;
-    bool l_LocalMetadataUnlocked = false;
+    int l_LocalMetadataLocked = 0;
+    int l_LocalMetadataUnlocked = 0;
 
 //    pExtentInfo.verify();
 
@@ -493,7 +497,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                 if (l_LocalMetadataUnlocked)
                 {
-                    l_LocalMetadataUnlocked = false;
+                    l_LocalMetadataUnlocked = 0;
                     lockLocalMetadata(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
                 }
                 lockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
@@ -558,7 +562,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                     if (l_LocalMetadataUnlocked)
                     {
-                        l_LocalMetadataUnlocked = false;
+                        l_LocalMetadataUnlocked = 0;
                         lockLocalMetadata(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
                     }
                 }
@@ -704,9 +708,10 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
 
     // Calculate the total processing time for this transfer definition
     pTransferDef->calcProcessingTime(pTransferDef->processingTime);
+    size_t l_TotalSizeTransferred = pTransferDef->calcTotalSizeTransferred();
 
     LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ", " \
-                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr \
+                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr  << ", total size transferred " << l_TotalSizeTransferred \
                  << ", total processing time " << (double)pTransferDef->processingTime/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
@@ -717,6 +722,7 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     l_Complete->addAttribute(txp::contribid, pContribId);
     l_Complete->addAttribute(txp::status, (int64_t)l_Status);
     l_Complete->addAttribute(txp::totalProcessingTime, pTransferDef->processingTime);
+    l_Complete->addAttribute(txp::totalTransferSize, (uint64_t)l_TotalSizeTransferred);
 
     //    std::string pConnectionName=getConnectionName(pConnection); // $$$mea
     try{

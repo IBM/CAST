@@ -1475,12 +1475,18 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
 {
     int rc = 0;
     stringstream errorText;
+    int l_NumberOfLVUuidFiles=0, l_NumberOfContribFiles=0, l_NumberOfContribids=0;
+
+    uint64_t l_Time;
+    BB_GetTime(l_Time);
+
     HANDLEFILE_SCAN_OPTION l_ScanOption = pScanOption;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
               l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
 
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
 
     HandleFile* l_HandleFile = 0;
@@ -1542,13 +1548,16 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
                 if(!bfs::is_directory(lvuuid)) continue;
+                ++l_NumberOfLVUuidFiles;
                 bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
                 ContribFile* l_ContribFile = 0;
                 rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
                 if (!rc)
                 {
+                    ++l_NumberOfContribFiles;
                     for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                     {
+                        ++l_NumberOfContribids;
                         if ((ce->second.flags & BBTD_All_Extents_Transferred) == 0)
                         {
                             // Not all extents have been transferred yet...
@@ -1799,7 +1808,25 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
 
     if (l_LocalMetadataLocked)
     {
+        l_LocalMetadataLocked = 0;
         unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleStatus");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "HandleFile::update_xbbServerHandleStatus");
+    }
+
+    BB_GetTimeDifference(l_Time);
+    double l_ElapsedTime = (double)l_Time/(double)g_TimeBaseScale;
+    if (l_ElapsedTime >= g_LogUpdateHandleStatusElapsedTimeClipValue)
+    {
+        FL_Write6(FLMetaData, HF_UpdateStatusTime, "update handle status, counter=%ld, #lvuuids=%ld, #contribs=%ld, #contribids=%ld, elapsed time=%ld, rc=%ld",
+                  l_FL_Counter, (uint64_t)l_NumberOfLVUuidFiles, (uint64_t)l_NumberOfContribFiles, (uint64_t)l_NumberOfContribids, (uint64_t)l_Time, rc);
+        LOG(bb,info) << "update_xbbServerHandleStatus: Handle file name " << l_HandleFileName \
+                     << ", #LVUuidFiles " << l_NumberOfLVUuidFiles << ", #ContribFiles " << l_NumberOfContribFiles \
+                     << ", #Contribids " << l_NumberOfContribids << ", elapsed time " << l_ElapsedTime << " seconds, rc " << rc;
     }
 
     if (l_HandleFileName)
@@ -1832,6 +1859,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
 
     // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
@@ -1962,7 +1990,14 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
 
     if (l_LocalMetadataLocked)
     {
+        l_LocalMetadataLocked = 0;
         unlockLocalMetadata(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "HandleFile::update_xbbServerHandleTransferKeys");
     }
 
     if (l_HandleFileName)

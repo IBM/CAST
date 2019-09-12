@@ -135,7 +135,19 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
 
         if(bfs::exists(job))
         {
-            bfs::remove_all(job);
+            if (!g_AsyncRemoveJobInfo)
+            {
+                unlockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
+                bfs::remove_all(job);
+                lockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
+            }
+            else
+            {
+                bfs::path hidejob(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                string hidejobname = "." + to_string(pJobId);
+                hidejob /= bfs::path(hidejobname);
+                bfs::rename(job, hidejob);
+            }
             LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
         }
         else
@@ -148,8 +160,8 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
     catch(ExceptionBailout& e) { }
     catch(exception& e)
     {
-        // NOTE: There is a window between checking for the job above and subsequently removing
-        //       the job.  This is the most likely exception...  Return -2...
+        // NOTE: There is a window between checking for the job above and subsequently renaming/removing
+        //       the job directory.  This is the most likely exception...  Return -2...
         //       Also, if a script sends a RemoveJobInfo command to each CN, it is a big race condition
         //       as to which bbServer actually removes the job from the cross bbServer metadata and
         //       which servers 'may' take an exception trying to concurrently remove the data.
@@ -490,6 +502,10 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
                 {
                     it = metaDataMap.erase(it);
                 }
+
+                // NOTE: Reset CurrentWrkQE for the next iteration...
+                CurrentWrkQE = NULL;
+
                 l_Restart = true;
                 break;
             }
@@ -550,23 +566,13 @@ void BBLV_Metadata::dump(char* pSev, const char* pPrefix)
 void BBLV_Metadata::ensureStageOutEnded(const LVKey* pLVKey) {
 
     // Ensure stage-out ended for the given LVKey
-    bool l_AllDone = false;
     LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-
-    while (!l_AllDone)
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
-        for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+        if ((it->first) == *pLVKey)
         {
-            l_AllDone = true;
-            if ((it->first) == *pLVKey)
-            {
-                (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
-                if (l_LockWasReleased)
-                {
-                    l_AllDone = false;
-                }
-                break;
-            }
+            (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
+            break;
         }
     }
 
@@ -800,6 +806,7 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     BBLV_Info* l_BBLV_Info = 0;
 
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
 
     for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
@@ -812,6 +819,11 @@ BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLV_Info");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue(pLVKey, "BBLV_Metadata::getLV_Info");
     }
 
     return l_BBLV_Info;
@@ -1063,6 +1075,10 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
         for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
             it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, l_LockWasReleased, pRemoveOption);
+
+            // NOTE: Reset CurrentWrkQE for the next iteration...
+            CurrentWrkQE = NULL;
+
             if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
             {
                 l_Restart = true;
@@ -1277,6 +1293,9 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                         break;
                     }
                 }
+
+                // NOTE: Reset CurrentWrkQE for the next iteration...
+                CurrentWrkQE = NULL;
 
                 if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
                 {

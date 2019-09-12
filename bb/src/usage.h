@@ -24,6 +24,9 @@ extern int   startMonitoringMount(const char* mountpoint, BBUsage_t limits);
 extern int   stopMonitoringMount(const char* mountpoint);
 extern void* mountMonitorThread(void* ptr);
 extern void* diskstatsMonitorThread(void* ptr);
+#if BBSERVER
+extern void* asyncRemoveJobInfo(void* ptr);
+#endif
 
 extern int   proxy_regLV4Usage(const char* mountpoint);
 extern int   proxy_deregLV4Usage(const char* mountpoint);

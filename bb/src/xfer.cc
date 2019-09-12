@@ -1631,6 +1631,7 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     // It is possible to entry this section of code without the transfer queue locked.
     // If not locked, we lock the transfer queue during the prepareForRestart() logic.
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, l_Text.str().c_str());
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, l_Text.str().c_str());
 
     if (pPass == FIRST_PASS)
@@ -1698,7 +1699,14 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, l_Text.str().c_str());
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, l_Text.str().c_str());
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1985,6 +1993,12 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
         catch(ExceptionBailout& e) { }
         catch(exception& e)
         {
+            // NOTE: Depending upon where we took the exception, the transfer queue and/or local metadata could
+            //       have been locked by removeFromInFlight() processing.  "Cleanup' those locks up now, leaving
+            //       the lock on the transfer queue intact.
+            unlockTransferQueueIfNeeded(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
+            unlockLocalMetadataIfNeeded(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
+            lockTransferQueue(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
             LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the inflight queue";
             LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_4);
         }
@@ -2249,8 +2263,8 @@ void* transferWorker(void* ptr)
                     {
                         // A work queue with no entries was returned.  Log the situation, tolerate,
                         // fall through, attempt to find more work.
-                        errorText << "Empty work queue returned when attempting to find additional work";
-                        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_3);
+                        // NOTE: This is possible because cancelExtents() can remove items from a work
+                        //       queue and not have the work queue manager lock.
                     }
                 }
                 else
@@ -2439,11 +2453,9 @@ void* transferWorker(void* ptr)
                 wrkqmgr.post();
             }
 
-            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) &&
-                ((!l_WrkQE->isSuspended()) || (l_LV_Info && l_LV_Info->hasCanceledExtents())))
+            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) && (!l_WrkQE->isSuspended()))
             {
-                // NOTE: At least one workqueue entry exists on one non-suspended workqueue, so repost to the semaphore
-                //       any delayed reposts...
+                // NOTE: Suspended reposts exist for this non-suspended workqueue.  Repost those now...
                 wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
 
                 wrkqmgr.post_multiple((size_t)l_WrkQE->getSuspendedReposts());
@@ -3092,7 +3104,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
     int l_LocalMetadataWasLocked = 0;
-    int l_TransferQueueWasLocked = 0;
+    int l_TransferQueueWasUnlocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -3149,6 +3161,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                 {
                     // It is possible to enter this section of code without the local metadata locked.
                     // We lock around the merging of the flags.
+                    unlockTransferQueue(pLVKey, "queueTransfer");
+                    l_TransferQueueWasUnlocked = 1;
                     l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "queueTransfer");
 
                     // Merge in the flags from the transfer definition to the extent info...
@@ -3162,6 +3176,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             l_LocalMetadataWasLocked = 0;
                             unlockLocalMetadata(pLVKey, "queueTransfer");
                         }
+                        l_TransferQueueWasUnlocked = 0;
+                        lockTransferQueue(pLVKey, "queueTransfer");
 
                         l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
                         if (l_TransferDef)
@@ -3171,12 +3187,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             //       It is that transfer definition that has addressability to the BBIO objects.
                             //       Therefore, it is that transfer definition that is used when constructing the
                             //       ExtentInfo() objects.
-                            // NOTE: In the normal case, addExtents() locks the transfer queue and returns with it locked.
-                            //       If no extents are added, the transfer queue lock will NOT be held on return.
-                            //       Therefore, all unlocks of the transfer queue in this method uses 'IfNeeded'.
                             size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
                             rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
-                            l_TransferQueueWasLocked = 1;
 
                             if (!rc)
                             {
@@ -3276,9 +3288,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 LOG_ERROR(errorText);
                             }
 
-                            l_TransferQueueWasLocked = 0;
-                            unlockTransferQueueIfNeeded(pLVKey, "queue transfer");
-
                             if (!rc)
                             {
                                 // Indicate in the transfer definition/ContribId file that the extents are now enqueued
@@ -3320,9 +3329,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
             if (l_TransferDef)
             {
                 // Post each new extent...
-                lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
                 wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
-                unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
             }
             else
             {
@@ -3334,15 +3341,15 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
         }
     }
 
-    if (l_TransferQueueWasLocked)
-    {
-        l_TransferQueueWasLocked = 0;
-        unlockTransferQueueIfNeeded(pLVKey, "queueTransfer_Exit");
-    }
     if (l_LocalMetadataWasLocked)
     {
         l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, "queueTransfer_Exit");
+    }
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, "queueTransfer_Exit");
     }
 
     FL_Write(FLXfer, DoQueueTransferCMP, "Finishing queueTransfer  rc=%ld",rc,0,0,0);
@@ -3841,16 +3848,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
                 }
 
-                // NOTE: The work queue manager lock is now obtained before we remove
-                //       the work queue and remove all related transfer definitions.
-                //       This is done to hold out any more work being handed out by
-                //       findWork().
-                l_TransferQueueLocked = 0;
-                unlockTransferQueue(&l_LVKey, "stageoutEnd - Before removing work queue");
-                wrkqmgr.lockWorkQueueMgr(&l_LVKey, "stageoutEnd - Before removing work queue", &l_LocalMetadataUnlocked);
-                l_WorkQueueMgrLocked = 1;
-                lockTransferQueue(&l_LVKey, "stageoutEnd - Before removing work queue");
-                l_TransferQueueLocked = 1;
+                // Perform cleanup for the LVKey value
+                // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
+                //       associated with this LVKey.
+                l_LV_Info->cleanUpAll(&l_LVKey);
 
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
@@ -3863,11 +3864,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,warning) << "stageoutEnd: Failure occurred when attempting to remove the work queue for " << l_LVKey;
                     rc = 0;
                 }
-
-                // Perform cleanup for the LVKey value
-                // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
-                //       associated with this LVKey.
-                l_LV_Info->cleanUpAll(&l_LVKey);
 
                 // NOTE:  Not sure of the original intent of pForced, but this method is always
                 //        invoked with pForced = FORCED (1)
@@ -3883,9 +3879,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
-
-                l_WorkQueueMgrLocked = 0;
-                wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - After cleanUpAll()", &l_LocalMetadataUnlocked);
 
                 l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
                 LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();

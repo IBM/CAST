@@ -76,11 +76,18 @@ WRKQE* HPWrkQE;
 // Metadata counter for flight logging
 AtomicCounter metadataCounter;
 
+// Log update handle status elapsed time clip value
+double g_LogUpdateHandleStatusElapsedTimeClipValue = DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE;
+
 // Abort on critical error indicator
 bool g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
 
 // Log all Async Request Activity Indicator
 bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
+
+// Async RemoveJobInfo
+bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
+double g_AsyncRemoveJobInfoInterval = DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE;
 
 
 //*****************************************************************************
@@ -1665,7 +1672,8 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
     BBTransferDef l_Transfer;
     BBTransferDef* l_TransferPtr = &l_Transfer;
     BBTransferDef* l_OrgTransferPtr = l_TransferPtr;
-    bool l_LockHeld = false;
+    int l_LocalMetadataLocked = 0;
+    int l_TransferQueueLocked = 0;
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;;
 
     try
@@ -1747,7 +1755,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         switchIds(msg);
 
         lockLocalMetadata(&l_LVKey, "msgin_starttransfer");
-        l_LockHeld = true;
+        l_LocalMetadataLocked = 1;
         bool l_AllDone = false;
         {
             if (l_PerformOperation)
@@ -1853,8 +1861,13 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                 // where dropping the lock now is very beneficial.  Any later non-thread-safe code paths
                                 // will re-acquire/drop the lock on the local metadata.  Examples of this are insertion
                                 // into the BBTagParts map and adding extents to the work queue.
-                                l_LockHeld = false;
+                                // NOTE: But, we have to hold some lock so that the transfer definition cannot be deleted
+                                //       by some removelogicalvolume/removejobinfo operation.  So, we do acqure the transfer
+                                //       queue lock here to prevent the deletion.
+                                l_LocalMetadataLocked = 0;
                                 unlockLocalMetadata(&l_LVKey, "msgin_starttransfer_early");
+                                lockTransferQueue(&l_LVKey, "msgin_starttransfer_early");
+                                l_TransferQueueLocked = 1;
 
                                 Uuid l_lvuuid2 = l_LVKey2.second;
                                 l_lvuuid2.copyTo(lv_uuid2_str);
@@ -2515,9 +2528,15 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         l_HandleFile = 0;
     }
 
-    if (l_LockHeld)
+    if (l_TransferQueueLocked)
     {
-        l_LockHeld = false;
+        l_TransferQueueLocked = 0;
+        unlockTransferQueue(&l_LVKey, "msgin_starttransfer");
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
         unlockLocalMetadata(&l_LVKey, "msgin_starttransfer");
     }
 
@@ -2968,6 +2987,13 @@ int bb_main(std::string who)
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
         g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
+        g_LogUpdateHandleStatusElapsedTimeClipValue = config.get(process_whoami+".bringup.logUpdateHandleStatusElapsedTimeClipValue", DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE);
+        g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
+        g_AsyncRemoveJobInfoInterval = 0;
+        if (g_AsyncRemoveJobInfo)
+        {
+            g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
+        }
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
@@ -2993,6 +3019,10 @@ int bb_main(std::string who)
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_create(&tid, &attr, mountMonitorThread, NULL);
         pthread_create(&tid, &attr, diskstatsMonitorThread, NULL);
+        if (g_AsyncRemoveJobInfo)
+        {
+            pthread_create(&tid, &attr, asyncRemoveJobInfo, NULL);
+        }
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);

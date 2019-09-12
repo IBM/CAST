@@ -24,6 +24,15 @@
 #include "xfer.h"
 
 
+void WRKQE::addToAccumulatedTime()
+{
+    BB_GetTimeDifference(currentStartTime);
+    accumulatedTime += currentStartTime;
+    currentStartTime = 0;
+
+    return;
+}
+
 void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 {
     wrkq->push(pWorkItem);
@@ -45,6 +54,12 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     incrementNumberOfWorkItems();
 
+    // If the first item in the queue, capture the current clock
+    if (getWrkQ_Size() == 1)
+    {
+        BB_GetTime(currentStartTime);
+    }
+
     if (g_LogAllAsyncRequestActivity && this == HPWrkQE)
     {
         LOG(bb,info) << "AsyncRequest -> incrementNumberOfHP_WorkItems: numberOfWorkItems " << HPWrkQE->getNumberOfWorkItems();
@@ -52,6 +67,18 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     return;
 };
+
+double WRKQE::calcTotalAccumulatedTime()
+{
+    uint64_t l_NumberOfSeconds = (currentStartTime ? currentStartTime : 0);
+    if (l_NumberOfSeconds)
+    {
+        BB_GetTimeDifference(l_NumberOfSeconds);
+    }
+    l_NumberOfSeconds += accumulatedTime;
+
+    return (double)l_NumberOfSeconds/(double)g_TimeBaseScale;
+}
 
 void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd)
 {
@@ -172,6 +199,11 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
             {
                 l_Output2 = ", #InFlt " + to_string(l_NumberOfInFlightExtents);
             }
+
+            double l_TotalTime = calcTotalAccumulatedTime();
+            char l_Temp[64] = {'\0'};
+            snprintf(l_Temp, sizeof(l_Temp), "%.3f", l_TotalTime);
+            l_Output2 = l_Output2 + ", Time " + string(l_Temp);
 
             if (!strcmp(pSev,"debug"))
             {
@@ -427,6 +459,12 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     pWorkItem = wrkq->front();
     wrkq->pop();
+
+    // If the queue is now empty, add to the accumulated time
+    if (!getWrkQ_Size())
+    {
+        addToAccumulatedTime();
+    }
 
     return;
 };

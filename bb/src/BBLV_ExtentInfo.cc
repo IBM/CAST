@@ -172,10 +172,6 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
                 if (config.get(process_whoami+".bringup.dumpExtentsBeforeAddingToAllExtents", 0)) {
                     pTransferDef->dumpExtents("info", "New vector of extents before being added to allExtents");
                 }
-
-                // NOTE: The unlock is owned by our invoker...
-                lockTransferQueue(pLVKey, "addExtents");
-
                 for(std::vector<Extent>::size_type i = 0; i < pTransferDef->extents.size(); ++i)
                 {
                     allExtents.push_back(ExtentInfo(pHandle, pContribId, &(pTransferDef->extents[i]), pTagInfo, pTransferDef));
