@@ -286,6 +286,10 @@ def getErrorsForServer(pData, pServer):
 
     return pData[pServer]["Errors"]
 
+def getWarningsForServer(pData, pServer):
+
+    return pData[pServer]["Warnings"]
+
 def getWrkQTimeStampsForServer(pData, pServer):
     l_TimeStamps = pData[pServer]["WorkQueueMgr"].keys()
     l_TimeStamps.sort()

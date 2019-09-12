@@ -216,6 +216,13 @@ def Error(pCtx, pData, *pArgs):
 
     return
 
+def Warning(pCtx, pData, *pArgs):
+    pServerName, pLogDate, pLogTime, pErrorData = pArgs[0]
+    l_ErrorEntry = pData["Warnings"]
+    l_ErrorEntry[pLogTime] = pErrorData
+
+    return
+
 Handle = None
 Connection = None
 ConnectionIP = None
@@ -251,6 +258,10 @@ SEARCHES = (
      (0, 0, 0, 0, 0),
      (str, str, str,),
      Error),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::warning\s+\|\s+(.*)"),
+     (0, 0, 0, 0, 0),
+     (str, str, str,),
+     Warning),
     (re.compile("(.*>>>>>\s+Start:\s+WRKQMGR\s+Work\s+Queue\s+Mgr\s+\(Not\s+an\s+error\s+-\s+Timer\s+Interval\)\s+<<<<<)"),
      (0, 0, 0, 0, 0),
      (str,),
@@ -364,7 +375,7 @@ def processLine(pCtx, pServerName, pData, pLine):
         l_Success = WORK_QUEUE_MGR_DATA.search(pLine)
         if l_Success:
             # WorkQueueMgr dump in progress...  Treat as 'StartDumpWorkQueueMgr'
-            l_Search = SEARCHES[5]
+            l_Search = SEARCHES[6]
             l_DoProcessLine = True
             l_ArgsIsEntireLine = True
 
@@ -455,6 +466,7 @@ def walkPaths(pCtx, pPath):
                     if l_SubDir != pCtx["OUTPUT_DIRECTORY_NAME"]:
                         l_Data[l_SubDir] = {}
                         l_Data[l_SubDir]["Errors"] = {}
+                        l_Data[l_SubDir]["Warnings"] = {}
                         l_Data[l_SubDir]["Handles"] = {}
                         l_Data[l_SubDir]["WorkQueueMgr"] = {}
             else:

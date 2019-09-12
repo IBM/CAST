@@ -44,9 +44,27 @@ def main(*pArgs):
         for l_TimeStamp in l_TimeStamps:
             l_Output.append("%s:  %s%s" % (l_TimeStamp, l_Errors[l_TimeStamp], os.linesep))
         l_Output.append(os.linesep)
+    print
 
     # Output the results
     l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Errors.txt")
+    cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
+    print "Results written to %s" % l_PathFileName
+
+    l_Output = []
+    # Perform the reduction
+    l_Servers = cmn.getServers(l_Data)
+    for l_Server in l_Servers:
+        l_Output.append("Warnings for Server %s%s" % (l_Server, os.linesep))
+        l_Warnings = cmn.getWarningsForServer(l_Data, l_Server)
+        l_TimeStamps = l_Warnings.keys()
+        l_TimeStamps.sort()
+        for l_TimeStamp in l_TimeStamps:
+            l_Output.append("%s:  %s%s" % (l_TimeStamp, l_Warnings[l_TimeStamp], os.linesep))
+        l_Output.append(os.linesep)
+
+    # Output the results
+    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Warnings.txt")
     cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
     print "Results written to %s" % l_PathFileName
 
