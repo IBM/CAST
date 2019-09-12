@@ -1824,9 +1824,9 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     {
         FL_Write6(FLMetaData, HF_UpdateStatusTime, "update handle status, counter=%ld, #lvuuids=%ld, #contribs=%ld, #contribids=%ld, elapsed time=%ld, rc=%ld",
                   l_FL_Counter, (uint64_t)l_NumberOfLVUuidFiles, (uint64_t)l_NumberOfContribFiles, (uint64_t)l_NumberOfContribids, (uint64_t)l_Time, rc);
-        LOG(bb,info) << "update_xbbServerHandleStatus: Handle file name " << l_HandleFileName \
-                     << ", #LVUuidFiles " << l_NumberOfLVUuidFiles << ", #ContribFiles " << l_NumberOfContribFiles \
-                     << ", #Contribids " << l_NumberOfContribids << ", elapsed time " << l_ElapsedTime << " seconds, rc " << rc;
+        LOG(bb,warning) << "update_xbbServerHandleStatus: Handle file name " << l_HandleFileName \
+                        << ", #LVUuidFiles " << l_NumberOfLVUuidFiles << ", #ContribFiles " << l_NumberOfContribFiles \
+                        << ", #Contribids " << l_NumberOfContribids << ", elapsed time " << l_ElapsedTime << " seconds, rc " << rc;
     }
 
     if (l_HandleFileName)
