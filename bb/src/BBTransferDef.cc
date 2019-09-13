@@ -93,6 +93,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
             try
             {
                 if (!bfs::is_directory(l_JobId)) continue;
+                if (l_JobId.path().filename().string().at(0) == '.') continue;
                 if ((pTransferDefs.jobid == UNDEFINED_JOBID) || (l_JobId.path().filename().string() == to_string(pTransferDefs.jobid)))
                 {
                     // Iterate through the jobsteps...
