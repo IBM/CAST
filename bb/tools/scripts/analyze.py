@@ -114,8 +114,11 @@ def main(*pArgs):
                     # JobId matches...
                     l_NumberOfHandles = l_NumberOfHandles + 1
                     l_NumberOfHandlesForAllServers = l_NumberOfHandlesForAllServers + 1
-                    if l_Data[l_Server]["Handles"][l_Handle]["Status"] != "BBFULLSUCCESS":
-                        l_NotSuccessfulHandles.append((l_Handle, l_Data[l_Server]["Handles"][l_Handle]["Status"]))
+                    if "Status" in l_Data[l_Server]["Handles"][l_Handle]:
+                        if l_Data[l_Server]["Handles"][l_Handle]["Status"] != "BBFULLSUCCESS":
+                            l_NotSuccessfulHandles.append((l_Handle, l_Data[l_Server]["Handles"][l_Handle]["Status"]))
+                    else:
+                        l_NotSuccessfulHandles.append((l_Handle, "NOT_COMPLETED"))
                     l_NumberOfConnections = l_Output[l_JobId][l_Server]["handles"]["NumberOfConnections"]
                     l_SizeTransferred = l_Output[l_JobId][l_Server]["handles"]["SizeTransferred"]
 
@@ -130,6 +133,7 @@ def main(*pArgs):
                             l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["processingTimes (File Min/Max)"] = [None,None]
                             l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"] = [None,None]
                             l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"] = [None,None]
+                            l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["syncTimes (File Min/Max)"] = [None,None]
 
                         # For each LVUuid...
                         l_LVUuids = l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"]
@@ -142,59 +146,80 @@ def main(*pArgs):
                             l_NotSuccessfulContribIds = []
                             for l_ContribId in l_ContribIds:
                                 l_NumberOfContribIds = l_NumberOfContribIds + 1
-                                if l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Status"] != "BBFULLSUCCESS":
-                                    l_NotSuccessfulContribIds.append((l_ContribId, l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Status"]))
+                                if "Status" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]:
+                                    if l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Status"] != "BBFULLSUCCESS":
+                                        l_NotSuccessfulContribIds.append((l_ContribId, l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Status"]))
+                                else:
+                                    l_NotSuccessfulContribIds.append((l_ContribId,"NOT_COMPLETED"))
                                 if "SizeTransferred" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]:
                                     l_SizeTransferred += l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["SizeTransferred"]
-                                l_ProcessingTime = (l_ContribId, l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["ProcessingTime"])
-                                if l_ProcessingTimes == [None,None]:
-                                    l_ProcessingTimes = [l_ProcessingTime,l_ProcessingTime]
-                                else:
-                                    if (l_ProcessingTime[1] < l_ProcessingTimes[0][1]):
-                                        l_ProcessingTimes[0] = l_ProcessingTime
-                                    if (l_ProcessingTime[1] > l_ProcessingTimes[1][1]):
-                                        l_ProcessingTimes[1] = l_ProcessingTime
+                                if "ProcessingTime" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]:
+                                    l_ProcessingTime = (l_ContribId, l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["ProcessingTime"])
+                                    if l_ProcessingTimes == [None,None]:
+                                        l_ProcessingTimes = [l_ProcessingTime,l_ProcessingTime]
+                                    else:
+                                        if (l_ProcessingTime[1] < l_ProcessingTimes[0][1]):
+                                            l_ProcessingTimes[0] = l_ProcessingTime
+                                        if (l_ProcessingTime[1] > l_ProcessingTimes[1][1]):
+                                            l_ProcessingTimes[1] = l_ProcessingTime
 
-                                if l_HandleProcessingTimes == [None,None]:
-                                    l_HandleProcessingTimes = l_ProcessingTimes
-                                else:
-                                    if (l_ProcessingTimes[0][1] < l_HandleProcessingTimes[0][1]):
-                                        l_HandleProcessingTimes[0] = l_ProcessingTimes[0]
-                                    if (l_ProcessingTimes[1][1] > l_HandleProcessingTimes[1][1]):
-                                        l_HandleProcessingTimes[1] = l_ProcessingTimes[1]
+                                    if l_HandleProcessingTimes == [None,None]:
+                                        l_HandleProcessingTimes = l_ProcessingTimes
+                                    else:
+                                        if (l_ProcessingTimes[0][1] < l_HandleProcessingTimes[0][1]):
+                                            l_HandleProcessingTimes[0] = l_ProcessingTimes[0]
+                                        if (l_ProcessingTimes[1][1] > l_HandleProcessingTimes[1][1]):
+                                            l_HandleProcessingTimes[1] = l_ProcessingTimes[1]
 
                                 l_ReadTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"]
                                 l_WriteTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"]
+                                l_SyncTimes = l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["syncTimes (File Min/Max)"]
+
+                                l_TransferType = set()
                                 if "Files" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]:
                                     l_Files = l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"]
 
                                     # For each file...
-                                    l_TransferType = set()
                                     for l_File in l_Files:
-                                        l_ReadTime = (l_ContribId, l_File,
-                                                      (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["ReadCount"],
-                                                       l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["ReadTime"]))
-                                        if l_ReadTimes == [None,None]:
-                                             l_ReadTimes = [l_ReadTime,l_ReadTime]
-                                        else:
-                                            if (l_ReadTime[2][1] < l_ReadTimes[0][2][1]):
-                                                l_ReadTimes[0] = l_ReadTime
-                                            if (l_ReadTime[2][1] > l_ReadTimes[1][2][1]):
-                                                l_ReadTimes[1] = l_ReadTime
-                                        l_WriteTime = (l_ContribId, l_File,
-                                                       (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["WriteCount"],
-                                                        l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["WriteTime"]))
-                                        if l_WriteTimes == [None,None]:
-                                             l_WriteTimes = [l_WriteTime,l_WriteTime]
-                                        else:
-                                            if (l_WriteTime[2][1] < l_WriteTimes[0][2][1]):
-                                                l_WriteTimes[0] = l_WriteTime
-                                            if (l_WriteTime[2][1] > l_WriteTimes[1][2][1]):
-                                                l_WriteTimes[1] = l_WriteTime
-                                        l_TransferType.add(l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["TransferType"])
+                                        if "ReadCount" in l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]:
+                                            l_ReadTime = (l_ContribId, l_File,
+                                                          (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["ReadCount"],
+                                                           l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["ReadTime"]))
+                                            if l_ReadTimes == [None,None]:
+                                                l_ReadTimes = [l_ReadTime,l_ReadTime]
+                                            else:
+                                                if (l_ReadTime[2][1] < l_ReadTimes[0][2][1]):
+                                                    l_ReadTimes[0] = l_ReadTime
+                                                if (l_ReadTime[2][1] > l_ReadTimes[1][2][1]):
+                                                    l_ReadTimes[1] = l_ReadTime
+                                            l_WriteTime = (l_ContribId, l_File,
+                                                           (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["WriteCount"],
+                                                            l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["WriteTime"]))
+                                            if l_WriteTimes == [None,None]:
+                                                l_WriteTimes = [l_WriteTime,l_WriteTime]
+                                            else:
+                                                if (l_WriteTime[2][1] < l_WriteTimes[0][2][1]):
+                                                    l_WriteTimes[0] = l_WriteTime
+                                                if (l_WriteTime[2][1] > l_WriteTimes[1][2][1]):
+                                                    l_WriteTimes[1] = l_WriteTime
+                                            l_TransferType.add(l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["TransferType"])
+
+                                            # NOTE:  The output will associate the sync count/time with the source file, when in fact that data is for the corresponding target files.
+                                            if l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["SyncCount"] != None:
+                                                l_SyncTime = (l_ContribId, l_File,
+                                                              (l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["SyncCount"],
+                                                               l_Data[l_Server]["Handles"][l_Handle]["Connections"][l_Connection]["LVUuids"][l_LVUuid]["ContribIds"][l_ContribId]["Files"][l_File]["SyncTime"]))
+                                                if l_SyncTimes == [None, None]:
+                                                    l_SyncTimes = [l_SyncTime, l_SyncTime]
+                                                else:
+                                                    if (l_SyncTime[2][1] < l_SyncTimes[0][2][1]):
+                                                        l_SyncTimes[0] = l_SyncTime
+                                                    if (l_SyncTime[2][1] > l_SyncTimes[1][2][1]):
+                                                        l_SyncTimes[1] = l_SyncTime
                                 # End of files...
                                 l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["readTimes (File Min/Max)"] = l_ReadTimes
                                 l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["writeTimes (File Min/Max)"] = l_WriteTimes
+                                l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["syncTimes (File Min/Max)"] = l_SyncTimes
                                 l_Output[l_JobId][l_Server]["handles"]["connections"][l_Connection]["contribIds"]["transferTypes"] = l_TransferType
                             # End of contribids...
                             if l_NotSuccessfulContribIds:
