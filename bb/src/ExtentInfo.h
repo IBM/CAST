@@ -77,6 +77,10 @@ class ExtentInfo
         return taginfo;
     }
 
+    inline uint32_t getTargetIndex() {
+        return extent->getTargetIndex();
+    }
+
     inline BBTransferDef* getTransferDef() {
         return transferDef;
     }

@@ -264,11 +264,12 @@ ATTRIBUTE_NAMES =  ('arg',
                    )
 
 # NOTE:  All new attributes to be added must be added to end of this dictionary
-#        with the appropriate 'next' key value that will be used as the enum value.
+#        with the appropriate 'next' numeric key value that will be used as the enum value.
 # NOTE:  The developer must ensure that the attribute name being added is NOT in the
 #        ATTRIBUTE_NAMES_NOT_SUPPORTED list.
 ATTRIBUTE_NAMES_TO_ADD =   {
-#                                'next_attribute_to_add':222,
+                                'synccount':222,
+                                'synctime':223,
                            }
 
 # NOTE:  Add new CORAL message ids to either the end of the CORAL_ section or the end of the BB_ section

@@ -442,6 +442,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     stringstream errorText;
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
+    uint64_t l_Time;
     bool l_UpdateTransferStatus = false;
     int l_LocalMetadataLocked = 0;
     int l_LocalMetadataUnlocked = 0;
@@ -532,7 +533,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                                 {
                                     LOG(bb,debug) << "Final SSD fsync start: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                     FL_Write(FLTInf2, FSYNC_SSD, "Performing SSD fsync.  fd=%ld", ssd_fd,0,0,0);
+                                    pExtentInfo.getTransferDef()->preProcessSync(l_Time);
                                     ::fsync(ssd_fd);
+                                    pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
                                     FL_Write(FLTInf2, FSYNC_SSDCMP, "Performed SSD fsync.  fd=%ld", ssd_fd,0,0,0);
                                     LOG(bb,debug) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                 }
@@ -548,7 +551,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                             // Target is PFS...
                             LOG(bb,debug) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
                             FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
+                            pExtentInfo.getTransferDef()->preProcessSync(l_Time);
                             l_IO->fsync(pExtentInfo.getExtent()->targetindex);
+                            pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
                             FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
                             LOG(bb,debug) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
                         }
@@ -849,7 +854,9 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
                  << pTransferDef->readOperations[pExtentInfo.getSourceIndex()].first << "/" \
                  << (double)pTransferDef->readOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale \
                  << " seconds, write count/cumulative time " << pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].first << "/" \
-                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale << " seconds";
+                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale \
+                 << " seconds, sync count/cumulative time " << pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].first << "/" \
+                 << (double)pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
@@ -867,6 +874,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::readtime, pTransferDef->readOperations[pExtentInfo.getSourceIndex()].second);
     l_Complete->addAttribute(txp::writecount, pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].first);
     l_Complete->addAttribute(txp::writetime, pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second);
+    l_Complete->addAttribute(txp::synccount, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].first);
+    l_Complete->addAttribute(txp::synctime, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second);
 
     unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
