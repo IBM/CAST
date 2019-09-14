@@ -261,6 +261,13 @@ enum DUMP_ALL_DATA_INDICATOR
 };
 typedef enum DUMP_ALL_DATA_INDICATOR DUMP_ALL_DATA_INDICATOR;
 
+enum RETURN_REMOVED_JOBIDS_INDICATOR
+{
+    ONLY_RETURN_VALID_JOBIDS        = 1,
+    ONLY_RETURN_REMOVED_JOBIDS      = 2
+};
+typedef enum RETURN_REMOVED_JOBIDS_INDICATOR RETURN_REMOVED_JOBIDS_INDICATOR;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/

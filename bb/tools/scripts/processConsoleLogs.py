@@ -85,7 +85,7 @@ def GetHandle(pCtx, pData, *pArgs):
     return
 
 def FileCompletion(pCtx, pData, *pArgs):
-    pServerName, pLogDate, pLogTime, pFileName, pConnection, pConnectionIP, pLVUuid, pHandle, pContribId, pSourceIndex, pStatus, pTransferType, pTransferSize, pReadCount, pReadTime, pWriteCount, pWriteTime = pArgs[0]
+    pServerName, pLogDate, pLogTime, pFileName, pConnection, pConnectionIP, pLVUuid, pHandle, pContribId, pSourceIndex, pStatus, pTransferType, pTransferSize, pReadCount, pReadTime, pWriteCount, pWriteTime, pDummy, pSyncCount, pSyncTime = pArgs[0]
 
     # Add data to the appropriate file entry
     if "Files" not in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
@@ -102,6 +102,12 @@ def FileCompletion(pCtx, pData, *pArgs):
     l_FileEntry["ReadTime"] = float(pReadTime)
     l_FileEntry["WriteCount"] = int(pWriteCount)
     l_FileEntry["WriteTime"] = float(pWriteTime)
+    if pSyncCount != None:
+        l_FileEntry["SyncCount"] = int(pSyncCount)
+        l_FileEntry["SyncTime"] = float(pSyncTime)
+    else:
+        l_FileEntry["SyncCount"] = None
+        l_FileEntry["SyncTime"] = None
 
     return
 
@@ -142,6 +148,7 @@ def ContribIdCompletion(pCtx, pData, *pArgs):
 
     return
 
+# NOTE: Not currently used...
 def HandleCompletion(pCtx, pData, *pArgs):
     pServerName, pLogDate, pLogTime, pHandle, pConnection, pConnectionIP, pLVUuid, pStatus = pArgs[0]
 
@@ -158,8 +165,12 @@ def StartTransfer(pCtx, pData, *pArgs):
 
     # Add jobid and jobstepid to the appropriate handle entry
     l_GetHandleEntry = pData["Handles"][pHandle]
-    l_GetHandleEntry["JobId"] = pJobId
-    l_GetHandleEntry["JobStepId"] = pJobStepId
+    if "JobId" not in l_GetHandleEntry:
+        l_GetHandleEntry["JobId"] = pJobId
+    if "JobStepId" not in l_GetHandleEntry:
+        l_GetHandleEntry["JobStepId"] = pJobStepId
+    if "LogDate" not in l_GetHandleEntry:
+        l_GetHandleEntry["LogDate"] = pLogDate
 
     # Add data to the appropriate start transfer entry
     l_StartTransferEntry = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]
@@ -242,9 +253,9 @@ SEARCHES = (
      (9, 3, 4, 5, 10),
      (str, str, str, str, str, str, int, int, int, int, str,),
      StartTransfer),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+file\s+([A-Za-z0-9/._-]+),\s+LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+handle\s+(\d+),\s+contribid\s+(\d+),\s+sourceindex\s+(\d+),\s+file\s+status\s+([A-Z_]+),\s+transfer\s+type\s+([A-Za-z_]+),\s+size\s+transferred\s+is\s+(\d+)\s+bytes,\s+read\s+count/cumulative\s+time\s+(\d+)/([0-9.]+)\s+seconds,\s+write\s+count/cumulative\s+time\s+(\d+)/([0-9.]+)\s+seconds"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+file\s+([A-Za-z0-9/._-]+),\s+LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+handle\s+(\d+),\s+contribid\s+(\d+),\s+sourceindex\s+(\d+),\s+file\s+status\s+([A-Z_]+),\s+transfer\s+type\s+([A-Za-z_]+),\s+size\s+transferred\s+is\s+(\d+)\s+bytes,\s+read\s+count/cumulative\s+time\s+(\d+)/([0-9.]+)\s+seconds,\s+write\s+count/cumulative\s+time\s+(\d+)/([0-9.]+)\s+seconds(,\s+sync\s+count/cumulative\s+time\s+(\d+)/([0-9.]+)\s+seconds)*"),
      (7, 4, 5, 6, 8),
-     (str, str, str, str, str, str, int, int, int, str, str, int, int, float, int, float,),
+     (str, str, str, str, str, str, int, int, int, str, str, int, int, float, int, float, str, int, float),
      FileCompletion),
     (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*->bbproxy:\s+Transfer\s+completed\s+for\s+contribid\s+(\d+),\s+LVKey\(([a-z0-9.]+)\s+\(([0-9.]+)\),([a-z0-9-]+)\),\s+handle\s+(\d+),\s+status\s+([A-Z_]+),\s+(total\s+size\s+transferred\s+([0-9.]+),\s+)*total\s+processing\s+time\s+([0-9.]+)\s+seconds"),
      (7, 4, 5, 6, 3),

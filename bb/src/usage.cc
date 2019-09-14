@@ -591,7 +591,7 @@ void* asyncRemoveJobInfo(void* ptr)
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
-    while(1)
+    while (1)
     {
         try
         {
@@ -602,26 +602,21 @@ void* asyncRemoveJobInfo(void* ptr)
                 double l_ElapsedTime = (double)l_NewTime/(double)g_TimeBaseScale;
                 if (l_ElapsedTime >= g_AsyncRemoveJobInfoInterval)
                 {
-                    int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds);
+                    int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds, ONLY_RETURN_REMOVED_JOBIDS);
                     if (!rc)
                     {
-                        bool l_AllDone = false;
-                        while (!l_AllDone)
+                        for (size_t i=0; i<l_PathJobIds.size(); i++)
                         {
-                            l_AllDone = true;
-                            for (size_t i=0; i<l_PathJobIds.size(); i++)
+                            bfs::path job = bfs::path(l_PathJobIds[i]);
+                            if (bfs::exists(job))
                             {
-                                size_t l_Index = l_PathJobIds[i].rfind('/');
-                                if (l_Index != string::npos && l_Index < (l_PathJobIds[i].length()-1))
+                                try
                                 {
-                                    if (l_PathJobIds[i][l_Index+1] == '.')
-                                    {
-                                        bfs::path job = bfs::path(l_PathJobIds[i]);
-                                        if (bfs::exists(job))
-                                        {
-                                            bfs::remove_all(job);
-                                        }
-                                    }
+                                    bfs::remove_all(job);
+                                }
+                                catch (std::exception& e1)
+                                {
+                                    continue;
                                 }
                             }
                         }
@@ -630,9 +625,9 @@ void* asyncRemoveJobInfo(void* ptr)
                 }
             }
         }
-        catch (std::exception& e)
+        catch (std::exception& e2)
         {
-            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e2);
         }
 
         sleep(SLEEP);

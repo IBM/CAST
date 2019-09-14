@@ -95,7 +95,7 @@ int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, u
 }
 
 #define ATTEMPTS 10
-int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
+int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds, const RETURN_REMOVED_JOBIDS_INDICATOR pReturnRemovedJobIds)
 {
     int rc = 0;
     stringstream errorText;
@@ -123,6 +123,8 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds)
                 {
                     if (!bfs::is_directory(job)) continue;
                     if (!accessDir(job.path().string())) continue;
+                    if ((pReturnRemovedJobIds == ONLY_RETURN_VALID_JOBIDS && job.path().filename().string().at(0) == '.') ||
+                        (pReturnRemovedJobIds == ONLY_RETURN_REMOVED_JOBIDS && job.path().filename().string().at(0) != '.')) continue;
                     pJobIds.push_back(job.path().string());
                 }
             }

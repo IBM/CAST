@@ -110,6 +110,17 @@
         } \
         LOG(bb,SEV) << ">>>>>   End: " << writeOperations.size() << (writeOperations.size()==1 ? " Write operation stat <<<<<" : " Write operation stats <<<<<"); \
     } \
+    if (0==1 && syncOperations.size()) { \
+        LOG(bb,SEV) << ">>>>> Start: " << syncOperations.size() << (syncOperations.size()==1 ? " Sync operation stat <<<<<" : " Sync operation stats <<<<<"); \
+        uint32_t i = 0; \
+        for (auto& io : syncOperations) { \
+            if (!(i++%2)) \
+            { \
+                LOG(bb,SEV) << "Target index " << i << ": count/raw time " << io.first << ":" << io.second; \
+            } \
+        } \
+        LOG(bb,SEV) << ">>>>>   End: " << syncOperations.size() << (syncOperations.size()==1 ? " Sync operation stat <<<<<" : " Sync operation stats <<<<<"); \
+    } \
 }
 
 /*******************************************************************************
@@ -122,12 +133,13 @@ class BBLV_ExtentInfo;
  | Constants
  *******************************************************************************/
 const uint32_t ARCHIVE_TRANSFERDEFS_VERSION = 1;
-const uint32_t ARCHIVE_TRANSFERDEF_VERSION = 1;
+const uint32_t ARCHIVE_TRANSFERDEF_VERSION_1 = 1;
+const uint32_t ARCHIVE_TRANSFERDEF_VERSION_2 = 2;
 
 /*******************************************************************************
  | Type definitions
  *******************************************************************************/
-typedef std::pair<uint64_t, uint64_t> IO_Stats;     // First is the count; second is accumulated time
+typedef std::pair<uint64_t, uint64_t> IO_Stats;     // First is the count; second is accumulated time in ticks
 
 /*******************************************************************************
  | Classes
@@ -286,12 +298,28 @@ class BBTransferDef
         pArchive & writeOperations;
         pArchive & processingTime;
 
+        switch (objectVersion)
+        {
+            case ARCHIVE_TRANSFERDEF_VERSION_2:
+            {
+                pArchive & syncOperations;
+            }
+            break;
+            // Intentionally falling through
+
+            case ARCHIVE_TRANSFERDEF_VERSION_1:
+            default:
+            {
+                // No additional fields
+            }
+            break;
+        }
         return;
     }
 
     BBTransferDef() :
         serializeVersion(0),
-        objectVersion(ARCHIVE_TRANSFERDEF_VERSION),
+        objectVersion(ARCHIVE_TRANSFERDEF_VERSION_2),
         job(BBJob()),
         uid(0),
         gid(0),
@@ -310,6 +338,7 @@ class BBTransferDef
             readOperations = vector<IO_Stats>();
             writeOperations = vector<IO_Stats>();
             BB_GetTime(processingTime);
+            syncOperations = vector<IO_Stats>();
         }
 
     BBTransferDef(const BBTransferDef& src) :
@@ -332,6 +361,7 @@ class BBTransferDef
         readOperations = src.readOperations;
         writeOperations = src.writeOperations;
         BB_GetTime(processingTime);
+        syncOperations = src.syncOperations;
     }
 
     ~BBTransferDef();
@@ -510,6 +540,13 @@ class BBTransferDef
         return;
     }
 
+    inline void incrementSyncTime(const uint64_t pTargetIndex, const uint64_t pTime) {
+        syncOperations[pTargetIndex].first += 1;
+        syncOperations[pTargetIndex].second += pTime;
+
+        return;
+    }
+
     inline void incrementWriteTime(const uint64_t pSourceIndex, const uint64_t pTime) {
         writeOperations[pSourceIndex].first += 1;
         writeOperations[pSourceIndex].second += pTime;
@@ -531,6 +568,12 @@ class BBTransferDef
         return;
     }
 
+    inline void preProcessSync(uint64_t& pTime) {
+        BB_GetTime(pTime);
+
+        return;
+    }
+
     inline void preProcessWrite(uint64_t& pTime) {
         BB_GetTime(pTime);
 
@@ -540,6 +583,13 @@ class BBTransferDef
     inline void postProcessRead(const uint64_t pSourceIndex, uint64_t& pTime) {
         BB_GetTimeDifference(pTime);
         incrementReadTime(pSourceIndex, pTime);
+
+        return;
+    }
+
+    inline void postProcessSync(const uint64_t pTargetIndex, uint64_t& pTime) {
+        BB_GetTimeDifference(pTime);
+        incrementSyncTime(pTargetIndex, pTime);
 
         return;
     }
@@ -660,6 +710,8 @@ class BBTransferDef
     vector<IO_Stats>        writeOperations;    ///< Vector of write operation data.
                                                 ///< Only maintained on bbServer, in real time for source file indices.
     uint64_t                processingTime;     ///< Processing time from creation to final status
+    vector<IO_Stats>        syncOperations;     ///< Vector of fsync operation data.
+                                                ///< Only maintained on bbServer, in real time for target file indices.
 #if BBAPI
     map<string,string>      tgt_src_whole_file; ///< for whole copy of target to source, watch for unique source
     int checkOneCPSourceToDest(const std::string& src, const std::string& tgt){

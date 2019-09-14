@@ -1710,6 +1710,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
             l_TransferPtr->sizeTransferred.push_back(0);
             l_TransferPtr->readOperations.push_back(make_pair(0,0));
             l_TransferPtr->writeOperations.push_back(make_pair(0,0));
+            l_TransferPtr->syncOperations.push_back(make_pair(0,0));
         }
 
         l_Job = l_TransferPtr->getJob();
