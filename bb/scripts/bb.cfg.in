@@ -19,7 +19,7 @@
 		"server0" :
 		{
 			"ssladdress"         : "0.0.0.0:@SSLPORT@",
-			"numRequestThreads"  : 16,
+			"numRequestThreads"  : 64,
 			"numTransferThreads" : 64,
 			"workerBufferSize"   : 67108864,
 			"flightlog"          : "/var/log/bbserver@USERSUFFIX@",
@@ -39,7 +39,7 @@
 		{
 			"servercfg"                   : "bb.server0",
 			"volumegroup"                 : "bb",
-			"numRequestThreads"           : 8,
+			"numRequestThreads"           : 24,
 			"flightlog"                   : "/var/log/bbproxy@USERSUFFIX@",
 			"ssdusagepollrate"            : 60,
 			"use_export_layout"	          : true,
