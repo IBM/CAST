@@ -257,6 +257,7 @@ bool CSMIAllocationStepQueryDetails::CreateResponsePayload(
     csm::db::DBReqContent **dbPayload,
     csm::daemon::EventContextHandlerState_sptr& ctx)
 {
+    //i think
     uint32_t step_count = tuples.size();
 
     if ( step_count > 0 )
@@ -342,10 +343,13 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     std::unique_lock<std::mutex>dataLock = ctx->GetUserData<OUTPUT_STRUCT*>(&output);
 
     int32_t step_count = tuples.size();
-    
+    printf("hi.\n");
     // This assumes a 1:1 parity between the first and second queries, some checks are made to ensure this.
     if ( step_count > 0  && output->num_steps == step_count )
     {
+        printf("hello.\n");
+        printf("output->num_steps: %i\n", output->num_steps);
+        printf("step_count: %i\n", step_count);
         for (int32_t i = 0; i < step_count; ++i)
         {
             csm::db::DBTuple * const & fields = tuples[i];
@@ -374,6 +378,66 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 output->steps[i]->compute_nodes = nodes;
             }
         }
+    }else if(step_count > 0  && output->num_steps > step_count)
+    {
+        //This is the edge case from the issue 770 
+        printf("hello 2.\n");
+        printf("output->num_steps: %i\n", output->num_steps);
+        printf("step_count: %i\n", step_count);
+
+        //set num steps  equal to the step count
+        //step_count = output->num_steps;
+        //don't do this in the good case, only the edge case. 
+
+        printf("output->num_steps: %i\n", output->num_steps);
+        printf("step_count: %i\n", step_count);
+
+        // loop i for the unique number of steps found
+        for (int32_t i = 0; i < step_count; ++i)
+        {
+            printf("i: %i\n", i);
+            csm::db::DBTuple * const & fields = tuples[i];
+            if (fields->nfields != 2 ) continue;
+            
+            // Aggregate the nodes.
+            int64_t step_id = strtoll(fields->data[0], nullptr, 10);
+            int32_t num_nodes = output->steps[i]->num_nodes;
+            printf("step_id: %li\n", step_id);
+            printf("num_nodes: %i\n", num_nodes);
+
+            int32_t j = 0;
+            //loop j for the total number of steps found, non unique
+            for(j = 0; j < output->num_steps; j++)
+            {
+                printf("j: %i\n", j);
+                printf("step_id: %li\n", step_id);
+                printf("output->steps[j]->step_id: %li\n", output->steps[j]->step_id);
+                // i think this is the faulty line -- because it won't make the compute nodes if there is no match in the previous if
+                if (step_id == output->steps[j]->step_id && num_nodes > 0)
+                {
+                    printf("match. \n");
+                    char** nodes = (char**)malloc( sizeof(char*) * output->steps[i]->num_nodes );
+
+                    int32_t node = 0;
+                    char *saveptr;
+                    char *nodeStr = strtok_r(fields->data[1], ",", &saveptr);
+
+                    while ( nodeStr != NULL && node < num_nodes )
+                    {
+                        nodes[node++] = strdup(nodeStr);
+                        nodeStr = strtok_r(NULL, ",", &saveptr);
+                    }
+                    while( node < num_nodes)
+                    {
+                        nodes[i++] = strdup("N/A");
+                    }
+                    output->steps[i]->compute_nodes = nodes;
+                }
+            }
+
+            
+        }
+
     }
 
     // Package the data for transport.
