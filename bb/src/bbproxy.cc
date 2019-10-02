@@ -970,6 +970,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
+        LOG(bb,error) << "GetVar: *** FAILED *** Variable: " << l_Variable;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 

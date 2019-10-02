@@ -310,18 +310,17 @@ int Coral_InitLibrary(uint32_t contribId, const char* clientVersion, const char*
 
 int Coral_GetVar(const char* pVariable)
 {
-    int rc = 0;
+    int rc = -1;
+    int64_t l_Value = -1;
     ResponseDescriptor reply;
 
     bberror.clear();
 
     txp::Msg* msg = 0;
-    int64_t l_Value = -1;
 
     try
     {
         // Verify initialization
-        rc = ENODEV;
         verifyInit(true);
         rc = 0;
 
@@ -338,7 +337,9 @@ int Coral_GetVar(const char* pVariable)
         rc = bberror.merge(msg);
 
         if (!rc)
+        {
             l_Value = ((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::value64))->getData();
+        }
 
         delete msg;
     }
@@ -346,16 +347,15 @@ int Coral_GetVar(const char* pVariable)
     catch(exception& e)
     {
         rc = -1;
-        l_Value = rc;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    return l_Value;
+    return (rc == 0 ? (int)l_Value : INVALID_CORAL_GETVAR_VALUE);
 }
 
 int Coral_SetVar(const char* pVariable, const char* pValue)
 {
-    int rc = 0;
+    int rc = -1;
 
     bberror.clear();
 
@@ -390,7 +390,7 @@ int Coral_SetVar(const char* pVariable, const char* pValue)
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    return rc;
+    return (rc == 0 ? rc : INVALID_CORAL_SETVAR_VALUE);
 }
 
 int Coral_StageOutStart(const char* pMountpoint)
@@ -414,7 +414,7 @@ int Coral_StageOutStart(const char* pMountpoint)
 
         rc = sendMessage(ProcessId, msg, reply);
         delete msg;
-        if(rc) bberror << errloc(rc) <<bailout;
+        if (rc) SET_RC_AND_BAIL(rc);
 
         rc = waitReply(reply, msg);
         if (rc) SET_RC_AND_BAIL(rc);
