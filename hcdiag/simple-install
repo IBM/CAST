@@ -1,0 +1,74 @@
+#!/bin/bash
+#================================================================================
+#
+#    hcdiag/simple-install
+#
+#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#
+#    This program is licensed under the terms of the Eclipse Public License
+#    v1.0 as published by the Eclipse Foundation and available at
+#    http://www.eclipse.org/legal/epl-v10.html
+#
+#    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#    restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+#================================================================================
+
+# script to install hcdiag
+
+
+VERSION_FILE="../CMakeLists.txt"
+GITCOUNT=$(git rev-list --count HEAD)
+
+
+install_root=/opt/ibm/csm
+echo -n "Enter your root install dir, default [${install_root}]: "
+read ans
+if [ -n "$ans" ]; then
+    install_root="$ans"
+fi
+echo "Installing on $install_root"
+
+install_root=${install_root}/hcdiag
+install_etc=${install_root}/etc
+install_bin=${install_root}/bin
+install_tests=${install_root}/tests
+src_root=$PWD
+
+mkdir -p ${install_etc} ${install_bin} 
+if [ $? -ne 0 ]; then
+  echo "Error creating $install_etc and install_bin directories"
+  exit 1
+fi
+
+if [ -f ${VERSION_FILE} ]; then
+   v=(`egrep 'set\(BUILDID_RELEASE|set\(BUILDID_CUMULFIXID|set\(BUILDID_EFIXID' ${VERSION_FILE} | sed 's/)/./' | awk '{print $2}'`)
+   VERSION=`printf "%s" "${v[@]}"`$GITCOUNT
+else
+   VERSION=0.0.0.$GITCOUNT
+   echo "$VERSION_FILE not found, seting version to $VERSION"
+fi
+
+
+# install etc
+for file in `find . \( -name "*.sample" -o  -name "*.properties" \)`; do
+   cp $file ${install_etc}
+done
+
+# install bin
+rsync -av --exclude='CMakeLists.txt' --exclude "*properties*"  src/framework/  ${install_bin}
+echo -n  '__version__ = "'${VERSION}'"' > ${install_bin}/version.py
+
+
+# install tests/samples
+rsync -va --exclude='CMakeLists.txt' src/tests ${install_root}
+rsync -va --exclude='CMakeLists.txt' samples ${install_root}
+
+for file in `find . -maxdepth 1 -type f '!' -name '.*' '!' -name "CMakeLists.txt" '!' -name "simple-install" -print`; do
+   rsync -va ${src_root}/$file ${install_root}
+done
+
+echo ""
+echo "hcdiag version $VERSION installed"
+echo "done"
+exit 0
