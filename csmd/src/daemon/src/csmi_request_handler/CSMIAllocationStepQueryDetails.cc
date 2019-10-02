@@ -448,10 +448,81 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                     output->steps[j]->compute_nodes = nodes;
                 }
             }
-
-            
         }
+    }else
+    {
+        //another case in 770
+        // but where the step count is greater than num steps
 
+        // doesnt show in normal database query
+
+        // i expanded out to here as to not disturb the main fix.
+        // the same fix seems to fix this error. 
+        // but since its a different cause with the same effect. 
+        // i decided to pull this out as if we maybe want to adress the true cause in the future, the seperation has already been done.
+
+        // i beleive that "step count" may be related to the total number of steps found in an allocation. 
+        // not necessarily the total number of steps found matching our current query. 
+
+        printf("hello 3.\n");
+        printf("output->num_steps: %i\n", output->num_steps);
+        printf("num_records_of_unique_steps: %i\n", num_records_of_unique_steps);
+        printf("num_records_of_steps: %i\n", num_records_of_steps);
+        printf("step_count: %i\n", step_count);
+
+        //set num steps  equal to the step count
+        //step_count = output->num_steps;
+        //don't do this in the good case, only the edge case. 
+
+        printf("output->num_steps: %i\n", output->num_steps);
+        printf("step_count: %i\n", step_count);
+
+        // loop i for the unique number of steps found
+        for (int32_t i = 0; i < num_records_of_unique_steps; ++i)
+        {
+            printf("i: %i\n", i);
+            csm::db::DBTuple * const & fields = tuples[i];
+            if (fields->nfields != 2 ) continue;
+            
+            // Aggregate the nodes.
+            int64_t step_id = strtoll(fields->data[0], nullptr, 10);
+            //record number
+            int32_t num_nodes = output->steps[i]->num_nodes;
+            printf("step_id: %li\n", step_id);
+            printf("num_nodes: %i\n", num_nodes);
+
+            int32_t j = 0;
+            //loop j for the total number of steps found, non unique
+            for(j = 0; j < num_records_of_steps; j++)
+            {
+                printf("j: %i\n", j);
+                printf("step_id: %li\n", step_id);
+                printf("output->steps[j]->step_id: %li\n", output->steps[j]->step_id);
+                // i think this is the faulty line -- because it won't make the compute nodes if there is no match in the previous if
+                if (step_id == output->steps[j]->step_id && num_nodes > 0)
+                {
+                    printf("match. \n");
+                    char** nodes = (char**)malloc( sizeof(char*) * output->steps[j]->num_nodes );
+
+                    int32_t node = 0;
+                    char *saveptr;
+                    //names of the nodes
+                    char *nodeStr = strtok_r(fields->data[1], ",", &saveptr);
+
+                    while ( nodeStr != NULL && node < num_nodes )
+                    {
+                        nodes[node++] = strdup(nodeStr);
+                        nodeStr = strtok_r(NULL, ",", &saveptr);
+                    }
+                    while( node < num_nodes)
+                    {
+                        nodes[i++] = strdup("N/A");
+                    }
+                    output->steps[j]->compute_nodes = nodes;
+                }
+            }
+        }
+        
     }
 
     // Package the data for transport.
