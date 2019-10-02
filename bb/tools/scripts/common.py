@@ -12,8 +12,9 @@
 #     restricted by GSA ADP Schedule Contract with IBM Corp.
 ###########################################################
 
-
 import os
+
+import json
 import pickle
 import pprint
 import re
@@ -80,19 +81,26 @@ def printFormattedData(pCtx, pData):
     return
 
 def printFormattedFile(pCtx, pFileName, pData):
-    # Print out the data, formatted
-    l_File = open(pFileName, 'w')
-    l_Printer = pprint.PrettyPrinter(indent=0, stream=l_File)
-    l_Printer.pprint(pData)
-    l_File.close()
+    # Print out the data to a file, formatted
+    with open(pFileName, 'w') as l_File:
+        l_Printer = pprint.PrettyPrinter(indent=0, stream=l_File)
+        l_Printer.pprint(pData)
+    print "Results saved to %s" % pFileName
+
+    return
+
+def printFormattedFileAsJson(pCtx, pFileName, pData):
+    # Print out the data to a file, formatted as json
+    with open(pFileName, 'w') as l_File:
+        json.dump(pData, l_File)
     print "Results saved to %s" % pFileName
 
     return
 
 def writeOutput(pCtx, pFileName, pOutput):
-    l_File = open(pFileName, "w")
-    l_File.writelines(pOutput)
-    l_File.close()
+    # Print out the data to a file, unformatted
+    with open(pFileName, 'w') as l_File:
+        l_File.writelines(pOutput)
     print "Results saved to %s" % pFileName
 
     return
@@ -209,6 +217,36 @@ def getJobIdsForServer(pData, pServer):
 
     return l_JobIds
 
+def getJobStepIdsForJobId(pData, pJobId):
+    l_JobStepIds = set()
+
+    l_Servers = getServers(pData)
+    for l_Server in l_Servers:
+        l_Handles = getHandlesForServer(pData, l_Server)
+        for l_Handle in l_Handles:
+            if "JobId" in pData[pServer]["Handles"][l_Handle]:
+                if pData[pServer]["Handles"][l_Handle]["JobId"] == pJobId:
+                    if "JobStepId" in pData[pServer]["Handles"][l_Handle]:
+                        l_JobStepIds.add(pData[pServer]["Handles"][l_Handle]["JobStepId"])
+    l_JobStepIds = [l_JobStepId for l_JobStepId in l_JobStepIds]
+    l_JobStepIds.sort()
+
+    return l_JobStepIds
+
+def getJobStepIdsForServerJobId(pData, pServer, pJobId):
+    l_JobStepIds = set()
+
+    l_Handles = getHandlesForServer(pData, pServer)
+    for l_Handle in l_Handles:
+        if "JobId" in pData[pServer]["Handles"][l_Handle]:
+            if pData[pServer]["Handles"][l_Handle]["JobId"] == pJobId:
+                if "JobStepId" in pData[pServer]["Handles"][l_Handle]:
+                    l_JobStepIds.add(pData[pServer]["Handles"][l_Handle]["JobStepId"])
+    l_JobStepIds = [l_JobStepId for l_JobStepId in l_JobStepIds]
+    l_JobStepIds.sort()
+
+    return l_JobStepIds
+
 def getServersForJobid(pData, pJobId):
     l_ServersToReturn = []
 
@@ -267,6 +305,13 @@ def getHandlesForServerForJobId(pData, pServer, pJobId):
 
     return l_Handles
 
+def getHandlesForServerForJobIdJobStepId(pData, pServer, pJobId, pJobStepId):
+    l_Handles = [l_Handle for l_Handle in pData[pServer]["Handles"].keys() if "JobId" in pData[pServer]["Handles"][l_Handle] and pData[pServer]["Handles"][l_Handle]["JobId"] == pJobId and \
+                                                                              "JobStepId" in pData[pServer]["Handles"][l_Handle] and pData[pServer]["Handles"][l_Handle]["JobStepId"] == pJobStepId]
+    l_Handles.sort()
+
+    return l_Handles
+
 def getHandlesPerConnectionForJobId(pData, pServer, pJobId):
     l_ReturnedHandles = {}
     l_Servers = getServersForJobid(pData, pJobId)
@@ -281,6 +326,28 @@ def getHandlesPerConnectionForJobId(pData, pServer, pJobId):
                         l_ReturnedHandles[l_Connection].append(l_Handle)
 
     return l_ReturnedHandles
+
+def getHandlesPerConnectionForJobIdJobStepId(pData, pServer, pJobId, pJobStepId):
+    l_ReturnedHandles = {}
+    l_Servers = getServersForJobid(pData, pJobId)
+    for l_Server in l_Servers:
+        if l_Server == pServer:
+            l_JobStepIds = getJobStepIdsForServerJobId(pData, l_Server, pJobId)
+            for l_JobStepId in l_JobStepIds:
+                if l_JobStepId == pJobStepId:
+                    l_Handles = getHandlesForServerForJobIdJobStepId(pData, l_Server, pJobId, pJobStepId)
+                    for l_Handle in pData[l_Server]["Handles"]:
+                        if l_Handle in l_Handles:
+                            for l_Connection in pData[l_Server]["Handles"][l_Handle]["Connections"]:
+                                if l_Connection not in l_ReturnedHandles:
+                                    l_ReturnedHandles[l_Connection] = []
+                                l_ReturnedHandles[l_Connection].append(l_Handle)
+
+    return l_ReturnedHandles
+
+def getDiskStatsForServer(pData, pServer):
+
+    return pData[pServer]["DiskStats"]
 
 def getErrorsForServer(pData, pServer):
 
