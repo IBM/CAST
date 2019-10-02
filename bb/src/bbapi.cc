@@ -180,85 +180,102 @@ volatile static int initLibraryDone=0;
 static pthread_mutex_t  lockLibraryDone = PTHREAD_MUTEX_INITIALIZER;
 
 
-int BB_InitLibrary(uint32_t contribId, const char* clientVersion)
+#define ATTEMPTS 120
+int BB_InitLibrary(uint32_t pContribId, const char* pClientVersion)
 {
     int rc = 0;
-    bool l_PerformCleanup = true;
     stringstream errorText;
 
-    if(CRuntimeInitialized == false)
+    // Initialize the C runtime...
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    gettimeofday(&l_CurrentTime, NULL);
+
+    // Verify the the C runtime has been initialized...
+    // NOTE:  This was the original code, but after including the above,
+    //        the C runtime has to be initialized.
+    int l_Attempts = ATTEMPTS;
+    while ((!CRuntimeInitialized) && --l_Attempts)
     {
-        bool   earlybailout = false;
         void*  traceBuf[256];
         int    traceSize;
         traceSize = backtrace(traceBuf, sizeof(traceBuf)/sizeof(void*));
         char** syms = backtrace_symbols(traceBuf, traceSize);
-        if(strncmp(syms[traceSize-1], "/lib64/ld64", 11) == 0)
-            earlybailout = true;
-
+        if (strncmp(syms[traceSize-1], "/lib64/ld64", 11) != 0)
+        {
+            CRuntimeInitialized = true;
+        }
+        else
+        {
+            usleep((useconds_t)250000);
+        }
         free(syms);
-        if(earlybailout)   // glibc has not fully executed constructor list.  C++ runtime may not be fully functional.
-            return -1;
-
-        CRuntimeInitialized = true;
     }
 
-    pthread_mutex_lock(&lockLibraryDone);
-    if (!initLibraryDone)
+    if (CRuntimeInitialized)
     {
-      try
-      {
-        // Verify initialization has not yet been invoked
-        rc = EBUSY; //exists if initialization has already been invoked
-        verifyInit(false); //throws bailout if an access error
-        rc=0;
-
-        if(!curConfig.isLoaded())
+        pthread_mutex_lock(&lockLibraryDone);
+        if (!initLibraryDone)
         {
-            bberror << err("env.configfile", DEFAULT_CONFIGFILE);
-            if (!curConfig.load(DEFAULT_CONFIGFILE))
+            try
             {
-                config = curConfig.getTree();
+                // Verify connection does not yet exist
+                rc = EBUSY;         // Connection exists if initialization has already been invoked
+                verifyInit(false);  // Throws bailout if connection exists
+                rc = 0;
+
+                if (!curConfig.isLoaded())
+                {
+                    bberror << err("env.configfile", DEFAULT_CONFIGFILE);
+                    if (!curConfig.load(DEFAULT_CONFIGFILE))
+                    {
+                        config = curConfig.getTree();
+                    }
+                    else
+                    {
+                        rc = ENOENT;
+                        errorText << "Error loading configuration from " << DEFAULT_CONFIGFILE;
+                        cerr << errorText << endl;
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                    }
+                }
+
+                if (!pClientVersion || !pClientVersion[0])
+                {
+                    rc = EINVAL;
+                    errorText << "Parameter clientVersion is NULL or NULL string";
+                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                }
+
+                rc = BB_InitLibrary2(pContribId, pClientVersion, NULL);
+                if (rc) SET_RC_AND_BAIL(rc);
+
+                initLibraryDone = 1;
             }
-            else
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
             {
-                rc = ENOENT;
-                errorText << "Error loading configuration from " << DEFAULT_CONFIGFILE;
-                cerr << errorText << endl;
-                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+              rc = -1;
+              LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
             }
         }
-
-        if (!clientVersion || !clientVersion[0])
+        else
         {
-            rc = EINVAL;
-            errorText << "Parameter clientVersion is NULL or NULL string";
-            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            rc = EALREADY;
+            errorText << "Library already loaded";
+            LOG_ERROR_TEXT_ERRNO(errorText, rc);
         }
-
-        rc = BB_InitLibrary2(contribId, clientVersion, NULL, l_PerformCleanup);
-
-        if (rc) bberror << bailout;
-        initLibraryDone=1;
-      }
-      catch(ExceptionBailout& e) { l_PerformCleanup = true; }
-      catch(exception& e)
-      {
+        pthread_mutex_unlock(&lockLibraryDone);
+    }
+    else
+    {
         rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        l_PerformCleanup = true;
-      }
+        errorText << "CRuntime not initialized";
+        LOG_ERROR_TEXT_RC(errorText, rc);
     }
-    else rc=EALREADY;
-
-    if (l_PerformCleanup)
-    {
-        cleanupInit();
-    }
-    pthread_mutex_unlock(&lockLibraryDone);
 
     return rc;
 }
+#undef ATTEMPTS
 
 int BB_TerminateLibrary()
 {

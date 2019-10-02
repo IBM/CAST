@@ -44,7 +44,7 @@ const int INVALID_CORAL_GETVAR_VALUE = 999999997;
 const int INVALID_CORAL_SETVAR_VALUE = 999999997;
 
 // External routines needed by bbapi.cc
-extern int BB_InitLibrary2(uint32_t contribId, const char* clientVersion, const char* unixpath, bool& performCleanup);
+extern int BB_InitLibrary2(uint32_t pContribId, const char* pClientVersion, const char* pUnixpath);
 extern void cleanupInit();
 extern void verifyInit(const bool pExpectedValue);
 
