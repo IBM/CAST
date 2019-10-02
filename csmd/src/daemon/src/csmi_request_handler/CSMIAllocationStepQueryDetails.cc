@@ -348,7 +348,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     // printf("hi.\n");
     // printf("output->num_steps: %i\n", output->num_steps);
     // printf("step_count: %i\n", step_count);
-    
+
     // This assumes a 1:1 parity between the first and second queries, some checks are made to ensure this.
     if ( step_count > 0  && output->num_steps == step_count )
     {
@@ -485,7 +485,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
         //actually a change here.... only loong for num of steps found that match
         for (int32_t i = 0; i < num_records_of_steps; ++i)
         {
-            printf("i: %i\n", i);
+            //printf("i: %i\n", i);
             csm::db::DBTuple * const & fields = tuples[i];
             if (fields->nfields != 2 ) continue;
             
@@ -507,7 +507,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 // i think this is the faulty line -- because it won't make the compute nodes if there is no match in the previous if
                 if (step_id == output->steps[j]->step_id && num_nodes > 0)
                 {
-                    printf("match. \n");
+                    //printf("match. \n");
                     char** nodes = (char**)malloc( sizeof(char*) * output->steps[j]->num_nodes );
 
                     int32_t node = 0;
