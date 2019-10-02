@@ -12,10 +12,10 @@
 #     restricted by GSA ADP Schedule Contract with IBM Corp.
 ###########################################################
 
-
 import os
-import re
 import sys
+
+import re
 
 import common as cmn
 

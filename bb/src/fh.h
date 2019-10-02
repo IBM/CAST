@@ -142,6 +142,7 @@ class filehandle
             privateData = NULL;
             openErrno = 0;
         };
+    // mode is only passed for logging purposes...
     filehandle(const std::string& fn, int oflag, mode_t mode);
     ~filehandle();
 

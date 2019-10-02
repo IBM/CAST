@@ -692,7 +692,10 @@ void BBLV_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionName,
     catch(exception& e)
     {
         LOG(bb,warning) << "Exception thrown when attempting to send completion for "<< *pLVKey << ": " << e.what();
-        assert(strlen(e.what())==0);
+        if (strlen(e.what()) != 0)
+        {
+            endOnError();
+        }
     }
 
     delete l_Complete;

@@ -392,7 +392,6 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         newpathname = (const char*)msg->retrieveAttrs()->at(txp::newpathname)->getDataPtr();
         bberror << err("in.parms.path", newpathname);
 
-
         // Switch to the uid/gid of requester.
         switchIds();
 
@@ -942,7 +941,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         {
 	        if (!bbconnectionName.size())
 	        {
-	            stringstream errorText;
+                stringstream errorText;
 	            rc = ENOTCONN;
 	            errorText << "NULL connection name";
                 LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
@@ -971,6 +970,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
     catch(exception& e)
     {
         rc = -1;
+        LOG(bb,error) << "GetVar: *** FAILED *** Variable: " << l_Variable;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -1021,7 +1021,8 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Other variables are used for test purposes and stored in a file at the path specified
         // in the configuration file.
         if (strstr(l_Variable, "jobid"))
-        {   uint64_t value = stoull(l_Value);
+        {
+            uint64_t value = stoull(l_Value);
             rc = setJobId(pConnectionName, value);
             LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
@@ -1096,9 +1097,9 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
         // Resolve the job, jobstep, and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1208,7 +1209,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         // Resolve the job, jobstep, and contribid identifiers
         if (bbconnectionName.size())
         {
-            jobid = getJobId(bbconnectionName);
+            jobid = getJobId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1488,8 +1489,8 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         // Resolve the job and jobstep identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1505,7 +1506,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         if (!l_Contrib) {
             l_UseDefaultContrib = true;
             l_NumContrib = 1;
-            l_ContribId = getContribId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
             l_Contrib = &l_ContribId;
         }
 
@@ -1672,7 +1673,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
             switchIds();
 
             // Resolve the contribid value
-            l_ContribId = getContribId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
 
             LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
 
@@ -1822,8 +1823,8 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the job and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2084,8 +2085,8 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the job and jobstep identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2225,7 +2226,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Resolve the jobid
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2326,7 +2327,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         // Resolve the contribid
         if (bbconnectionName.size())
         {
-            contribid = getContribId(bbconnectionName);
+            contribid = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -3220,9 +3221,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Resolve the jobid, jobstepid, and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -4539,10 +4540,10 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         else
         {
 #if 0
-        //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
-        //        requires that the restart of transfer definitions if performed before the resume for
-        //        the hostname.  All I/O activity for any files being serviced by the 'old server'
-        //        will be complete by the time the close is issued.
+            //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
+            //        requires that the restart of transfer definitions if performed before the resume for
+            //        the hostname.  All I/O activity for any files being serviced by the 'old server'
+            //        will be complete by the time the close is issued.
             //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all file closes are
             //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,

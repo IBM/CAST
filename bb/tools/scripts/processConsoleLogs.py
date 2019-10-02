@@ -12,12 +12,12 @@
 #     restricted by GSA ADP Schedule Contract with IBM Corp.
 ###########################################################
 
+import os
+import sys
 
 import copy
-import os
 import re
 import pprint
-import sys
 
 import common as cmn
 
@@ -26,41 +26,59 @@ import common as cmn
 # Helper routines for ElapsedTimeData
 #
 
-def addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
-    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"]
+def addJobStepIdData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeJobEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]
+    l_ElapsedTimeJobEntry["NumberOfJobSteps"] += 1
 
-    l_ElapsedTimeEntry[pJobId] = {}
-    l_ElapsedTimeEntry[pJobId]["StartDateTime"] = (pLogDate, pLogTime)
-    l_ElapsedTimeEntry[pJobId]["EndDateTime"] = (pLogDate, pLogTime)
-    l_ElapsedTimeEntry[pJobId]["SizeTransferred"] = pSizeTransferred
+    l_ElapsedTimeEntry = l_ElapsedTimeJobEntry["jobStepIds"]
+    l_ElapsedTimeEntry[pJobStepId] = {}
+    l_ElapsedTimeEntry[pJobStepId]["StartDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pJobStepId]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pJobStepId]["ElapsedTime (secs)"] = float(cmn.calculateTimeDifferenceInSeconds(l_ElapsedTimeEntry[pJobStepId]["EndDateTime"], l_ElapsedTimeEntry[pJobStepId]["StartDateTime"]))
+    l_ElapsedTimeEntry[pJobStepId]["NumberOfServers"] = 0
+    l_ElapsedTimeEntry[pJobStepId]["SizeTransferred"] = pSizeTransferred
 
-    l_ElapsedTimeEntry[pJobId]["servers"] = {}
-    addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
-
-    l_ElapsedTimeEntry[pJobId]["servers"][pServerName]["connections"] = {}
-    addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
+    l_ElapsedTimeEntry[pJobStepId]["servers"] = {}
+    addServerData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred)
 
     return
 
-def addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
-    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]["servers"]
+def addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"]
+    l_ElapsedTimeEntry[pJobId] = {}
+    l_ElapsedTimeEntry[pJobId]["NumberOfJobSteps"] = 0
+    l_ElapsedTimeEntry[pJobId]["jobStepIds"] = {}
+    if pJobStepId not in l_ElapsedTimeEntry:
+        addJobStepIdData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred)
 
+    return
+
+def addServerData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeJobStepEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]["jobStepIds"][pJobStepId]
+    l_ElapsedTimeJobStepEntry["NumberOfServers"] += 1
+
+    l_ElapsedTimeEntry = l_ElapsedTimeJobStepEntry["servers"]
     l_ElapsedTimeEntry[pServerName] = {}
     l_ElapsedTimeEntry[pServerName]["StartDateTime"] = (pLogDate, pLogTime)
     l_ElapsedTimeEntry[pServerName]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pServerName]["ElapsedTime (secs)"] = float(cmn.calculateTimeDifferenceInSeconds(l_ElapsedTimeEntry[pServerName]["EndDateTime"], l_ElapsedTimeEntry[pServerName]["StartDateTime"]))
     l_ElapsedTimeEntry[pServerName]["SizeTransferred"] = pSizeTransferred
+    l_ElapsedTimeEntry[pServerName]["NumberOfConnections"] = 0
 
     l_ElapsedTimeEntry[pServerName]["connections"] = {}
-    addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred)
+    addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred)
 
     return
 
-def addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, pSizeTransferred):
-    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]["servers"][pServerName]["connections"]
+def addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred):
+    l_ElapsedTimeServerEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]["jobStepIds"][pJobStepId]["servers"][pServerName]
+    l_ElapsedTimeServerEntry["NumberOfConnections"] += 1
 
+    l_ElapsedTimeEntry = l_ElapsedTimeServerEntry["connections"]
     l_ElapsedTimeEntry[pConnection] = {}
     l_ElapsedTimeEntry[pConnection]["StartDateTime"] = (pLogDate, pLogTime)
     l_ElapsedTimeEntry[pConnection]["EndDateTime"] = (pLogDate, pLogTime)
+    l_ElapsedTimeEntry[pConnection]["ElapsedTime (secs)"] = float(cmn.calculateTimeDifferenceInSeconds(l_ElapsedTimeEntry[pConnection]["EndDateTime"], l_ElapsedTimeEntry[pConnection]["StartDateTime"]))
     l_ElapsedTimeEntry[pConnection]["SizeTransferred"] = pSizeTransferred
 
     return
@@ -132,17 +150,18 @@ def ContribIdCompletion(pCtx, pData, *pArgs):
     l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]
     if "JobId" in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
         l_JobId = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["JobId"]
+        if "JobStepId" in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
+            l_JobStepId = pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]["JobStepId"]
+            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["EndDateTime"]) == 1:
+                l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["EndDateTime"] = (pLogDate, pLogTime)
+            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["EndDateTime"]) == 1:
+                l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["EndDateTime"] = (pLogDate, pLogTime)
+            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["connections"][pConnection]["EndDateTime"]) == 1:
+                l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["connections"][pConnection]["EndDateTime"] = (pLogDate, pLogTime)
 
-        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["EndDateTime"]) == 1:
-            l_ElapsedTimeEntry["jobIds"][l_JobId]["EndDateTime"] = (pLogDate, pLogTime)
-        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["EndDateTime"]) == 1:
-            l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["EndDateTime"] = (pLogDate, pLogTime)
-        if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["connections"][pConnection]["EndDateTime"]) == 1:
-            l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["connections"][pConnection]["EndDateTime"] = (pLogDate, pLogTime)
-
-        l_ElapsedTimeEntry["jobIds"][l_JobId]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
-        l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
-        l_ElapsedTimeEntry["jobIds"][l_JobId]["servers"][pServerName]["connections"][pConnection]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+            l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+            l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+            l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["connections"][pConnection]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
     else:
         print "JobId was not found for handle %d, connection %s, LVUuid %s, contribid %d.  Related transfer rate(s) will not be accurate."
 
@@ -181,23 +200,26 @@ def StartTransfer(pCtx, pData, *pArgs):
     l_StartTransferEntry["Restart"] = pRestart
 
     # If necessary, add to the elapsed time data
-    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]
+    l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"]
     l_SizeTransferred = 0
-    if pJobId not in l_ElapsedTimeEntry["jobIds"]:
-        addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+    if pJobId not in l_ElapsedTimeEntry:
+        addJobIdData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, l_SizeTransferred)
     else:
-        if cmn.compareTimes((pLogDate,pLogTime), l_ElapsedTimeEntry["jobIds"][pJobId]["StartDateTime"]) == -1:
-            l_ElapsedTimeEntry["jobIds"][pJobId]["StartDateTime"] = (pLogDate,pLogTime)
-        if pServerName not in l_ElapsedTimeEntry["jobIds"][pJobId]["servers"]:
-            addServerData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+        l_ElapsedTimeEntry = pCtx["ElapsedTimeData"]["jobIds"][pJobId]["jobStepIds"]
+        if pJobStepId not in l_ElapsedTimeEntry:
+            addJobStepIdData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, l_SizeTransferred)
+        if cmn.compareTimes((pLogDate,pLogTime), l_ElapsedTimeEntry[pJobStepId]["StartDateTime"]) == -1:
+            l_ElapsedTimeEntry[pJobStepId]["StartDateTime"] = (pLogDate,pLogTime)
+        if pServerName not in l_ElapsedTimeEntry[pJobStepId]["servers"]:
+            addServerData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, l_SizeTransferred)
         else:
-            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][pJobId]["servers"][pServerName]["StartDateTime"]) == -1:
-                l_ElapsedTimeEntry["jobIds"][pJobId]["servers"][pServerName]["StartDateTime"] = (pLogDate, pLogTime)
-            if pConnection not in l_ElapsedTimeEntry["jobIds"][pJobId]["servers"][pServerName]["connections"]:
-                addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pServerName, pConnection, l_SizeTransferred)
+            if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["StartDateTime"]) == -1:
+                l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["StartDateTime"] = (pLogDate, pLogTime)
+            if pConnection not in l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["connections"]:
+                addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, l_SizeTransferred)
             else:
-                if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry["jobIds"][pJobId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"]) == -1:
-                    l_ElapsedTimeEntry["jobIds"][pJobId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"] = (pLogDate, pLogTime)
+                if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"]) == -1:
+                    l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"] = (pLogDate, pLogTime)
 
     return
 
@@ -234,6 +256,13 @@ def Warning(pCtx, pData, *pArgs):
 
     return
 
+def DiskStat(pCtx, pData, *pArgs):
+    pServerName, pLogDate, pLogTime, pDiskStatData = pArgs[0]
+    l_ErrorEntry = pData["DiskStats"]
+    l_ErrorEntry[pLogTime] = pDiskStatData
+
+    return
+
 Handle = None
 Connection = None
 ConnectionIP = None
@@ -265,14 +294,18 @@ SEARCHES = (
      (3, 4, 5, 6, 0),
      (str, str, int, str, str, str, str,),
      HandleCompletion),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::error\s+\|\s+(.*)"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::error\s*\|\s*(.+)"),
      (0, 0, 0, 0, 0),
      (str, str, str,),
      Error),
-    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::warning\s+\|\s+(.*)"),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*bb::warning\s*\|\s*(.+)"),
      (0, 0, 0, 0, 0),
      (str, str, str,),
      Warning),
+    (re.compile("(\d+-\d+-\d+)\s+(\d+:\d+:\d+.\d+).*DISKSTAT:\s*(.+)"),
+     (0, 0, 0, 0, 0),
+     (str, str, str,),
+     DiskStat),
     (re.compile("(.*>>>>>\s+Start:\s+WRKQMGR\s+Work\s+Queue\s+Mgr\s+\(Not\s+an\s+error\s+-\s+Timer\s+Interval\)\s+<<<<<)"),
      (0, 0, 0, 0, 0),
      (str,),
@@ -287,6 +320,12 @@ OLDLOGS = re.compile("oldlogs")
 TRAILING_LOGNUMBER = re.compile("\d+\.log\d+")
 
 WORK_QUEUE_MGR_DATA = re.compile("Throttle\s+Mode:|Last\s+Queue\s+Processed:|Async\s+Seq#:|Number\s+of\s+Workqueue\s+Entries:|LVKey\(None,[f-]+\),\s+Job\s+\d+|LVKey\([a-z0-9.]+\s+\([0-9.]+\),[a-z0-9-]+\),\s+Job\s+\d+")
+
+INDEX_OF_START_DUMP_WORK_QUEUE_MGR_SEARCH = 0
+for l_Search in SEARCHES:
+    if len(l_Search[2]) == 1:
+        break
+    INDEX_OF_START_DUMP_WORK_QUEUE_MGR_SEARCH += 1
 
 # Establishes environmental values in the context, overriding defaults with command line options
 def getOptions(pCtx, pArgs):
@@ -386,7 +425,7 @@ def processLine(pCtx, pServerName, pData, pLine):
         l_Success = WORK_QUEUE_MGR_DATA.search(pLine)
         if l_Success:
             # WorkQueueMgr dump in progress...  Treat as 'StartDumpWorkQueueMgr'
-            l_Search = SEARCHES[6]
+            l_Search = SEARCHES[INDEX_OF_START_DUMP_WORK_QUEUE_MGR_SEARCH]
             l_DoProcessLine = True
             l_ArgsIsEntireLine = True
 
@@ -476,6 +515,7 @@ def walkPaths(pCtx, pPath):
                 for l_SubDir in l_SubDirs:
                     if l_SubDir != pCtx["OUTPUT_DIRECTORY_NAME"]:
                         l_Data[l_SubDir] = {}
+                        l_Data[l_SubDir]["DiskStats"] = {}
                         l_Data[l_SubDir]["Errors"] = {}
                         l_Data[l_SubDir]["Warnings"] = {}
                         l_Data[l_SubDir]["Handles"] = {}

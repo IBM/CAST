@@ -2852,10 +2852,11 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
         uint64_t numserials          = ((txp::AttrPtr_array_of_char_arrays*)msg->retrieveAttrs()->at(txp::knownSerials))->getNumberOfElementsArrayOfCharArrays();
         txp::CharArray* knownSerials = (txp::CharArray*)msg->retrieveAttrs()->at(txp::knownSerials)->getDataPtr();
 
-        string connectionKey =  string((char*)(msg->retrieveAttrs()->at(txp::connectionKey)->getDataPtr()));
+        string connectionKey = string((char*)(msg->retrieveAttrs()->at(txp::connectionKey)->getDataPtr()));
 
-        for(uint64_t x=0; x<numserials; x++)
+        for (uint64_t x=0; x<numserials; x++)
         {
+            int l_TookException = false;
             try
             {
                 getDeviceBySerial((*knownSerials)[x].second);
@@ -2863,13 +2864,27 @@ void msgin_hello(txp::Id id, const string& pConnectionName,  txp::Msg* msg)
             }
             catch(exception& e)
             {
-                int nCrc=nvmfConnectPath( (*knownSerials)[x].second, connectionKey);
-                if (nCrc)
+                l_TookException = true;
+                if (strncmp(e.what(), "unable to getDeviceBySerial", 27) != 0)
                 {
-                    LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") not available on bbServer.  Telling bbProxy to remove from its list.";
-                    nackSerials_attr.push_back(make_pair((*knownSerials)[x].first, (*knownSerials)[x].second));
+                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
                 }
-
+            }
+            if (l_TookException)
+            {
+                try
+                {
+                    int nCrc = nvmfConnectPath((*knownSerials)[x].second, connectionKey);
+                    if (nCrc)
+                    {
+                        LOG(bb,info) << "Serial (" << (*knownSerials)[x].second << ") not available on bbServer.  Telling bbProxy to remove from its list.";
+                        nackSerials_attr.push_back(make_pair((*knownSerials)[x].first, (*knownSerials)[x].second));
+                    }
+                }
+                catch(exception& e)
+                {
+                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+                }
             }
         }
     }
