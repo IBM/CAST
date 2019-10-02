@@ -1779,7 +1779,10 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
     catch(exception& e)
     {
         LOG(bb,warning) << "sendTransferProgressMsg(): Exception thrown: " << e.what();
-        assert(strlen(e.what())==0);
+        if (strlen(e.what()) != 0)
+        {
+            endOnError();
+        }
     }
 
     delete l_Progress;

@@ -392,7 +392,6 @@ void msgin_createdirectory(txp::Id id, const string& pConnectionName, txp::Msg* 
         newpathname = (const char*)msg->retrieveAttrs()->at(txp::newpathname)->getDataPtr();
         bberror << err("in.parms.path", newpathname);
 
-
         // Switch to the uid/gid of requester.
         switchIds();
 
@@ -942,7 +941,7 @@ void msgin_getvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         {
 	        if (!bbconnectionName.size())
 	        {
-	            stringstream errorText;
+                stringstream errorText;
 	            rc = ENOTCONN;
 	            errorText << "NULL connection name";
                 LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
@@ -1021,7 +1020,8 @@ void msgin_setvar(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         // Other variables are used for test purposes and stored in a file at the path specified
         // in the configuration file.
         if (strstr(l_Variable, "jobid"))
-        {   uint64_t value = stoull(l_Value);
+        {
+            uint64_t value = stoull(l_Value);
             rc = setJobId(pConnectionName, value);
             LOG(bb,debug) << "SetVar: Variable: " << l_Variable << " = " << l_Value;
         }
@@ -4539,10 +4539,10 @@ void msgin_closeserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         else
         {
 #if 0
-        //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
-        //        requires that the restart of transfer definitions if performed before the resume for
-        //        the hostname.  All I/O activity for any files being serviced by the 'old server'
-        //        will be complete by the time the close is issued.
+            //  NOTE: We no longer delay prior to closing a non-active connection.  The restart logic now
+            //        requires that the restart of transfer definitions if performed before the resume for
+            //        the hostname.  All I/O activity for any files being serviced by the 'old server'
+            //        will be complete by the time the close is issued.
             //  NOTE:  We wait up to 2 minutes for the fh map to become empty so that all file closes are
             //         first processed from the 'old' server.  In the case of cancel/stop, we want to process
             //         all closes for those transfer definitions before the connection is closed.  Otherwise,
