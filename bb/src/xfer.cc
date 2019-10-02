@@ -2098,6 +2098,7 @@ void* transferWorker(void* ptr)
             bool l_WorkRemains = true;
             bool l_SuspendedWorkRemains = false;
             bool l_ProcessNextWorkItem = false;
+            bool l_LastWorkItemRemoved = false;
 
             if (wrkqmgr.findWork((LVKey*)0, l_WrkQE) == 1)
             {
@@ -2162,8 +2163,15 @@ void* transferWorker(void* ptr)
                                 }
                                 if (l_RemoveWorkItem)
                                 {
-                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem, l_LastWorkItemRemoved);
+                                    if (l_LastWorkItemRemoved)
+                                    {
+                                        // Last work item was removed above...  The work item has now been processed
+                                        // so add to the accumulated time that is kept in the work queue entry.
+                                        l_WrkQE->addToAccumulatedTime();
+                                    }
                                     wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                                    l_Extent = 0;
                                 }
                             }
 
@@ -2313,7 +2321,7 @@ void* transferWorker(void* ptr)
                         //       This is regardless of whether the current work item could be
                         //       successfully processed by transferExtent() or not.
                         l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-                        wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                        wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem, l_LastWorkItemRemoved);
 
                         // Indicate transfer queue lock can be released
                         setWorkItemCriticalSection(0);
@@ -2335,6 +2343,16 @@ void* transferWorker(void* ptr)
                             // Process the async request
 //                            LOG(bb,info) << "transferWorker: Invoke processAsyncRequest()";
                             processAsyncRequest(l_WorkItem);
+                        }
+                        // NOTE: The transfer queue lock may be been released when processing
+                        //       the work item above.  Therefore, if this was the last work item
+                        //       on the queue when it was removed from the work queue, we need
+                        //       to re-check to make sure that there have no added work items since.
+                        //       If the work queue is still empty, add to the accumulative time
+                        //       that is kept in the work queue entry.
+                        if (l_LastWorkItemRemoved && (!l_WrkQE->getWrkQ_Size()))
+                        {
+                            l_WrkQE->addToAccumulatedTime();
                         }
                         wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
                         l_Repost = false;

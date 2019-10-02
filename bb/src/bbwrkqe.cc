@@ -26,9 +26,18 @@
 
 void WRKQE::addToAccumulatedTime()
 {
-    BB_GetTimeDifference(currentStartTime);
-    accumulatedTime += currentStartTime;
-    currentStartTime = 0;
+    // NOTE: It is possible with multiple threads when thread A is
+    //       processing the last work item, additional work items are
+    //       enqueued, dequeued, and processed by other threads.
+    //       In this case, when thread A is finished with it's work item,
+    //       currentStartTime will already be zero and the appropriate
+    //       accumulated time will have already been calculated.
+    if (currentStartTime)
+    {
+        BB_GetTimeDifference(currentStartTime);
+        accumulatedTime += currentStartTime;
+        currentStartTime = 0;
+    }
 
     return;
 }
@@ -54,8 +63,14 @@ void WRKQE::addWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
 
     incrementNumberOfWorkItems();
 
-    // If the first item in the queue, capture the current clock
-    if (getWrkQ_Size() == 1)
+    // If the first item in the queue and we have not captured the
+    // current clock, do so now.
+    // NOTE: The currentStartTime can be non-zero with this being
+    //       the only work item on the queue.  Another thread could be
+    //       processsing what was the last entry, had removed the work
+    //       item, but the currentStartTime isn't zeroed until processing
+    //       for the work item is complete.
+    if (getWrkQ_Size() == 1 && (!currentStartTime))
     {
         BB_GetTime(currentStartTime);
     }
@@ -202,8 +217,8 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
 
             double l_TotalTime = calcTotalAccumulatedTime();
             char l_Temp[64] = {'\0'};
-            snprintf(l_Temp, sizeof(l_Temp), "%.3f", l_TotalTime);
-            l_Output2 = l_Output2 + ", Time " + string(l_Temp);
+            snprintf(l_Temp, sizeof(l_Temp), "%.6f", l_TotalTime);
+            l_Output2 = l_Output2 + ", Time " + string(l_Temp) + (currentStartTime ? "+" : "");
 
             if (!strcmp(pSev,"debug"))
             {
@@ -440,7 +455,7 @@ double WRKQE::processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo)
     return l_Delay;
 }
 
-void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
+void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue, bool& pLastWorkItemRemoved)
 {
     // NOTE: Unless we are debugging a problem, pValidateQueue always comes in as false.
     //       Therefore, we never hit the endOnError() below in production...
@@ -460,11 +475,12 @@ void WRKQE::removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue)
     pWorkItem = wrkq->front();
     wrkq->pop();
 
-    // If the queue is now empty, add to the accumulated time
-    if (!getWrkQ_Size())
-    {
-        addToAccumulatedTime();
-    }
+    // If the queue is now empty, indicate that back to our invoker.
+    // NOTE: We do not update the accumulated time here, as we want to
+    //       include the time it takes to process this last work item.
+    //       The accumulated time will be updated in transferWorker()
+    //       after this work item is processed.
+    pLastWorkItemRemoved = (getWrkQ_Size() ? false : true);
 
     return;
 };
