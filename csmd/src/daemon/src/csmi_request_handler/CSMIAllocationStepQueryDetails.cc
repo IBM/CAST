@@ -343,7 +343,11 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     std::unique_lock<std::mutex>dataLock = ctx->GetUserData<OUTPUT_STRUCT*>(&output);
 
     int32_t step_count = tuples.size();
+    int32_t num_records_of_unique_steps = tuples.size();
+    int32_t num_records_of_steps = output->num_steps;
     printf("hi.\n");
+    printf("output->num_steps: %i\n", output->num_steps);
+    printf("step_count: %i\n", step_count);
     // This assumes a 1:1 parity between the first and second queries, some checks are made to ensure this.
     if ( step_count > 0  && output->num_steps == step_count )
     {
@@ -381,8 +385,16 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     }else if(step_count > 0  && output->num_steps > step_count)
     {
         //This is the edge case from the issue 770 
+
+        //edge case of a situation that will never happen in production
+        // the following code will prevent a seg fault but also display all the records returned from the database.
+        // best of both worlds
+        // doesnt hold records back from customer (duplicate steps on an allocation -- ie, 2 step #1s in the history table)
+        // doesnt seg fault
         printf("hello 2.\n");
         printf("output->num_steps: %i\n", output->num_steps);
+        printf("num_records_of_unique_steps: %i\n", num_records_of_unique_steps);
+        printf("num_records_of_steps: %i\n", num_records_of_steps);
         printf("step_count: %i\n", step_count);
 
         //set num steps  equal to the step count
@@ -393,7 +405,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
         printf("step_count: %i\n", step_count);
 
         // loop i for the unique number of steps found
-        for (int32_t i = 0; i < step_count; ++i)
+        for (int32_t i = 0; i < num_records_of_unique_steps; ++i)
         {
             printf("i: %i\n", i);
             csm::db::DBTuple * const & fields = tuples[i];
@@ -401,13 +413,14 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
             
             // Aggregate the nodes.
             int64_t step_id = strtoll(fields->data[0], nullptr, 10);
+            //record number
             int32_t num_nodes = output->steps[i]->num_nodes;
             printf("step_id: %li\n", step_id);
             printf("num_nodes: %i\n", num_nodes);
 
             int32_t j = 0;
             //loop j for the total number of steps found, non unique
-            for(j = 0; j < output->num_steps; j++)
+            for(j = 0; j < num_records_of_steps; j++)
             {
                 printf("j: %i\n", j);
                 printf("step_id: %li\n", step_id);
@@ -416,10 +429,11 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 if (step_id == output->steps[j]->step_id && num_nodes > 0)
                 {
                     printf("match. \n");
-                    char** nodes = (char**)malloc( sizeof(char*) * output->steps[i]->num_nodes );
+                    char** nodes = (char**)malloc( sizeof(char*) * output->steps[j]->num_nodes );
 
                     int32_t node = 0;
                     char *saveptr;
+                    //names of the nodes
                     char *nodeStr = strtok_r(fields->data[1], ",", &saveptr);
 
                     while ( nodeStr != NULL && node < num_nodes )
@@ -431,7 +445,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                     {
                         nodes[i++] = strdup("N/A");
                     }
-                    output->steps[i]->compute_nodes = nodes;
+                    output->steps[j]->compute_nodes = nodes;
                 }
             }
 
