@@ -268,6 +268,13 @@ enum RETURN_REMOVED_JOBIDS_INDICATOR
 };
 typedef enum RETURN_REMOVED_JOBIDS_INDICATOR RETURN_REMOVED_JOBIDS_INDICATOR;
 
+enum VALIDATION_OPTION
+{
+    DO_NOT_PERFORM_VALIDATION = 0,
+    PERFORM_VALIDATION        = 1
+};
+typedef enum VALIDATION_OPTION VALIDATION_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/

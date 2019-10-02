@@ -1096,9 +1096,9 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
         // Resolve the job, jobstep, and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1208,7 +1208,7 @@ void msgin_createlogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         // Resolve the job, jobstep, and contribid identifiers
         if (bbconnectionName.size())
         {
-            jobid = getJobId(bbconnectionName);
+            jobid = getJobId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1488,8 +1488,8 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         // Resolve the job and jobstep identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -1505,7 +1505,7 @@ void msgin_gettransferhandle(txp::Id id, const string& pConnectionName, txp::Msg
         if (!l_Contrib) {
             l_UseDefaultContrib = true;
             l_NumContrib = 1;
-            l_ContribId = getContribId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
             l_Contrib = &l_ContribId;
         }
 
@@ -1672,7 +1672,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
             switchIds();
 
             // Resolve the contribid value
-            l_ContribId = getContribId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
 
             LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
 
@@ -1822,8 +1822,8 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the job and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2084,8 +2084,8 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the job and jobstep identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2225,7 +2225,7 @@ void msgin_removejobinfo(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Resolve the jobid
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -2326,7 +2326,7 @@ void msgin_removelogicalvolume(txp::Id id, const string& pConnectionName, txp::M
         // Resolve the contribid
         if (bbconnectionName.size())
         {
-            contribid = getContribId(bbconnectionName);
+            contribid = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {
@@ -3220,9 +3220,9 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
         // Resolve the jobid, jobstepid, and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName);
-            l_JobStepId = getJobStepId(bbconnectionName);
-            l_ContribId = getContribId(bbconnectionName);
+            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
         }
         else
         {

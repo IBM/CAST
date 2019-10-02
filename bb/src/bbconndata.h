@@ -26,13 +26,17 @@ class Conndata {
   uint64_t _jobID;
   uint64_t _jobStepID;
 
+  void validateContribId();
+  void validateJobId();
+  void validateJobStepId();
+
   Conndata(){_contribID=UNDEFINED_CONTRIBID; _jobID=UNDEFINED_JOBID; _jobStepID=UNDEFINED_JOBSTEPID;}
 };
 
 
-uint32_t getContribId(const std::string& pConnectionName);
-uint64_t getJobId(const std::string& pConnectionName);
-uint64_t getJobStepId(const std::string& pConnectionName);
+uint32_t getContribId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption=DO_NOT_PERFORM_VALIDATION);
+uint64_t getJobId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption=DO_NOT_PERFORM_VALIDATION);
+uint64_t getJobStepId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption=DO_NOT_PERFORM_VALIDATION);
 
 int setContribId(const std::string& pConnectionName, uint32_t pValue);
 int setJobId(const std::string& pConnectionName, uint64_t pValue);
