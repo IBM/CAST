@@ -478,7 +478,9 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
         printf("step_count: %i\n", step_count);
 
         // loop i for the unique number of steps found
-        for (int32_t i = 0; i < num_records_of_unique_steps; ++i)
+
+        //actually a change here.... only loong for num of steps found that match
+        for (int32_t i = 0; i < num_records_of_steps; ++i)
         {
             printf("i: %i\n", i);
             csm::db::DBTuple * const & fields = tuples[i];
