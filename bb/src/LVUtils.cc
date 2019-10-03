@@ -2925,22 +2925,29 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
         FileHandleRegistryLock();
 
-        for(unsigned int index=0; index<transfer->files.size(); index++)
+        for (unsigned int index=0; index<transfer->files.size(); index++)
         {
             LOOP_COUNT(__FILE__,__FUNCTION__,"released_handles");
-            filehandle* fh;
-            if(!removeFilehandle(fh, pJobId, pHandle, pContribId, index))
+            try
             {
-                string l_FileName = fh->getfn();
-                LOG(bb,info) << "Releasing filehandle '" << l_FileName << "'";
-                int rc2 = fh->release(BBFILE_FAILED);
-                if (rc2)
+                filehandle* fh;
+                if (!removeFilehandle(fh, pJobId, pHandle, pContribId, index))
                 {
-                    errorText << "Releasing the filehandle " << l_FileName << " failed, rc " << rc2;
-                    LOG_ERROR_TEXT(errorText);
+                    string l_FileName = fh->getfn();
+                    LOG(bb,info) << "Releasing filehandle '" << l_FileName << "'";
+                    int rc2 = fh->release(BBFILE_FAILED);
+                    if (rc2)
+                    {
+                        errorText << "Releasing the filehandle " << l_FileName << " failed, rc " << rc2;
+                        LOG_ERROR_TEXT(errorText);
+                    }
+                    delete fh;
+                    fh = NULL;
                 }
-                delete fh;
-                fh = NULL;
+            }
+            catch(exception& e)
+            {
+                LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
             }
         }
 

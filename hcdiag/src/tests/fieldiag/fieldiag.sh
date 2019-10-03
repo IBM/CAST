@@ -89,8 +89,8 @@ function release_gpu()
   done  
 
   # let's stop the daemons
-  stop_dcgm
-  stop_nvidia_persistenced
+  systemctl stop dcgm
+  systemctl stop nvdia-persistenced
   sleep 1
 }
 

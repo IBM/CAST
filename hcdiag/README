@@ -13,22 +13,8 @@
 #
 #================================================================================
 
-Coral Diagnostic PRPQ NOTES:
+Coral Diagnostic NOTES:
 
-- dgemm test
-  dgemm Diag test invokes Spectrum mpi script: 
-     /opt/ibm/spectrum_mpi/healthcheck/dgemm/run.dgemm
-  Please read /opt/ibm/spectrum_mpi/healthcheck/dgemm/README.dgemm file and 
-  make the necessary modifications.
+To install only Diagnostic, invoke simple-install from this directory.
 
-- dgemm-gpu test
-  dgemm-gpu Diag test invokes Spectrum mpi script: 
-     /opt/ibm/spectrum_mpi/healthcheck/dgemm/run.dgemm_gpu
-  Please read /opt/ibm/spectrum_mpi/healthcheck/dgemm_gpu/README.dgemm_gpu file  
-  and make the necessary modifications.
-
-
-- fieldiag test
-  fieldiag Diag test invokes NVIDIA fieldiag test. Currently it does not 
-  support Volta. The test will FAIL.
-  
+For Diagnostic documentation: doc/CSM-1.5.0-dCSM-1.5.0-Diagnostic.pdf

@@ -137,7 +137,7 @@ void verifyInit(const bool pExpectedValue)
         if (!pExpectedValue)
         {
             rc = EBUSY;     //exists--already initialized
-            errorText << "BB_InitLibrary() must not be called multiple times";
+            errorText << "ProcessId " << ProcessId << ": BB_InitLibrary() must not be called multiple times";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
     }
@@ -146,7 +146,7 @@ void verifyInit(const bool pExpectedValue)
         if (pExpectedValue)
         {
             rc = ENODEV;
-            errorText << "BB_InitLibrary() must be called before any other burst buffer APIs";
+            errorText << "ProcessId " << ProcessId << ": BB_InitLibrary() must be called before any other burst buffer APIs";
             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
         }
     }
@@ -264,33 +264,44 @@ int BB_TerminateLibrary()
 {
     /// \todo graceful connection close?
     int rc = 0;
-    if(CRuntimeInitialized == false)
+    stringstream errorText;
+
+    if (CRuntimeInitialized == true)
     {
-        return -1;
+        pthread_mutex_lock(&lockLibraryDone);
+        if (initLibraryDone)
+        {
+            try
+            {
+                // Verify connection exists
+	            rc = ENODEV;        // Connection does not exist if initialization has not been invoked
+	            verifyInit(true);   // Throws bailout if connection does not exist
+	            rc = 0;
+                cleanupAllConnections();
+                initLibraryDone = 0;
+            }
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
+            {
+	            rc = -1;
+	            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+            }
+        }
+        else
+        {
+            rc = EALREADY;
+            errorText << "Library was never initialized";
+            LOG_ERROR_TEXT_ERRNO(errorText, rc);
+        }
+        pthread_mutex_unlock(&lockLibraryDone);
+    }
+    else
+    {
+        rc = -1;
+        errorText << "CRuntime not initialized";
+        LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
-    pthread_mutex_lock(&lockLibraryDone);
-    if (initLibraryDone)
-    {
-      try
-      {
-  	// Verify initialization
-	rc = ENODEV;
-	verifyInit(true);
-        cleanupAllConnections();
-	rc = 0;
-        initLibraryDone=0;
-      }
-      catch(ExceptionBailout& e) { }
-      catch(exception& e)
-      {
-	rc = -1;
-	LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-      }
-    }
-    else rc=EALREADY;
-
-    pthread_mutex_unlock(&lockLibraryDone);
     return rc;
 }
 

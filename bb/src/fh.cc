@@ -325,17 +325,17 @@ int removeFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t 
 
 filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
     fd(-1),
-    filename(fn),
-    openErrno(0)
+    filename(fn)
 {
     memset((void*)&(statinfo), 0, sizeof(statinfo));
-    privateData = NULL;
     extlookup = NULL;
     fd_oflags = oflag;
     numWritesNoSync = 0;
     totalSizeWritesNoSync = 0;
     isdevzero = false;
     restartInProgress = false;
+    privateData = NULL;
+    openErrno = 0;
 
     LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=0" << std::oct << mode << std::dec;
 
@@ -399,6 +399,9 @@ void filehandle::dump(const char* pSev, const char* pPrefix) {
         LOG(bb,debug) << "      numWritesNoSync: " << numWritesNoSync;
         LOG(bb,debug) << "totalSizeWritesNoSync: " << totalSizeWritesNoSync;
         LOG(bb,debug) << "            isdevzero: " << isdevzero;
+        LOG(bb,debug) << "    restartInProgress: " << restartInProgress;
+        LOG(bb,debug) << "          privateData: " << "0x" << hex << uppercase << setfill('0') << privateData << setfill(' ') << nouppercase << dec;
+        LOG(bb,debug) << "            openErrno: " << openErrno;
         LOG(bb,debug) << " End: " << (pPrefix ? pPrefix : "filehandle");
     } else if (!strcmp(pSev,"info")) {
         LOG(bb,info) << "Start: " << (pPrefix ? pPrefix : "filehandle");
@@ -410,6 +413,9 @@ void filehandle::dump(const char* pSev, const char* pPrefix) {
         LOG(bb,info) << "      numWritesNoSync: " << numWritesNoSync;
         LOG(bb,info) << "totalSizeWritesNoSync: " << totalSizeWritesNoSync;
         LOG(bb,info) << "            isdevzero: " << isdevzero;
+        LOG(bb,info) << "    restartInProgress: " << restartInProgress;
+        LOG(bb,info) << "          privateData: " << "0x" << hex << uppercase << setfill('0') << privateData << setfill(' ') << nouppercase << dec;
+        LOG(bb,info) << "            openErrno: " << openErrno;
         LOG(bb,info) << "  End: " << (pPrefix ? pPrefix : "filehandle");
     }
 
@@ -707,7 +713,13 @@ public:
             LOG(bb,debug) << "Closing /dev/export_layout device fd=" << fh->getfd() << ", exlo=" << exlo;
             FL_Write(FLExtents, ExportClose, "Closing /dev/export_layout device.  fd=%ld  exlo=%ld", fh->getfd(), exlo, 0, 0);
             LOG(bb,debug) << "Closing complete for /dev/export_layout device fd=" << fh->getfd() << ", exlo=" << exlo;
+            if (fetched)
+            {
+                release(BBFILE_FAILED); // NOTE: Only if the extent layout still exists will the file's
+                                        //       final status be considered as BBFILE_FAILED
+            }
             close(exlo);
+            exlo = 0;
         }
     };
 
@@ -740,30 +752,34 @@ public:
 
     virtual int release(BBFILESTATUS completion_status)
     {
-        int rc;
+        int rc = 0;
         struct export_layout_transfer_finalize finalize;
         LOG(bb,debug) << "Releasing the file fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
         FL_Write(FLExtents, ExportRelease, "Releasing the file fd=%ld, exlo=%ld  status=%ld", fh->getfd(), exlo, 0, (int)completion_status);
-        if(exlo > 0)
+        if(exlo > 0 && fetched)
         {
+            fetched = false;
             finalize.status = (completion_status == BBFILE_SUCCESS ? 0 : -1);
             TrackSyscall nowTrack(TrackSyscall::finalizeexlayout, fh->getfd() , __LINE__);
             rc = ioctl(exlo, EXPORT_LAYOUT_IOC_TRANSFER_FINALIZE, &finalize);
             nowTrack.clearTrack();
-            if (rc < 0 && completion_status == BBFILE_SUCCESS)
+            if (!rc)
             {
-                // NOTE: Only throw the runtime error if we think everything is OK up to this FINALIZE.
-                //       Otherwise, we will instead report any prior failure...
-                throw runtime_error(string("ioctl FINALIZE failed.  errno=") + to_string(errno));
+                LOG(bb,debug) << "Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
+            }
+            else
+            {
+                stringstream errorText;
+                errorText << "ioctl FINALIZE failed.";
+                LOG_ERROR_TEXT_ERRNO(errorText, errno);
             }
         }
-        LOG(bb,debug) << "Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
 
-        return 0;
+        return rc;
     }
 };
 
-int   filehandle::release(BBFILESTATUS completion_status)
+int filehandle::release(BBFILESTATUS completion_status)
 {
     int rc = 0;
     if(extlookup)
@@ -773,7 +789,6 @@ int   filehandle::release(BBFILESTATUS completion_status)
 
     return rc;
 }
-
 
 int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, vector<Extent>& result)
 {

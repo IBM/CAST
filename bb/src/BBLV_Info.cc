@@ -738,7 +738,10 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     catch(exception& e)
     {
         LOG(bb,warning) << "Exception thrown when attempting to send completion for contributor " << pContribId << ": " << e.what();
-        assert(strlen(e.what())==0);
+        if (strlen(e.what()) != 0)
+        {
+            endOnError();
+        }
     }
 
     delete l_Complete;
@@ -889,7 +892,10 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     {
         rc = -1;
         LOG(bb,warning) << "Exception thrown when attempting to send completion for file " << pTransferDef->files[pExtentInfo.getSourceIndex()] << ": " << e.what();
-        assert(strlen(e.what())==0);
+        if (strlen(e.what()) != 0)
+        {
+            endOnError();
+        }
     }
 
     lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");

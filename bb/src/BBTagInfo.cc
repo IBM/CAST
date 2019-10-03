@@ -1006,7 +1006,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         if (rc2)
         {
             rc = rc2;
-            bberror << bailout;
+            SET_RC_AND_BAIL(rc);
         }
 
         if (l_UpdateHandleStatus)

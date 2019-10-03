@@ -315,30 +315,6 @@ class WRKQMGR
         return (pOffset < MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 0 : 1);
     }
 
-    inline void decrementNumberOfConcurrentCancelRequests()
-    {
-        --numberOfConcurrentCancelRequests;
-        if (numberOfConcurrentCancelRequests > 999999)
-        {
-            LOG(bb,error) << "decrementNumberOfConcurrentCancelRequests(): numberOfConcurrentCancelRequests is out of range with a value of " << numberOfConcurrentCancelRequests;
-            endOnError();
-        }
-
-        return;
-    }
-
-    inline void decrementNumberOfConcurrentHPRequests()
-    {
-        --numberOfConcurrentHPRequests;
-        if (numberOfConcurrentHPRequests > 999999)
-        {
-            LOG(bb,error) << "decrementNumberOfConcurrentHPRequests(): numberOfConcurrentHPRequests is out of range with a value of " << numberOfConcurrentHPRequests;
-            endOnError();
-        }
-
-        return;
-    }
-
     inline int delayMessageSent()
     {
         return delayMsgSent;
@@ -631,6 +607,8 @@ class WRKQMGR
     int checkLoggingLevel(const char* pSev);
     void checkThrottleTimer();
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
+    void decrementNumberOfConcurrentCancelRequests();
+    void decrementNumberOfConcurrentHPRequests();
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);
     void dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPostfix);
     void endProcessingHP_Request(AsyncRequest& pRequest);
@@ -657,7 +635,7 @@ class WRKQMGR
     void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
     void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
-    void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem);
+    void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved);
     int rmvWrkQ(const LVKey* pLVKey);
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);

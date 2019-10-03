@@ -265,7 +265,7 @@ class WRKQE
     void loadBucket();
     void lock(const LVKey* pLVKey, const char* pMethod);
     double processBucket(BBTagID& pTagId, ExtentInfo& pExtentInfo);
-    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    void removeWorkItem(WorkID& pWorkItem, const bool pValidateQueue, bool& pLastWorkItemRemoved);
     void setIssuingWorkItem(const int pValue);
     void unlock(const LVKey* pLVKey, const char* pMethod);
 

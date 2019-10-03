@@ -1779,7 +1779,10 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
     catch(exception& e)
     {
         LOG(bb,warning) << "sendTransferProgressMsg(): Exception thrown: " << e.what();
-        assert(strlen(e.what())==0);
+        if (strlen(e.what()) != 0)
+        {
+            endOnError();
+        }
     }
 
     delete l_Progress;
@@ -2097,6 +2100,7 @@ void* transferWorker(void* ptr)
             bool l_WorkRemains = true;
             bool l_SuspendedWorkRemains = false;
             bool l_ProcessNextWorkItem = false;
+            bool l_LastWorkItemRemoved = false;
 
             if (wrkqmgr.findWork((LVKey*)0, l_WrkQE) == 1)
             {
@@ -2161,8 +2165,15 @@ void* transferWorker(void* ptr)
                                 }
                                 if (l_RemoveWorkItem)
                                 {
-                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem, l_LastWorkItemRemoved);
+                                    if (l_LastWorkItemRemoved)
+                                    {
+                                        // Last work item was removed above...  The work item has now been processed
+                                        // so add to the accumulated time that is kept in the work queue entry.
+                                        l_WrkQE->addToAccumulatedTime();
+                                    }
                                     wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                                    l_Extent = 0;
                                 }
                             }
 
@@ -2312,7 +2323,7 @@ void* transferWorker(void* ptr)
                         //       This is regardless of whether the current work item could be
                         //       successfully processed by transferExtent() or not.
                         l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-                        wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                        wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem, l_LastWorkItemRemoved);
 
                         // Indicate transfer queue lock can be released
                         setWorkItemCriticalSection(0);
@@ -2334,6 +2345,16 @@ void* transferWorker(void* ptr)
                             // Process the async request
 //                            LOG(bb,info) << "transferWorker: Invoke processAsyncRequest()";
                             processAsyncRequest(l_WorkItem);
+                        }
+                        // NOTE: The transfer queue lock may be been released when processing
+                        //       the work item above.  Therefore, if this was the last work item
+                        //       on the queue when it was removed from the work queue, we need
+                        //       to re-check to make sure that there have no added work items since.
+                        //       If the work queue is still empty, add to the accumulative time
+                        //       that is kept in the work queue entry.
+                        if (l_LastWorkItemRemoved && (!l_WrkQE->getWrkQ_Size()))
+                        {
+                            l_WrkQE->addToAccumulatedTime();
                         }
                         wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
                         l_Repost = false;
@@ -2714,7 +2735,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                         if (rc)
                         {
                             errorText << "queueTagInfo: Failure from addTransferDef() for TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") for contribid " << pContribId << ", rc=" << rc;
-                            LOG_ERROR(errorText);
+                            LOG_ERROR_TEXT_RC(errorText, rc);
                         }
                     }
                     else
@@ -2819,6 +2840,7 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                         rc = -1;
                                         errorText << "On first pass, could not determine if the file with source index " << e.sourceindex << " was stopped for handle " << pHandle << ", contribid " << pContribId << ", TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ".";
                                         LOG_ERROR_TEXT_RC(errorText, rc);
+                                        break;
                                     }
                                 }
                             }
@@ -2881,9 +2903,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                             rc = l_IO->open(pfs_idx, e.flags, pTransferDef->files[pfs_idx], l_Mode);
                                             if (rc)
                                             {
+                                                rc = -1;
                                                 errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
                                                 bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                LOG_ERROR(errorText);
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
                                             l_AlreadyOpened[pfs_idx] = 1;
@@ -2902,9 +2925,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                                     }
                                                     else
                                                     {
+                                                        rc = -1;
                                                         errorText << "Unable to get stats for file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx << ", transfer type PFS_to_SSD";
                                                         bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                        LOG_ERROR(errorText);
+                                                        LOG_ERROR_TEXT_RC(errorText, rc);
                                                         break;
                                                     }
                                                 }
@@ -2922,9 +2946,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                             rc = l_IO->open(pfs_idx, e.flags | BBI_TargetSSD, pTransferDef->files[pfs_idx],l_Mode); //open readonly
                                             if (rc)
                                             {
+                                                rc = -1;
                                                 errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
                                                 bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                LOG_ERROR(errorText);
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
                                             l_AlreadyOpened[pfs_idx] = 1;
@@ -2936,9 +2961,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                                 delete (*pStats)[pfs_idx];
                                                 (*pStats)[pfs_idx]=NULL;
 
+                                                rc = -1;
                                                 errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
                                                 bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                LOG_ERROR(errorText);
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
 
@@ -2954,9 +2980,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                             rc = l_IO->open(pfs_idx, e.flags | BBI_TargetPFS, pTransferDef->files[pfs_idx],l_Mode); //open trunc/creat/wronly
                                             if (rc)
                                             {
+                                                rc = -1;
                                                 errorText << "Unable to open file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
                                                 bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                LOG_ERROR(errorText);
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
                                             l_AlreadyOpened[pfs_idx] = 1;
@@ -2968,9 +2995,10 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                                 delete (*pStats)[pfs_idx];
                                                 (*pStats)[pfs_idx]=NULL;
 
+                                                rc = -1;
                                                 errorText << "Unable to stat file associated with jobid=" << pJob.getJobId() << ", handle=" << pHandle << ", contrib=" << (uint32_t)pContribId << ", index=" << pfs_idx;
                                                 bberror << err("error.caller", __PRETTY_FUNCTION__);
-                                                LOG_ERROR(errorText);
+                                                LOG_ERROR_TEXT_RC(errorText, rc);
                                                 break;
                                             }
 
@@ -3017,38 +3045,45 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                             l_NextSourceIndexToProcess = e.sourceindex + 2;
                         }
 
-                        // All extents have been processed.  If this is a transfer definition built via retrieve,
-                        // perform the last updates to metadata to prepare for the restart.
-                        if (l_TransferDefinitionBuiltViaRetrieve)
+                        if (!rc)
                         {
-                            // bbproxy will skip all source/target file pairs from
-                            // the last pair processed up through the end of the file list...
-                            // NOTE: We have a dependency that bbProxy will always insert extents into
-                            //       the extent vector in ascending sourcefile index order...
-                            while ((size_t)l_NextSourceIndexToProcess < (pTransferDef->files).size())
+                            // All extents have been processed.  If this is a transfer definition built via retrieve,
+                            // perform the last updates to metadata to prepare for the restart.
+                            if (l_TransferDefinitionBuiltViaRetrieve)
                             {
-                                LOG(bb,info) << "bbproxy will not restart the transfer for the source file associated with jobid " \
-                                             << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
-                                             << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
-                                l_NextSourceIndexToProcess += 2;
-                            }
+                                // bbproxy will skip all source/target file pairs from
+                                // the last pair processed up through the end of the file list...
+                                // NOTE: We have a dependency that bbProxy will always insert extents into
+                                //       the extent vector in ascending sourcefile index order...
+                                while ((size_t)l_NextSourceIndexToProcess < (pTransferDef->files).size())
+                                {
+                                    LOG(bb,info) << "bbproxy will not restart the transfer for the source file associated with jobid " \
+                                                 << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", contrib " \
+                                                 << (uint32_t)pContribId << ", source index " << l_NextSourceIndexToProcess << ", transfer type UNKNOWN";
+                                    l_NextSourceIndexToProcess += 2;
+                                }
 
-                            if (l_AtLeastOneFileRestarted)
-                            {
-                                // NOTE: For the third invocation of prepareForRestart(), pass pTransferDef as the 'old' transfer definition.
-                                rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
+                                if (l_AtLeastOneFileRestarted)
+                                {
+                                    // NOTE: For the third invocation of prepareForRestart(), pass pTransferDef as the 'old' transfer definition.
+                                    rc = prepareForRestart(pConnectionName, pLVKey, pLV_Info, pTagInfoMap, l_TagInfo, pHandle, pTagId, pJob, pContribId, pTransferDef, l_OrigInputTransferDef, THIRD_PASS);
+                                }
+                                else
+                                {
+                                    // Indicate to not restart this transfer definition
+                                    rc = 1;
+                                    LOG(bb,info) << "A restart transfer request was made for the transfer definition associated with " << *pLVKey \
+                                                 << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                                 << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
+                                                 << ", however no extents are left to be transferred for any file." \
+                                                 << " A restart for this transfer definition is not necessary.";
+                                    SET_RC(rc);
+                                }
                             }
-                            else
-                            {
-                                // Indicate to not restart this transfer definition
-                                rc = 1;
-                                LOG(bb,info) << "A restart transfer request was made for the transfer definition associated with " << *pLVKey \
-                                             << ", jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                             << ", handle " << pHandle << ", contribid " << (uint32_t)pContribId \
-                                             << ", however no extents are left to be transferred for any file." \
-                                             << " A restart for this transfer definition is not necessary.";
-                                SET_RC(rc);
-                            }
+                        }
+                        else
+                        {
+                            // Error text already filled in
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 ###########################################################
-#     generateErrorsListing.py
+#     generateDiskStatsListing.py
 #
 #     Copyright IBM Corporation 2015,2016. All Rights Reserved
 #
@@ -15,7 +15,11 @@
 import os
 import sys
 
+import re
+
 import common as cmn
+
+AVG_CPU = re.compile("avg-cpu")
 
 # Main routine
 def main(*pArgs):
@@ -36,34 +40,24 @@ def main(*pArgs):
     # Perform the reduction
     l_Servers = cmn.getServers(l_Data)
     for l_Server in l_Servers:
-        l_Output.append("Errors for Server %s%s" % (l_Server, os.linesep))
-        l_Errors = cmn.getErrorsForServer(l_Data, l_Server)
-        l_TimeStamps = l_Errors.keys()
+        l_Output.append("Disk stats for Server %s%s" % (l_Server, os.linesep))
+        l_DiskStats = cmn.getDiskStatsForServer(l_Data, l_Server)
+        l_TimeStamps = l_DiskStats.keys()
         l_TimeStamps.sort()
+        l_NumberOfLeadingLineFeeds = 0
         for l_TimeStamp in l_TimeStamps:
-            l_Output.append("%s:  %s%s" % (l_TimeStamp, l_Errors[l_TimeStamp], os.linesep))
+            l_OptionalLineSep = ""
+            l_Success = AVG_CPU.search(l_DiskStats[l_TimeStamp])
+            if l_Success:
+                if l_NumberOfLeadingLineFeeds != 0:
+                    l_OptionalLineSep = os.linesep
+                l_NumberOfLeadingLineFeeds += 1
+            l_Output.append("%s%s:  %s%s" % (l_OptionalLineSep, l_TimeStamp, l_DiskStats[l_TimeStamp], os.linesep))
         l_Output.append(os.linesep)
     print
 
     # Output the results
-    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Errors.txt")
-    cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
-    print "Results written to %s" % l_PathFileName
-
-    l_Output = []
-    # Perform the reduction
-    l_Servers = cmn.getServers(l_Data)
-    for l_Server in l_Servers:
-        l_Output.append("Warnings for Server %s%s" % (l_Server, os.linesep))
-        l_Warnings = cmn.getWarningsForServer(l_Data, l_Server)
-        l_TimeStamps = l_Warnings.keys()
-        l_TimeStamps.sort()
-        for l_TimeStamp in l_TimeStamps:
-            l_Output.append("%s:  %s%s" % (l_TimeStamp, l_Warnings[l_TimeStamp], os.linesep))
-        l_Output.append(os.linesep)
-
-    # Output the results
-    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Warnings.txt")
+    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "DiskStats.txt")
     cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
     print "Results written to %s" % l_PathFileName
 

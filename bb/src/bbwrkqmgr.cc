@@ -523,6 +523,30 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
     return rc;
 }
 
+void WRKQMGR::decrementNumberOfConcurrentCancelRequests()
+{
+    --numberOfConcurrentCancelRequests;
+    if (numberOfConcurrentCancelRequests > 999999)
+    {
+        LOG(bb,error) << "decrementNumberOfConcurrentCancelRequests(): numberOfConcurrentCancelRequests is out of range with a value of " << numberOfConcurrentCancelRequests;
+        endOnError();
+    }
+
+    return;
+}
+
+void WRKQMGR::decrementNumberOfConcurrentHPRequests()
+{
+    --numberOfConcurrentHPRequests;
+    if (numberOfConcurrentHPRequests > 999999)
+    {
+        LOG(bb,error) << "decrementNumberOfConcurrentHPRequests(): numberOfConcurrentHPRequests is out of range with a value of " << numberOfConcurrentHPRequests;
+        endOnError();
+    }
+
+    return;
+}
+
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
     // NOTE: We early exit based on the logging level because we don't want to 'reset'
     //       dump counters, etc. if the logging facility filters out an entry.
@@ -2044,7 +2068,7 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
     return;
 }
 
-void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
+void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved)
 {
     if (pWrkQE)
     {
@@ -2074,7 +2098,7 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem)
         }
 
         // Remove the work item from the work queue
-        pWrkQE->removeWorkItem(pWorkItem, DO_NOT_VALIDATE_WORK_QUEUE);
+        pWrkQE->removeWorkItem(pWorkItem, DO_NOT_VALIDATE_WORK_QUEUE, pLastWorkItemRemoved);
 
         // Update the last processed work queue in the manager
         setLastQueueProcessed(pWrkQE->getLVKey());
@@ -2139,7 +2163,7 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     {
         rc = -1;
         stringstream errorText;
-        errorText << " Failure when attempting to remove workqueue for " << *pLVKey;
+        errorText << " Failure when attempting to remove workqueue for " << *pLVKey << ". Work queue was not found.";
         dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
     }

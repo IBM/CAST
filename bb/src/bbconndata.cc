@@ -11,18 +11,63 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#include "bbconndata.h"
 #include <map>
 #include <string>
+
+#include "bbconndata.h"
 
 std::map<std::string, Conndata> name2conndata;
 
 pthread_mutex_t conndatalock = PTHREAD_MUTEX_INITIALIZER;
 
-
-
 Conndata badConndata;
 Conndata* badConndataPtr=&badConndata;
+
+
+void Conndata::validateContribId()
+{
+    int rc = 0;
+
+    if (_contribID == NO_CONTRIBID || _contribID == UNDEFINED_CONTRIBID)
+    {
+        rc = -1;
+        stringstream errorText;
+        errorText << "Invalid contribid value.  Value is " << _contribID;
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+
+void Conndata::validateJobId()
+{
+    int rc = 0;
+
+    if (_jobID == UNDEFINED_JOBID)
+    {
+        rc = -1;
+        stringstream errorText;
+        errorText << "Invalid jobid value.  Value is " << _jobID;
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
+
+void Conndata::validateJobStepId()
+{
+    int rc = 0;
+
+    if (_jobStepID == UNDEFINED_JOBSTEPID)
+    {
+        rc = -1;
+        stringstream errorText;
+        errorText << "Invalid jobstepid value.  Value is " << _jobStepID;
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+
+    return;
+}
 
 Conndata& conndataFind(const std::string& name)
 {
@@ -43,27 +88,43 @@ Conndata* conndataFindPtr(const std::string& name)
 }
 
 
-uint32_t getContribId(const std::string& pConnectionName)
+uint32_t getContribId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption)
 {
-  pthread_mutex_lock(&conndatalock);
-  Conndata l_conndata=conndataFind(pConnectionName);  
-  pthread_mutex_unlock(&conndatalock);
-  return l_conndata._contribID;
-}
-uint64_t getJobId(const std::string& pConnectionName)
-{
-  pthread_mutex_lock(&conndatalock);
-  Conndata l_conndata=conndataFind(pConnectionName);
-  pthread_mutex_unlock(&conndatalock);
-  return l_conndata._jobID;
+    pthread_mutex_lock(&conndatalock);
+    Conndata l_conndata=conndataFind(pConnectionName);
+    pthread_mutex_unlock(&conndatalock);
+    if (pValidationOption == PERFORM_VALIDATION)
+    {
+        l_conndata.validateContribId();
+    }
+
+    return l_conndata._contribID;
 }
 
-uint64_t getJobStepId(const std::string& pConnectionName)
+uint64_t getJobId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption)
 {
-  pthread_mutex_lock(&conndatalock);
-  Conndata l_conndata=conndataFind(pConnectionName);
-  pthread_mutex_unlock(&conndatalock);
-  return l_conndata._jobStepID;
+    pthread_mutex_lock(&conndatalock);
+    Conndata l_conndata=conndataFind(pConnectionName);
+    pthread_mutex_unlock(&conndatalock);
+    if (pValidationOption == PERFORM_VALIDATION)
+    {
+        l_conndata.validateJobId();
+    }
+
+    return l_conndata._jobID;
+}
+
+uint64_t getJobStepId(const std::string& pConnectionName, const VALIDATION_OPTION pValidationOption)
+{
+    pthread_mutex_lock(&conndatalock);
+    Conndata l_conndata=conndataFind(pConnectionName);
+    pthread_mutex_unlock(&conndatalock);
+    if (pValidationOption == PERFORM_VALIDATION)
+    {
+        l_conndata.validateJobStepId();
+    }
+
+    return l_conndata._jobStepID;
 }
 
 int setContribId(const std::string& pConnectionName, uint32_t pValue)
