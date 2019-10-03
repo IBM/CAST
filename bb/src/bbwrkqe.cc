@@ -117,20 +117,20 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
         string l_Output = "Job " + l_JobId;
         string l_Output2 = "";
 
-        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+        if (!this->transferQueueIsLocked())
         {
-            if (HPWrkQE != CurrentWrkQE)
+            if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
             {
-                HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before, not CurrentWrkQE");
+                HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - before");
                 l_HP_TransferQueueUnlocked = 1;
-                l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, not CurrentWrkQE");
-                HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - before, not CurrentWrkQE");
+            }
+            this->lock((LVKey*)0, "WRKQE::dump - before");
+            l_TransferQueueLocked = 1;
+            if (l_HP_TransferQueueUnlocked)
+            {
+                HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - before");
                 l_HP_TransferQueueLocked = 1;
             }
-        }
-        else
-        {
-            l_TransferQueueLocked = lockTransferQueueIfNeeded((LVKey*)0, "WRKQE::dump - before, HPWrkQE not locked");
         }
 
         size_t l_NumberOfWorkItems = getNumberOfWorkItems();
@@ -242,7 +242,7 @@ void WRKQE::dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDI
         if (l_TransferQueueLocked)
         {
             l_TransferQueueLocked = 0;
-            unlockTransferQueue((LVKey*)0, "WRKQE::dump - exit");
+            this->unlock((LVKey*)0, "WRKQE::dump - exit");
         }
         if (l_HP_TransferQueueUnlocked)
         {
