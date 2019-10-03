@@ -38,7 +38,6 @@
 #include "util.h"
 #include "logging.h"
 #include "tstate.h"
-#include "tracksyscall.h"
 
 namespace bfs = boost::filesystem;
 
@@ -375,16 +374,12 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
     if(flatfile)
     {
         LOG(bb,always) << "Reading: " << cmd;
-        TrackSyscall nowTrack(TrackSyscall::Runcommandfopen, cmd.c_str(), __LINE__);
         f = fopen(cmd.c_str(), "r");
-        nowTrack.clearTrack();
     }
     else
     {
         LOG(bb,always) << "Executing: " << cmd;
-        TrackSyscall nowTrack(TrackSyscall::Runcommandpopen, cmd.c_str(), __LINE__);
         f = popen(cmd.c_str(), "r");
-        nowTrack.clearTrack();
     }
 
     if (f)

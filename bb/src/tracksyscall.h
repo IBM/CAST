@@ -17,7 +17,6 @@
 #include <sys/syscall.h>
 #include <iostream>
 #include <string>
-#include <map>
 
 
 #ifndef TRACKSYSCALL_H_
@@ -40,30 +39,17 @@ uint64_t timebase;
 #endif
 
 }
-class TrackSyscall;
-typedef TrackSyscall* TrackSyscallPtr;
-typedef std::pair<pthread_t, TrackSyscallPtr>  pthreadTrackPair;
-extern thread_local TrackSyscallPtr threadLocalTrackSyscallPtr;
-extern void locktidTrackerMutex();
-extern void unlocktidTrackerMutex();
-
-extern std::map<TrackSyscallPtr, TrackSyscallPtr>   pthread_syscalltracker;
-
 
  class TrackSyscall{
-   private:
-      TrackSyscall();
    public:
    enum tracking{nosyscall=0, opensyscall=1, preadsyscall=2, pwritesyscall=3, statsyscall=4,
                  fstatsyscall=5, fsyncsyscall=6, fcntlsyscall=7, openexlayout=8, setupexlayout=9, finalizeexlayout=10,
                  fopensyscall=11, freadsyscall=12, fseeksyscall=13, ftellsyscall=14, fwritesyscall=15,
-                 SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48,
-                 Runcommandfopen=64,Runcommandpopen=65};
+                 SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48};
 
-~TrackSyscall();
-void makeEntry();
-void removeEntry();
-inline TrackSyscall(tracking pSyscall,const std::string& pFilename, int pLineNumber=0)
+     TrackSyscall();
+
+inline uint64_t   nowTrack(tracking pSyscall,const std::string& pFilename, int pLineNumber=0)
    {
     _syscall = pSyscall;
     _fd = -1;
@@ -71,8 +57,9 @@ inline TrackSyscall(tracking pSyscall,const std::string& pFilename, int pLineNum
     _fileName=pFilename;
     _lineNumber = pLineNumber;
     _rasCount = 0;
+    return _timeStamp;
    }
-inline TrackSyscall(tracking pSyscall, int pFd=-1,int pLineNumber=0, uint64_t pSize=0, uint64_t pOffset=0 )
+inline uint64_t nowTrack(tracking pSyscall, int pFd=-1,int pLineNumber=0, uint64_t pSize=0, uint64_t pOffset=0 )
    {
     _syscall = pSyscall;
     _lineNumber = pLineNumber;
@@ -82,8 +69,9 @@ inline TrackSyscall(tracking pSyscall, int pFd=-1,int pLineNumber=0, uint64_t pS
     _fileName.clear();
     _rasCount = 0;
     _timeStamp = timeStamp();
+    return _timeStamp;
    }
-inline TrackSyscall(tracking pSyscall, FILE* pFile=(FILE*)0, int pLineNumber=0, uint64_t pSize=0, uint64_t pOffset=0)
+inline uint64_t nowTrack(tracking pSyscall, FILE* pFile=(FILE*)0, int pLineNumber=0, uint64_t pSize=0, uint64_t pOffset=0)
    {
     _syscall = pSyscall;
     _lineNumber = pLineNumber;
@@ -94,6 +82,7 @@ inline TrackSyscall(tracking pSyscall, FILE* pFile=(FILE*)0, int pLineNumber=0, 
     _fileName.clear();
     _rasCount = 0;
     _timeStamp = timeStamp();
+    return _timeStamp;
    }
 inline void  clearTrack(){
 /*
@@ -111,6 +100,7 @@ inline void  clearTrack(){
    }
 inline bool isClear(){ return  !_timeStamp;}
 
+void reset();
    tracking _syscall;
    int      _lineNumber;
    int      _fd;
@@ -118,10 +108,18 @@ inline bool isClear(){ return  !_timeStamp;}
    uint64_t _size;
    uint64_t _offset;
    uint64_t _timeStamp;
-
+   pthread_t _tid;
    std::string _fileName;
+
+public:
+
+void doRASbberror(const std::string& RASeventID);
 
 };
 
+typedef TrackSyscall* TrackSyscallPtr;
+
+extern TrackSyscallPtr getSysCallTracker();
+extern thread_local TrackSyscallPtr threadLocalTrackSyscallPtr;
 
 #endif /*TRACKSYSCALL_H_*/

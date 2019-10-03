@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    HandleFile.cc
  |
- |  ï¿½ Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -1034,9 +1034,9 @@ int HandleFile::lock(const char* pFilePath)
     uint64_t l_FL_Counter2 = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Open, "open HF, counter=%ld", l_FL_Counter2, 0, 0, 0);
 
-    TrackSyscall nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
     fd = open(l_LockFile, O_WRONLY);
-    nowTrack.clearTrack();
+    threadLocalTrackSyscallPtr->clearTrack();
 
     FL_Write(FLMetaData, HF_Open_End, "open HF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
 
@@ -1049,9 +1049,9 @@ int HandleFile::lock(const char* pFilePath)
         l_LockOptions.l_start = 0;
         l_LockOptions.l_len = 0;    // Lock entire file for writing
         l_LockOptions.l_type = F_WRLCK;
-        TrackSyscall nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
         rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
-        nowTrack.clearTrack();
+        threadLocalTrackSyscallPtr->clearTrack();
     }
 
     switch(rc)
@@ -1251,9 +1251,9 @@ int HandleFile::testForLock(const char* pFilePath)
 
     struct flock l_LockOptions;
 
-    TrackSyscall nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
     fd = open(l_LockFile, O_WRONLY);
-    nowTrack.clearTrack();
+    threadLocalTrackSyscallPtr->clearTrack();
     if (fd >= 0)
     {
         // Test for the entire file lock
@@ -1262,9 +1262,9 @@ int HandleFile::testForLock(const char* pFilePath)
         l_LockOptions.l_start = 0;
         l_LockOptions.l_len = 0;    // Test for lock of entire file for writing
         l_LockOptions.l_type = F_WRLCK;
-        TrackSyscall nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
         rc = ::fcntl(fd, F_GETLK, &l_LockOptions);
-        nowTrack.clearTrack();
+        threadLocalTrackSyscallPtr->clearTrack();
     }
 
     switch(rc)
@@ -1346,9 +1346,9 @@ void HandleFile::unlock(const int pFd)
             l_LockOptions.l_len = 0;    // Unlock entire file
             l_LockOptions.l_type = F_UNLCK;
             LOG(bb,debug) << "unlock(): Issue unlock for handle file fd " << pFd;
-            TrackSyscall nowTrack(TrackSyscall::fcntlsyscall, pFd, __LINE__);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, pFd, __LINE__);
             int rc = ::fcntl(pFd, F_SETLK, &l_LockOptions);
-            nowTrack.clearTrack();
+            threadLocalTrackSyscallPtr->clearTrack();
             if (!rc)
             {
                 // Successful unlock...

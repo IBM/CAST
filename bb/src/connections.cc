@@ -28,9 +28,11 @@
 #include "bbproxy_flightlog.h"
 #include "bbproxyConn2bbserver.h"
 #include "identity.h"
+#include "tracksyscall.h"
 #elif BBSERVER
 #include "bbserver_flightlog.h"
 #include "identity.h"
+#include "tracksyscall.h"
 #elif BBAPI
 #include "bbapi_flightlog.h"
 #endif
@@ -1688,6 +1690,9 @@ void* workerThread(void* ptr)
     threadState* mystate  = new threadState;
     threadState* wu       = NULL;
     bool was_backlog      = false;
+#if (BBSERVER || BBPROXY)
+    threadLocalTrackSyscallPtr = getSysCallTracker();
+#endif
     try
     {
         sem_init(&mystate->workAvailable, 0, 0);

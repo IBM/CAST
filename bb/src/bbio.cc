@@ -102,15 +102,15 @@ int getWriteFdByExtent(Extent* pExtent)
     pthread_mutex_unlock(&ssdWriteFdMutex); //give up the lock in case some other thread needs it
     string l_disk = getDeviceBySerial(pExtent->serial);
     if (!ssdwritedirect){
-      TrackSyscall nowTrack(TrackSyscall::SSDopenwriteNOTdirect, l_disk.c_str(),__LINE__);
+      threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenwriteNOTdirect, l_disk.c_str(),__LINE__);
       fd = ::open(l_disk.c_str(), O_WRONLY);
-      nowTrack.clearTrack();
+      threadLocalTrackSyscallPtr->clearTrack();
       LOG(bb,info) << "OPEN O_WRONLY " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
     }
     else{
-      TrackSyscall nowTrack(TrackSyscall::SSDopenwritedirect, l_disk.c_str(),__LINE__);
+      threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenwritedirect, l_disk.c_str(),__LINE__);
       fd = ::open(l_disk.c_str(), O_WRONLY | O_DIRECT );
-      nowTrack.clearTrack();
+      threadLocalTrackSyscallPtr->clearTrack();
       LOG(bb,info) << "OPEN O_WRONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? (  string(strerror(errno)) +":"+to_string(errno) ) : " ");
     }
 
@@ -159,9 +159,9 @@ int BBIO::getReadFdByExtent(Extent* pExtent)
     LOG(bb,debug) << "Need to open read device by Serial=" <<pExtent->serial<<".  In BBIO::getReadFdByExtent ExtentInfo: "<<*pExtent;
     pthread_mutex_unlock(&ssdReadFdMutex);  //give up the lock in case some other thread needs it
     string l_disk = getDeviceBySerial(pExtent->serial);
-    TrackSyscall nowTrack(TrackSyscall::SSDopenreaddirect, l_disk.c_str(),__LINE__);
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDopenreaddirect, l_disk.c_str(),__LINE__);
     fd = ::open(l_disk.c_str(), O_RDONLY | O_DIRECT);
-    nowTrack.clearTrack();
+    threadLocalTrackSyscallPtr->clearTrack();
     LOG(bb,info) << "OPEN O_RDONLY | O_DIRECT " << l_disk.c_str()<<" fd=" << fd << (fd==-1 ? strerror(errno) : " ");
     if (fd < 0) return fd;
     pthread_mutex_lock(&ssdReadFdMutex);
@@ -248,11 +248,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
 
                         FL_Write(FLXfer, PWRITE_SSD, "Extent %p, writing to SSD.  File descriptor %ld, length %ld at offset 0x%lx", (uint64_t)pExtent, ssd_fd, bytesRead, offset_dst);
 
-                        TrackSyscall nowTrack(TrackSyscall::SSDpwritesyscall, ssd_fd,__LINE__, ssdWriteAdjust(bytesRead),offset_dst);
+                        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpwritesyscall, ssd_fd,__LINE__, ssdWriteAdjust(bytesRead),offset_dst);
                         transferDef->preProcessWrite(l_Time);
                         bytesWritten = ::pwrite(ssd_fd, threadTransferBuffer, ssdWriteAdjust(bytesRead), offset_dst);
                         transferDef->postProcessWrite(pExtent->sourceindex, l_Time);
-                        nowTrack.clearTrack();
+                        threadLocalTrackSyscallPtr->clearTrack();
 
                         if ( __glibc_likely(bytesWritten >= 0) )
                         {
@@ -340,11 +340,11 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
 
                     FL_Write6(FLXfer, PREAD_SSD, "Reading from file descriptor %ld into %p, len=%ld at offset 0x%lx (pre-adjust was len=%ld offset=0x%lx)", ssd_fd, (uint64_t)threadTransferBuffer, ssdReadCount, ssdReadOffset, count, offset_src);
 
-                    TrackSyscall nowTrack(TrackSyscall::SSDpreadsyscall, ssd_fd,__LINE__, ssdReadCount,ssdReadOffset);
+                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpreadsyscall, ssd_fd,__LINE__, ssdReadCount,ssdReadOffset);
                     transferDef->preProcessRead(l_Time);
                     bytesRead = ::pread(ssd_fd, threadTransferBuffer, ssdReadCount, ssdReadOffset);
                     transferDef->postProcessRead(pExtent->sourceindex, l_Time);
-                    nowTrack.clearTrack();
+                    threadLocalTrackSyscallPtr->clearTrack();
 
                     if ( __glibc_likely(bytesRead >= 0) )
                     {
