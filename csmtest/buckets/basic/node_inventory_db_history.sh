@@ -413,7 +413,7 @@ sleep 1
 
 read_db_after
 check_all_tables_no_new_history "Test Case 2"
-check_return_flag $? "Test Case 2: Change the compute node state; confirm no entries are created in the history tables"
+check_return_flag_value $? 0 "Test Case 2: Change the compute node state; confirm no entries are created in the history tables"
 
 rm -f ${TEMP_LOG}
 
@@ -427,7 +427,7 @@ sleep 1
 
 read_db_after
 check_all_tables_no_new_history "Test Case 3"
-check_return_flag $? "Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables"
+check_return_flag_value $? 0 "Test Case 3: Restart the compute daemon; confirm no entries are created in the history tables"
 
 rm -f ${TEMP_LOG}
 

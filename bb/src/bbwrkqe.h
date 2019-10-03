@@ -66,10 +66,12 @@ class WRKQE
         suspended(0),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
-        throttleWait(0),
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
+        suspendedReposts(0),
+        accumulatedTime(0),
+        currentStartTime(0),
         lvinfo(0) {
         init();
     };
@@ -85,10 +87,12 @@ class WRKQE
         suspended(pSuspended),
         transferThreadIsDelaying(0),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_QUEUE_ON_REMOVE_WORK_ITEM),
-        throttleWait(0),
         workQueueReturnedWithNegativeBucket(0),
         numberOfWorkItems(0),
         numberOfWorkItemsProcessed(0),
+        suspendedReposts(0),
+        accumulatedTime(0),
+        currentStartTime(0),
         lvinfo(pLV_Info) {
         init();
     };
@@ -145,9 +149,21 @@ class WRKQE
         return rate;
     };
 
+    inline uint64_t getSuspendedReposts()
+    {
+        return suspendedReposts;
+    };
+
     inline void incrementNumberOfWorkItemsProcessed()
     {
         ++numberOfWorkItemsProcessed;
+
+        return;
+    };
+
+    inline void incrementSuspendedReposts()
+    {
+        ++suspendedReposts;
 
         return;
     };
@@ -200,12 +216,10 @@ class WRKQE
     inline void setRate(const uint64_t pRate)
     {
         rate = pRate;
-        if (!rate)
-        {
-            bucket = 0;
-            throttleWait = 0;
-            workQueueReturnedWithNegativeBucket = 0;
-        }
+        // NOTE:  No matter what the new rate value is,
+        //        we want to reset the bucket value
+        bucket = 0;
+        workQueueReturnedWithNegativeBucket = 0;
 
         return;
     };
@@ -217,12 +231,12 @@ class WRKQE
         return;
     };
 
-    inline void setThrottleWait(const int pValue)
+    inline void setSuspendedReposts(const uint64_t pValue)
     {
-        throttleWait = pValue;
+        suspendedReposts = pValue;
 
         return;
-    }
+    };
 
     inline void setTransferThreadIsDelaying(const int pValue)
     {
@@ -238,11 +252,13 @@ class WRKQE
 
     inline bool workQueueIsAssignable()
     {
-        return (workQueueReturnedWithNegativeBucket ? false : throttleWait ? false : true);
+        return (workQueueReturnedWithNegativeBucket ? false : true);
     }
 
     // Methods
+    void addToAccumulatedTime();
     void addWorkItem(WorkID& pWorkItem, const bool pValidateQueue);
+    double calcTotalAccumulatedTime();
     void dump(const char* pSev, const char* pPrefix, const DUMP_ALL_DATA_INDICATOR pDataInd=DO_NOT_DUMP_ALL_DATA);
     int getIssuingWorkItem();
     uint64_t getNumberOfInFlightExtents();
@@ -267,11 +283,13 @@ class WRKQE
     int                 suspended;
     int                 transferThreadIsDelaying;
     int                 dumpOnRemoveWorkItem;
-    volatile int        throttleWait;               // Access is serialized with the
-                                                    // work queue manager lock
     volatile int        workQueueReturnedWithNegativeBucket;
     uint64_t            numberOfWorkItems;
     uint64_t            numberOfWorkItemsProcessed;
+    uint64_t            suspendedReposts;           // Access is serialized with the
+                                                    // work queue manager lock
+    uint64_t            accumulatedTime;            // in ticks
+    uint64_t            currentStartTime;           // in ticks
     BBLV_Info*          lvinfo;
     queue<WorkID>*      wrkq;
     pthread_mutex_t     lock_transferqueue;

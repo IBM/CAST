@@ -84,6 +84,8 @@ pthread_mutex_t replyWaitersLock = PTHREAD_MUTEX_INITIALIZER;
 typedef map<ResponseDescriptor*, bool> mapResponseDescriptor;
 map<string, mapResponseDescriptor > replyWaiters;
 
+static int activePoll=0;  //control poll loop
+
 void releaseReplyWaiters(const std::string& pName){
     pthread_mutex_lock(&replyWaitersLock);
     {
@@ -614,9 +616,15 @@ std::string cleanupConnection(int pFD)
  */
 void cleanupAllConnections()
 {
+    //exit polling thread
+    activePoll=0;
+    int tmp = 0;
+    write(connection_doorbell[1], &tmp, sizeof(tmp));
+    sem_wait(&connection_sem);
     lockConnectionWrite("cleanupAllConnections");
     {
         lockConnectionMaps("cleanupAllConnections");
+        
         for (auto& iter : connections)
         {
             int fd=iter.first;
@@ -625,9 +633,11 @@ void cleanupAllConnections()
             releaseReplyWaiters(nameRemoved);
             removeFromContribIdMap(pConnection);
             removeFromNameConnectionMaps(pConnection);
-            removeFromConnectionMap(fd); //deletes connection
+
+            delete pConnection;
         }
-        for (auto& iter : name2connections) name2connections.erase(iter.first);
+        connections.clear();
+        name2connections.clear();
         unlockConnectionMaps("cleanupAllConnections");
     }
     unlockConnectionWrite("cleanupAllConnections");
@@ -975,7 +985,19 @@ void waitReplyErase(ResponseDescriptor& reply)
 
 int addReply(txp::Msg* msg, txp::Msg* response_msg)
 {
-    response_msg->addAttribute(msg->retrieveAttrs()->at(txp::responseHandle));
+    if (msg->retrieveAttrs()->find(txp::responseHandle) != msg->retrieveAttrs()->end())
+    {
+        response_msg->addAttribute(msg->retrieveAttrs()->at(txp::responseHandle));
+    }
+    else
+    {
+        // The message didn't have a responseHandle, which means we will never be able to
+        // associate this reply with the original bbProxy request message.  This is most
+        // likely the case where we have different BB levels on bbProxy/bbServer and this
+        // is the initial hello/authenticate handshake.  Do not provide a responseHandle
+        // in the response_msg.
+        LOG(bb,error) << "addReply:  No response handle found in the request message";
+    }
 
     return 0;
 }
@@ -1780,11 +1802,14 @@ void* workerThread(void* ptr)
 
    \param[in] ptr Not used, required by pthread_create calling convention
  */
+
 void* responseThread(void* ptr)
 {
     int rc;
-    while(1)
+    activePoll=1;
+    while(activePoll)
     {
+        lockConnectionMaps("responseThread poll descriptor list");
         unsigned int idx        = 0;
         unsigned int conncount  = connections.size() + 1;
         struct pollfd* pollinfo = (struct pollfd*)malloc(conncount * sizeof(struct pollfd));
@@ -1793,12 +1818,14 @@ void* responseThread(void* ptr)
         pollinfo[idx].events    = POLLIN | POLLERR | POLLHUP | POLLNVAL;
         pollinfo[idx++].revents = 0;
 
+        
         for (map<int,txp::Connex*>::iterator it=connections.begin(); it != connections.end(); ++it)
         {
             pollinfo[idx].fd        = (it->second)->getSockfd();
             pollinfo[idx].events    = POLLIN | POLLERR | POLLHUP | POLLNVAL;
             pollinfo[idx++].revents = 0;
         }
+        unlockConnectionMaps("responseThread poll descriptor list");
 
         rc = poll(pollinfo, conncount, -1);
         if(rc)

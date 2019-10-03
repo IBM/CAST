@@ -23,12 +23,13 @@ extern "C" {
 /**
  * @brief A container for a CSM error, encapsulates the source error code and message.
  */
-typedef struct {
+typedef struct csm_node_error_t csm_node_error_t;
+struct csm_node_error_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int errcode; ///< The error code of this error message. 
     char* errmsg; ///< The error message. 
     char* source; ///< The host reporting the error.
-} csm_node_error_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.
@@ -63,13 +64,14 @@ void init_csm_node_error_t( csm_node_error_t *target );
 /**
  * @brief An internal container for a CSM error, encapsulates the error code, message and error list.
  */
-typedef struct {
+typedef struct csmi_err_t csmi_err_t;
+struct csmi_err_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int errcode; ///< The error code of this error message.
     char* errmsg; ///< The error message.
     uint32_t error_count; ///< A count of errors. 
     csm_node_error_t** node_errors; ///< Collection of errors which occured on nodes.
-} csmi_err_t;
+};
  /**  @brief Serializes the supplied structure into a char buffer.
 *
 * @param[in]  target     The structure to pack into the char buffer.

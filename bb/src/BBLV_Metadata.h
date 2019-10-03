@@ -51,8 +51,8 @@ class BBLV_Metadata
     void cleanUpAll(const uint64_t pJobId);
     void dump(char* pSev, const char* pPrefix=0);
     void ensureStageOutEnded(const LVKey* pLVKey);
+    BBLV_Info* getAnyLV_InfoForUuid(const LVKey* pLVKey) const;
     int getAnyLVKeyForUuidAndJobId(LVKey* &pLVKeyOut, LVKey* &pLVKeyIn, const uint64_t pJobId);
-    BBLV_Info* getAnyTagInfo2ForUuid(const LVKey* pLVKey) const;
     int getInfo(const std::string& pConnectionName, LVKey& pLVKey, BBLV_Info* &pLV_Info, BBTagInfo* &pTagInfo, BBTagID& pTagId, const BBJob pJob, vector<uint32_t>*& pContrib, const uint64_t pHandle, const uint32_t pContribId);
     BBLV_Info* getLV_Info(const LVKey* pLVKey) const;
     int getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, const uint64_t pJobId, const uint32_t pContribId);

@@ -63,7 +63,8 @@ extern const char* csmi_diag_run_status_t_strs [];
 /**
  * @brief Defines a diagnostic run to query in the *csm_diag_run* and *csm_diag_run_history* tables of the CSM Database.
  */
-typedef struct {
+typedef struct csmi_diag_run_t csmi_diag_run_t;
+struct csmi_diag_run_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< Diagnostic run id. */                      
     int64_t allocation_id; /**< Unique identifier of the  allocation that this diagnostic is being run under. */
@@ -74,13 +75,14 @@ typedef struct {
     char* end_time; /**< The end time of the diagnostic run.  @todo Post-PRPQ: overlap with @ref history_time?*/
     char* history_time; /**< Time this entry was inserted into the history table. @todo Post-PRPQ: overlap with @ref end_time?*/      
     char* log_dir; /**< Location of diagnostic log directory. */                            
-} csmi_diag_run_t;
+};
 /**
  * @brief Defines a structure to match an entry in *csm_diag_result_history* table of the CSM Database.
  *
  * @todo Not sure if this brief is 100% correct - John Dunham(jdunham@us.ibm.com)
  */
-typedef struct {
+typedef struct csmi_diag_run_query_details_result_t csmi_diag_run_query_details_result_t;
+struct csmi_diag_run_query_details_result_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< Diagnostic run id. */
     char status[16]; /**< Hardware status after the diagnostic finishes (unknown, failed, marginal, success). @todo Post-PRPQ: Is this correct?*/
@@ -91,23 +93,25 @@ typedef struct {
     char* begin_time; /**< The time when the task began (YYYY-MM-DD HH-MM-SS.MMMMM).*/ 
     char* end_time; /**< The time when the task ended (YYYY-MM-DD HH-MM-SS.MMMMM).*/ 
     char* log_file; /**< Location of diagnostic log file. */ 
-} csmi_diag_run_query_details_result_t;
+};
 /**
  * @brief An input wrapper for @ref csm_diag_run_end.
  * A configuration struct used to end a Diagnostic Run in the *csm_diag_run* table of the CSM database.
  */
-typedef struct {
+typedef struct csm_diag_run_end_input_t csm_diag_run_end_input_t;
+struct csm_diag_run_end_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< Diagnostic run id. */
     char status[16]; /**< Diagnostic status (RUNNING,COMPLETED,CANCELED, COMPLETED_FAIL, FAILED). */
     csm_bool inserted_ras; /**< Inserted diagnostic ras events.  */
-} csm_diag_run_end_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_diag_result_create.
  *
  * Defines a structure to match an entry in the *csm_diag_result* table of the CSM Database.
  */
-typedef struct {
+typedef struct csm_diag_result_create_input_t csm_diag_result_create_input_t;
+struct csm_diag_result_create_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< Diagnostic run id. */
     char status[16]; /**< Hardware status after the diagnostic finishes (PASS, FAIL). @todo Post-PRPQ: Remove fixed width. */
@@ -116,25 +120,27 @@ typedef struct {
     char* serial_number; /**< Serial number of the field replaceable unit (fru) that this diagnostic was run against. */
     char* begin_time; /**< The time when the task began (YYYY-MM-DD HH-MM-SS.MMMMM).*/
     char* log_file; /**< Location of diagnostic log file. */
-} csm_diag_result_create_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_diag_run_begin.
  *
  * A configuration struct used to insert a Diagnostic Run into the *csm_diag_run* table of the CSM database.
  */
-typedef struct {
+typedef struct csm_diag_run_begin_input_t csm_diag_run_begin_input_t;
+struct csm_diag_run_begin_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< Diagnostic run id. */
     int64_t allocation_id; /**< Unique identifier of the  allocation that this diagnostic is being run under. */
     char* cmd_line; /**< How diagnostic program was invoked: program and arguments. */
     char* log_dir; /**< Location of diagnostic log files. */
-} csm_diag_run_begin_input_t;
+};
 /**
  * @brief An input wrapper for @ref csm_diag_run_query.
  *
  * Specifies parameters used to query the *csm_diag_run* and *csm_diag_run_history* tables of the CSM Database.
  */
-typedef struct {
+typedef struct csm_diag_run_query_input_t csm_diag_run_query_input_t;
+struct csm_diag_run_query_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint8_t status; /**< Filter results to only include records that have a matching diagnostic status (NONE=0,CANCELED=1,COMPLETED=2,FAILED=4,RUNNING=8,ALL=15) */
     uint32_t allocation_ids_count; /**< Number of allocations to perform query on, size of @ref allocation_ids.*/
@@ -148,34 +154,37 @@ typedef struct {
     char* end_time_search_end; /**< A time used to filter results of the SQL query and only include records with an end_time at or before (ie: '<=' ) this time. */
     int64_t* allocation_ids; /**< Pointer to an array of int64_t allocation_ids. Filter results to only include records that have a matching allocation id. API will ignore values less than 0. Size defined in @ref allocation_ids_count. */
     int64_t* run_ids; /**< Pointer to an array of int64_t run_ids. Filter results to only include records that have a matching diagnostic run id. API will ignore values less than 1. Size defined in @ref run_ids_count. */
-} csm_diag_run_query_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_diag_run_query.
  *
  * These fields correspond to matching fields in the *csm_diag_run* and *csm_diag_run_history* 
  * tables of the CSM Database.
  */
-typedef struct {
+typedef struct csm_diag_run_query_output_t csm_diag_run_query_output_t;
+struct csm_diag_run_query_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint32_t num_runs; /**< Number of diagnostic runs retrieved, size of @ref runs. */
     csmi_diag_run_t** runs;; /**< A listing of diagnostic runs retrieved, size defined by @ref num_runs.*/
-} csm_diag_run_query_output_t;
+};
 /**
  * @brief An input wrapper for @ref csm_diag_run_query_details.
  */
-typedef struct {
+typedef struct csm_diag_run_query_details_input_t csm_diag_run_query_details_input_t;
+struct csm_diag_run_query_details_input_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     int64_t run_id; /**< A Diagnostic run id to search the database for. */
-} csm_diag_run_query_details_input_t;
+};
 /**
  * @brief A wrapper for the output of @ref csm_diag_run_query_details.
  */
-typedef struct {
+typedef struct csm_diag_run_query_details_output_t csm_diag_run_query_details_output_t;
+struct csm_diag_run_query_details_output_t {
     uint64_t _metadata; /** The number of fields in the struct.*/
     uint64_t num_details; /**< The number of details objects retrieved, size of @ref details.*/
     csmi_diag_run_t* run_data; /**< The diagnostic run data retrieved from the query. */
     csmi_diag_run_query_details_result_t** details; /**< A list of details objects, size defined by @ref num_details. */
-} csm_diag_run_query_details_output_t;
+};
 /** @} */
 
 #ifdef __cplusplus

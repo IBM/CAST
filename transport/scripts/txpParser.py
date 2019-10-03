@@ -380,7 +380,17 @@ def addItems(pResults, pKey, pData):
             pResults[pKey][l_Key] = l_Value
     else:
         for l_Key in pData:
-            pResults[pKey][l_Key] = 0
+            pResults[pKey][l_Key] = set()
+
+    return
+
+
+def addItems2(pResults, pKey, pData):
+    pResults[pKey] = {}
+    l_Index = 1;
+    for l_Key, l_Value in pData.items():
+        pResults[pKey][(l_Index, l_Key)] = l_Value
+        l_Index = l_Index + 1
 
     return
 
@@ -409,11 +419,12 @@ def determineFilesToParse(pFilesToParse):
     #         dictionaries.
     #
 
+    # NOTE: Add new attributes to txpConfig.py, at the end of ATTRIBUTE_NAMES_TO_ADD
     if platform.system() == 'Linux':    # e.g. bgqsn3, bgqsn5,
         # NOTE:  On Linux, CMake sets the environment variables in sub-shells, so they are not set predictable...
         pFilesToParse.append(os.path.normcase(os.path.join('/usr', 'include', 'linux', 'fuse.h')))
         pFilesToParse.append(os.path.normcase(os.path.join(GitTopLevel, 'fshipcld', 'include', 'fshipcld.h')))
-        pFilesToParse.append(os.path.normcase(os.path.join(GitTopLevel, 'bb', 'src', 'messages.h')))
+#        pFilesToParse.append(os.path.normcase(os.path.join(GitTopLevel, 'bb', 'src', 'messages.h')))
     elif platform.system() == 'Darwin': # OSX
         pFilesToParse.append(os.environ.get('FUSE_HEADER'))
         pFilesToParse.append(os.environ.get('FSHIPCLD_HEADER'))
@@ -442,6 +453,11 @@ def genAttributeInclude1(pOutfile, pResults):
                     break
             if l_AttrSupported:
                 pOutfile.append('%scase txp::%s:\n' % (' '*8, clean(l_Name)))
+    if pResults.has_key("NAMES_TO_ADD"):
+        l_Keys = pResults["NAMES_TO_ADD"].keys()
+        l_Keys.sort()
+        for l_Key in l_Keys:
+            pOutfile.append('%scase txp::%s:\n' % (' '*8, l_Key[1]))
     if pResults.has_key("STRUCTS"):
         l_Structs = pResults["STRUCTS"].keys()
         l_Structs.sort()
@@ -467,6 +483,13 @@ def genAttributeInclude2(pOutfile, pResults):
                 pOutfile.append('%scase txp::%s:%s' % (' '*12, clean(l_Name), os.linesep))
                 pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, clean(l_Name)))
                 pOutfile.append('%sbreak;\n' % (' '*16))
+    if pResults.has_key("NAMES_TO_ADD"):
+        l_Keys = pResults["NAMES_TO_ADD"].keys()
+        l_Keys.sort()
+        for l_Key in l_Keys:
+            pOutfile.append('%scase txp::%s:%s' % (' '*12, l_Key[1], os.linesep))
+            pOutfile.append('%sstrCpy(pBuffer, "%s", pSize);\n' % (' '*16, l_Key[1]))
+            pOutfile.append('%sbreak;\n' % (' '*16))
     if pResults.has_key("STRUCTS"):
         l_Structs = pResults["STRUCTS"].keys()
         l_Structs.sort()
@@ -628,7 +651,7 @@ def parseFiles(pFilesToParse, pResults):
     global ID_BEGIN, FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION, FUSE_OPCODE_BEGIN, FUSE_OPCODE_END
     l_RC = 0
 
-    addItems(pResults, "NAMES", cfg.ATTRIBUTE_NAMES_TO_ADD)
+    addItems(pResults, "NAMES", cfg.ATTRIBUTE_NAMES)
     pResults["STRUCTS"] = {}
     for l_File in pFilesToParse:
         if os.path.isfile(l_File):
@@ -666,14 +689,12 @@ def parseFiles(pFilesToParse, pResults):
                                                     print "%36s -> %5d: %s" % ("Continue element", l_LineNo, l_OrgLine[:-1])
                                                     # pprint.pprint(l_Success.groups())
                                                 l_AttrType = l_Success.groups()[0]
-                                                l_AttrName = l_Success.groups()[1]
+                                                l_AttrName = clean(l_Success.groups()[1])
                                                 pResults["STRUCTS"][ID_BEGIN[0][0]]['struct'].append((l_AttrName, l_AttrType))
                                                 if l_AttrName not in cfg.INVALID_FUSE_NAMES:
-                                                    if pResults["NAMES"].has_key(l_AttrName):
-                                                        pResults["NAMES"][l_AttrName].add(l_AttrType)
-                                                    else:
-                                                        pResults["NAMES"][l_Success.groups()[1]] = set()
-                                                        pResults["NAMES"][l_AttrName].add(l_Success.groups()[0])
+                                                    if not pResults["NAMES"].has_key(l_AttrName):
+                                                        pResults["NAMES"][l_AttrName] = set()
+                                                    pResults["NAMES"][l_AttrName].add(l_AttrType)
                                             else:
                                                 if DEBUG:
                                                     print "%36s -> %5d: %s" % ("Skip, not an element", l_LineNo, l_OrgLine[:-1])
@@ -847,10 +868,7 @@ def generateHeaderFile(pResults):
         for l_Line in STATIC_STRUCTURE_DATA_3:
             fOut.write("%s\n" % (l_Line))
 
-        l_Names = []
-        l_Keys = pResults["NAMES"].keys()
-        for l_Key in l_Keys:
-            l_Names.append(clean(l_Key))
+        l_Names = pResults["NAMES"].keys()
         l_Names.sort()
         l_Index = 1
         for l_Name in l_Names:
@@ -862,6 +880,12 @@ def generateHeaderFile(pResults):
             if l_AttrSupported:
                 fOut.write("%s%-22s = %2d,\n" % (" "*4, l_Name, l_Index))
                 l_Index += 1
+
+        if pResults.has_key("NAMES_TO_ADD"):
+            l_Keys = pResults["NAMES_TO_ADD"].keys()
+            l_Keys.sort()
+            for l_Key in l_Keys:
+                fOut.write("%s%-22s = %2d,\n" % (" "*4, l_Key[1], pResults["NAMES_TO_ADD"][l_Key]))
 
         l_Structs = pResults["STRUCTS"].keys()
         l_Structs.sort()
@@ -986,6 +1010,8 @@ def main():
     global SCRIPT_NAME, TRANSPORT_BUILD_PATH, TRANSPORT_BUILD_INCLUDE_PATH, TRANSPORT_BUILD_METADATA_PATH
     global GitTopLevel
 
+    print sys.argv[0], sys.argv[1], sys.argv[2]
+
     SCRIPT_NAME = os.path.basename(os.path.normpath(sys.argv[0]))
 
     # sys.argv[1] is CMAKE_CURRENT_BINARY_DIR
@@ -1003,6 +1029,9 @@ def main():
 
     for l_Key, l_Ids in (("CORAL_IDS",cfg.CORAL_IDS), ("IDS_NOT_VALID",cfg.IDS_NOT_VALID)):
         addItems(l_Results, l_Key, l_Ids)
+
+    for l_Key, l_Ids in (("NAMES_TO_ADD",cfg.ATTRIBUTE_NAMES_TO_ADD),):
+        addItems2(l_Results, l_Key, l_Ids)
 
     l_RC = determineFilesToParse(l_FilesToParse)
     if (l_RC == 0):
@@ -1025,7 +1054,6 @@ def main():
             print "%s - Error returned from parseFiles().  See prior messages." % (SCRIPT_NAME)
     else:
         print "%s - Error returned from determineFilesToParse().  See prior messages." % (SCRIPT_NAME)
-
 
     if l_RC == 0:
         print "%s - Successfully ended." % (SCRIPT_NAME)

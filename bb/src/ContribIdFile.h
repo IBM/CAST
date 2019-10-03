@@ -147,6 +147,7 @@ public:
                 pArchive & hostname;
             }
             break;
+            // Intentionally falling through
 
             case ARCHIVE_CONTRIBID_VERSION_1:
             default:

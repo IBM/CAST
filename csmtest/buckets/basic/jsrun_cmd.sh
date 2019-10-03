@@ -66,7 +66,7 @@ sleep 5
 xdsh ${SINGLE_COMPUTE} "cat /tmp/jsrun_test" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: /tmp/jsrun_test exists on ${SINGLE_COMPUTE}"
 check_all_output "CSM_ALLOCATION_ID=${allocation_id}" "CSM_JSM_ARGS" "cpuset:/allocation_${allocation_id}"
-check_return_flag $? "Test Case 2: Validating jsrun_test file output"
+check_return_flag_value $? 0 "Test Case 2: Validating jsrun_test file output"
 
 # Clean up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1

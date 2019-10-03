@@ -798,7 +798,7 @@ ssize_t csm_net_unix_Send( csm_net_unix_t *aEP,
 
   if( ! csm_net_unix_IsServer( aEP ) )
   {
-    csmutil_logging(trace, "Socket: %d sending %ld @buffer: %p to %s",
+    csmutil_logging(trace, "Socket: %d sending %" PRIu32" @buffer: %p to %s",
                     aEP->_Socket, csm_net_msg_GetDataLen( aMsg ), csm_net_msg_GetHeaderBuffer( aMsg ), aEP->_OtherAddr.sun_path );
     int retry;
     for( retry=CSM_INTERRUPT_RETRY; (retry>0); --retry )
@@ -1199,7 +1199,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
 
         if( msg_len > EPBS->_BufferedDataLen )
         {
-          csmutil_logging( debug, "MESSAGE PROTOCOL Partial msg received. Remaining %d BYTES.", msg_len - EPBS->_BufferedDataLen );
+          csmutil_logging( debug, "MESSAGE PROTOCOL Partial msg received. Remaining %ld BYTES.", msg_len - EPBS->_BufferedDataLen );
           EPBS->_PartialMsg = 1;  // trigger recv next time we loop
           rlen = 0;  // set 0 to stay in loop
           ret = NULL;
@@ -1247,7 +1247,7 @@ csm_net_msg_t * csm_net_unix_RecvMain(
             const char *msgData = csm_net_msg_GetData( ret );
             size_t dataLen = csm_net_msg_GetDataLen( ret );
 
-            csmutil_logging( debug, "Received a STATUS MSG: len=%d, %s", dataLen, msgData );
+            csmutil_logging( debug, "Received a STATUS MSG: len=%ld, %s", dataLen, msgData );
 
             if( csm_net_msg_GetCommandType(ret) == CSM_CMD_STATUS 
                 && ( dataLen == CSM_DISCONNECT_MSG_LEN ) && ( strncmp( CSM_DISCONNECT_MSG, msgData, CSM_DISCONNECT_MSG_LEN ) == 0 ) )

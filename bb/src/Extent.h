@@ -200,6 +200,14 @@ class Extent
         RETURN_FLAG(BBI_CP_Transfer);
     }
 
+    inline int isFirstExtent() {
+        RETURN_FLAG(BBI_First_Extent);
+    }
+
+    inline int isLastExtent() {
+        RETURN_FLAG(BBI_Last_Extent);
+    }
+
     inline int isRegularExtent() {
         return (BBTransferTypeFromFlags(flags) == BBTransferTypeRegular) ? 1 : 0;
     }

@@ -310,6 +310,21 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     return rc;
 }
 
+void WRKQMGR::calcLastWorkQueueWithEntries()
+{
+    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
+    {
+        if (qe->second != HPWrkQE && qe->second->getWrkQ_Size())
+        {
+            // Update the last work with entries
+            setLastQueueWithEntries(qe->first);
+            break;
+        }
+    }
+
+    return;
+}
+
 void WRKQMGR::calcThrottleMode()
 {
     int l_LocalMetadataUnlockedInd = 0;
@@ -411,6 +426,24 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
     return l_CurrentNumber + l_NumberAdded;
 }
 
+int WRKQMGR::checkLoggingLevel(const char* pSev)
+{
+    int rc = 1;
+
+    // Simplistic logging level check for early exit for dump() methods...
+    // NOTE: Currently, pSev can only come in as "info" or "debug"
+    string l_Sev = string(pSev);
+    if (((loggingLevel == "info") && (l_Sev == "debug")) ||
+        (loggingLevel == "off") ||
+        (loggingLevel == "disable"))
+    {
+        rc = 0;
+    }
+
+    return rc;
+};
+
+
 void WRKQMGR::checkThrottleTimer()
 {
     HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
@@ -493,175 +526,176 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
 void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOption) {
     // NOTE: We early exit based on the logging level because we don't want to 'reset'
     //       dump counters, etc. if the logging facility filters out an entry.
-
-    int l_TransferQueueUnlocked = 0;
-    int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueMgrLocked = 0;
-    int l_HP_TransferQueueUnlocked = 0;
-
-    if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
+    if (wrkqmgr.checkLoggingLevel(pSev))
     {
-        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
-        l_HP_TransferQueueUnlocked = 1;
-    }
-    if (!workQueueMgrIsLocked())
-    {
-        l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before lock of WRKQMGR");
-        lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
-        l_WorkQueueMgrLocked = 1;
-    }
-
-    if (pSev == loggingLevel)
-    {
-        const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
-        char* l_PostfixStr = const_cast<char*>(pPostfix);
-
-        if (allowDump)
+        int l_TransferQueueUnlocked = 0;
+        int l_LocalMetadataUnlockedInd = 0;
+        int l_WorkQueueMgrLocked = 0;
+        int l_HP_TransferQueueUnlocked = 0;
+        if (HPWrkQE && HPWrkQE->transferQueueIsLocked())
         {
-            if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
+            HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump - start");
+            l_HP_TransferQueueUnlocked = 1;
+        }
+        if (!workQueueMgrIsLocked())
+        {
+            l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "WRKQMGR::dump - before lock of WRKQMGR");
+            lockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - start", &l_LocalMetadataUnlockedInd);
+            l_WorkQueueMgrLocked = 1;
+        }
+
+        if (pSev == loggingLevel)
+        {
+            const char* l_PostfixOverride = " Work Queue Mgr (Not an error - Skip Interval)";
+            char* l_PostfixStr = const_cast<char*>(pPostfix);
+
+            if (allowDump)
             {
-                bool l_DumpIt = false;
-                if (pDumpOption != DUMP_UNCONDITIONALLY)
+                if (pDumpOption == DUMP_UNCONDITIONALLY || pDumpOption == DUMP_ALWAYS || inThrottleMode())
                 {
-                    if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                    bool l_DumpIt = false;
+                    if (pDumpOption != DUMP_UNCONDITIONALLY)
                     {
-                        l_DumpIt = true;
+                        if (numberOfWorkQueueItemsProcessed != lastDumpedNumberOfWorkQueueItemsProcessed)
+                        {
+                            l_DumpIt = true;
+                        }
+                        else
+                        {
+                            if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
+                            {
+                                l_DumpIt = true;
+                                l_PostfixStr = const_cast<char*>(l_PostfixOverride);
+                            }
+                        }
                     }
                     else
                     {
-                        if (numberOfAllowedSkippedDumpRequests && numberOfSkippedDumpRequests >= numberOfAllowedSkippedDumpRequests)
-                        {
-                            l_DumpIt = true;
-                            l_PostfixStr = const_cast<char*>(l_PostfixOverride);
-                        }
+                        l_DumpIt = true;
                     }
-                }
-                else
-                {
-                    l_DumpIt = true;
-                }
 
-                if (HPWrkQE && l_DumpIt)
-                {
-                    HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
-
-                    stringstream l_OffsetStr;
-                    if (outOfOrderOffsets.size())
+                    if (HPWrkQE && l_DumpIt)
                     {
-                        // Build an output stream for the out of order async request offsets...
-                        l_OffsetStr << "(";
-                        size_t l_NumberOfOffsets = outOfOrderOffsets.size();
-                        for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump");
+
+                        stringstream l_OffsetStr;
+                        if (outOfOrderOffsets.size())
                         {
-                            if (i!=l_NumberOfOffsets-1) {
-                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
-                            } else {
-                                l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                            // Build an output stream for the out of order async request offsets...
+                            l_OffsetStr << "(";
+                            size_t l_NumberOfOffsets = outOfOrderOffsets.size();
+                            for(size_t i=0; i<l_NumberOfOffsets; ++i)
+                            {
+                                if (i!=l_NumberOfOffsets-1) {
+                                    l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec << ",";
+                                } else {
+                                    l_OffsetStr << hex << uppercase << setfill('0') << outOfOrderOffsets[i] << setfill(' ') << nouppercase << dec;
+                                }
                             }
+                            l_OffsetStr << ")";
                         }
-                        l_OffsetStr << ")";
-                    }
 
-                    int l_CheckForCanceledExtents = checkForCanceledExtents;
-                    if (!strcmp(pSev,"debug"))
+                        int l_CheckForCanceledExtents = checkForCanceledExtents;
+                        if (!strcmp(pSev,"debug"))
+                        {
+                            LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                            LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                            LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                          << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                            if (numberOfConcurrentCancelRequests)
+                            {
+                                LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                            }
+                            if (numberOfConcurrentHPRequests)
+                            {
+                                LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
+                            }
+//                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                            LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                            LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                          << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                          << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                            if (outOfOrderOffsets.size())
+                            {
+                                LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                            }
+                            LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                            for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
+                            {
+                                qe->second->dump(pSev, "          ");
+                            }
+
+                            LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        }
+                        else if (!strcmp(pSev,"info"))
+                        {
+                            LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
+//                            LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
+                            LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
+                                         << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
+                            if (numberOfConcurrentCancelRequests)
+                            {
+                                LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
+                            }
+                            if (numberOfConcurrentHPRequests)
+                            {
+                                LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
+                            }
+//                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
+//                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
+                            LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
+                            LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                                         << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
+                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                            if (outOfOrderOffsets.size())
+                            {
+                                LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
+                            }
+                            LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
+
+                            for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
+                            {
+                                qe->second->dump(pSev, "          ");
+                            }
+
+                            LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        }
+
+                        HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
+
+                        lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
+                        numberOfSkippedDumpRequests = 0;
+                        dumpTimerCount = 0;
+                    }
+                    else
                     {
-                        LOG(bb,debug) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                        LOG(bb,debug) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                      << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (l_CheckForCanceledExtents)
-                        {
-                            LOG(bb,debug) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
-                        }
-                        if (numberOfConcurrentHPRequests)
-                        {
-                            LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
-                        }
-//                        LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                        LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                        LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
-//                        LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                        LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                        LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                      << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                      << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
-                        if (outOfOrderOffsets.size())
-                        {
-                            LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                        }
-                        LOG(bb,debug) << "   Number of Workqueue Entries: " << wrkqs.size();
-
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
-                        {
-                            qe->second->dump(pSev, "          ");
-                        }
-
-                        LOG(bb,debug) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
+                        // Not dumped...
+                        ++numberOfSkippedDumpRequests;
                     }
-                    else if (!strcmp(pSev,"info"))
-                    {
-                        LOG(bb,info) << ">>>>> Start: WRKQMGR" << l_PostfixStr << " <<<<<";
-//                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  TransferQueue Locked: " << (transferQueueLocked ? "true" : "false");
-                        LOG(bb,info) << "                 Throttle Mode: " << (throttleMode ? "true" : "false") << "  Number of Workqueue Items Processed: " << numberOfWorkQueueItemsProcessed \
-                                     << "  Check Canceled Extents: " << (l_CheckForCanceledExtents ? "true" : "false") << "  Snoozing: " << (Throttle_Timer.isSnoozing() ? "true" : "false");
-                        if (l_CheckForCanceledExtents)
-                        {
-                            LOG(bb,info) << "      ConcurrentCancelRequests: " << numberOfConcurrentCancelRequests << "  AllowedConcurrentCancelRequests: " << numberOfAllowedConcurrentCancelRequests;
-                        }
-                        if (numberOfConcurrentHPRequests)
-                        {
-                            LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
-                        }
-//                        LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                        LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                        LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
-//                        LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
-                        LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                        LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
-                                     << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                     << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
-                        if (outOfOrderOffsets.size())
-                        {
-                            LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
-                        }
-                        LOG(bb,info) << "   Number of Workqueue Entries: " << wrkqs.size();
-
-                        for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
-                        {
-                            qe->second->dump(pSev, "          ");
-                        }
-
-                        LOG(bb,info) << ">>>>>   End: WRKQMGR" << l_PostfixStr << " <<<<<";
-                    }
-
-                    HPWrkQE->unlock((LVKey*)0, "WRKQMGR::dump");
-
-                    lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
-                    numberOfSkippedDumpRequests = 0;
-                    dumpTimerCount = 0;
-                }
-                else
-                {
-                    // Not dumped...
-                    ++numberOfSkippedDumpRequests;
                 }
             }
         }
-    }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
-    }
-    if (l_TransferQueueUnlocked)
-    {
-        lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
-    }
-    if (l_HP_TransferQueueUnlocked)
-    {
-        HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
+        if (l_WorkQueueMgrLocked)
+        {
+            unlockWorkQueueMgr((LVKey*)0, "WRKQMGR::dump - end", &l_LocalMetadataUnlockedInd);
+        }
+        if (l_TransferQueueUnlocked)
+        {
+            lockTransferQueue((LVKey*)0, "WRKQMGR::dump - end");
+        }
+        if (l_HP_TransferQueueUnlocked)
+        {
+            HPWrkQE->lock((LVKey*)0, "WRKQMGR::dump - end");
+        }
     }
 
     return;
@@ -855,6 +889,8 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
 {
     int rc = 0;
     pWrkQE = 0;
+    bool l_LogAsyncActivity = false;
+    string l_NextHP_WorkCommand = "";
 
     if (pLVKey)
     {
@@ -874,44 +910,79 @@ int WRKQMGR::findWork(const LVKey* pLVKey, WRKQE* &pWrkQE)
         if (getCheckForCanceledExtents())
         {
             // Search for any LVKey work queue with a canceled extent at the front...
-            rc = getWrkQE_WithCanceledExtents(pWrkQE);
+            getWrkQE_WithCanceledExtents(pWrkQE);
         }
 
-        if (!rc)
+        if (!pWrkQE)
         {
-            if (!pWrkQE)
+            // No work queue exists with canceled extents.
+            // Next, check the high priority work queue...
+            if (HPWrkQE->getWrkQ()->size())
             {
-                // No work queue exists with canceled extents.
-                // Next, check the high priority work queue...
-                // NOTE: If we have high priority work items available and we have reached the maximum number of concurrent
-                //       cancel requests, we don't check the contents of the next high priority work item.
-                //       We 'assume' that it is a cancel request and wait until at least one additional thread is not
-                //       working on a cancel request before dequeuing that high priority work item.
-                //       Also, for this case, we are guaranteed to have work on one or more LVKey work queues.
-                if (HPWrkQE->getWrkQ()->size() &&
-                    getNumberOfConcurrentCancelRequests() < getNumberOfAllowedConcurrentCancelRequests() &&
-                    getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
+                if (getNumberOfConcurrentHPRequests() < getNumberOfAllowedConcurrentHPRequests())
                 {
-                    // High priority work exists...  Pass the high priority queue back...
-                    pWrkQE = HPWrkQE;
+                    if (getNumberOfConcurrentCancelRequests() >= getNumberOfAllowedConcurrentCancelRequests())
+                    {
+                        // Maximum number of concurrent cancel/stoprequest operations already being processed
+                        l_NextHP_WorkCommand = peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front());
+                        if (l_NextHP_WorkCommand != "cancel" && l_NextHP_WorkCommand != "stoprequest")
+                        {
+                            // High priority work exists...  Pass the high priority queue back...
+                            pWrkQE = HPWrkQE;
+                            rc = 1;
+                        }
+                        else
+                        {
+                            // Next HP request is another cancel/stoprequest
+                            l_LogAsyncActivity = true;
+                        }
+                    }
+                    else
+                    {
+                        // High priority work exists...  Pass the high priority queue back...
+                        pWrkQE = HPWrkQE;
+                        rc = 1;
+                    }
                 }
                 else
                 {
-                    // No high priorty work exists that we want to schedule.
-                    // Find 'real' work on one of the LVKey work queues...
-                    rc = getWrkQE((LVKey*)0, pWrkQE);
+                    // Maximum number of concurrent async requests already being processed
+                    l_LogAsyncActivity = true;
                 }
             }
-            else
+
+            if (!pWrkQE)
             {
-                // Currently, rc will always be returned as zero by getWrkQE_WithCanceledExtents().
-                // If we get here, at least one work queue has canceled extents...
+                // No high priority work exists that we want to schedule.
+                // Find 'real' work on one of the LVKey work queues...
+                rc = getWrkQE((LVKey*)0, pWrkQE);
+
+                // If we did not find any work that we wanted to return, but
+                // work exists on the HP work queue, return 1.
+                // NOTE:  Even if pWrkQE is not set by getWrkQE(),
+                //        if any work did exist, rc is set to 1.
+                if ((rc != 1) && HPWrkQE->getWrkQ()->size())
+                {
+                    rc = 1;
+                }
             }
         }
         else
         {
-            // Can't get here today...
+            // Work queue exists with canceled extents.
+            // Return that work queue...
+            rc = 1;
         }
+    }
+
+    if (l_LogAsyncActivity && g_LogAllAsyncRequestActivity)
+    {
+        LOG(bb,info) << "AsyncRequest -> findWork(): Skipping HP queue work. getNumberOfConcurrentHPRequests() = " << getNumberOfConcurrentHPRequests() \
+                     << ", getNumberOfAllowedConcurrentHPRequests() = " << getNumberOfAllowedConcurrentHPRequests() \
+                     << ", getNumberOfConcurrentCancelRequests() = " << getNumberOfConcurrentCancelRequests() \
+                     << ", getNumberOfAllowedConcurrentCancelRequests() = " << getNumberOfAllowedConcurrentCancelRequests() \
+                     << ", peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) = " << peekAtNextAsyncRequest(HPWrkQE->getWrkQ()->front()) \
+                     << ", rc = " << rc;
     }
 
     return rc;
@@ -1115,15 +1186,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       this routine without any remaining work queue entries for a given work queue, for a workqueue that
     //       no longer exists, or where there are no existing work queues.
     //
-    //       In these cases, pWorkQE is always returned as NULL.  If ANY work queue exists with at least
-    //       one entry, rc is returned as zero.  If no entry exists on any work queue
-    //       (except for the high priority work queue), rc is returned as -1.
+    //       In these cases, pWrkQE is always returned as NULL.  If ANY work queue exists with at least
+    //       one entry, rc is returned as 1.  If no entry exists on any work queue,
+    //       (except for the high priority work queue), rc is returned as 0.
     //
-    //       A zero return code indicates that even if a work queue entry was not found, a repost should
-    //       be performed to the semaphore.  A return code of -1 indicates that a repost is not necessary.
+    //       A 1 return code indicates that even if a work queue entry was not found, a repost should
+    //       be performed to the semaphore.  A return code of 0 indicates that a repost is not necessary.
     //
     // NOTE: Suspended work queues are returned by this method.  The reason for this is that an entry can
-    //       still be removed from a suspended work queue if the extent is for a canceled transfer definition.
+    //       still be removed from a suspended work queue if the extent(s) exist for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
@@ -1264,6 +1335,7 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
 //                                LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, next after last returned";
                             }
                         }
+                        rc = 1;
                     }
 
                     if ((!l_SelectNext) && qe->first == lastQueueProcessed)
@@ -1280,10 +1352,6 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                 // NOTE: We don't update the last queue processed here because our invoker may choose to not take action on our returned
                 //       data.  The last queue processed is updated just before an item of work is removed from a queue.
                 pWrkQE = l_WrkQE;
-                if (pWrkQE->getRate() > 0)
-                {
-                    pWrkQE->setThrottleWait(1);
-                }
                 if ((!l_RecalculateLastQueueWithEntries) && (!l_EarlyExit))
                 {
                     l_RecalculateLastQueueWithEntries = true;
@@ -1292,33 +1360,22 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             else
             {
                 // WRKQMGR::getWrkQE(): No extents left on any workqueue
-                rc = -1;
-//                LOG(bb,info) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
+                LOG(bb,debug) << "WRKQMGR::getWrkQE(): No extents left on any workqueue";
             }
         }
         else
         {
             // WRKQMGR::getWrkQE(): No workqueue entries exist
-            rc = -1;
-//            LOG(bb,info) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
+            LOG(bb,debug) << "WRKQMGR::getWrkQE(): No workqueue entries exist";
         }
 
-        if (!rc)
+        if (rc == 1)
         {
             if (pWrkQE)
             {
                 if (l_RecalculateLastQueueWithEntries && (l_BucketValue >= 0))
                 {
-                    for (map<LVKey,WRKQE*>::reverse_iterator qe = wrkqs.rbegin(); qe != wrkqs.rend(); ++qe)
-                    {
-                        if (qe->second->getWrkQ_Size())
-                        {
-                            // Update the last work with entries
-                            setLastQueueWithEntries(qe->first);
-                            break;
-                        }
-                    }
-//                    LOG(bb,info) << "WRKQMGR::getWrkQE(): Recalculated lastQueueWithEntries to " << lastQueueWithEntries;
+                    calcLastWorkQueueWithEntries();
                 }
 #if 0
                 if (l_BucketValue >= 0)
@@ -1347,13 +1404,15 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
             // NOTE: In this path since a specific LVKey was passed, we do not interrogate the
             //       rate/bucket values.  We simply return the work queue associated with the LVKey.
             pWrkQE = it->second;
+            rc = 1;
         }
         else
         {
             // WRKQMGR::getWrkQE(): Workqueue no longer exists
             //
-            // NOTE: rc is returned as a zero in this case.  We do not know if
-            //       any other workqueue has an entry...
+            // NOTE: rc is returned as a zero in this case.  We are not concerned about
+            //       other work queues in this path.  We return 0 if the requested work
+            //       queue cannot be found.
             LOG(bb,info) << "WRKQMGR::getWrkQE(): Workqueue for " << *pLVKey << " no longer exists";
             dump("info", " Work Queue Mgr (Specific workqueue not found)", DUMP_ALWAYS);
         }
@@ -1372,35 +1431,68 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     return rc;
 }
 
-int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
+void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 {
-    int rc = 0;
     LVKey l_Key;
     BBLV_Info* l_LV_Info = 0;
 
     pWrkQE = 0;
     if (wrkqs.size() > 1)
     {
+        bool l_SelectNext = false;
+        bool l_RecalculateLastQueueWithEntries = (lastQueueWithEntries == LVKey_Null ? true : false);
         for (map<LVKey,WRKQE*>::iterator qe = wrkqs.begin(); qe != wrkqs.end(); ++qe)
         {
             // For each of the work queues...
+            if (qe->first == lastQueueWithEntries)
+            {
+                l_RecalculateLastQueueWithEntries = true;
+            }
+
             if (qe->second != HPWrkQE)
             {
                 // Not the HP workqueue...
                 if (qe->second->wrkq->size())
                 {
                     // This workqueue has at least one entry.
+                    //
+                    // Now, peek at the next extent to be transferred.  This work queue
+                    // can be returned if the next extent is marked as canceled or if there
+                    // are no additional extents remaining.
+                    // NOTE:  If no extents remain, then treat the workqueue as if it has
+                    //        a canceled extent.  Cancel extent processing only keep the
+                    //        first and last extent for a file in allExtents to be processed
+                    //        so that the appropriate metadata is updated.  All other canceled
+                    //        extents are simply removed.  Therefore, all work items for the
+                    //        non-first and non-last extents remain enqueued.  We want to
+                    //        prioritize the removal of these enqueued work items, so we
+                    //        treat them as canceled.
                     l_LV_Info = qe->second->getLV_Info();
-                    if (l_LV_Info && ((l_LV_Info->hasCanceledExtents())))
+                    if (l_LV_Info && ((!l_LV_Info->getNumberOfExtents()) || l_LV_Info->hasCanceledExtents()))
                     {
                         // Next extent to be transferred is canceled...
-                        // Don't look any further and simply return this work queue.
                         pWrkQE = qe->second;
                         pWrkQE->dump("debug", "getWrkQE_WithCanceledExtents(): Extent being cancelled ");
-                        break;
+                        if (l_SelectNext || (lastQueueProcessed == lastQueueWithEntries))
+                        {
+                            // Return this queue now as it is the next in round robin order
+                            break;
+                        }
+                    }
+
+                    if ((!l_SelectNext) && qe->first == lastQueueProcessed)
+                    {
+                        // Just found the entry we last returned.  Return the next workqueue that has a canceled extent...
+//                        LOG(bb,info) << "WRKQMGR::getWrkQE_WithCanceledExtents(): l_SelectNext = true";
+                        l_SelectNext = true;
                     }
                 }
             }
+        }
+
+        if (l_RecalculateLastQueueWithEntries && pWrkQE)
+        {
+            calcLastWorkQueueWithEntries();
         }
     }
 
@@ -1410,7 +1502,7 @@ int WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
         setCheckForCanceledExtents(0);
     }
 
-    return rc;
+    return;
 }
 
 void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
@@ -1495,13 +1587,23 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
     if (!workQueueMgrIsLocked())
     {
         // Verify lock protocol
+        if (HPWrkQE)
+        {
+            if (HPWrkQE->transferQueueIsLocked())
+            {
+                FL_Write(FLError, lockPV_TQLock2, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the HP transfer queue lock is held",0,0,0,0);
+                errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the HP transfer queue lock is held";
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+                endOnError();
+            }
+        }
         if (CurrentWrkQE)
         {
             if (CurrentWrkQE->transferQueueIsLocked())
             {
-                FL_Write(FLError, lockPV_TQLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
+                FL_Write(FLError, lockPV_TQLock3, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the transfer queue lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the transfer queue lock is held";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm1)
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm3)
                 endOnError();
             }
         }
@@ -1509,9 +1611,9 @@ void WRKQMGR::lockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pL
         {
             if (!pLocalMetadataUnlockedInd)
             {
-                FL_Write(FLError, lockPV_MDLock, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
+                FL_Write(FLError, lockPV_MDLock3, "WRKQMGR::lockWorkQueueMgr: Work queue mgr lock being obtained while the local metadata lock is held",0,0,0,0);
                 errorText << "WRKQMGR::lock: Work queue manager lock being obtained while the local metadata lock is held";
-                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm2)
+                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.lockwqm3)
                 endOnError();
             }
             else
@@ -1774,6 +1876,47 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
     return l_FilePtr;
 }
 
+string WRKQMGR::peekAtNextAsyncRequest(WorkID& pWorkItem)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+
+    int rc = 0;
+    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+
+    AsyncRequest l_Request = AsyncRequest();
+    rc = wrkqmgr.getAsyncRequest(pWorkItem, l_Request);
+
+    if (!rc)
+    {
+        if (!l_Request.sameHostName())
+        {
+            // Peek the request
+            char l_Str1[64] = {'\0'};
+            char l_Str2[64] = {'\0'};
+            uint64_t l_JobId = UNDEFINED_JOBID;
+            uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
+            uint64_t l_Handle = UNDEFINED_HANDLE;
+            uint32_t l_ContribId = UNDEFINED_CONTRIBID;
+            uint64_t l_CancelScope = 0;
+
+            rc = sscanf(l_Request.getData(), "%s %lu %lu %lu %u %lu %s %s", l_Cmd, &l_JobId, &l_JobStepId, &l_Handle, &l_ContribId, &l_CancelScope, l_Str1, l_Str2);
+            if (rc != 8)
+            {
+                // Failure when attempting to parse the request...  Log it and continue...
+                LOG(bb,error) << "peekAtNextAsyncRequest: Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
+            }
+        }
+    }
+    else
+    {
+        // Error when retrieving the request
+        LOG(bb,error) << "peekAtNextAsyncRequest: Error when attempting to retrieve the async request at offset " << pWorkItem.getTag();
+    }
+
+    EXIT(__FILE__,__FUNCTION__);
+    return string(l_Cmd);
+}
+
 void WRKQMGR::post()
 {
     // NOTE: It is a requirement that the invoker must have first
@@ -1809,7 +1952,7 @@ void WRKQMGR::post()
 void WRKQMGR::post_multiple(const size_t pCount)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "post_multiple");
-    lockWorkQueueMgr((LVKey*)0, "post_multiple");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded((LVKey*)0, "post_multiple");
 
     for (size_t i=0; i<pCount; i++)
     {
@@ -1817,7 +1960,10 @@ void WRKQMGR::post_multiple(const size_t pCount)
     }
 //    verify();
 
-    unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr((LVKey*)0, "post_multiple");
+    }
     if (l_TransferQueueUnlocked)
     {
         lockTransferQueue((LVKey*)0, "post_multiple");
@@ -1954,7 +2100,7 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
     int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    lockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
@@ -2001,7 +2147,10 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    if (l_WorkQueueMgrLocked)
+    {
+        unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    }
     if (l_LocalMetadataUnlocked)
     {
         lockLocalMetadata(pLVKey, "rmvWrkQ");
@@ -2199,6 +2348,7 @@ void WRKQMGR::unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* 
         if (pLocalMetadataUnlockedInd && *pLocalMetadataUnlockedInd)
         {
             lockLocalMetadata(pLVKey, "unlockWorkQueueMgr");
+            *pLocalMetadataUnlockedInd = 0;
         }
     }
     else

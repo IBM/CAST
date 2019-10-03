@@ -414,7 +414,9 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                     {
                         LOG(bb,info) << "Periodic PFS fsync start: targetindex=" << l_FileIndex << ", # writes " << l_NumberOfWrites << ", size of writes " << l_SizeOfWrites << ", triggered by extent " << *pExtent;
                         FL_Write(FLTInf2, PSYNC_PFS, "Performing periodic PFS fsync.  Extent %p, Target index=%ld", (uint64_t)pExtent, pExtent->targetindex, 0, 0);
+                        transferDef->preProcessSync(l_Time);
                         fsync(l_FileIndex);
+                        transferDef->postProcessSync(l_FileIndex, l_Time);
                         FL_Write(FLTInf2, PSYNC_PFSCMP, "Performed periodic PFS fsync.  Extent %p, Target index=%ld", (uint64_t)pExtent, pExtent->targetindex, 0, 0);
                         LOG(bb,info) << "Periodic PFS fsync end: targetindex=" << l_FileIndex;
                     }

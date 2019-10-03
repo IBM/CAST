@@ -14,6 +14,7 @@
 #ifndef BB_EXTENTINFO_H_
 #define BB_EXTENTINFO_H_
 
+#include "bbinternal.h"
 #include "Extent.h"
 
 /*******************************************************************************
@@ -21,6 +22,11 @@
  *******************************************************************************/
 class BBTagInfo;
 class BBTransferDef;
+
+#ifdef BBSERVER
+extern uint32_t getContribIdForTransferDef(BBTransferDef* pTransferDef);
+extern void endOnError();
+#endif
 
 /**
  * \class ExtentInfo
@@ -71,9 +77,27 @@ class ExtentInfo
         return taginfo;
     }
 
+    inline uint32_t getTargetIndex() {
+        return extent->getTargetIndex();
+    }
+
     inline BBTransferDef* getTransferDef() {
         return transferDef;
     }
+
+#ifdef BBSERVER
+    inline void verify()
+    {
+        uint32_t l_TransferDefContribId = getContribIdForTransferDef(transferDef);
+        if (l_TransferDefContribId != contrib)
+        {
+            LOG(bb,error) << "ExtentInfo::verify(): Inconsistent contrib, l_TransferDefContribId " << l_TransferDefContribId << ", contrib " << contrib;
+            endOnError();
+        }
+
+        return;
+    }
+#endif
 
     uint64_t        handle;
     uint32_t        contrib;

@@ -61,35 +61,37 @@ allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
 # Test Case 2: Calling csm_ras_msg_type_create
 ${CSM_PATH}/csm_ras_msg_type_create -m ${CSMTEST_RAS_BASIC_MSG_ID} -M ${CSMTEST_RAS_BASIC_MSG} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 2: Calling csm_ras_msg_type_create"
+check_return_flag_value $? 0 "Test Case 2: Calling csm_ras_msg_type_create"
 
 # Test Case 3: Calling csm_ras_msg_type_query
 ${CSM_PATH}/csm_ras_msg_type_query -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 3: Calling csm_ras_msg_type_query"
+check_return_flag_value $? 0 "Test Case 3: Calling csm_ras_msg_type_query"
 
 # Test Case 4: Calling csm_ras_msg_type_update
 ${CSM_PATH}/csm_ras_msg_type_update -m ${CSMTEST_RAS_BASIC_MSG_ID} -t 1 > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 4: Calling csm_ras_msg_type_update"
+check_return_flag_value $? 0 "Test Case 4: Calling csm_ras_msg_type_update"
 
 # Test Case 5: Calling csm_ras_event_create
 ${CSM_PATH}/csm_ras_event_create -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 5: Calling csm_ras_event_create"
+check_return_flag_value $? 0 "Test Case 5: Calling csm_ras_event_create"
+
+sleep 1
 
 # Test Case 6: Calling csm_ras_event_query
 ${CSM_PATH}/csm_ras_event_query -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1 
-check_return_flag $? "Test Case 6: Calling csm_ras_event_query"
+check_return_flag_value $? 0 "Test Case 6: Calling csm_ras_event_query"
 
 # Test Case 7: Calling csm_ras_event_query_allocation
 ${CSM_PATH}/csm_ras_event_query_allocation -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 7: Calling csm_ras_event_query_alloaction"
+check_return_flag_value $? 0 "Test Case 7: Calling csm_ras_event_query_alloaction"
 
 # Test Case 8: Calling csm_allocation_delete
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 8: Calling csm_allocation_delete"
+check_return_flag_value $? 0 "Test Case 8: Calling csm_allocation_delete"
 
 # Test Case 9: Calling csm_ras_msg_type_delete
 ${CSM_PATH}/csm_ras_msg_type_delete -m ${CSMTEST_RAS_BASIC_MSG_ID} > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 9: Calling csm_ras_msg_type_delete"
+check_return_flag_value $? 0 "Test Case 9: Calling csm_ras_msg_type_delete"
 
 rm -f ${TEMP_LOG}
 

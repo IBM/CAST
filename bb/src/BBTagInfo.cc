@@ -142,6 +142,9 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     HandleFile* l_HandleFile = 0;
     char* l_HandleFileName = 0;
 
+    unlockTransferQueue(pLVKey, "BBTagInfo::addTransferDef");
+    int l_TransferQueueUnlocked = 1;
+
     lockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef");
     int l_LocalMetadataLocked = 1;
 
@@ -240,6 +243,12 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
         unlockLocalMetadata(pLVKey, "BBTagInfo::addTransferDef - Exit");
     }
 
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "BBTagInfo::addTransferDef - Exit");
+    }
+
     if (l_HandleFileName)
     {
         delete[] l_HandleFileName;
@@ -293,17 +302,24 @@ void BBTagInfo::calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const ui
     return;
 }
 
-void BBTagInfo::dump(const char* pSev) {
-    stringstream l_Temp;
-    expectContribToSS(l_Temp);
-    if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-        LOG(bb,debug) << "Expect Contrib:  " << l_Temp.str();
-        parts.dump(pSev);
-    } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
-        LOG(bb,info) << "Expect Contrib:  " << l_Temp.str();
-        parts.dump(pSev);
+void BBTagInfo::dump(const char* pSev)
+{
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+        stringstream l_Temp;
+        expectContribToSS(l_Temp);
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
+            LOG(bb,debug) << "Expect Contrib:  " << l_Temp.str();
+            parts.dump(pSev);
+        }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << hex << uppercase << setfill('0') << "Transfer Handle: 0x" << setw(16) << transferHandle << setfill(' ') << nouppercase << dec << " (" << transferHandle << ")";
+            LOG(bb,info) << "Expect Contrib:  " << l_Temp.str();
+            parts.dump(pSev);
+        }
     }
 
     return;

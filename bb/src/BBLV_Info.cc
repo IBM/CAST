@@ -75,7 +75,7 @@ int BBLV_Info::allExtentsTransferred(const BBTagID& pTagId)
     return rc;
 }
 
-void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, uint32_t pNumberOfExpectedInFlight, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
+void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* pContribId, uint32_t* pSourceIndex, uint32_t pNumberOfExpectedInFlight, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption)
 {
     // Sort the extents, moving the canceled extents to the front of
     // the work queue so they are immediately removed...
@@ -83,91 +83,163 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
     // NOTE: pLockWasReleased intentionally not initialized
 
     // NOTE: CurrentWrkQE must be set prior to sortExtents()
-    int rc = wrkqmgr.getWrkQE(pLVKey, CurrentWrkQE);
-    if ((!rc) && CurrentWrkQE)
+    if (!CurrentWrkQE)
     {
-        size_t l_NumberOfNewExtentsCanceled = 0;
-        extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
-
-        if (l_NumberOfNewExtentsCanceled)
+        wrkqmgr.getWrkQE(pLVKey, CurrentWrkQE);
+    }
+    if (CurrentWrkQE)
+    {
+        int l_TransferQueueLocked = lockTransferQueueIfNeeded(pLVKey, "cancel extents");
         {
-            int l_LocalMetadataUnlockedInd = 0;
-            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before increment of concurrent", &l_LocalMetadataUnlockedInd);
+            // NOTE: sortExtents() will mark the necessary extents in the allExtents vector as canceled
+            size_t l_NumberOfNewExtentsCanceled = 0;
+            extentInfo.sortExtents(pLVKey, l_NumberOfNewExtentsCanceled, pHandle, pContribId);
 
-            // Indicate that the next findWork() needs to look for canceled extents
-            wrkqmgr.setCheckForCanceledExtents(1);
+            // If new extents were marked as canceled, indicate to work queue manager that it needs
+            // to check for canceled extents when finding work items...
+            if (l_NumberOfNewExtentsCanceled)
+            {
+                unlockTransferQueue(pLVKey, "cancelExtents - before increment of setCheckForCanceledExtents()");
+                int l_LocalMetadataUnlockedInd = 0;
+                wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before increment of setCheckForCanceledExtents()", &l_LocalMetadataUnlockedInd);
 
-            // Increment the number of concurrent cancel reqeusts
+                // Indicate that the next findWork() needs to look for canceled extents
+                wrkqmgr.setCheckForCanceledExtents(1);
+
+                wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after increment of setCheckForCanceledExtents()", &l_LocalMetadataUnlockedInd);
+                lockTransferQueue(pLVKey, "cancelExtents - after increment of setCheckForCanceledExtents()");
+
+                if (l_LocalMetadataUnlockedInd)
+                {
+                    pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+                }
+            }
+
+            // Increment the number of concurrent cancel requests
+            // NOTE: This count limits the number of threads that can be in the following
+            //       loop waiting for all the extents to be processed.  We need to limit those
+            //       threads so there are some threads remaining to actually process the extents.
+            // NOTE: Even if no new extents were marked as being canceled, we still want to invoke
+            //       moreExtentsToTransfer/ForFile() because some extents could still be in-flight...
+            HPWrkQE->lock(pLVKey, "cancelExtents - before incrementNumberOfConcurrentCancelRequests()");
             wrkqmgr.incrementNumberOfConcurrentCancelRequests();
-
-            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after increment of concurrent", &l_LocalMetadataUnlockedInd);
+            HPWrkQE->unlock(pLVKey, "cancelExtents - after incrementNumberOfConcurrentCancelRequests()");
 
             // Wait for the canceled extents to be processed
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), pNumberOfExpectedInFlight, l_DumpOption))
+            if (!pSourceIndex)
             {
-                unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+                while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), pNumberOfExpectedInFlight, l_DumpOption))
                 {
-                    // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i++ % 60) == 48)
+                    unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
+                    unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
                     {
-                        FL_Write(FLDelay, RemoveTargetFiles, "Attempting to remove the target files after a cancel operation for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
-                                 (uint64_t)pHandle, (uint64_t)pContribId, 0, 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
-                                     << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
-                        l_DelayMsgLogged = 1;
+                        // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                        if ((i++ % 60) == 48)
+                        {
+                            FL_Write(FLDelay, CancelExtents1, "Cancel operation in progress for handle %ld, contribid %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
+                                     (uint64_t)(*pHandle), (uint64_t)(*pContribId), 0, 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                         << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                            l_DelayMsgLogged = 1;
+                        }
+                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+                        usleep((useconds_t)250000);
+                        // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                        if ((i % 60) == 48)
+                        {
+                            l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
+                        }
+                        else
+                        {
+                            l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
+                        }
                     }
-                    pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                    usleep((useconds_t)250000);
-                    // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i % 60) == 48)
-                    {
-                        l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
-                    }
-                    else
-                    {
-                        l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
-                    }
+                    lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
+                    lockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
                 }
-                lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the canceled extents to be processed");
+            }
+            else
+            {
+                while (extentInfo.moreExtentsToTransferForFile((int64_t)(*pHandle), (int32_t)(*pContribId), (int32_t)(*pSourceIndex), pNumberOfExpectedInFlight, l_DumpOption))
+                {
+                    unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
+                    unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
+                    {
+                        // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                        if ((i++ % 60) == 48)
+                        {
+                            FL_Write(FLDelay, CancelExtents2, "Cancel operation in progress for handle %ld, contribid %ld, sourceindex %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
+                                     (uint64_t)(*pHandle), (uint64_t)(*pContribId), (uint64_t)(*pSourceIndex), 0);
+                            LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId << ", sourceindex " << *pSourceIndex \
+                                         << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
+                            l_DelayMsgLogged = 1;
+                        }
+                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
+                        usleep((useconds_t)250000);
+                        // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
+                        if ((i % 60) == 48)
+                        {
+                            l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
+                        }
+                        else
+                        {
+                            l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
+                        }
+                    }
+                    lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
+                    lockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
+                }
+
             }
 
             if (l_DelayMsgLogged)
             {
-                LOG(bb,info) << ">>>>> RESUME <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
-                             << ", all canceled extents are now processed.";
+                if (!pSourceIndex)
+                {
+                    LOG(bb,info) << ">>>>> RESUME <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId \
+                                 << ", all canceled extents are now processed.";
+                }
+                else
+                {
+                    LOG(bb,info) << ">>>>> RESUME <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId << ", sourceindex " << *pSourceIndex \
+                                 << ", all canceled extents are now processed.";
+                }
             }
-
-            wrkqmgr.lockWorkQueueMgr(pLVKey, "cancelExtents - before decrement of concurrent", &l_LocalMetadataUnlockedInd);
 
             // Decrement the number of concurrent cancel requests
+            HPWrkQE->lock(pLVKey, "cancelExtents - before decrementNumberOfConcurrentCancelRequests()");
             wrkqmgr.decrementNumberOfConcurrentCancelRequests();
+            HPWrkQE->unlock(pLVKey, "cancelExtents - after decrementNumberOfConcurrentCancelRequests()");
 
-            wrkqmgr.unlockWorkQueueMgr(pLVKey, "cancelExtents - after decrement of concurrent", &l_LocalMetadataUnlockedInd);
-        }
+            if (l_TransferQueueLocked)
+            {
+                unlockTransferQueue(pLVKey, "cancel extents");
+            }
 
-        // If we are to perform remove operations for target PFS files, do so now...
-        if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
-        {
-            // Remove the target files
-            if (*pContribId != UNDEFINED_CONTRIBID)
+            // If we are to perform remove operations for target PFS files, do so now...
+            if (pRemoveOption == REMOVE_TARGET_PFS_FILES)
             {
-                LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
-            }
-            else
-            {
-                LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", all contributors.";
-            }
-            removeTargetFiles(pLVKey, *pHandle, *pContribId);
-            if (*pContribId != UNDEFINED_CONTRIBID)
-            {
-                LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
-            }
-            else
-            {
-                LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", all contributors.";
+                // Remove the target files
+                if (*pContribId != UNDEFINED_CONTRIBID)
+                {
+                    LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+                }
+                else
+                {
+                    LOG(bb,info) << "Start: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", all contributors.";
+                }
+                removeTargetFiles(pLVKey, *pHandle, *pContribId);
+                if (*pContribId != UNDEFINED_CONTRIBID)
+                {
+                    LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId;
+                }
+                else
+                {
+                    LOG(bb,info) << "Completed: Removing target files associated with transfer " << *pLVKey << ", handle " << *pHandle << ", all contributors.";
+                }
             }
         }
     }
@@ -190,20 +262,26 @@ void BBLV_Info::cleanUpAll(const LVKey* pLVKey)
 
 void BBLV_Info::dump(char* pSev, const char* pPrefix)
 {
-    if (!strcmp(pSev,"debug")) {
-        LOG(bb,debug) << ">>>>> Start: TagInfo2 <<<<<";
-        LOG(bb,debug) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
-                      << jobid << setfill(' ') << nouppercase << dec;
-        extentInfo.dump(pSev);
-        tagInfoMap.dump(pSev);
-        LOG(bb,debug) << ">>>>>   End: TagInfo2 <<<<<";
-    } else if (!strcmp(pSev,"info")) {
-        LOG(bb,info) << ">>>>> Start: TagInfo2 <<<<<";
-        LOG(bb,info) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
-                     << jobid << setfill(' ') << nouppercase << dec;
-        extentInfo.dump(pSev);
-        tagInfoMap.dump(pSev);
-        LOG(bb,info) << ">>>>>   End: TagInfo2 <<<<<";
+    if (wrkqmgr.checkLoggingLevel(pSev))
+    {
+        if (!strcmp(pSev,"debug"))
+        {
+            LOG(bb,debug) << ">>>>> Start: BBLV_Info <<<<<";
+            LOG(bb,debug) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
+                          << jobid << setfill(' ') << nouppercase << dec;
+            extentInfo.dump(pSev);
+            tagInfoMap.dump(pSev);
+            LOG(bb,debug) << ">>>>>   End: BBLV_Info <<<<<";
+        }
+        else if (!strcmp(pSev,"info"))
+        {
+            LOG(bb,info) << ">>>>> Start: BBLV_Info <<<<<";
+            LOG(bb,info) << "JobId: 0x" << hex << uppercase << setfill('0') << setw(4) \
+                         << jobid << setfill(' ') << nouppercase << dec;
+            extentInfo.dump(pSev);
+            tagInfoMap.dump(pSev);
+            LOG(bb,info) << ">>>>>   End: BBLV_Info <<<<<";
+        }
     }
 
     return;
@@ -222,6 +300,10 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED
         {
             LOG(bb,error) << "BBLV_Info::ensureStageOutEnded():  Failure from stageoutEnd() for LVKey " << *pLVKey;
         }
+        // NOTE: The local metadata lock is always released/re-acquired in stageoutEnd() processing.
+        //       This is because the work queue manager lock has to be acquired when the work queue
+        //       is removed/deleted, which requires the local metadata lock to be temporarily released.
+        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
     }
     else
     {
@@ -360,9 +442,12 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     stringstream errorText;
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
+    uint64_t l_Time;
     bool l_UpdateTransferStatus = false;
-    bool l_LocalMetadataLocked = false;
-    bool l_LocalMetadataUnlocked = false;
+    int l_LocalMetadataLocked = 0;
+    int l_LocalMetadataUnlocked = 0;
+
+//    pExtentInfo.verify();
 
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
@@ -413,7 +498,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                 if (l_LocalMetadataUnlocked)
                 {
-                    l_LocalMetadataUnlocked = false;
+                    l_LocalMetadataUnlocked = 0;
                     lockLocalMetadata(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
                 }
                 lockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
@@ -448,7 +533,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                                 {
                                     LOG(bb,debug) << "Final SSD fsync start: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                     FL_Write(FLTInf2, FSYNC_SSD, "Performing SSD fsync.  fd=%ld", ssd_fd,0,0,0);
+                                    pExtentInfo.getTransferDef()->preProcessSync(l_Time);
                                     ::fsync(ssd_fd);
+                                    pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
                                     FL_Write(FLTInf2, FSYNC_SSDCMP, "Performed SSD fsync.  fd=%ld", ssd_fd,0,0,0);
                                     LOG(bb,debug) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
                                 }
@@ -464,7 +551,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                             // Target is PFS...
                             LOG(bb,debug) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
                             FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
+                            pExtentInfo.getTransferDef()->preProcessSync(l_Time);
                             l_IO->fsync(pExtentInfo.getExtent()->targetindex);
+                            pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
                             FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
                             LOG(bb,debug) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
                         }
@@ -478,7 +567,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                     if (l_LocalMetadataUnlocked)
                     {
-                        l_LocalMetadataUnlocked = false;
+                        l_LocalMetadataUnlocked = 0;
                         lockLocalMetadata(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
                     }
                 }
@@ -624,9 +713,10 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
 
     // Calculate the total processing time for this transfer definition
     pTransferDef->calcProcessingTime(pTransferDef->processingTime);
+    size_t l_TotalSizeTransferred = pTransferDef->calcTotalSizeTransferred();
 
     LOG(bb,info) << "->bbproxy: Transfer " << l_TransferStatusStr << " for contribid " << pContribId << ", " \
-                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr \
+                 << *pLVKey << ", handle " << pHandle << ", status " << l_StatusStr  << ", total size transferred " << l_TotalSizeTransferred \
                  << ", total processing time " << (double)pTransferDef->processingTime/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
@@ -637,6 +727,7 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     l_Complete->addAttribute(txp::contribid, pContribId);
     l_Complete->addAttribute(txp::status, (int64_t)l_Status);
     l_Complete->addAttribute(txp::totalProcessingTime, pTransferDef->processingTime);
+    l_Complete->addAttribute(txp::totalTransferSize, (uint64_t)l_TotalSizeTransferred);
 
     //    std::string pConnectionName=getConnectionName(pConnection); // $$$mea
     try{
@@ -763,7 +854,9 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
                  << pTransferDef->readOperations[pExtentInfo.getSourceIndex()].first << "/" \
                  << (double)pTransferDef->readOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale \
                  << " seconds, write count/cumulative time " << pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].first << "/" \
-                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale << " seconds";
+                 << (double)pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second/(double)g_TimeBaseScale \
+                 << " seconds, sync count/cumulative time " << pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].first << "/" \
+                 << (double)pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second/(double)g_TimeBaseScale << " seconds";
 
     // NOTE:  The char array is copied to heap by addAttribute and the storage for
     //        the logical volume uuid attribute is owned by the message facility.
@@ -781,6 +874,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::readtime, pTransferDef->readOperations[pExtentInfo.getSourceIndex()].second);
     l_Complete->addAttribute(txp::writecount, pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].first);
     l_Complete->addAttribute(txp::writetime, pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second);
+    l_Complete->addAttribute(txp::synccount, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].first);
+    l_Complete->addAttribute(txp::synctime, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second);
 
     unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
@@ -802,7 +897,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
 
     if (rc)
     {
-        markTransferFailed(pLVKey, pTransferDef, this, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        uint32_t l_SourceIndex = pExtentInfo.getSourceIndex();
+        markTransferFailed(pLVKey, pTransferDef, this, pExtentInfo.getHandle(), pExtentInfo.getContrib(), &l_SourceIndex);
         ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_Failed);
     }
 
@@ -940,7 +1036,8 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        cancelExtents(pLVKey, &pHandle, &l_ContribId, 0, pLockWasReleased, pRemoveOption);
+        uint32_t* l_SourceIndex = 0;
+        cancelExtents(pLVKey, &pHandle, &l_ContribId, l_SourceIndex, 0, pLockWasReleased, pRemoveOption);
     }
 
     return;
@@ -980,7 +1077,8 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
                 //
                 // Sort the extents, moving the canceled extents to the front of
                 // the work queue so they are immediately removed...
-                cancelExtents(pLVKey, &pHandle, &pContribId, 0, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+                uint32_t* l_SourceIndex = NULL;
+                cancelExtents(pLVKey, &pHandle, &pContribId, l_SourceIndex, 0, pLockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
             }
         }
         else

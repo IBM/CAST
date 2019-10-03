@@ -23,13 +23,6 @@
 namespace csm {
 namespace daemon {
 
-// dummy routine for now
-// later should check if the time limit for the active jitter window is exceeded
-bool TimeIsUp( int aActiveJitterWindow )
-{
-  return (( random() % 2 ) != 0 );
-}
-
 CoreAgent::CoreAgent()
 : CoreGeneric()
 {
@@ -94,41 +87,6 @@ int CoreAgent::JitterWindow( const csm::daemon::JitterWindowAction i_Action )
   }
   return _ActiveWindow;
 }
-
-#if 0 // obsolete
-int CoreAgent::Process( const csm::daemon::CoreEvent &aEvent )
-{
-  int rc = 0;
-
-  // Check the jitter window and don't return control to master loop until we hit the next window
-  if( TimeIsUp( _ActiveJitterWindow ) )
-  {
-    _ActiveJitterWindow = ( _ActiveJitterWindow + 1 ) % _JitterWindowMax;
-    // go to sleep until the next window
-  }
-
-  // todo: feed events into actual state machine
-  if (_EventRouting == nullptr) {
-    LOG(csmd, error) << "CoreAgent::Process(): Fail to access _EventRouting";
-    return 0;
-  }
-  
-  csm::daemon::EventProcessor *EP = _EventRouting->GetEventProcessor(aEvent);
-  //csm::daemon::EventProcessor *EP = mEventProcessors[ aEvent.GetEventType() ];
-
-  LOG(csmd,info) << "Event: " << aEvent.GetEventType();
-  LOG(csmd,info) << "Procr: " << (void*)EP;
-
-  // whatever the master has to do with the event
-  if( ! EP )
-    throw new csm::daemon::EventProcessorException();
-
-  EP->Process( aEvent );
-
-  // whatever the agent has to do...
-  return rc;
-}
-#endif
 
 }  // namespace daemon
 } // namespace csm

@@ -50,8 +50,9 @@ const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
 const int DEFAULT_RETRY_VALUE = 10;         // Default, retry value for fread, fwrite, fseek, and ftell
-const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 60;    // Default, if no activity, dump every hour
-const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 60.0;    // In seconds, default is to dump wrkqmgr every minute
+const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 30.0;    // In seconds, default is to dump wrkqmgr every minute
+const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 120;   // Default, if no activity, dump every hour
+                                                                        // NOTE:  120*30 = 3600 seconds
 
 const uint64_t DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL = 1000;
 const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
@@ -317,6 +318,11 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentCancelRequests()
     {
         --numberOfConcurrentCancelRequests;
+        if (numberOfConcurrentCancelRequests > 999999)
+        {
+            LOG(bb,error) << "decrementNumberOfConcurrentCancelRequests(): numberOfConcurrentCancelRequests is out of range with a value of " << numberOfConcurrentCancelRequests;
+            endOnError();
+        }
 
         return;
     }
@@ -324,6 +330,11 @@ class WRKQMGR
     inline void decrementNumberOfConcurrentHPRequests()
     {
         --numberOfConcurrentHPRequests;
+        if (numberOfConcurrentHPRequests > 999999)
+        {
+            LOG(bb,error) << "decrementNumberOfConcurrentHPRequests(): numberOfConcurrentHPRequests is out of range with a value of " << numberOfConcurrentHPRequests;
+            endOnError();
+        }
 
         return;
     }
@@ -514,6 +525,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setLastDumpedNumberOfWorkQueueItemsProcessed(const int pValue)
+    {
+        lastDumpedNumberOfWorkQueueItemsProcessed = pValue;
+
+        return;
+    }
+
     inline void setLastQueueProcessed(LVKey* pLVKey)
     {
         LOG(bb,debug) << "WRKQMGR::setLastQueueProcessed(): lastQueueProcessed changing from = " << lastQueueProcessed << " to " << *pLVKey;
@@ -607,8 +625,10 @@ class WRKQMGR
     void addHPWorkItem(LVKey* pLVKey, BBTagID& pTagId);
     int addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
+    void calcLastWorkQueueWithEntries();
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
+    int checkLoggingLevel(const char* pSev);
     void checkThrottleTimer();
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);
@@ -624,7 +644,7 @@ class WRKQMGR
     size_t getSizeOfAllWorkQueues();
     int getThrottleRate(LVKey* pLVKey, uint64_t& pRate);
     int getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE);
-    int getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
+    void getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE);
     void incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem);
     int isServerDead(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     void loadBuckets();
@@ -632,6 +652,7 @@ class WRKQMGR
     int lockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     void manageWorkItemsProcessed(const WorkID& pWorkItem);
     FILE* openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
+    string peekAtNextAsyncRequest(WorkID& pWorkItem);
     void post();
     void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);

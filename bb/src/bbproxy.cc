@@ -3596,6 +3596,7 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     uint64_t l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
     uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
     uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
+    uint64_t l_TotalTransferSize = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalTransferSize))->getData();
     BBSTATUS l_Status = (BBSTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
     char l_StatusStr[64] = {'\0'};
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
@@ -3624,6 +3625,7 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     }
     LOG(bb,info) << "Transfer " << l_TransferStatusStr << " for contribid " << l_ContribId << ", LV device = " \
                  << l_DevName << ", handle = " << l_Handle << ", status " << l_StatusStr \
+                 << ", total transfer size " << l_TotalTransferSize \
                  << ", total processing time " << (double)l_TotalProcessingTime/(double)g_TimeBaseScale << " seconds";
 
     EXIT(__FILE__,__FUNCTION__);
@@ -3657,6 +3659,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     uint64_t l_ReadTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::readtime))->getData();
     uint64_t l_WriteCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writecount))->getData();
     uint64_t l_WriteTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writetime))->getData();
+    uint64_t l_SyncCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synccount))->getData();
+    uint64_t l_SyncTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synctime))->getData();
     char l_SizePhrase[64] = {'\0'};
 
     // NOTE: No processing to perform for a local cp transfer...
@@ -3837,7 +3841,8 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
                  << ", file status " << l_FileStatusStr << ", transfer type " << l_TransferType \
                  << l_SizePhrase << l_SizeTransferred << " bytes, read count/cumulative time " \
                  << l_ReadCount << "/" << (double)l_ReadTime/(double)g_TimeBaseScale << " seconds, write count/cumulative time " \
-                 << l_WriteCount << "/" << (double)l_WriteTime/(double)g_TimeBaseScale << " seconds";
+                 << l_WriteCount << "/" << (double)l_WriteTime/(double)g_TimeBaseScale << " seconds, sync count/cumulative time " \
+                 << l_SyncCount << "/" << (double)l_SyncTime/(double)g_TimeBaseScale << " seconds";
 
     RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
 

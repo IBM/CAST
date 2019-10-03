@@ -67,7 +67,7 @@ check_return_exit $? 0 "Test Case 4: csm_allocation_step_end from compute node"
 # Test Case 4: Validating step ended with csm_allocation_step_query_active_all output
 ${CSM_PATH}/csm_allocation_step_query_active_all -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "Total_Records: 0" "# No matching records found."
-check_return_flag $? "Test Case 4: Validating step ended with csm_allocation_step_query_active_all output..."
+check_return_flag_value $? 0 "Test Case 4: Validating step ended with csm_allocation_step_query_active_all output..."
 
 # Test Case 5: csm_allocation_step_query from compute node
 xdsh ${SINGLE_COMPUTE} "${CSM_PATH}/csm_allocation_step_query -a ${allocation_id} -s 1" > ${TEMP_LOG} 2>&1

@@ -111,11 +111,11 @@ check_return_exit $? 0 "Test Case 3: 1 in allocation - Run API"
 
 # Test Case 3: 1 in allocation - Verify free nodes recovered
 ${CSM_PATH}/csm_node_attributes_query -n ${COMPUTE_NODES} -s IN_SERVICE > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 3: 1 in allocation - Verify free nodes recovered"
+check_return_flag_value $? 0 "Test Case 3: 1 in allocation - Verify free nodes recovered"
 
 # Test Case 3: 1 in allocation - Verify allocated node in Soft Failure
 ${CSM_PATH}/csm_node_attributes_query -n ${COMPUTE_NODES} -s SOFT_FAILURE > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 3: 1 in allocation - Verify allocated node in Soft Failure"
+check_return_flag_value $? 0 "Test Case 3: 1 in allocation - Verify allocated node in Soft Failure"
 
 # Test Case 3: 1 in allocation - Cleanup 
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1

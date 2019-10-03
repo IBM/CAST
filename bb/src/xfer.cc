@@ -553,7 +553,6 @@ void processAsyncRequest(WorkID& pWorkItem)
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
-    int l_HP_TransferQueueUnlocked = 0;
     int l_LocalMetadataLocked = 0;
 
     AsyncRequest l_Request = AsyncRequest();
@@ -561,8 +560,12 @@ void processAsyncRequest(WorkID& pWorkItem)
 
     if (!rc)
     {
-        // Increment the number of concurrent cancel reqeusts
+        // Increment the number of concurrent HP requests
+        // NOTE: This count limits the number of threads that can be processing the HP
+        //       requests.  Some HP requests require that other threads are available to
+        //       process extents.
         wrkqmgr.incrementNumberOfConcurrentHPRequests();
+
         if (!l_Request.sameHostName())
         {
             if (!wrkqmgr.startProcessingHP_Request(l_Request))
@@ -601,133 +604,151 @@ void processAsyncRequest(WorkID& pWorkItem)
                     {
                         // Release the transfer queue lock and acquire the local metadata lock
                         unlockTransferQueue((LVKey*)0, "processAsyncRequest - Before invoking request handler");
-                        l_HP_TransferQueueUnlocked = 1;
                         lockLocalMetadata((LVKey*)0, "processAsyncRequest - Before invoking request handler");
                         l_LocalMetadataLocked = 1;
+
+                        // NOTE: Reset CurrentWrkQE.  It addresses the HPWrkQE and it
+                        //       needs to be redetermined based on the specific request.
+                        CurrentWrkQE = NULL;
 
                         LOG(bb,info) << "AsyncRequest -> Start processing async request: Offset 0x" << hex << uppercase << setfill('0') \
                                      << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
                                      << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                     }
 
-                    rc = 0;
-                    if (strcmp(l_Str1, "''") == 0)
+                    try
                     {
-                        l_Str1[0] = '\0';
-                    }
-                    if (strcmp(l_Str2, "''") == 0)
-                    {
-                        l_Str2[0] = '\0';
-                    }
-                    if (strstr(l_Cmd, "cancel"))
-                    {
-                        // Process cancel request...
-                        if (strstr(l_Str1, "cancelrequest"))
+                        rc = 0;
+                        if (strcmp(l_Str1, "''") == 0)
                         {
-                            // This was a direct cancel request from a given compute node to the bbServer servicing
-                            // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
-                            rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                            l_Str1[0] = '\0';
                         }
-                        else if (strstr(l_Str1, "stoprequest"))
+                        if (strcmp(l_Str2, "''") == 0)
                         {
-                            // This was a direct stop transfers request that is now being propagated to all other bbServers...
-                            rc = metadata.stopTransfer(l_Request.getHostName(), l_Str2, l_JobId, l_JobStepId, l_Handle, l_ContribId);
+                            l_Str2[0] = '\0';
+                        }
+                        if (strstr(l_Cmd, "cancel"))
+                        {
+                            // Process cancel request...
+                            if (strstr(l_Str1, "cancelrequest"))
+                            {
+                                // This was a direct cancel request from a given compute node to the bbServer servicing
+                                // that CN at the request's hostname.  That request is now being propagated to all other bbServers...
+                                rc = cancelTransferForHandle(l_Request.getHostName(), l_JobId, l_JobStepId, l_Handle, REMOVE_TARGET_PFS_FILES);
+                            }
+                            else if (strstr(l_Str1, "stoprequest"))
+                            {
+                                // This was a direct stop transfers request that is now being propagated to all other bbServers...
+                                rc = metadata.stopTransfer(l_Request.getHostName(), l_Str2, l_JobId, l_JobStepId, l_Handle, l_ContribId);
+                            }
+                            else
+                            {
+                                LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
+                            }
+
+                            // NOTE: The rc value could be returned as position indicating a non-error...
+                            if (rc < 0)
+                            {
+                                LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                            }
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                        }
+
+                        else if (strstr(l_Cmd, "handle"))
+                        {
+                            // Process the handle status request...
+                            // NOTE:  We send the completion message here because some other bbServer has updated the
+                            //        status for the handle.  This is the mechanism used to notify handle status changes
+                            //        to other bbServers that have already finished processing a handle.  However,
+                            //        if a bbServer still has extents on a work queue for the handle in question, a status
+                            //        change will be sent here and also might be sent again when this bbServer processes
+                            //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
+                            BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
+                            metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                        }
+
+                        else if (strstr(l_Cmd, "heartbeat"))
+                        {
+                            // Process a heartbeat from another bbServer...
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName(), l_Str2);
+                        }
+
+                        else if (strstr(l_Cmd, "removejobinfo"))
+                        {
+                            rc = removeJobInfo(l_Request.getHostName(), l_JobId);
+                            if (rc)
+                            {
+                                if (rc != -2)
+                                {
+                                    LOG(bb,error) << "processAsyncRequest: Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                                }
+                            }
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                        }
+
+                        else if (strstr(l_Cmd, "removelogicalvolume"))
+                        {
+                            LVKey l_LVKeyStg = LVKey("", Uuid(l_Str2));
+                            LVKey* l_LVKey = &l_LVKeyStg;
+                            metadata.removeAllLogicalVolumesForUuid(l_Request.getHostName(), l_LVKey, l_JobId);
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName());
+                        }
+
+                        else if (strstr(l_Cmd, "setsuspend"))
+                        {
+                            // NOTE: In this path l_JobId is the pValue
+                            rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, (int)l_JobId);
+                            if (rc)
+                            {
+                                LOG(bb,error) << "processAsyncRequest: Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                            }
+                            wrkqmgr.updateHeartbeatData(l_Request.getHostName());
                         }
                         else
                         {
-                            LOG(bb,error) << "Invalid data indicating type of cancel operation from request data " << l_Request.getData() << " to this bbServer";
+                            LOG(bb,error) << "processAsyncRequest: Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                         }
+                    }
+                    catch (ExceptionBailout& e) { }
+                    catch (exception& e)
+                    {
+                        rc = -1;
+                        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+                    }
 
-                        // NOTE: The rc value could be returned as position indicating a non-error...
-                        if (rc < 0)
+                    if (!strstr(l_Cmd, "heartbeat"))
+                    {
+                        // Return to the lock state as it was at the beginning of this method
+                        if (l_LocalMetadataLocked)
                         {
-                            LOG(bb,error) << "Failure when attempting to propagate cancel operation " << l_Request.getData() << " to this bbServer, rc=" << rc;
+                            unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
                         }
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                    }
-
-                    else if (strstr(l_Cmd, "handle"))
-                    {
-                        // Process the handle status request...
-                        // NOTE:  We send the completion message here because some other bbServer has updated the
-                        //        status for the handle.  This is the mechanism used to notify handle status changes
-                        //        to other bbServers that have already finished processing a handle.  However,
-                        //        if a bbServer still has extents on a work queue for the handle in question, a status
-                        //        change will be sent here and also might be sent again when this bbServer processes
-                        //        that last extent for the handle.  This is probably only in the status case of BBFAILED.
-                        BBSTATUS l_Status = getBBStatusFromStr(l_Str2);
-                        metadata.sendTransferCompleteForHandleMsg(l_Request.getHostName(), l_Str1, l_Handle, l_Status);
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                    }
-
-                    else if (strstr(l_Cmd, "heartbeat"))
-                    {
-                        // Process a heartbeat from another bbServer...
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName(), l_Str2);
-                    }
-
-                    else if (strstr(l_Cmd, "removejobinfo"))
-                    {
-                        rc = removeJobInfo(l_Request.getHostName(), l_JobId);
-                        if (rc)
-                        {
-                            if (rc != -2)
-                            {
-                                LOG(bb,error) << "Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
-                            }
-                        }
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                    }
-
-                    else if (strstr(l_Cmd, "removelogicalvolume"))
-                    {
-                        LVKey l_LVKeyStg = LVKey("", Uuid(l_Str2));
-                        LVKey* l_LVKey = &l_LVKeyStg;
-                        metadata.removeAllLogicalVolumesForUuid(l_Request.getHostName(), l_LVKey, l_JobId);
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                    }
-
-                    else if (strstr(l_Cmd, "setsuspend"))
-                    {
-                        // NOTE: In this path l_JobId is the pValue
-                        rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, (int)l_JobId);
-                        if (rc)
-                        {
-                            LOG(bb,error) << "Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;
-                        }
-                        wrkqmgr.updateHeartbeatData(l_Request.getHostName());
-                    }
-                    else
-                    {
-                        LOG(bb,error) << "Unknown async request command from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
-                    }
-
-                    if (l_LocalMetadataLocked)
-                    {
-                        unlockLocalMetadata((LVKey*)0, "processAsyncRequest - After invoking request handler");
-                    }
-                    if (l_HP_TransferQueueUnlocked)
-                    {
+                        // NOTE: CurrentWrkQE may or may not be set.  If set, we do not attempt to
+                        //       unlock the transfer queue, as the code to proess the specific request
+                        //       should have already performed the unlock.
+                        CurrentWrkQE = HPWrkQE;
                         lockTransferQueue((LVKey*)0, "processAsyncRequest - After invoking request handler");
                     }
                 }
                 else
                 {
                     // Failure when attempting to parse the request...  Log it and continue...
-                    LOG(bb,error) << "Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
+                    LOG(bb,error) << "processAsyncRequest: Failure when attempting to process async request from hostname " << l_Request.getHostName() << ", number of successfully parsed items " << rc << " => " << l_Request.getData();
                 }
 
                 if (l_LogAsInfo)
                 {
                     LOG(bb,info) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                                 << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                 << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
                 else
                 {
                     LOG(bb,debug) << "AsyncRequest -> End processing async request: Offset 0x" << hex << uppercase << setfill('0') \
-                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec;
+                                  << pWorkItem.getTag() << setfill(' ') << nouppercase << dec \
+                                  << ", from hostname " << l_Request.getHostName() << " => " << l_Request.getData();
                 }
-
                 wrkqmgr.endProcessingHP_Request(l_Request);
             }
             else
@@ -758,7 +779,7 @@ void processAsyncRequest(WorkID& pWorkItem)
     else
     {
         // Error when retrieving the request
-        LOG(bb,error) << "Error when attempting to retrieve the async request at offset " << pWorkItem.getTag();
+        LOG(bb,error) << "processAsyncRequest: Error when attempting to retrieve the async request at offset " << pWorkItem.getTag();
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1547,7 +1568,7 @@ int jobStillExists(const std::string& pConnectionName, const LVKey* pLVKey, BBLV
     return rc;
 }
 
-void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId)
+void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId, uint32_t* pSourceIndex)
 {
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
@@ -1569,7 +1590,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
             // Sort the extents, moving the extents for the failed file, and all other files
             // for the transfer definition, to the front of the work queue so they are immediately removed...
             LOCAL_METADATA_RELEASED l_LockWasReleased = LOCAL_METADATA_LOCK_NOT_RELEASED;
-            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
+            pLV_Info->cancelExtents(pLVKey, &pHandle, &pContribId, pSourceIndex, 1, l_LockWasReleased, DO_NOT_REMOVE_TARGET_PFS_FILES);
         }
     }
     else
@@ -1610,6 +1631,7 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     // It is possible to entry this section of code without the transfer queue locked.
     // If not locked, we lock the transfer queue during the prepareForRestart() logic.
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, l_Text.str().c_str());
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, l_Text.str().c_str());
 
     if (pPass == FIRST_PASS)
@@ -1677,7 +1699,14 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
 
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, l_Text.str().c_str());
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, l_Text.str().c_str());
     }
 
     EXIT(__FILE__,__FUNCTION__);
@@ -1916,7 +1945,8 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
 
                 l_MarkFailed = false;
                 // Mark the transfer definition and associated handle as failed
-                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib);
+                uint32_t l_SourceIndex = pExtentInfo.getSourceIndex();
+                markTransferFailed(&l_Key, l_TransferDef, pLV_Info, pExtentInfo.handle, pExtentInfo.contrib, &l_SourceIndex);
 
                 l_LockTransferQueue = false;
                 lockTransferQueue(&l_Key, "transferExtent - After markTransferFailed()");
@@ -1963,6 +1993,12 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
         catch(ExceptionBailout& e) { }
         catch(exception& e)
         {
+            // NOTE: Depending upon where we took the exception, the transfer queue and/or local metadata could
+            //       have been locked by removeFromInFlight() processing.  "Cleanup' those locks up now, leaving
+            //       the lock on the transfer queue intact.
+            unlockTransferQueueIfNeeded(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
+            unlockLocalMetadataIfNeeded(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
+            lockTransferQueue(&l_Key, "transferExtent - Exception handler after removeFromInFlight()");
             LOG(bb,error) << "Exception thrown in transferExtent() when attempting to remove an extent from the inflight queue";
             LOG_ERROR_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, bb.internal.te_4);
         }
@@ -2021,7 +2057,6 @@ void* transferWorker(void* ptr)
     double l_ThreadDelay = 0;
     double l_TotalDelay = 0;
     int l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-    bool l_Repost = false;
     threadLocalTrackSyscallPtr = getSysCallTracker();
 
     uint64_t l_ConsecutiveSnoozes = 0;
@@ -2032,15 +2067,14 @@ void* transferWorker(void* ptr)
 
         l_WrkQ = 0;
         l_WrkQE = 0;
-        l_LV_Info = 0;
-        l_Extent = 0;
-        l_Repost = true;
 
         verifyInitLockState();
 
         // Start new work
         wrkqmgr.wait();
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "transferWorker - Start work item");
+
+        bool l_Repost = true;
 
         try
         {
@@ -2062,12 +2096,15 @@ void* transferWorker(void* ptr)
             // NOTE: The findWork() invocation will return suspended work
             //       queues.
             bool l_WorkRemains = true;
+            bool l_SuspendedWorkRemains = false;
+            bool l_ProcessNextWorkItem = false;
 
-            if (!wrkqmgr.findWork((LVKey*)0, l_WrkQE))
+            if (wrkqmgr.findWork((LVKey*)0, l_WrkQE) == 1)
             {
-                // Work was returned
+                // Work exists
                 if (l_WrkQE)
                 {
+                    // Work was returned
                     CurrentWrkQE = l_WrkQE;
                     lockTransferQueue((LVKey*)0, "transferWorker - Start work item");
                     // NOTE:  Indicate critical section of code where the transfer queue
@@ -2083,17 +2120,58 @@ void* transferWorker(void* ptr)
                         {
                             // A work queue associated with an LVKey was returned
                             //
-                            // Retrieve the LVKey, WorkID, and BBLV_Info*
-                            // from the next item of work from the returned queue...
-                            l_WorkItem = l_WrkQE->getWrkQ()->front();
-                            l_Key = l_WorkItem.getLVKey();
-                            l_LV_Info = l_WorkItem.getLV_Info();
-                            if (l_LV_Info)
+                            // Retrieve the next 'valid' work item
+                            bool l_RemoveWorkItem = true;
+                            while (l_RemoveWorkItem && l_WrkQE->getWrkQ_Size())
                             {
-                                l_TagId = l_WorkItem.getTagId();
-                                l_ExtentInfo = l_LV_Info->getNextExtentInfo();
-                                l_Extent = l_ExtentInfo.getExtent();
+                                l_RemoveWorkItem = false;
+                                l_Extent = 0;
+                                l_WorkItem = l_WrkQE->getWrkQ()->front();
+                                l_LV_Info = l_WorkItem.getLV_Info();
+                                if (l_LV_Info)
+                                {
+                                    l_ExtentInfo = l_LV_Info->getNextExtentInfo();
+                                    l_Extent = l_ExtentInfo.getExtent();
+                                    // NOTE: In stageoutEnd(), the work queue manager lock is obtained before
+                                    //       the work queue is removed and then the related transfer definitions
+                                    //       are removed for the LVKey.  However, for efficiencies, the work
+                                    //       queue manager lock is not obtained prior to removing all remaining
+                                    //       extents to be transferred for those transfer definitions.
+                                    //       Therefore, the l_LV_Info->getNextExtentInfo() performed above may
+                                    //       yield an 'empty' l_ExtentInfo above.  Check for that here by making
+                                    //       sure the pointers to the Extent, BBTagInfo, and BBTransferDef are set.
+                                    //       If not set, then there is no more work for this work queue.
+                                    // NOTE: On the 2nd through nth iterations, we continue to look for a
+                                    //       valid l_ExtentInfo for completeness.  We shouldn't have to
+                                    //       check after the first attempt.
+                                    if (!(l_Extent && l_ExtentInfo.getTagInfo() && l_ExtentInfo.getTransferDef()))
+                                    {
+                                        // Empty l_ExtentInfo...  Indicate to remove this work item
+                                        // and iterate to process the next work item.
+                                        l_LV_Info = 0;
+                                        l_RemoveWorkItem = true;
+                                    }
+                                }
+                                else
+                                {
+                                    // Not expected...  Log the situation, indicate to remove the work item,
+                                    // and iterate to process the next work item.
+                                    l_RemoveWorkItem = true;
+                                    errorText << "Error occurred in transferExtent() when attempting to access the local metadata (BBLV_Info)";
+                                    LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
+                                }
+                                if (l_RemoveWorkItem)
+                                {
+                                    wrkqmgr.removeWorkItem(l_WrkQE, l_WorkItem);
+                                    wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                                }
+                            }
 
+                            if (l_Extent)
+                            {
+                                // Valid extent to process
+                                l_Key = l_WorkItem.getLVKey();
+                                l_TagId = l_WorkItem.getTagId();
                                 if (!l_WrkQE->getRate())
                                 {
                                     FL_Write6(FLWrkQMgr, FindNext, "Jobid %ld, jobstepid %ld, tag %ld, work queue %p currently has %ld entries remaining.",
@@ -2171,8 +2249,8 @@ void* transferWorker(void* ptr)
                             }
                             else
                             {
-                                errorText << "Error occurred in transferExtent() when attempting to access the local metadata (taginfo2)";
-                                LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_1);
+                                // Work queue no longer has a valid extent to process.
+                                // Simply continue on to find more work.
                             }
                         }
                         else
@@ -2183,14 +2261,16 @@ void* transferWorker(void* ptr)
                     }
                     else
                     {
-                        // A work queue with no entries was returned.  Tolerate the situation,
+                        // A work queue with no entries was returned.  Log the situation, tolerate,
                         // fall through, attempt to find more work.
+                        // NOTE: This is possible because cancelExtents() can remove items from a work
+                        //       queue and not have the work queue manager lock.
                     }
                 }
                 else
                 {
-                    errorText << "Null work queue returned when attempting to find additional work";
-                    LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.tw_3);
+                    // Work exists, but was not returned on this invocation.
+                    // Fall through and attempt to find more work.
                 }
 
                 //  NOTE:  When we get here, l_WrkQ addresses a workqueue with one or more extents
@@ -2201,7 +2281,7 @@ void* transferWorker(void* ptr)
                 //         (very likely).  If this is the case, simply fall out, and attempt to find more work...
                 if (l_WrkQ)
                 {
-                    bool l_ProcessNextWorkItem = true;
+                    l_ProcessNextWorkItem = true;
                     if (l_WrkQE->isSuspended())
                     {
                         // Work queue is suspended
@@ -2249,23 +2329,6 @@ void* transferWorker(void* ptr)
                             // Perform the transfer
 //                            l_WrkQE->dump("info", " Extent being transferred -> ");
                             transferExtent(l_LV_Info, l_WorkItem, l_ExtentInfo);
-                            if (!Throttle_Timer.isSnoozing())
-                            {
-                                int l_NumberOfPosts = 0;
-
-                                unlockTransferQueue((LVKey*)0, "Throttle_Timer - before sem_getvalue");
-                                wrkqmgr.lockWorkQueueMgr((LVKey*)0, "Throttle_Timer - before sem_getvalue");
-
-                                sem_getvalue(&sem_workqueue, &l_NumberOfPosts);
-
-                                wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "Throttle_Timer - after sem_getvalue");
-                                lockTransferQueue((LVKey*)0, "Throttle_Timer -  after sem_getvalue");
-
-                                if (l_NumberOfPosts)
-                                {
-                                    l_Repost = false;
-                                }
-                            }
                         }
                         else
                         {
@@ -2274,6 +2337,7 @@ void* transferWorker(void* ptr)
                             processAsyncRequest(l_WorkItem);
                         }
                         wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkItem);
+                        l_Repost = false;
                     }
                     else
                     {
@@ -2283,11 +2347,11 @@ void* transferWorker(void* ptr)
 
                         if (++l_ConsecutiveSuspendedWorkQueuesNotProcessed >= CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD)
                         {
-                            // If we have not processed several suspended work queues consecutively, then treat
-                            // this situation as if no work remains.  We will delay below for a while before retrying
-                            // to find additional work.
+                            // If we have processed several suspended work queues consecutively, then treat
+                            // this situation similar to 'no work remains'.  We will delay below for a while
+                            // before retrying to find additional work.
                             l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
-                            l_WorkRemains = false;
+                            l_SuspendedWorkRemains = true;
                         }
 
                         // Indicate transfer queue lock can be released
@@ -2311,9 +2375,10 @@ void* transferWorker(void* ptr)
                 l_WorkRemains = false;
             }
 
-            if (!l_WorkRemains)
+            if ((!l_WorkRemains) || l_SuspendedWorkRemains)
             {
-                // No work remains...  We need to post to the semaphore at least every time interval
+                // No work remains -or- suspended work remains and we want to snooze.
+                // We need to post to the semaphore at least every time interval
                 // so that we can check for requests in the async file...
                 // NOTE: If the Throttle_Timer is snoozing, that indicates another thread is
                 //       already delaying to post to the semaphore.  We only need a single thread
@@ -2326,7 +2391,7 @@ void* transferWorker(void* ptr)
                     {
                         if (!(++l_ConsecutiveSnoozes % 40))
                         {
-                            LOG(bb,debug) << "Snoozing...";
+                            LOG(bb,off) << "Snoozing...";
                         }
                         Throttle_Timer.setSnooze(true);
                         int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(&l_Key, "%transferWorker - Before snoozing");
@@ -2350,7 +2415,25 @@ void* transferWorker(void* ptr)
                 else
                 {
                     // Another thread is already snoozing...
-                    l_Repost = false;
+                    LOG(bb,off) << "transferWorker(): Another thread snoozing, l_WrkQE " << l_WrkQE;
+                    if (l_WorkRemains)
+                    {
+                        if (l_WrkQE)
+                        {
+                            if (l_WrkQE->isSuspended())
+                            {
+                                // We will repost after this work queue is resumed again
+                                LOG(bb,off)  << "transferWorker(): Another thread is already snoozing, suspended work queue, " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) exist for " << l_Key;
+                                l_WrkQE->incrementSuspendedReposts();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No work remains, so do not repost to the semaphore...
+                        LOG(bb,off) << "transferWorker(): No work remains";
+                        l_Repost = false;
+                    }
                 }
             }
             else
@@ -2365,8 +2448,19 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists on one workqueue, so repost to the semaphore...
-                l_Repost = false;
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Reposting");
+
                 wrkqmgr.post();
+            }
+
+            if (l_WrkQE && (l_WrkQE != HPWrkQE) && (l_WrkQE->getSuspendedReposts()) && (!l_WrkQE->isSuspended()))
+            {
+                // NOTE: Suspended reposts exist for this non-suspended workqueue.  Repost those now...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Delay Reposting");
+
+                wrkqmgr.post_multiple((size_t)l_WrkQE->getSuspendedReposts());
+                LOG(bb,debug)  << "transferWorker(): All " << l_WrkQE->getSuspendedReposts() << " suspended repost(s) have been reposted to the semaphore for " << l_Key;
+                l_WrkQE->setSuspendedReposts(0);
             }
 
             wrkqmgr.unlockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - End work item");
@@ -2385,7 +2479,10 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                l_Repost = false;
+                // NOTE: We don't consider suspended reposts in exception handling.  We will wait for
+                //       the next iteration...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - Bailout exception handler");
+
                 wrkqmgr.post();
             }
 
@@ -2403,7 +2500,10 @@ void* transferWorker(void* ptr)
             if (l_Repost)
             {
                 // NOTE: At least one workqueue entry exists, so repost to the semaphore...
-                l_Repost = false;
+                // NOTE: We don't consider suspended reposts in exception handling.  We will wait for
+                //       the next iteration...
+                wrkqmgr.lockWorkQueueMgrIfNeeded(&l_Key, "transferWorker - General exception handler");
+
                 wrkqmgr.post();
             }
 
@@ -3004,6 +3104,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     BBLV_Info* l_LV_Info = 0;;
     BBTransferDef* l_TransferDef = 0;
     int l_LocalMetadataWasLocked = 0;
+    int l_TransferQueueWasUnlocked = 0;
 
     stringstream l_JobStr;
     pJob.getStr(l_JobStr);
@@ -3042,9 +3143,9 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -1;
-        errorText << "queueTransfer():" << *pLVKey << " could not be found in taginfo2";
+        errorText << "queueTransfer():" << *pLVKey << " could not be found in BBLV_Info";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
@@ -3060,6 +3161,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                 {
                     // It is possible to enter this section of code without the local metadata locked.
                     // We lock around the merging of the flags.
+                    unlockTransferQueue(pLVKey, "queueTransfer");
+                    l_TransferQueueWasUnlocked = 1;
                     l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "queueTransfer");
 
                     // Merge in the flags from the transfer definition to the extent info...
@@ -3073,6 +3176,8 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             l_LocalMetadataWasLocked = 0;
                             unlockLocalMetadata(pLVKey, "queueTransfer");
                         }
+                        l_TransferQueueWasUnlocked = 0;
+                        lockTransferQueue(pLVKey, "queueTransfer");
 
                         l_TransferDef = l_TagInfo->getTransferDef((uint32_t)pContribId);
                         if (l_TransferDef)
@@ -3084,6 +3189,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                             //       ExtentInfo() objects.
                             size_t l_PreviousNumberOfExtents = l_TransferDef->getNumberOfExtents();
                             rc = l_LV_Info->addExtents(pLVKey, pHandle, (uint32_t)pContribId, l_TagInfo, l_TransferDef, pStats);
+
                             if (!rc)
                             {
                                 LOG(bb,info) << "For " << *pLVKey << ", the number of extents for the transfer definition associated with Contrib(" \
@@ -3095,17 +3201,16 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                 WRKQE* l_WrkQE = 0;
                                 if (!CurrentWrkQE)
                                 {
-                                    rc = wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
+                                    wrkqmgr.getWrkQE(pLVKey, l_WrkQE);
                                 }
                                 else
                                 {
                                     l_WrkQE = CurrentWrkQE;
                                 }
 
-                                if ((!rc) && l_WrkQE)
+                                if (l_WrkQE)
                                 {
                                     CurrentWrkQE = l_WrkQE;
-                                    lockTransferQueue(pLVKey, "queueTransfer");
 
                                     // If necessary, sort the extents...
                                     rc = l_LV_Info->sortExtents(pLVKey);
@@ -3143,8 +3248,6 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         errorText << "queueTransfer(): sortExtents() failed, rc = " << rc;
                                         LOG_ERROR_TEXT_RC(errorText, rc);
                                     }
-
-                                    unlockTransferQueue(pLVKey, "queueTransfer");
 
                                     if (!rc)
                                     {
@@ -3226,9 +3329,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
             if (l_TransferDef)
             {
                 // Post each new extent...
-                lockTransferQueue(pLVKey, "queueTransfer - post_multiple");
                 wrkqmgr.post_multiple(l_TransferDef->getNumberOfExtents());
-                unlockTransferQueue(pLVKey, "queueTransfer - post_multiple");
             }
             else
             {
@@ -3242,7 +3343,13 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
 
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, "queueTransfer_Exit");
+    }
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, "queueTransfer_Exit");
     }
 
     FL_Write(FLXfer, DoQueueTransferCMP, "Finishing queueTransfer  rc=%ld",rc,0,0,0);
@@ -3448,7 +3555,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
 
     try
     {
-        l_LV_Info = metadata.getAnyTagInfo2ForUuid(pLVKey);
+        l_LV_Info = metadata.getAnyLV_InfoForUuid(pLVKey);
         if (l_LV_Info)
         {
             // At least one LVKey value was found for the logical volume to be removed...
@@ -3463,7 +3570,7 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
         }
         else
         {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             LOG(bb,warning) << "removeLogicalVolume: Logical volume to be removed by bbproxy, however " << *pLVKey << " was not found in the bbserver metadata.";
         }
     }
@@ -3547,13 +3654,14 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     WRKQE* l_WrkQE = 0;
     BBLV_Info* l_LV_Info;
     int l_TransferQueueLocked = 0;
-    int l_LocalMetadataLocked = 1;
+    int l_LocalMetadataUnlocked = 0;
+    int l_WorkQueueMgrLocked = 0;
 
     LVKey l_LVKey = *pLVKey;
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
     if (l_LV_Info)
     {
-        // LVKey value found in taginfo2...
+        // LVKey value found in BBLV_Info...
 
         // Check to see if stgout_start has been called...  If not, send warning and continue...
         if (!l_LV_Info->stageOutStarted()) {
@@ -3565,24 +3673,23 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // Stageout end not started
             try
             {
-                int rc2 = 0;
                 if (!CurrentWrkQE)
                 {
-                    rc2 = wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
+                    wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
                 }
                 else
                 {
                     l_WrkQE = CurrentWrkQE;
                 }
 
-                if ((!rc2) && l_WrkQE)
+                if (l_WrkQE)
                 {
                     CurrentWrkQE = l_WrkQE;
                     l_WrkQ = l_WrkQE->getWrkQ();
                     lockTransferQueue((LVKey*)0, "stageoutEnd");
                     l_TransferQueueLocked = 1;
 
-                    // NOTE:  First, mark TagInfo2 as StageOutEnded before processing any extents associated with the jobid.
+                    // NOTE:  First, mark BBLV_Info as StageOutEnded before processing any extents associated with the jobid.
                     //        Doing so will ensure that such extents are not actually transferred.
                     l_LV_Info->setStageOutEnded(&l_LVKey, l_LV_Info->getJobId());
 
@@ -3609,13 +3716,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         }
                         l_TransferQueueLocked = 0;
                         unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataLocked = 0;
+                        l_LocalMetadataUnlocked = 1;
                         unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         {
                             usleep((useconds_t)250000);
                         }
                         lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataLocked = 1;
+                        l_LocalMetadataUnlocked = 0;
                         lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_TransferQueueLocked = 1;
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
@@ -3717,8 +3824,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_WorkItemLV_Info = l_WorkId.getLV_Info();
                             if (l_WorkItemLV_Info)
                             {
+                                // Only need to process the first/last extent
                                 ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
-                                transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
+                                Extent* l_Extent = l_ExtentInfo.getExtent();
+                                if (l_Extent->isFirstExtent() || l_Extent->isLastExtent())
+                                {
+                                    transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
+                                }
                             }
                             else
                             {
@@ -3736,7 +3848,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
                 }
 
-                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
+                // Perform cleanup for the LVKey value
+                // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
+                //       associated with this LVKey.
+                l_LV_Info->cleanUpAll(&l_LVKey);
 
                 // Remove the work queue
                 // NOTE: Since the work queue will be deleted by rmvWrkQ(),
@@ -3750,16 +3865,23 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     rc = 0;
                 }
 
-                // Perform cleanup for the LVKey value
-                l_LV_Info->cleanUpAll(&l_LVKey);
-
-                if (!pForced) {
-                    // Remove taginfo2 that is currently associated with this LVKey value...
+                // NOTE:  Not sure of the original intent of pForced, but this method is always
+                //        invoked with pForced = FORCED (1)
+                // NOTE:  For now, keep BBLV_Info around so that the dump of the work queue manager
+                //        shows the depleted allExtents/inflight queues until removejobinfo() removes the
+                //        LVKey entry and LVInfo object.
+                // NOTE:  If we ever want to invoke cleanLVKeyOnly() here, need to fix the problem when
+                //        removejobinfo() is later invoked and attempts -  metaDataMap.erase(it);
+                //        Probably would have to erase the entire entry here also...
+                if (0==1 ||(!pForced))
+                {
+                    // Remove BBLV_Info that is currently associated with this LVKey value...
                     LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
                     metadata.cleanLVKeyOnly(&l_LVKey);
                 }
 
                 l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
+                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
             }
             catch (ExceptionBailout& e) { }
             catch (exception& e)
@@ -3770,10 +3892,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                     l_TransferQueueLocked = 0;
                     unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
-                if (l_LocalMetadataLocked)
+                if (l_WorkQueueMgrLocked)
                 {
-                    l_LocalMetadataLocked = 0;
-                    unlockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
+                    l_WorkQueueMgrLocked = 0;
+                    wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - Exception thrown", &l_LocalMetadataUnlocked);
+                }
+                if (l_LocalMetadataUnlocked)
+                {
+                    l_LocalMetadataUnlocked = 0;
+                    lockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
                 }
             }
         }
@@ -3792,7 +3919,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     }
     else
     {
-        // LVKey could not be found in taginfo2...
+        // LVKey could not be found in BBLV_Info...
         rc = -2;
         errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
         LOG_INFO_TEXT_RC(errorText, rc);
@@ -3818,7 +3945,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
         l_LV_Info = metadata.getLV_Info(pLVKey);
         if (l_LV_Info)
         {
-            // Key found in taginfo2...
+            // Key found in BBLV_Info...
             if (!(l_LV_Info->stageOutStarted()))
             {
                 LOG(bb,info) << "Stageout: Started: " << *pLVKey << " for jobid " << l_LV_Info->getJobId();
@@ -3859,9 +3986,9 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
         } else {
-            // LVKey could not be found in taginfo2...
+            // LVKey could not be found in BBLV_Info...
             rc = -1;
-            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in taginfo2";
+            errorText << "Stageout start was received, but " << *pLVKey << " could not be found in BBLV_Info";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
     }

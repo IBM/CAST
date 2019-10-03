@@ -60,7 +60,7 @@ echo "------------------------------------------------------------" >> ${LOG}
 ${CSM_PATH}/csm_node_resources_query_all > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 1: csm_node_resources_query_all"
 check_all_output "ready: .* n"
-check_return_flag $? "Test Case 1: check node_ready=n"
+check_return_flag_value $? 0 "Test Case 1: check node_ready=n"
 
 rm -f ${TEMP_LOG}
 # Test Case 2: csm_node_resources_query on 1 node
@@ -92,14 +92,14 @@ rm -f ${TEMP_LOG}
 ${CSM_PATH}/csm_node_attributes_query -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 7: Calling csm_node_attributes_query on all nodes"
 check_all_output "state: .* IN_SERVICE"
-check_return_flag $? "Test Case 7: Checking for state=IN_SERVICE"
+check_return_flag_value $? 0 "Test Case 7: Checking for state=IN_SERVICE"
 
 rm -f ${TEMP_LOG}
 # Test Case 8: csm_node_query_state_history on 1 node and check for IN_SERVICE and CSM API
 ${CSM_PATH}/csm_node_query_state_history -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 8: Calling csm_node_query_state_history on 1 node"
 check_all_output "IN_SERVICE" "CSM API"
-check_return_flag $? "Test Case 8: Checking for state=IN_SERVICE and CSM_API"
+check_return_flag_value $? 0 "Test Case 8: Checking for state=IN_SERVICE and CSM_API"
 
 rm -f ${TEMP_LOG}
 # Test Case 9: csm_node_attributes_query_details on 1 node

@@ -47,12 +47,13 @@ const uint32_t ARCHIVE_HANDLE_VERSION_2 = 2;
 const uint32_t ARCHIVE_HANDLE_VERSION_3 = 3;
 
 const char LOCK_FILENAME[] = "lockfile";
-const int MAXIMUM_HANDLEFILE_LOADTIME = 30;     // In seconds
+const int MAXIMUM_HANDLEFILE_LOADTIME = 10;     // In seconds
 
 
 /*******************************************************************************
  | External data
  *******************************************************************************/
+extern double g_LogUpdateHandleStatusElapsedTimeClipValue;
 extern thread_local int handleFileLockFd;
 
 
@@ -92,6 +93,7 @@ public:
                 pArchive & numReportingContribs;
             }
             break;
+            // Intentionally falling through
 
             case ARCHIVE_HANDLE_VERSION_1:
             default:
@@ -153,7 +155,7 @@ public:
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
     static int createLockFile(const char* pFilePath);
     static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
-    static int get_xbbServerGetCurrentJobIds(vector<string>& pJobIds);
+    static int get_xbbServerGetCurrentJobIds(vector<string>& pJobIds, const RETURN_REMOVED_JOBIDS_INDICATOR pReturnRemovedJobIds=ONLY_RETURN_VALID_JOBIDS);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
     static int get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32_t>& pContrib, uint64_t& pHandle);
     static int get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, uint64_t& pNumberOfReportingContribs, HandleFile* &pHandleFile, ContribIdFile* &pContribIdFile, const uint64_t pHandle, const uint32_t pContribId);

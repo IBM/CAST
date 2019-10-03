@@ -112,7 +112,7 @@ int csm_init_lib_vers(int64_t version_id)
 
   initialized = 1;
 
-  csmutil_logging(trace, "csm_init_lib initialized (init_msg_id=%d)", init_msgId);
+  csmutil_logging(trace, "csm_init_lib initialized (init_msg_id=%" PRIu64")", init_msgId);
 
   pthread_mutex_unlock( &disconnect_lock );
   return 0;

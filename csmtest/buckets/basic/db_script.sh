@@ -57,7 +57,7 @@ check_return_exit $? 0 "Test Case 3: csm_db_backup_script - run script"
 
 # Test Case 3: csm_db_backup_script - check for backup
 ls /var/lib/pgsql/backups/fvttestdb* > ${TEMP_LOG} 2>&1
-check_return_flag $? "Test Case 3: csm_db_backup_script - check for backup"
+check_return_flag_value $? 0 "Test Case 3: csm_db_backup_script - check for backup"
 
 # Test Case 4: Calling csm_db_script.sh -d fvttestdb
 echo "y" | ${DB_PATH}/csm_db_script.sh -d fvttestdb > ${TEMP_LOG} 2>&1

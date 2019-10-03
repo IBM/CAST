@@ -63,13 +63,6 @@ class BBTagParts
         return tagParts.size();
     }
 
-    inline void removeTransferDef(const uint32_t pContribId)
-    {
-        tagParts.erase(pContribId);
-
-        return;
-    }
-
     inline int replaceExtentVector(BBTagInfo* pTagInfo, const uint32_t pContribId, BBTransferDef* pTransferDef) {
         return getTransferDef(pTagInfo, pContribId)->replaceExtentVector(pTransferDef);
     }
