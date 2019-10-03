@@ -104,12 +104,10 @@ void checkForStuckSyscall()
     const int MAXBUFF=4096;
     char buff[MAXBUFF];
     buff[0]=0;
+    int len=0;
 
     bberror << err("syscall.mainpid",getpid() );
-    bberror << err("syscall.pthread_t.decimal", pTracksyscallptr->_tid);
-    int len = snprintf(buff,MAXBUFF-1,"%p",(void*)pTracksyscallptr->_tid);
-    if (len>0) bberror<<err("syscall.pthread_t.hex",buff);
-    buff[0]=0;
+
     if (pTracksyscallptr->_fileName.size() )
     {
         bberror << err("syscall.file.name", pTracksyscallptr->_fileName);
