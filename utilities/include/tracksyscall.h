@@ -111,7 +111,6 @@ inline void  clearTrack(){
    }
 inline bool isClear(){ return  !_timeStamp;}
 
-void reset();
    tracking _syscall;
    int      _lineNumber;
    int      _fd;

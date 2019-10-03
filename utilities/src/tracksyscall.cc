@@ -18,23 +18,12 @@ std::map<pthread_t, TrackSyscallPtr>   pthread_syscalltracker;
 
 std::map<pthread_t, TrackSyscallPtr> get_pthread_syscalltracker(){return pthread_syscalltracker;}
 
-void TrackSyscall::reset()
-{
-    _syscall = nosyscall;
-    _timeStamp=0;
-    _lineNumber=0;
-    _tid=-1;
-    _fd=-1;
-    _fileName.clear();
-}
-
 TrackSyscall::TrackSyscall()
 {
     _tid = pthread_self();
     _timeStamp = 0;
     _syscall = nosyscall;
     _fd = -1;
-    _timeStamp = 0;
     _lineNumber = 0;
     _rasCount = 0;
     _size=0;
