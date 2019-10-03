@@ -548,6 +548,33 @@ void verifyInitLockState()
     return;
 }
 
+// NOTE:  This method verifies that the input jobid exists as a valid job in the xBBServer metadata...
+int verifyJobIdExistsInXBbServerMetadata(const uint64_t pJobId)
+{
+    int rc = 0;
+
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
+    if (!HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds))
+    {
+        for (vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
+        {
+            if (pJobId == stoull(*rit))
+            {
+                rc = 1;
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Some error occurred...  Return that the jobid exists and let our invoker attempt to find it...
+        rc = 1;
+    }
+
+    return rc;
+}
+
 void processAsyncRequest(WorkID& pWorkItem)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -1804,7 +1831,7 @@ int sendTransferProgressMsg(const string& pConnectionName, const LVKey* pLVKey, 
 // remove the extent from the vector of extents to transfer for this
 // LVKey.  This is because we have already removed this extent
 // from the LVKey's work queue.
-void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentInfo)
+void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists=XBBSERVER_JOB_EXISTS)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -1991,7 +2018,7 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
         try
         {
             // Remove this extent from the in-flight list...
-            pLV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo);
+            pLV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo, pJobExists);
         }
         catch(ExceptionBailout& e) { }
         catch(exception& e)
@@ -3852,6 +3879,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         //
                         // NOTE: Calling transferExtent() may cause the transfer queue lock to be dropped and
                         //       re-acquired...
+                        uint64_t l_LastJobId = UNDEFINED_JOBID;
+                        XBBSERVER_JOB_EXISTS_OPTION l_JobExists = XBBSERVER_JOB_EXISTS;
                         while (l_Temp2.size()) {
                             LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_process_workitem");
                             l_WorkId = l_Temp2.front();
@@ -3864,7 +3893,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                 Extent* l_Extent = l_ExtentInfo.getExtent();
                                 if (l_Extent->isFirstExtent() || l_Extent->isLastExtent())
                                 {
-                                    transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo);
+                                    if (l_LastJobId != l_WorkItemLV_Info->getJobId())
+                                    {
+                                        l_LastJobId = l_WorkItemLV_Info->getJobId();
+                                        if (!verifyJobIdExistsInXBbServerMetadata(l_LastJobId))
+                                        {
+                                            l_JobExists = XBBSERVER_JOB_DOES_NOT_EXIST;
+                                        }
+                                    }
+                                    transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo, l_JobExists);
                                 }
                             }
                             else
