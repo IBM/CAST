@@ -95,9 +95,9 @@ int BBIO_Regular::fsync(uint32_t pFileIndex)
     filehandle* fh = getFileHandle(pFileIndex);
     if (fh)
     {
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, fh->getfd(),__LINE__);
+        TrackSyscall nowTrack(TrackSyscall::fsyncsyscall, fh->getfd(),__LINE__);
         rc=::fsync(fh->getfd());
-        threadLocalTrackSyscallPtr->clearTrack();
+        nowTrack.clearTrack();
         FL_Write(FLXfer, BBIORegFsync, "pFileIndex=%ld fd=%ld rc=%ld errno=%ld",pFileIndex,fh->getfd(),rc,errno);
     }
     else
@@ -264,9 +264,9 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
     if (fh)
     {
         int fd = fh->getfd();
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, fd,__LINE__, pMaxBytesToRead,pOffset);
+        TrackSyscall nowTrack(TrackSyscall::preadsyscall, fd,__LINE__, pMaxBytesToRead,pOffset);
         bytesRead = ::pread(fd, pBuffer, pMaxBytesToRead, pOffset);
-        threadLocalTrackSyscallPtr->clearTrack();
+        nowTrack.clearTrack();
         if (bytesRead < 0)
         {
             stringstream errorText;
@@ -296,9 +296,9 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
     if (fh)
     {
         int fd = fh->getfd();
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, fd,__LINE__,pMaxBytesToWrite ,pOffset);
+        TrackSyscall nowTrack(TrackSyscall::pwritesyscall, fd,__LINE__,pMaxBytesToWrite ,pOffset);
         bytesWritten = ::pwrite(fd, pBuffer, pMaxBytesToWrite, pOffset);
-        threadLocalTrackSyscallPtr->clearTrack();
+        nowTrack.clearTrack();
 
         if (bytesWritten < 0)
         {
