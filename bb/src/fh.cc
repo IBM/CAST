@@ -341,11 +341,11 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
 
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
 #if (BBSERVER || BBPROXY)
-    TrackSyscall nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
 #endif
     fd = open(filename.c_str(), oflag | O_CLOEXEC, mode);
 #if (BBSERVER || BBPROXY)
-    nowTrack.clearTrack();
+    threadLocalTrackSyscallPtr->clearTrack();
 #endif
     if (fd >= 0)
     {
@@ -429,11 +429,11 @@ int filehandle::getstats(struct stat& statbuf)
     {
         FL_Write(FLXfer, BBIOR_FSTAT, "Calling fstat(%ld)",fd,0,0,0);
 #if (BBSERVER || BBPROXY)
-        TrackSyscall nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
 #endif
         rc = fstat(fd, &statinfo);
 #if (BBSERVER || BBPROXY)
-        nowTrack.clearTrack();
+        threadLocalTrackSyscallPtr->clearTrack();
 #endif
         FL_Write6(FLXfer, BBIOR_FSTATCMP, "Called fstat(%ld) rc=%ld errno=%ld size=%ld", fd, rc, errno, statinfo.st_size,0,0);
         if (!rc)
@@ -474,11 +474,11 @@ int filehandle::setsize(size_t newsize)
     }
     LOG(bb,debug) << "Target file " << filename << " truncated";
 #if (BBSERVER || BBPROXY)
-    TrackSyscall nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
 #endif
     rc = fstat(fd, &statinfo);
 #if (BBSERVER || BBPROXY)
-    nowTrack.clearTrack();
+    threadLocalTrackSyscallPtr->clearTrack();
 #endif
     if(rc)
     {
@@ -633,9 +633,9 @@ protected:
             becomeUser(0,0);
 
             errno=0;
-            TrackSyscall nowTrack(TrackSyscall::openexlayout, fh->getfd(), __LINE__);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::openexlayout, fh->getfd(), __LINE__);
             exlo = open("/dev/export_layout", O_RDWR | O_CLOEXEC, 0);
-            nowTrack.clearTrack();
+            threadLocalTrackSyscallPtr->clearTrack();
             LOG(bb,debug) << "Open /dev/export_layout fd=" << fh->getfd() << ", exlo=" << exlo << ", errno=" << errno;
             FL_Write(FLExtents, ExportOpen, "Open /dev/export_layout  fd=%ld  exlo=%ld errno=%ld", fh->getfd(), exlo, errno, 0);
 
@@ -673,9 +673,9 @@ protected:
             }
             FL_Write6(FLExtents, ExportQuery, "Querying export_layout.  fd=%ld  offset=%ld  length=%ld  writing=%ld  extent_max=%ld", setup->fd, setup->offset, setup->length, setup->writing, setup->extent_count_max, 0);
 
-            TrackSyscall nowTrack(TrackSyscall::setupexlayout, setup->fd, __LINE__, setup->length, setup->offset);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::setupexlayout, setup->fd, __LINE__, setup->length, setup->offset);
             rc = ioctl(exlo, EXPORT_LAYOUT_IOC_TRANSFER_SETUP, setup);
-            nowTrack.clearTrack();
+            threadLocalTrackSyscallPtr->clearTrack();
             LOG(bb,debug) << "Query of export_layout completed.  rc=" << rc;
             FL_Write(FLExtents, ExportQueryCmpl, "Query of export_layout completed.  rc=%ld", rc,0,0,0);
 
@@ -760,9 +760,9 @@ public:
         {
             fetched = false;
             finalize.status = (completion_status == BBFILE_SUCCESS ? 0 : -1);
-            TrackSyscall nowTrack(TrackSyscall::finalizeexlayout, fh->getfd() , __LINE__);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::finalizeexlayout, fh->getfd() , __LINE__);
             rc = ioctl(exlo, EXPORT_LAYOUT_IOC_TRANSFER_FINALIZE, &finalize);
-            nowTrack.clearTrack();
+            threadLocalTrackSyscallPtr->clearTrack();
             if (!rc)
             {
                 LOG(bb,debug) << "Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;

@@ -2060,6 +2060,7 @@ void* transferWorker(void* ptr)
     double l_ThreadDelay = 0;
     double l_TotalDelay = 0;
     int l_ConsecutiveSuspendedWorkQueuesNotProcessed = 0;
+    threadLocalTrackSyscallPtr = getSysCallTracker();
 
     uint64_t l_ConsecutiveSnoozes = 0;
 
