@@ -437,7 +437,7 @@ int BBLV_Info::recalculateFlags(const string& pConnectionName, const LVKey* pLVK
     return rc;
 }
 
-void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo)
+void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists)
 {
     stringstream errorText;
 
@@ -580,8 +580,11 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Last extent for file transfer");
             lockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer");
 
-            ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
-            l_UpdateTransferStatus = true;
+            if (pJobExists == XBBSERVER_JOB_EXISTS)
+            {
+                ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
+                l_UpdateTransferStatus = true;
+            }
         }
         else
         {
@@ -603,8 +606,11 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             lockTransferQueue(pLVKey, "removeFromInFlight - cp");
         }
 
-        ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
-        l_UpdateTransferStatus = true;
+        if (pJobExists == XBBSERVER_JOB_EXISTS)
+        {
+            ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
+            l_UpdateTransferStatus = true;
+        }
     }
 
     if (l_UpdateTransferStatus)

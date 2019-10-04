@@ -275,6 +275,13 @@ enum VALIDATION_OPTION
 };
 typedef enum VALIDATION_OPTION VALIDATION_OPTION;
 
+enum XBBSERVER_JOB_EXISTS_OPTION
+{
+    XBBSERVER_JOB_EXISTS            = 0,
+    XBBSERVER_JOB_DOES_NOT_EXIST    = 1
+};
+typedef enum XBBSERVER_JOB_EXISTS_OPTION XBBSERVER_JOB_EXISTS_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/
