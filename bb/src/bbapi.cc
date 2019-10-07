@@ -179,22 +179,12 @@ int validateContribId(const uint32_t pContribId)
 volatile static int initLibraryDone=0;
 static pthread_mutex_t  lockLibraryDone = PTHREAD_MUTEX_INITIALIZER;
 
-
-#define ATTEMPTS 120
 int BB_InitLibrary(uint32_t pContribId, const char* pClientVersion)
 {
     int rc = 0;
     stringstream errorText;
 
-    // Initialize the C runtime...
-    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
-    gettimeofday(&l_CurrentTime, NULL);
-
-    // Verify the the C runtime has been initialized...
-    // NOTE:  This was the original code, but after including the above,
-    //        the C runtime has to be initialized.
-    int l_Attempts = ATTEMPTS;
-    while ((!CRuntimeInitialized) && --l_Attempts)
+    if (!CRuntimeInitialized)
     {
         void*  traceBuf[256];
         int    traceSize;
@@ -203,10 +193,6 @@ int BB_InitLibrary(uint32_t pContribId, const char* pClientVersion)
         if (strncmp(syms[traceSize-1], "/lib64/ld64", 11) != 0)
         {
             CRuntimeInitialized = true;
-        }
-        else
-        {
-            usleep((useconds_t)250000);
         }
         free(syms);
     }
@@ -269,13 +255,10 @@ int BB_InitLibrary(uint32_t pContribId, const char* pClientVersion)
     else
     {
         rc = -1;
-        errorText << "CRuntime not initialized";
-        LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
     return rc;
 }
-#undef ATTEMPTS
 
 int BB_TerminateLibrary()
 {
@@ -283,7 +266,7 @@ int BB_TerminateLibrary()
     int rc = 0;
     stringstream errorText;
 
-    if (CRuntimeInitialized == true)
+    if (CRuntimeInitialized)
     {
         pthread_mutex_lock(&lockLibraryDone);
         if (initLibraryDone)
@@ -315,8 +298,6 @@ int BB_TerminateLibrary()
     else
     {
         rc = -1;
-        errorText << "CRuntime not initialized";
-        LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
     return rc;
