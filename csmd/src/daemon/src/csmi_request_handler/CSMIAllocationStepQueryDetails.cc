@@ -345,16 +345,10 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     int32_t step_count = tuples.size();
     int32_t num_records_of_unique_steps = tuples.size();
     int32_t num_records_of_steps = output->num_steps;
-    // printf("hi.\n");
-    // printf("output->num_steps: %i\n", output->num_steps);
-    // printf("step_count: %i\n", step_count);
 
     // This assumes a 1:1 parity between the first and second queries, some checks are made to ensure this.
     if ( step_count > 0  && output->num_steps == step_count )
     {
-        // printf("hello.\n");
-        // printf("output->num_steps: %i\n", output->num_steps);
-        // printf("step_count: %i\n", step_count);
         for (int32_t i = 0; i < step_count; ++i)
         {
             csm::db::DBTuple * const & fields = tuples[i];
@@ -393,23 +387,13 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
         // doesnt hold records back from customer (duplicate steps on an allocation -- ie, 2 step #1s in the history table)
         // doesnt seg fault
 
-        // printf("hello 2.\n");
-        // printf("output->num_steps: %i\n", output->num_steps);
-        // printf("num_records_of_unique_steps: %i\n", num_records_of_unique_steps);
-        // printf("num_records_of_steps: %i\n", num_records_of_steps);
-        // printf("step_count: %i\n", step_count);
-
         //set num steps  equal to the step count
         //step_count = output->num_steps;
         //don't do this in the good case, only the edge case. 
 
-        // printf("output->num_steps: %i\n", output->num_steps);
-        // printf("step_count: %i\n", step_count);
-
         // loop i for the unique number of steps found
         for (int32_t i = 0; i < num_records_of_unique_steps; ++i)
         {
-            //printf("i: %i\n", i);
             csm::db::DBTuple * const & fields = tuples[i];
             if (fields->nfields != 2 ) continue;
             
@@ -417,21 +401,15 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
             int64_t step_id = strtoll(fields->data[0], nullptr, 10);
             //record number
             int32_t num_nodes = output->steps[i]->num_nodes;
-            // printf("step_id: %li\n", step_id);
-            // printf("num_nodes: %i\n", num_nodes);
 
             int32_t j = 0;
             //loop j for the total number of steps found, non unique
             for(j = 0; j < num_records_of_steps; j++)
             {
-                // printf("j: %i\n", j);
-                // printf("step_id: %li\n", step_id);
-                // printf("output->steps[j]->step_id: %li\n", output->steps[j]->step_id);
 
                 // i think this is the faulty line -- because it won't make the compute nodes if there is no match in the previous if
                 if (step_id == output->steps[j]->step_id && num_nodes > 0)
                 {
-                    //printf("match. \n");
                     char** nodes = (char**)malloc( sizeof(char*) * output->steps[j]->num_nodes );
 
                     int32_t node = 0;
@@ -467,18 +445,9 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
         // i beleive that "step count" may be related to the total number of steps found in an allocation. 
         // not necessarily the total number of steps found matching our current query. 
 
-        // printf("hello 3.\n");
-        // printf("output->num_steps: %i\n", output->num_steps);
-        // printf("num_records_of_unique_steps: %i\n", num_records_of_unique_steps);
-        // printf("num_records_of_steps: %i\n", num_records_of_steps);
-        // printf("step_count: %i\n", step_count);
-
         //set num steps  equal to the step count
         //step_count = output->num_steps;
         //don't do this in the good case, only the edge case. 
-
-        //printf("output->num_steps: %i\n", output->num_steps);
-        //printf("step_count: %i\n", step_count);
 
         // loop i for the unique number of steps found
 
@@ -500,10 +469,6 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
             //loop j for the total number of steps found, non unique
             for(j = 0; j < num_records_of_steps; j++)
             {
-                //printf("j: %i\n", j);
-                //printf("step_id: %li\n", step_id);
-                //printf("output->steps[j]->step_id: %li\n", output->steps[j]->step_id);
-
                 // i think this is the faulty line -- because it won't make the compute nodes if there is no match in the previous if
                 if (step_id == output->steps[j]->step_id && num_nodes > 0)
                 {
@@ -593,27 +558,6 @@ void CSMIAllocationStepQueryDetails::CreateStepStruct(
 	                                                   
         s->history  = h;
     }
-	
-    //// Parse the nodes from csv
-    //if ( s->num_nodes > 0 )
-    //{
-	//    s->compute_nodes = (char**)malloc( sizeof(char*) * s->num_nodes);
-
-    //    int32_t i = 0;
-    //    char *saveptr;
-    //    char *nodeStr = strtok_r(fields->data[26], ",", &saveptr);
-
-    //    while (nodeStr != NULL && i < s->num_nodes)
-    //    {
-    //        s->compute_nodes[i++] = strdup(nodeStr);
-    //        nodeStr = strtok_r(NULL, ",", &saveptr);
-    //    }
-
-    //    while ( i < s->num_nodes )
-    //    {
-    //        s->compute_nodes[i++] = strdup("N/A");
-    //    }
-    //}
 
 	*step = s;
 
