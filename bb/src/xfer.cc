@@ -559,7 +559,8 @@ int verifyJobIdExistsInXBbServerMetadata(const uint64_t pJobId)
     {
         for (vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
         {
-            if (pJobId == stoull(*rit))
+            bfs::path l_Path = *rit;
+            if (pJobId == stoull(l_Path.filename().string()))
             {
                 rc = 1;
                 break;
@@ -3888,10 +3889,10 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             l_WorkItemLV_Info = l_WorkId.getLV_Info();
                             if (l_WorkItemLV_Info)
                             {
-                                // Only need to process the first/last extent
                                 ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
                                 Extent* l_Extent = l_ExtentInfo.getExtent();
-                                if (l_Extent->isFirstExtent() || l_Extent->isLastExtent())
+                                // Only need to process the last extent
+                                if (l_Extent->isLastExtent())
                                 {
                                     if (l_LastJobId != l_WorkItemLV_Info->getJobId())
                                     {
@@ -3902,6 +3903,13 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                         }
                                     }
                                     transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo, l_JobExists);
+                                }
+                                else
+                                {
+                                    // NOTE: transferExtent() will remove the extent from allExtents.
+                                    //       Since we are not invoking transferExtent() for this extent,
+                                    //       we must remove it here.
+                                    l_WorkItemLV_Info->extentInfo.removeExtent(l_Extent);
                                 }
                             }
                             else

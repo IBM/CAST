@@ -583,8 +583,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             if (pJobExists == XBBSERVER_JOB_EXISTS)
             {
                 ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
-                l_UpdateTransferStatus = true;
             }
+            l_UpdateTransferStatus = true;
         }
         else
         {
@@ -609,14 +609,14 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
         if (pJobExists == XBBSERVER_JOB_EXISTS)
         {
             ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
-            l_UpdateTransferStatus = true;
         }
+        l_UpdateTransferStatus = true;
     }
 
     if (l_UpdateTransferStatus)
     {
         // Update any/all transfer status
-        updateAllTransferStatus(pConnectionName, pLVKey, pExtentInfo, THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE);
+        updateAllTransferStatus(pConnectionName, pLVKey, pExtentInfo, THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, pJobExists);
 
         // NOTE: The handle status does not need to be updated here, as it is updated as part of updating the ContribIdFile
         //       when updateAllTransferStatus() is invoked above.
@@ -1122,7 +1122,7 @@ void BBLV_Info::updateAllContribsReported(const LVKey* pLVKey)
     return;
 }
 
-int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight)
+int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight, const XBBSERVER_JOB_EXISTS_OPTION pJobExists)
 {
     int rc = 0;
 
@@ -1137,7 +1137,15 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Info::updateAllTransferStatus");
 
-    updateTransferStatus(pLVKey, pExtentInfo, l_TransferDef, l_NewStatus, l_ExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
+    if (pJobExists == XBBSERVER_JOB_EXISTS)
+    {
+        updateTransferStatus(pLVKey, pExtentInfo, l_TransferDef, l_NewStatus, l_ExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
+    }
+    else
+    {
+        l_ExtentsRemainForSourceIndex = 0;
+    }
+
     if (!l_ExtentsRemainForSourceIndex)
     {
         // Send message to bbproxy indicating the transfer for the source index file is complete.
@@ -1177,19 +1185,24 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
     // Perform updates of metadata again because of multiple transfer threads and the transfer queue lock possibly being
     // dropped and re-acquired as part of sending the file complete message above.
-    updateTransferStatus(pLVKey, pExtentInfo, l_TransferDef, l_NewStatus, l_ExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
+    if (pJobExists == XBBSERVER_JOB_EXISTS)
+    {
+        updateTransferStatus(pLVKey, pExtentInfo, l_TransferDef, l_NewStatus, l_ExtentsRemainForSourceIndex, pNumberOfExpectedInFlight);
+    }
 
     // NOTE:  The update of the BBTD_All_Files_Closed flag for the overall ContribId file cannot be calculated properly
     //        until the above update of the transfer status is finally performed. The update_xbbServerFileStatus() was already
     //        performed by sendTransferCompleteForFileMsg() above, but because the updateTransferStatus() has to
     //        be issued again because the transfer queue lock was dropped and re-acquired as part of sending the transfer
     //        complete for the file, this update must also be issued again.
-    if (l_SetFileClosedIndicator)
+    if (pJobExists == XBBSERVER_JOB_EXISTS && l_SetFileClosedIndicator)
     {
         ContribIdFile::update_xbbServerFileStatus(pLVKey, l_TransferDef, pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Files_Closed);
     }
 
     // Now, the l_NewStatus flag properly indicates if the ContribId complete message should be sent
+    // NOTE: if pJobExists == XBBSERVER_JOB_EXISTS, the sending of the ContribId completion messages
+    //       and ensuing xBBServer metadata processing are not performed.
     if (l_NewStatus)
     {
         if (!l_TransferDef->stopped())
