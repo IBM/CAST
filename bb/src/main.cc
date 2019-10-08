@@ -242,6 +242,8 @@ void* mainThread(void* ptr)
         who = vm["whoami"].as<string>();
         ProcessId = who;
         string instance = vm["instance"].as<string>();
+        setupWhoami(who, instance);
+        
         initializeLogging(who + ".log", config);
         LOG(bb,always) << "Process Name      : " NAME;
         LOG(bb,always) << "Configuration file: " << curConfig.getPath();

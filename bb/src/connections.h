@@ -75,6 +75,7 @@ extern std::string          process_instance;
 
 extern std::map<txp::Connex*, uint32_t> contribIdMap;
 
+extern int setupWhoami(std::string whoami, std::string instance);
 extern int connectionExists(std::string whoami);
 extern std::string getConnectionName(txp::Connex* pConnection);
 extern txp::Connex*  getConnex(const std::string& pConnectionName);
