@@ -532,51 +532,23 @@ void* mountMonitorThread(void* ptr)
 
 void* diskstatsMonitorThread(void* ptr)
 {
-    FILE*   f = NULL;
-    ssize_t frc;
-    char*   buffer = NULL;
-    size_t  buffersize = 0;
-    int     rate = config.get(process_whoami+".diskstatrate", 60);
-    char    cmd[256];
-
-    snprintf(cmd, sizeof(cmd), "/usr/bin/iostat -x -p ALL %d", rate);
-    f = popen(cmd, "r");
-    if (f)
+    int rate = config.get(process_whoami+".diskstatrate", 60);
+    map<string,string> diskStatCache;
+    while(1)
     {
-        while((frc = getline(&buffer, &buffersize, f)) >= 0)
+        for(const auto& line : runCommand("/usr/bin/iostat -xm -p ALL"))
         {
-            if (frc)
+            auto tokens = buildTokens(line, " ");
+            if(tokens.size() > 10)
             {
-                char* nl = strchr(buffer+frc-1, '\n');
-                if (nl)
-                    *nl = 0;
-                if (strlen(buffer))
+                if(diskStatCache[tokens[0]] != line)
                 {
-                    LOG(bb,always) << "DISKSTAT:  " << string(buffer);
-                }
+                    diskStatCache[tokens[0]] = line;
+                    LOG(bb,always) << "DISKSTAT:  " << line;
+                }                
             }
-
-            if (buffer)
-            {
-                free(buffer);
-                buffer = NULL;
-            }
-            buffersize = 0;
         }
-
-        // Even if getline() 'fails', we should check to free the buffer...
-        if (buffer)
-        {
-            free(buffer);
-            buffer = NULL;
-        }
-
-        if (ferror(f))
-        {
-            LOG(bb,error) << "DISKSTAT Read failure, errno=" << errno << " (" << strerror(errno) << ")";
-        }
-
-        pclose(f);
+        sleep(rate);
     }
     return NULL;
 }

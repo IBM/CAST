@@ -314,6 +314,14 @@ void unlockConnectionWrite(const char* pMethod)
 static int newconnection_name_sequence_number=0;
 #endif
 
+
+int setupWhoami(string whoami, string instance)
+{
+    process_whoami   = whoami;
+    process_instance = instance;
+    return 0;
+}
+
 /**
    \brief Connection authentication response handler
  */
@@ -1399,10 +1407,10 @@ int makeConnection(const uint32_t contribid, const string& name, const string& a
 #endif
 
 #ifdef BBPROXY
-int setupUnixConnections(string whoami){
+int setupUnixConnections(string whoami)
+{
     txp::CnxSockUnix* unixSock;
-    process_whoami   = whoami;
-    process_instance = instance;
+
     LOG(bb,always) << "setupUnixConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
     string unixPort = config.get("bb.unixpath", DEFAULT_UNIXPATH);
     if ( unixPort == NO_CONFIG_VALUE ){
@@ -1616,10 +1624,6 @@ int setupBBproxyListener(string whoami)
 
 int setupConnections(string whoami, string instance)
 {
-
-    process_whoami   = whoami;
-    process_instance = instance;
-
     LOG(bb,always) << "setupConnections(): whoami=" << whoami << ", ProcessId=" << ProcessId;
 
     sem_init(&connection_sem, 0, 0);

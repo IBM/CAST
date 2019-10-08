@@ -164,7 +164,13 @@ int BB_InitLibrary2(uint32_t pContribId, const char* pClientVersion, const char*
                 errorText << "Unable to register handlers";
                 LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
             }
-
+            rc = setupWhoami("bb.api", instance);
+            if(rc)
+            {
+                errorText << "Unable to setup whoami to bb.api";
+                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+            }
+            
             rc = setupConnections("bb.api", instance);
             if (rc)
             {

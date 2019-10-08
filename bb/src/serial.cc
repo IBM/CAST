@@ -318,7 +318,7 @@ void findSerials(void)
         SerialOrder.clear();
         SerialByDrive.clear();
         nvme_devices.clear();
-        nvmeDeviceInfo.clear();
+        //nvmeDeviceInfo.clear();   // Keep cached information
         KeyByHostname.clear();
         
         // find valid drives
@@ -360,6 +360,12 @@ void findSerials(void)
             // obtain details on each NVMe device
             for(auto device: nvme_devices)
             {
+                if(nvmeDeviceInfo.find(device) != nvmeDeviceInfo.end())
+                {
+                    // Already collected this NVMe device's information.
+                    continue;
+                }
+                
                 cmd = bb_nvmecliPath + " id-ctrl " + device;
                 for(auto line : runCommand(cmd,false,false)) //run cmd as flatfile = false, bool noException=false
                 {
@@ -382,7 +388,7 @@ void findSerials(void)
         }
         else
         {
-        LOG(bb,info) << "No valid nvme command to do nvme list. Reference the configuration for bb.nvmecliPath.";
+            LOG(bb,info) << "No valid nvme command to do nvme list. Reference the configuration for bb.nvmecliPath.";
         }
 
     #if BBSERVER
