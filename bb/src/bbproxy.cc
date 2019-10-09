@@ -1097,9 +1097,9 @@ void msgin_canceltransfer(txp::Id id, const string& pConnectionName, txp::Msg* m
         // Resolve the job, jobstep, and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
-            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
-            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobId = getJobId(bbconnectionName);
+            l_JobStepId = getJobStepId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName);
         }
         else
         {
@@ -1673,7 +1673,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
             switchIds();
 
             // Resolve the contribid value
-            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
+            l_ContribId = getContribId(bbconnectionName);
 
             LOG(bb,debug) << "msgin_gettransferinfo: handle=" << l_Handle << ", contribid=" << l_ContribId;
 
@@ -1823,8 +1823,8 @@ void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* 
         // Resolve the job and contribid identifiers
         if (bbconnectionName.size())
         {
-            l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
-            l_ContribId = getContribId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobId = getJobId(bbconnectionName);
+            l_ContribId = getContribId(bbconnectionName);
         }
         else
         {
@@ -2086,7 +2086,7 @@ void msgin_gettransferlist(txp::Id id, const string& pConnectionName, txp::Msg* 
         if (bbconnectionName.size())
         {
             l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
-            l_JobStepId = getJobStepId(bbconnectionName, PERFORM_VALIDATION);
+            l_JobStepId = getJobStepId(bbconnectionName);
         }
         else
         {
