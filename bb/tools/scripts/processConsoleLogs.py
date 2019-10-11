@@ -263,6 +263,8 @@ def DiskStat(pCtx, pData, *pArgs):
 
     return
 
+EXTENSIONS_NOT_PROCESSED = (".tar", ".gz",)
+
 Handle = None
 Connection = None
 ConnectionIP = None
@@ -316,6 +318,9 @@ SEARCHES = (
      EndDumpWorkQueueMgr),
 )
 
+STAGEIN = re.compile("stagein")
+STAGEOUT = re.compile("stageout")
+STAGEIN_STAGEOUT_LINE = re.compile("Job\s+(\d+):\s*(.+)")
 OLDLOGS = re.compile("oldlogs")
 TRAILING_LOGNUMBER = re.compile("\d+\.log\d+")
 
@@ -376,8 +381,34 @@ def getServerName(pCtx, pPath):
 
     return l_ServerName
 
-# Parse/process a given line of output
-def processLine(pCtx, pServerName, pData, pLine):
+# Parse/process a given line of stagein output
+def processStageInLine(pCtx, pServerName, pData, pLine):
+    l_Success = STAGEIN_STAGEOUT_LINE.search(pLine)
+    if l_Success:
+        l_StageInEntry = pCtx["StageInData"]["jobIds"]
+        l_JobId = int(l_Success.group(1))
+        l_Data = l_Success.group(2).strip()
+        if l_JobId not in l_StageInEntry:
+            l_StageInEntry[l_JobId] = []
+        l_StageInEntry[l_JobId].append(l_Data)
+
+    return
+
+# Parse/process a given line of stageout output
+def processStageOutLine(pCtx, pServerName, pData, pLine):
+    l_Success = STAGEIN_STAGEOUT_LINE.search(pLine)
+    if l_Success:
+        l_StageOutEntry = pCtx["StageOutData"]["jobIds"]
+        l_JobId = int(l_Success.group(1))
+        l_Data = l_Success.group(2).strip()
+        if l_JobId not in l_StageOutEntry:
+            l_StageOutEntry[l_JobId] = []
+        l_StageOutEntry[l_JobId].append(l_Data)
+
+    return
+
+# Parse/process a given line of console output
+def processConsoleLine(pCtx, pServerName, pData, pLine):
     l_DoProcessLine = False
     l_ArgsIsEntireLine = False
 
@@ -446,22 +477,38 @@ def processLine(pCtx, pServerName, pData, pLine):
         # Invoke the procedure to handle this parsed data
         l_Search[3](pCtx, pData, l_Args)
 
-# Process a console log
-def processFile(pCtx, *pArgs):
-    pServerName, pData, pFullFileName = pArgs[0]
+# Process a file
+def openAndProcessFile(pCtx, pLineFunction, *pArgs):
+    pServerName, pData, pFullFileName = pArgs
 
-    print "Start: Processing %s as a console log..." % (pFullFileName)
     with open(pFullFileName) as l_File:
         while (True):
             l_Lines = l_File.readlines(64 * 1024)
             if (l_Lines):
                 for l_Line in l_Lines:
-                    processLine(pCtx, pServerName, pData, l_Line)
+                    pLineFunction(pCtx, pServerName, pData, l_Line)
             else:
                 break
-    # NOTE: If we split in the middle of a work queue mgr dump, we lose that data...
-    pCtx["WORK_QUEUE_MGR_DATA"] = None
-    print "  End: Processing %s as a console log..." % (pFullFileName)
+    return
+
+# Open and process a file
+def processFile(pCtx, *pArgs):
+    pServerName, pData, pFullFileName = pArgs[0]
+
+    if pServerName in ("STAGEIN", "STAGEOUT",):
+        print "Start: Processing %s as a %s log..." % (pServerName.lower(), pFullFileName)
+        if pServerName == "STAGEIN":
+            l_Function = processStageInLine
+        else:
+            l_Function = processStageOutLine
+        openAndProcessFile(pCtx, l_Function, pServerName, pData, pFullFileName)
+        print "  End: Processing %s as a console log..." % (pFullFileName)
+    else:
+        print "Start: Processing %s as a console log..." % (pFullFileName)
+        # NOTE: If we split in the middle of a work queue mgr dump, we lose that data...
+        openAndProcessFile(pCtx, processConsoleLine, pServerName, pData, pFullFileName)
+        pCtx["WORK_QUEUE_MGR_DATA"] = None
+        print "  End: Processing %s as a console log..." % (pFullFileName)
 
     return
 
@@ -472,18 +519,22 @@ def processFiles(pCtx):
     l_FirstPass = []
     l_SecondPass = []
     l_ThirdPass = []
+    l_FourthPass = []
     for l_File in l_Files:
-        l_Success = OLDLOGS.search(pCtx["FilesToProcess"][l_File][2])
-        if l_Success:
-            l_Success = TRAILING_LOGNUMBER.search(pCtx["FilesToProcess"][l_File][2])
+        if pCtx["FilesToProcess"][l_File][0] not in ("STAGEIN", "STAGEOUT",):
+            l_Success = OLDLOGS.search(pCtx["FilesToProcess"][l_File][2])
             if l_Success:
-                l_FirstPass.append(pCtx["FilesToProcess"][l_File])
+                l_Success = TRAILING_LOGNUMBER.search(pCtx["FilesToProcess"][l_File][2])
+                if l_Success:
+                    l_FirstPass.append(pCtx["FilesToProcess"][l_File])
+                else:
+                    l_SecondPass.append(pCtx["FilesToProcess"][l_File])
             else:
-                l_SecondPass.append(pCtx["FilesToProcess"][l_File])
+                l_ThirdPass.append(pCtx["FilesToProcess"][l_File])
         else:
-            l_ThirdPass.append(pCtx["FilesToProcess"][l_File])
+            l_FourthPass.append(pCtx["FilesToProcess"][l_File])
 
-    for l_Pass in (l_FirstPass, l_SecondPass, l_ThirdPass):
+    for l_Pass in (l_FirstPass, l_SecondPass, l_ThirdPass, l_FourthPass):
         for l_FileData in l_Pass:
             processFile(pCtx, l_FileData)
     print
@@ -495,12 +546,29 @@ def findFiles(pCtx, pServerName, pData, pPath, pFiles):
     for l_FileName in pFiles:
         l_FullFileName = os.path.join(pPath,l_FileName)
         if os.path.isfile(l_FullFileName) and (not os.path.islink(l_FullFileName)):
-            l_Success = pCtx["NAME_PATTERN"][1].search(l_FileName)
-            if l_Success:
-                print "File %s will be processed as a console log..." % (l_FullFileName)
-                pCtx["FilesToProcess"][l_FullFileName] = (pServerName, pData, l_FullFileName)
+            l_Name, l_Ext = os.path.splitext(l_FileName)
+            if l_Ext not in EXTENSIONS_NOT_PROCESSED:
+                l_Success = STAGEIN.search(l_FileName)
+                if l_Success:
+                    print "File %s will be processed as a stagein log..." % (l_FullFileName)
+                    pCtx["FilesToProcess"][l_FullFileName] = ("STAGEIN", pData, l_FullFileName)
+                else:
+                    l_Success = STAGEOUT.search(l_FileName)
+                    if l_Success:
+                        print "File %s will be processed as a stageout log..." % (l_FullFileName)
+                        pCtx["FilesToProcess"][l_FullFileName] = ("STAGEOUT", pData, l_FullFileName)
+                    else:
+                        if pServerName and pData:
+                            l_Success = pCtx["NAME_PATTERN"][1].search(l_FileName)
+                            if l_Success:
+                                print "File %s will be processed as a console log..." % (l_FullFileName)
+                                pCtx["FilesToProcess"][l_FullFileName] = (pServerName, pData, l_FullFileName)
+                            else:
+                                print "%sSkipping file %s, does not match file pattern..." % (4*" ", l_FullFileName)
+                        else:
+                            print "%sSkipping file %s, server name not specified for non-stagein nor non-stageout file..." % (4 * " ", l_FullFileName)
             else:
-                print "%sSkipping file %s, does not match file pattern..." % (4*" ", l_FullFileName)
+                print "%sSkipping file %s, file extension not supported..." % (4 * " ", l_FullFileName)
         else:
             print "%sSkipping file %s, not a file or is a link..." % (4*" ", l_FullFileName)
 
@@ -530,7 +598,10 @@ def walkPaths(pCtx, pPath):
             l_ServerName = getServerName(pCtx, l_Path)
             if l_ServerName != pCtx["OUTPUT_DIRECTORY_NAME"]:
                 if l_ServerName:
-                    findFiles(pCtx, l_ServerName, l_Data[l_ServerName], l_Path, l_Files)
+                    l_DataArg = l_Data[l_ServerName]
+                else:
+                    l_DataArg = None
+                findFiles(pCtx, l_ServerName, l_DataArg, l_Path, l_Files)
     print
 
     return
@@ -542,6 +613,10 @@ def main(*pArgs):
     l_Ctx["ServerData"] = {}      # Server data is stored here
     l_Ctx["ElapsedTimeData"] = {} # Start/end time, transfer sizes stored here by jobid/server/connection
     l_Ctx["ElapsedTimeData"]["jobIds"] = {}
+    l_Ctx["StageInData"] = {} # Stagein data stored here by jobid
+    l_Ctx["StageInData"]["jobIds"] = {}
+    l_Ctx["StageOutData"] = {} # Stageout data stored here by jobid
+    l_Ctx["StageOutData"]["jobIds"] = {}
 
     # Establish the context
     getOptions(l_Ctx, pArgs[0])
