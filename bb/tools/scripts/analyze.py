@@ -28,6 +28,8 @@ def main(*pArgs):
     # Load the data as a pickle file from the input root directory
     cmn.loadData(l_Ctx)
     l_Data = l_Ctx["ServerData"]
+    l_StageInData = l_Ctx["StageInData"]["jobIds"]
+    l_StageOutData = l_Ctx["StageOutData"]["jobIds"]
 
     # Print the results
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
@@ -78,6 +80,29 @@ def main(*pArgs):
                     l_Handles.sort()
                     l_TestOutput.append("%sConnection %s. %d handle(s), %s%s" % (8*" ", l_Connection, len(l_Handles), `l_Handles`, os.linesep))
             l_TestOutput.append("%s" % (os.linesep))
+
+    # Print out stagein and stageout logs for the found jobids
+    l_TestOutput.append("StageIn and StageOut Log Data for Found Jobs%s" % (os.linesep))
+    for l_JobId in l_JobIds:
+        l_TestOutput.append("%sJobId %d%s" % (2*" ", l_JobId, os.linesep))
+        l_TestOutput.append("%sStageIn Log Data%s" % (4*" ", os.linesep))
+        l_OutputGenerated = False
+        if l_JobId in l_StageInData:
+            for l_Line in l_StageInData[l_JobId]:
+                l_TestOutput.append("%s%s%s" % (6*" ", l_Line, os.linesep))
+                l_OutputGenerated = True
+        if not l_OutputGenerated:
+            l_TestOutput.append("%sNo stagein data found%s" % (6*" ", os.linesep))
+        l_TestOutput.append("%s" % (os.linesep))
+
+        l_TestOutput.append("%sStageOut Log Data%s" % (4*" ", os.linesep))
+        l_OutputGenerated = False
+        if l_JobId in l_StageOutData:
+            for l_Line in l_StageOutData[l_JobId]:
+                l_TestOutput.append("%s%s%s" % (6*" ", l_Line, os.linesep))
+                l_OutputGenerated = True
+        if not l_OutputGenerated:
+            l_TestOutput.append("%sNo stageout data found%s" % (6*" ", os.linesep))
         l_TestOutput.append("%s" % (os.linesep))
 
     # Write out the basic results
