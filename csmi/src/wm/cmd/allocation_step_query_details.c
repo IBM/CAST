@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
 	int return_value = 0;
 	int requiredParameterCounter = 0;
 	int optionalParameterCounter = 0;
+	char s_flag = 0;
 	const int NUMBER_OF_REQUIRED_ARGUMENTS = 1;
 	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
@@ -136,6 +137,7 @@ int main(int argc, char *argv[])
                 csm_str_to_int64( input.step_id, optarg, arg_check,
                                "-s, --step_id", USAGE )
 				optionalParameterCounter++;
+				s_flag = 1;
 				break;
 			default:
 				csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -181,6 +183,11 @@ int main(int argc, char *argv[])
 	        /*Print out the output of the query to stdout in YAML format*/
 	        puts("---");
 	        printf("Total_Records: %u\n", output->num_steps);
+	        if(s_flag == 1 && output->num_steps > 1)
+	        {
+	        	printf("# Error: There should only be one matching step record. Verify the database. \n");
+	        	return CSMERR_GENERIC;
+	        }
 	        for(i = 0; i < output->num_steps; i++){
                 csmi_allocation_step_t *step = output->steps[i];
 	        	printf("Record_%u:\n", i+1);

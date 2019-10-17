@@ -342,14 +342,21 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
     OUTPUT_STRUCT *output= nullptr;
     std::unique_lock<std::mutex>dataLock = ctx->GetUserData<OUTPUT_STRUCT*>(&output);
 
+    // tuples.size() is number of unique steps found in this query
     int32_t step_count = tuples.size();
     int32_t num_records_of_unique_steps = tuples.size();
     int32_t num_records_of_steps = output->num_steps;
-    // printf("hi.\n");
-    // printf("output->num_steps: %i\n", output->num_steps);
-    // printf("step_count: %i\n", step_count);
+    //printf("hi.\n");
+    // output->num_steps is total records found in this query
+    //printf("output->num_steps: %i\n", output->num_steps);
+    //printf("step_count: %i\n", step_count);
 
     // This assumes a 1:1 parity between the first and second queries, some checks are made to ensure this.
+    // NOTE: there is another wierd edge case here...
+    // where if the total number of records returned matches the unique number of steps in the allocation. it will blow up. 
+    // ie there are 3 unique steps in allocation 1
+    // steps: 1,2,3
+    // but there is also 3 step 1s
     if ( step_count > 0  && output->num_steps == step_count )
     {
         // printf("hello.\n");
@@ -452,7 +459,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 }
             }
         }
-    }else
+    }elseif(step_count > 0  && output->num_steps < step_count)
     {
         //another case in 770
         // but where the step count is greater than num steps
@@ -528,7 +535,10 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 }
             }
         }
-        
+    }else{
+        //test
+        //printf("hello else.\n");
+
     }
 
     // Package the data for transport.
