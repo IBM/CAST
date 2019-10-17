@@ -13,7 +13,7 @@
 # 
 #================================================================================
 
-# Bucket for allocation testing
+# Bucket for BDS - python testing
 # Allocation query, update, delete
 
 # Try to source the configuration file to get global configuration variables
