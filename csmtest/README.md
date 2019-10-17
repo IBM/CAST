@@ -28,6 +28,7 @@ buckets/basic/
 buckets/advanced/
 buckets/error_injection/
 buckets/timing/
+buckets/BDS/
 setup/
 
 # SQL Files
