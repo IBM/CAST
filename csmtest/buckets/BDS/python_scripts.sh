@@ -42,6 +42,11 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
+#Test Case 0 Setup Compute Nodes to "IN_SERVICE":
+${FVT_PATH}/tools/update_computes_in_service.sh > ${TEMP_LOG} 2>&1
+check_return_exit $? 0 "Set Compute Nodes to (IN_SERVICE): Calling update_computes_in_service"
+
+rm -f ${TEMP_LOG}
 #Test Case 1 setup:
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "PRE SETUP: Calling csm_allocation_create"
