@@ -459,7 +459,7 @@ bool CSMIAllocationStepQueryDetails::CreateByteArray(
                 }
             }
         }
-    }elseif(step_count > 0  && output->num_steps < step_count)
+    }else if(step_count > 0  && output->num_steps < step_count)
     {
         //another case in 770
         // but where the step count is greater than num steps
