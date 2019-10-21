@@ -54,6 +54,12 @@ def main(args):
 
     args = parser.parse_args()
 
+    # If allocation_id or job_id wasn't specified, printing help on failure.
+    if args.allocation_id == -1 and args.job_id ==-1 :
+        parser.print_help()
+        print("Missing either allocationid or jobid. Require 1 of these fields to search.")
+        return 2
+
     # If the target wasn't specified check the environment for the target value, printing help on failure.
     if args.target is None:
         if TARGET_ENV in os.environ:
@@ -88,6 +94,9 @@ def main(args):
     total_hits = cast.deep_get(tr_res, "hits", "total")
 
     print("# Found {0} matches for specified the job.".format(total_hits))
+    if total_hits == 0:
+        print("# Sorry. Could not find any matching results.")
+        return 0
     if total_hits != 1:
         print("# This implementation only supports queries where the hit count is equal to 1.")
         return 3

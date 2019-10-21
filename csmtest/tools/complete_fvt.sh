@@ -124,6 +124,7 @@ ${FVT_PATH}/setup/csm_uninstall.sh
 ${FVT_PATH}/setup/csm_install.sh
 run_bucket "basic" "python_libraries"
 run_bucket "advanced" "allocation_timing"
+run_bucket "BDS" "python_scripts"
 
 ## TODO DON'T USE THIS IF USER AND SECOND_USER ARE NOT SET AND CONFIGURED!
 #run_bucket "basic" "pamd"

@@ -84,6 +84,11 @@ def main(args):
     total_hits = cast.deep_get(tr_res, "hits","total")
 
     print("Got {0} Hit(s) for specified job, searching for keywords.".format(total_hits))
+    # Finding no matches with valid search criteria is a legit case. 
+    # return 0, not 3
+    if total_hits == None:
+        print("# Sorry. Could not find any matching results.")
+        return 0
     if total_hits != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
