@@ -3660,8 +3660,14 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     uint64_t l_ReadTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::readtime))->getData();
     uint64_t l_WriteCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writecount))->getData();
     uint64_t l_WriteTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writetime))->getData();
-    uint64_t l_SyncCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synccount))->getData();
-    uint64_t l_SyncTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synctime))->getData();
+    uint64_t l_SyncCount = 0;
+    uint64_t l_SyncTime = 0;
+    if (msg->retrieveAttrs()->find(txp::synccount) != msg->retrieveAttrs()->end() ){
+       l_SyncCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synccount))->getData();
+    }
+    if (msg->retrieveAttrs()->find(txp::synctime) != msg->retrieveAttrs()->end() ){
+       l_SyncTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synctime))->getData();
+    }
     char l_SizePhrase[64] = {'\0'};
 
     // NOTE: No processing to perform for a local cp transfer...
