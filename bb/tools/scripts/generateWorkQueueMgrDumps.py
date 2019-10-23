@@ -19,27 +19,16 @@ import re
 
 import common as cmn
 
+
 JOB = re.compile(",\s+Job\s+(\d+),")
 INFLIGHT = re.compile("#InFlt\s+(\d+)")
 ACT_QUEUE = re.compile("LVKey\([a-z0-9.]+\s+\([0-9.]+\),[a-z0-9-]+\),\s+Job\s+\d+")
 CURRENT_SIZE = re.compile("CurSize\s+(\d+)")
 
-# Main routine
-def main(*pArgs):
-    l_Ctx = {}     # Environmental context
+def generateWorkQueueMgrDumps(pCtx):
+    print("%sStart: Generate work queue manager dumps..." % (os.linesep))
 
-    # Establish the context
-    cmn.getOptions(l_Ctx, pArgs[0])
-
-    # Load the data as a pickle file from the input root directory
-    cmn.loadData(l_Ctx)
-    l_Data = l_Ctx["ServerData"]
-
-    # Print the results
-    if l_Ctx["PRINT_PICKLED_RESULTS"]:
-        cmn.printFormattedData(l_Ctx, l_Data)
-
-    # Perform the reduction
+    l_Data = pCtx["ServerData"]
     l_JobIds = cmn.getJobIds(l_Data)
     for l_JobId in l_JobIds:
         l_Output = []
@@ -82,11 +71,35 @@ def main(*pArgs):
         l_Output.append(os.linesep)
 
         # Output the results
-        cmn.ensure(os.path.join(l_Ctx["OUTPUT_DIRECTORY"], `l_JobId`))
-        l_PathFileName = os.path.join(l_Ctx["OUTPUT_DIRECTORY"], `l_JobId`, "WorkQueueMgrDumps.txt")
-        cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
+        cmn.ensure(os.path.join(pCtx["OUTPUT_DIRECTORY"], `l_JobId`))
+        l_PathFileName = os.path.join(pCtx["OUTPUT_DIRECTORY"], `l_JobId`, "WorkQueueMgrDumps.txt")
+        cmn.writeOutput(pCtx, l_PathFileName, l_Output)
+
+    print("%s  End: Generate work queue manager dumps..." % (os.linesep))
 
     return
+
+
+# Main routine
+def main(*pArgs):
+    l_Ctx = {}     # Environmental context
+
+    # Establish the context
+    cmn.getOptions(l_Ctx, pArgs[0])
+
+    # Load the data as a pickle file from the input root directory
+    cmn.loadData(l_Ctx)
+    l_Data = l_Ctx["ServerData"]
+
+    # Optionally, print the results
+    if l_Ctx["PRINT_PICKLED_RESULTS"]:
+        cmn.printFormattedData(l_Ctx, l_Data)
+
+    # Generate the work queue manager dumps listing
+    generateWorkQueueMgrDumps(l_Ctx)
+
+    return
+
 
 if __name__ == '__main__':
     main(sys.argv)
