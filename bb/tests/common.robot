@@ -53,6 +53,7 @@ Start job
      set test variable  ${JOBSTEPID}  1
      set environment variable  LSB_JOBID       ${JOBID}
      set environment variable  PMIX_NAMESPACE  ${JOBSTEPID}
+     set environment variable  TESTNAME        ${TEST_NAME}
      Setup CMDLAUNCHER
      
      [return]  ${JOBID}
