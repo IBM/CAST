@@ -24,6 +24,30 @@
 
 //  mpicc test_basic_xfer.c -o test_basic_xfer -I/opt/ibm -Wl,--rpath /opt/ibm/bb/lib -L/opt/ibm/bb/lib -lbbAPI
 
+int rank = 0;
+int size = 0;
+
+int addMetadata(const char* label, const char* value)
+{
+    if(rank == 0) printf("METADATA %s=%s\n", label, value);
+    return 0;
+}
+int addMetadata_fp(const char* label, double value)
+{
+    if(rank == 0) printf("METADATA %s=%g\n", label, value);
+    return 0;
+}
+int addMetric(const char* label, double value)
+{
+    if(rank == 0) printf("METRIC %s=%g\n", label, value);
+    return 0;
+}
+int addMetric_str(const char* label, const char* value)
+{
+    if(rank == 0) printf("METRIC %s=%s\n", label, value);
+    return 0;
+}
+
 void getLastErrorDetails(BBERRORFORMAT pFormat, char** pBuffer)
 {
     int rc;
@@ -62,7 +86,6 @@ int check(int rc)
 int main(int argc, char** argv)
 {
     int rc;
-    int rank, size;
 
     if(argc < 4)
     {
@@ -121,6 +144,20 @@ int main(int argc, char** argv)
     
     printf("source file: %s\n", sfn);
     printf("target file: %s\n", tfn);
+    
+    addMetadata("branch",      getenv("BRANCH_NAME"));
+    addMetadata("gitcommit",   getenv("GIT_COMMIT"));
+    addMetadata("job",         getenv("TESTNAME"));
+    addMetadata("type",        (dir)?"out":"in");
+    addMetadata("jobid",       getenv("LSB_JOBID"));
+    addMetadata("jobstep",     getenv("PMIX_NAMESPACE"));
+    addMetadata("user",        getenv("USER"));
+    addMetadata("pfspath",     pfspath);
+    addMetadata("bbpath",      bbpath);
+    addMetadata("execname",    argv[0]);
+    
+    addMetadata_fp("filesize", filesize);
+    addMetadata_fp("ranks",    size);
 
     if(dogenerate)
     {
@@ -151,6 +188,7 @@ int main(int argc, char** argv)
     if(rank == 0)
     {
         printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %g seconds\n", dir, pfspath, filesize, size, stop-start);
+        addMetric("bbGetTransferHandle_time", stop-start);
     }
 
     printf("Starting transfer\n");
@@ -162,6 +200,7 @@ int main(int argc, char** argv)
     if(rank == 0)
     {
         printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %g seconds\n", dir, pfspath, filesize, size, stop-start);
+        addMetric("bbStartTransfer_time", stop-start);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -183,6 +222,8 @@ int main(int argc, char** argv)
     if(rank == 0)
     {
         printf("PERF(%d,%s,%ld x %d):  Transfer took %g seconds (%g MiBps)\n", dir, pfspath, filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
+        addMetric("bbTransfer_time", stop-start);
+        addMetric("bbTransfer_bandwidth", filesize * size / (stop-start));
     }
 
     printf("Terminating BB library\n");
