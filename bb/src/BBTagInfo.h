@@ -55,25 +55,30 @@ class BBTagInfo
   public:
     BBTagInfo() :
         flags(0),
-        transferHandle(0) {};
+        transferHandle(UNDEFINED_HANDLE) {
+        expectContrib = vector<uint32_t>();
+        parts = BBTagParts();
+    };
 
-    BBTagInfo(BBTagInfoMap* pTagInfo, const uint64_t pNumContrib, const uint32_t pContrib[], const BBJob pJob, const uint64_t pTag, int& pGeneratedHandle);
+    BBTagInfo(uint64_t& pHandle, const uint64_t pNumContrib, const uint32_t pContrib[]);
 
     // Static methods
+    static void bumpTransferHandle(uint64_t& pHandle);
     static int compareContrib(const uint64_t pNumContrib, const uint32_t pContrib[], vector<uint32_t>& pContribVector);
     static void genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib);
+    static int getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
+    static int processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle);
+    static int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob);
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalContributors);
     int addTransferDef(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint32_t pContribId, const uint64_t pHandle, BBTransferDef* &pTransferDef);
-    void bumpTransferHandle(uint64_t& pHandle);
     void calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     void calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     void dump(const char* pSev);
     void expectContribToSS(stringstream& pSS) const;
     uint64_t get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag);
     BBSTATUS getStatus(const int pStageOutStarted);
-    void getTransferHandle(uint64_t& pHandle, BBTagInfoMap* pTagInfo, const BBJob pJob, const uint64_t pTag, int& pGeneratedHandle);
     int inExpectContrib(const uint32_t pContribId);
     int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* l_OrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
@@ -122,10 +127,6 @@ class BBTagInfo
 
     inline int failed(const uint32_t pContribId) {
         return parts.failed(this, pContribId);
-    }
-
-    inline void genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag) {
-        return genTransferHandle(pHandle, pJob, pTag, expectContrib);
     }
 
     inline vector<uint32_t>* getExpectContrib() {
@@ -201,12 +202,6 @@ class BBTagInfo
 
     inline int setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1) {
         return parts.setFailed(pLVKey, this, pHandle, pContribId, pValue);
-    }
-
-    inline void setTransferHandle(const uint64_t pHandle) {
-        transferHandle = pHandle;
-
-        return;
     }
 
     inline int stopped() {

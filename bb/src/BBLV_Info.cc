@@ -362,6 +362,7 @@ int BBLV_Info::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const B
     int rc = 0;
     stringstream errorText;
 
+    uint64_t l_Handle = UNDEFINED_HANDLE;
     BBTagID l_TagId = BBTagID(pJob, pTag);
     BBTagInfo* l_TagInfo = tagInfoMap.getTagInfo(l_TagId);
 
@@ -370,22 +371,32 @@ int BBLV_Info::getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const B
 
     if(!l_TagInfo)
     {
-        int l_GeneratedHandle = UNDEFINED_HANDLE;
-        BBTagInfo l_NewTagInfo = BBTagInfo(&tagInfoMap, pNumContrib, pContrib, pJob, pTag, l_GeneratedHandle);
-        BBTagInfo* l_NewTagInfoPtr = &l_NewTagInfo;
-        rc = tagInfoMap.addTagInfo(pLVKey, pJob, l_TagId, l_NewTagInfoPtr, l_GeneratedHandle);
-        if (!rc)
+        rc = BBTagInfo::getTransferHandle(pLVKey, l_Handle, l_TagInfo, pJob, pTag, pNumContrib, pContrib);
+        if (rc >= 0)
         {
-            // NOTE:  addTagInfo() returns addressability to the newly inserted BBTagInfo object in BBTagInfoMap
-            l_TagInfo = l_NewTagInfoPtr;
-            LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
-                          << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
-                          << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
+            // NOTE:  l_Handle and l_TagInfo are now set...
+            BBTagInfo* l_SavedTagInfo = l_TagInfo;
+            rc = tagInfoMap.addTagInfo(pLVKey, pJob, l_TagId, l_TagInfo, l_Handle);
+            if (!rc)
+            {
+                // NOTE:  addTagInfo() returns addressability to the newly inserted BBTagInfo object in BBTagInfoMap
+                //        via l_TagInfo
+                LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << l_TagId.getTag() << ") with handle 0x" \
+                              << hex << uppercase << setfill('0') << setw(16) << l_Handle \
+                              << setfill(' ') << nouppercase << dec << " (" << l_Handle << ") to " << *pLVKey;
+            }
+            else
+            {
+                // NOTE: errstate already filled in...
+                errorText << "getTransferHandle: Failure from addTagInfo(), rc = " << rc;
+                LOG_ERROR(errorText);
+            }
+            delete l_SavedTagInfo;
         }
         else
         {
-            // NOTE: errstate already filled in...
-            errorText << "getTransferHandle: Failure from addTagInfo(), rc = " << rc;
+            // Get/generate a handle failed
+            errorText << "getTransferHandle: Failed attempt to get/generate a handle, rc = " << rc;
             LOG_ERROR(errorText);
         }
     }

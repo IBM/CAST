@@ -51,7 +51,7 @@ int HandleFile::createLockFile(const char* pFilePath)
     int rc = 0;
 
     char l_LockFileName[PATH_MAX+64] = {'\0'};
-    snprintf(l_LockFileName, sizeof(l_LockFileName), "%s/%s", pFilePath, LOCK_FILENAME);
+    snprintf(l_LockFileName, sizeof(l_LockFileName), "%s/%s", pFilePath, LOCK_HANDLE_FILENAME);
 
     bfs::ofstream l_LockFile{l_LockFileName};
 
@@ -209,6 +209,7 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                         if ((!rc) || (!accessDir(jobstep.path().string()))) continue;
                         for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
+                            if (!bfs::is_directory(handle)) continue;
                             if (handle.path().filename().string() == to_string(pHandle))
                             {
                                 rc = 0;
@@ -305,6 +306,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                             {
                                 for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                                 {
+                                    if (!bfs::is_directory(handle)) continue;
                                     bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
                                     rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                     if (!rc)
@@ -431,6 +433,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                         l_JobStepId = stoull(jobstep.path().filename().string());
                         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
+                            if (!bfs::is_directory(handle)) continue;
                             if(handle.path().filename().string() == to_string(pHandle))
                             {
                                 bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
@@ -1010,7 +1013,7 @@ int HandleFile::lock(const char* pFilePath)
     int fd = -1;
     stringstream errorText;
     char l_LockFile[PATH_MAX] = {'\0'};
-    snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
+    snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_HANDLE_FILENAME);
 
     // Verify lock protocol
     if (wrkqmgr.workQueueMgrIsLocked())
@@ -1104,6 +1107,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
     if(!bfs::is_directory(jobstep)) return rc;
     for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
     {
+        if (!bfs::is_directory(handle)) continue;
         bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
         int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
         if ((!rc) && l_HandleFile)
@@ -1247,7 +1251,7 @@ int HandleFile::testForLock(const char* pFilePath)
     stringstream errorText;
 
     char l_LockFile[PATH_MAX] = {'\0'};
-    snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_FILENAME);
+    snprintf(l_LockFile, PATH_MAX, "%s/%s", pFilePath, LOCK_HANDLE_FILENAME);
 
     struct flock l_LockOptions;
 
@@ -1895,6 +1899,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                         l_JobStepId = stoull(jobstep.path().filename().string());
                         for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
+                            if (!bfs::is_directory(handle)) continue;
                             if (handle.path().filename().string() == to_string(pHandle))
                             {
                                 // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
