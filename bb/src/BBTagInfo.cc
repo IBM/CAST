@@ -156,20 +156,23 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
             }
 
+            // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
             int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle);
+
+            // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
             switch (rc2)
             {
                 case 0:
                 {
                     // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
-                    // Use this newly generated handle value for this job, jobstep, tag, and expectContrib vector.
+                    // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
                 }
                 break;
 
                 case 1:
                 {
-                    // Newly generated handle value is already in affect for this job, jobstep, tag, and expectContrib vector.
-                    // Continue to use this handle value.
+                    // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
+                    // Use the returned handle value passed back in l_Handle.
                 }
                 break;
 
@@ -187,20 +190,10 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
 
                 case -2:
                 {
-                    // Tag value has already been used for this job and jobstep.  Error condition.
+                    // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
                     rc = -1;
                     errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                              << ". Another tag value must be specified.";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
-                }
-                break;
-
-                case -3:
-                {
-                    // Tag and same handle value has already been used for this job and jobstep, but for a different contrib vector.  Error condition.
-                    rc = -1;
-                    errorText << "Tag value " << pTag << ", handle value " << pHandle << ", has already been used for jobid " << pJob.getJobId() \
-                              << ", jobstepid " << pJob.getJobStepId() << ", but for a different set of contributors.  Another tag value must be specified.";
+                              << " but for a different contrib vector. Another tag value must be specified.";
                     LOG_ERROR_TEXT_RC(errorText, rc);
                 }
                 break;
