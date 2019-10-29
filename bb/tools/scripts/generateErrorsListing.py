@@ -17,23 +17,12 @@ import sys
 
 import common as cmn
 
-# Main routine
-def main(*pArgs):
-    l_Ctx = {}     # Environmental context
 
-    # Establish the context
-    cmn.getOptions(l_Ctx, pArgs[0])
-
-    # Load the data as a pickle file from the input root directory
-    cmn.loadData(l_Ctx)
-    l_Data = l_Ctx["ServerData"]
-
-    # Print the results
-    if l_Ctx["PRINT_PICKLED_RESULTS"]:
-        cmn.printFormattedData(l_Ctx, l_Data)
+def generateErrorsListing(pCtx):
+    print("%sStart: Generate errors listing..." % (os.linesep))
 
     l_Output = []
-    # Perform the reduction
+    l_Data = pCtx["ServerData"]
     l_Servers = cmn.getServers(l_Data)
     for l_Server in l_Servers:
         l_Output.append("Errors for Server %s%s" % (l_Server, os.linesep))
@@ -46,8 +35,8 @@ def main(*pArgs):
     print
 
     # Output the results
-    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Errors.txt")
-    cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
+    l_PathFileName = os.path.join(pCtx["ROOTDIR"], "Analysis", "Errors.txt")
+    cmn.writeOutput(pCtx, l_PathFileName, l_Output)
     print "Results written to %s" % l_PathFileName
 
     l_Output = []
@@ -63,11 +52,35 @@ def main(*pArgs):
         l_Output.append(os.linesep)
 
     # Output the results
-    l_PathFileName = os.path.join(l_Ctx["ROOTDIR"], "Analysis", "Warnings.txt")
-    cmn.writeOutput(l_Ctx, l_PathFileName, l_Output)
+    l_PathFileName = os.path.join(pCtx["ROOTDIR"], "Analysis", "Warnings.txt")
+    cmn.writeOutput(pCtx, l_PathFileName, l_Output)
     print "Results written to %s" % l_PathFileName
 
+    print("%s  End: Generate errors listing..." % (os.linesep))
+
     return
+
+
+# Main routine
+def main(*pArgs):
+    l_Ctx = {}     # Environmental context
+
+    # Establish the context
+    cmn.getOptions(l_Ctx, pArgs[0])
+
+    # Load the data as a pickle file from the input root directory
+    cmn.loadData(l_Ctx)
+    l_Data = l_Ctx["ServerData"]
+
+    # Optionally, print the results
+    if l_Ctx["PRINT_PICKLED_RESULTS"]:
+        cmn.printFormattedData(l_Ctx, l_Data)
+
+    # Generate the errors listing
+    generateErrorsListing(l_Ctx)
+
+    return
+
 
 if __name__ == '__main__':
     main(sys.argv)

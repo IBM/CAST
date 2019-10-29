@@ -56,7 +56,7 @@ class BBTagInfoMap
 
     // Non-static methods
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
-    int addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo* &pTagInfo, int& pGeneratedHandle);
+    int addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID& pTagId, BBTagInfo* &pTagInfo, uint64_t& pGeneratedHandle);
     void cleanUpAll(const LVKey* pLVKey);
     void dump(char* pSev, const char* pPrefix=0);
     size_t getNumberOfTransferDefs(const BBTagID& pTagId);

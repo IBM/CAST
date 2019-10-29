@@ -2623,29 +2623,40 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
     BBTagInfo* l_TagInfo = pTagInfoMap->getTagInfo(pTagId);
     if(!l_TagInfo)
     {
-        int l_GeneratedHandle = UNDEFINED_HANDLE;
-        BBTagInfo l_NewTagInfo = BBTagInfo(pTagInfoMap, pNumContrib, pContrib, pJob, pTagId.getTag(), l_GeneratedHandle);
-        BBTagInfo* l_NewTagInfoPtr = &l_NewTagInfo;
-        rc = pTagInfoMap->addTagInfo(pLVKey, pJob, pTagId, l_NewTagInfoPtr, l_GeneratedHandle);
+        uint64_t l_Handle = UNDEFINED_HANDLE;
+        rc = BBTagInfo::getTransferHandle(pLVKey, l_Handle, l_TagInfo, pJob, pTagId.getTag(), pNumContrib, pContrib);
         if (!rc)
         {
-            // NOTE:  addTagInfo() returns addressability to the newly inserted BBTagInfo object in BBTagInfoMap
-            l_TagInfo = l_NewTagInfoPtr;
-            if (pConnectionName.size())
+            // NOTE:  l_Handle and l_TagInfo are now set...
+            BBTagInfo* l_SavedTagInfo = l_TagInfo;
+            rc = pTagInfoMap->addTagInfo(pLVKey, pJob, pTagId, l_TagInfo, l_Handle);
+            if (!rc)
             {
-                LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
-                              << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->transferHandle \
-                              << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->transferHandle << ") to " << *pLVKey;
+                // NOTE:  addTagInfo() returns addressability to the newly inserted BBTagInfo object in BBTagInfoMap
+                //        via l_TagInfo
+                if (pConnectionName.size())
+                {
+                    LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
+                                  << hex << uppercase << setfill('0') << setw(16) << l_Handle \
+                                  << setfill(' ') << nouppercase << dec << " (" << l_Handle << ") to " << *pLVKey;
+                }
+                else
+                {
+                    LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ")";
+                }
             }
             else
             {
-                LOG(bb,debug) << "taginfo: Adding TagID(" << l_JobStr.str() << "," << pTagId.getTag() << ")";
+                // NOTE: errstate already filled in...
+                errorText << "queueTagInfo: Failure from addTagInfo(), rc = " << rc;
+                LOG_ERROR(errorText);
             }
+            delete l_SavedTagInfo;
         }
         else
         {
-            // NOTE: errstate already filled in...
-            errorText << "queueTagInfo: Failure from addTagInfo(), rc = " << rc;
+            // Get/generate a handle failed
+            errorText << "queueTagInfo: Failed attempt to get/generate a handle, rc = " << rc;
             LOG_ERROR(errorText);
         }
     }

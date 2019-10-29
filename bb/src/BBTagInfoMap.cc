@@ -50,7 +50,7 @@ void BBTagInfoMap::accumulateTotalLocalContributorInfo(const uint64_t pHandle, s
     return;
 }
 
-int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID pTagId, BBTagInfo* &pTagInfo, int& pGeneratedHandle)
+int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID& pTagId, BBTagInfo* &pTagInfo, uint64_t& pGeneratedHandle)
 {
     int rc = 0;
 

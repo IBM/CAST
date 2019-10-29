@@ -12,11 +12,9 @@
  *******************************************************************************/
 
 #include <boost/range/iterator_range.hpp>
+#include <boost/system/error_code.hpp>
 
 #include "BBTagInfo.h"
-
-using namespace std;
-using namespace boost::archive;
 
 #include "bberror.h"
 #include "bbinternal.h"
@@ -26,6 +24,12 @@ using namespace boost::archive;
 #include "HandleFile.h"
 #include "logging.h"
 #include "LVUuidFile.h"
+#include "TagFile.h"
+
+using namespace std;
+using namespace boost::archive;
+namespace bfs = boost::filesystem;
+namespace bs = boost::system;
 
 //
 // BBTagInfo class
@@ -34,6 +38,25 @@ using namespace boost::archive;
 //
 // BBTagInfo - static methods
 //
+
+void BBTagInfo::bumpTransferHandle(uint64_t& pHandle) {
+    union {
+        struct {
+            uint8_t reserved1;
+            uint8_t reserved2;
+            uint8_t reserved3;
+            uint8_t collision;
+            uint32_t crc;
+        } internal;
+        uint64_t external;
+    } handle;
+
+    handle.external = pHandle;
+    ++handle.internal.collision;
+    pHandle = handle.external;
+
+    return;
+}
 
 int BBTagInfo::compareContrib(const uint64_t pNumContrib, const uint32_t pContrib[], vector<uint32_t>& pContribVector) {
     int rc = 0;
@@ -107,19 +130,210 @@ void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uin
     return;
 }
 
+int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[])
+{
+    int rc = 0;
+    stringstream errorText;
+    bool l_Continue = true;
+
+    uint64_t l_Handle = UNDEFINED_HANDLE;
+
+    // First ensure that the jobstepid directory exists for the xbbServer metadata
+    rc = BBTagInfo::update_xbbServerAddData(pLVKey, pJob);
+
+    if (!rc)
+    {
+        while (l_Continue)
+        {
+            l_Continue = false;
+            vector<uint32_t> l_ExpectContrib;
+            if (l_Handle == UNDEFINED_HANDLE)
+            {
+                for (size_t i=0; i<(size_t)pNumContrib; ++i)
+                {
+                    l_ExpectContrib.push_back(pContrib[i]);
+                }
+                genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
+            }
+
+            int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle);
+            switch (rc2)
+            {
+                case 0:
+                {
+                    // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
+                    // Use this newly generated handle value for this job, jobstep, tag, and expectContrib vector.
+                }
+                break;
+
+                case 1:
+                {
+                    // Newly generated handle value is already in affect for this job, jobstep, tag, and expectContrib vector.
+                    // Continue to use this handle value.
+                }
+                break;
+
+                case 2:
+                {
+                    // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
+                    // Assign a new handle value and try to process the new handle value again.
+                    do
+                    {
+                        bumpTransferHandle(l_Handle);
+                    } while(l_Handle == 0);
+                    l_Continue = true;
+                }
+                break;
+
+                case -2:
+                {
+                    // Tag value has already been used for this job and jobstep.  Error condition.
+                    rc = -1;
+                    errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                              << ". Another tag value must be specified.";
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
+                break;
+
+                case -3:
+                {
+                    // Tag and same handle value has already been used for this job and jobstep, but for a different contrib vector.  Error condition.
+                    rc = -1;
+                    errorText << "Tag value " << pTag << ", handle value " << pHandle << ", has already been used for jobid " << pJob.getJobId() \
+                              << ", jobstepid " << pJob.getJobStepId() << ", but for a different set of contributors.  Another tag value must be specified.";
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
+                break;
+
+                default:
+                {
+                    // Some other error
+                    rc = -1;
+                    errorText << "Unexpected error occurred during the generation of a handle value.";
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
+            }
+        }
+
+        if (rc >= 0)
+        {
+            pHandle = l_Handle;
+            pTagInfo = new BBTagInfo(l_Handle, pNumContrib, pContrib);
+        }
+    }
+    else
+    {
+        rc = -1;
+        errorText << "Unexpected error occurred when attempting during the generation of a handle value.";
+        LOG_ERROR_TEXT_RC(errorText, rc);
+    }
+
+    return rc;
+}
+
+int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle)
+{
+    return TagFile::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle);
+}
+
+int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
+{
+    int rc = 0;
+    stringstream errorText;
+    int l_JobStepDirectoryAlreadyExists = 0;
+
+    try
+    {
+        bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
+
+        // NOTE:  There is a window between creating the job directory and
+        //        performing the chmod to the correct uid:gid.  Therefore, if
+        //        create_directories() returns EACCESS (permission denied), keep
+        //        attempting for 2 minutes.
+        bs::error_code l_ErrorCode;
+        int l_Attempts = 120;
+        while (l_Attempts-- > 0)
+        {
+            // Note if the jobstepid directory exists...
+            if(!bfs::exists(jobstepid))
+            {
+                // Attempt to create the jobstepid directory
+                bfs::create_directories(jobstepid, l_ErrorCode);
+                if (l_ErrorCode.value() == EACCES)
+                {
+                    usleep((useconds_t)1000000);    // Delay 1 second
+                }
+                else
+                {
+                    // Jobstepid directory created
+                    l_Attempts = -1;
+                }
+            }
+            else
+            {
+                // Jobstepid directory already exists.  Nothing to do...
+                l_JobStepDirectoryAlreadyExists = 1;
+            }
+        }
+
+        if (!l_JobStepDirectoryAlreadyExists)
+        {
+            if (l_Attempts == 0)
+            {
+                // Error returned via create_directories...
+                // Attempt one more time, without the error code.
+                // On error, the appropriate boost exception will be thrown...
+                LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): l_Attempts " << l_Attempts << ", l_ErrorCode.value() " << l_ErrorCode.value();
+                bfs::create_directories(jobstepid);
+            }
+
+            // Perform a chmod to 0770 for the jobstepid directory.
+
+            // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
+            //        contained in this tree is controlled there.
+            rc = chmod(jobstepid.c_str(), 0770);
+            if (rc)
+            {
+                errorText << "chmod failed";
+                bberror << err("error.path", jobstepid.c_str());
+                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+            }
+
+            // Create the lock file for the tagfile
+            rc = TagFile::createLockFile(jobstepid.string());
+            if (rc) BAIL;
+
+            // Create the tagfile
+            bfs::path l_TagFilePath = jobstepid / TAGFILENAME;
+            TagFile l_TagFileStg(l_TagFilePath.string());
+            rc = l_TagFileStg.save();
+            if (rc) BAIL;
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    return rc;
+}
+
 
 //
 // BBTagInfo - non-static methods
 //
 
-BBTagInfo::BBTagInfo(BBTagInfoMap* pTagInfo, const uint64_t pNumContrib, const uint32_t pContrib[], const BBJob pJob, const uint64_t pTag, int& pGeneratedHandle) :
-    flags(0) {
-    for (size_t i=0; i<(size_t)pNumContrib; ++i) {
+BBTagInfo::BBTagInfo(uint64_t& pHandle, const uint64_t pNumContrib, const uint32_t pContrib[]) :
+    flags(0),
+    transferHandle(pHandle) {
+    for (size_t i=0; i<(size_t)pNumContrib; ++i)
+    {
         expectContrib.push_back(pContrib[i]);
     }
-    uint64_t l_Handle = UNDEFINED_HANDLE;
-    getTransferHandle(l_Handle, pTagInfo, pJob, pTag, pGeneratedHandle);
-    setTransferHandle(l_Handle);
+    parts = BBTagParts();
 
     return;
 }
@@ -263,25 +477,6 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
     return rc;
 }
 
-void BBTagInfo::bumpTransferHandle(uint64_t& pHandle) {
-    union {
-        struct {
-            uint8_t reserved1;
-            uint8_t reserved2;
-            uint8_t reserved3;
-            uint8_t collision;
-            uint32_t crc;
-        } internal;
-        uint64_t external;
-    } handle;
-
-    handle.external = pHandle;
-    ++handle.internal.collision;
-    pHandle = handle.external;
-
-    return;
-}
-
 void BBTagInfo::calcCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
 {
     int l_CanceledTransferDefinitions = parts.anyCanceledTransferDefinitions(this);
@@ -360,6 +555,7 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     {
         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
+            if (!bfs::is_directory(handle)) continue;
             if (l_Handle == UNDEFINED_HANDLE)
             {
                 bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
@@ -444,22 +640,6 @@ BBSTATUS BBTagInfo::getStatus(const int pStageOutStarted) {
     }
 
     return l_Status;
-}
-
-void BBTagInfo::getTransferHandle(uint64_t& pHandle, BBTagInfoMap* pTagInfo, const BBJob pJob, const uint64_t pTag, int& pGeneratedHandle) {
-    pGeneratedHandle = UNDEFINED_HANDLE;
-    pHandle = get_xbbServerHandle(pJob, pTag);
-    if (!pHandle) {
-        pGeneratedHandle = 1;
-        genTransferHandle(pHandle, pJob, pTag);
-#if 0  // \todo need real fix to timing window with concurrent handle generation. Disabling the following for now
-        while (pHandle == 0 || (!(xbbServerIsHandleUnique(pJob, pHandle)))) {
-            bumpTransferHandle(pHandle);
-        }
-#endif
-    }
-
-    return;
 }
 
 int BBTagInfo::inExpectContrib(const uint32_t pContribId) {
@@ -913,10 +1093,43 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
 
+                    int l_JobStepDirectoryExists = 0;
+                    bfs::path l_JobStepPath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                    l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
+                    l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
+                    if (bfs::exists(l_JobStepPath))
+                    {
+                        l_JobStepDirectoryExists = 1;
+                    }
+
                     LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
                                  << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
                     bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
                     bfs::create_directories(l_LVUuidPath);
+
+                    if (!l_JobStepDirectoryExists)
+                    {
+                        // Create the lock file for the tagfile
+                        rc = TagFile::createLockFile(l_JobStepPath.string());
+                        if (rc) BAIL;
+
+                        // Create the tagfile
+                        bfs::path l_TagFilePath = l_JobStepPath / TAGFILENAME;
+                        TagFile l_TagFileStg(l_TagFilePath.string());
+                        rc = l_TagFileStg.save();
+                        if (rc) BAIL;
+
+                        // Unconditionally perform a chmod to 0770 for the jobstepid directory.
+                        // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
+                        //        contained in this tree is controlled there.
+                        rc = chmod(l_JobStepPath.c_str(), 0770);
+                        if (rc)
+                        {
+                            errorText << "chmod failed";
+                            bberror << err("error.path", l_JobStepPath.string());
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                        }
+                    }
 
                     // Unconditionally perform a chmod to 0770 for the lvuuid directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files

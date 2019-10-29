@@ -104,6 +104,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                             // Iterate through the handles...
                             for (auto& l_Handle : boost::make_iterator_range(bfs::directory_iterator(l_JobStepId.path()), {}))
                             {
+                                if (!bfs::is_directory(l_Handle)) continue;
                                 if ((pTransferDefs.handle == UNDEFINED_HANDLE) || (l_Handle.path().filename().string() == to_string(pTransferDefs.handle)))
                                 {
                                     // Handle of interest...
