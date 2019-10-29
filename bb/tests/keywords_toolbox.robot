@@ -212,7 +212,7 @@ My convert to Bytes
 
     [return]  ${sz_return}
 
-********* UNUSED ************
+#  ----------- UNUSED ------------
 Get Random
     [Arguments]  ${lower}  ${upper}
     ${value}=  Evaluate  random.randint(${lower}, ${upper})   modules=random,sys
