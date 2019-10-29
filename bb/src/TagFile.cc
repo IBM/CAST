@@ -47,7 +47,7 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         if(!bfs::is_directory(l_JobStepPath))
         {
             rc = -1;
-            errorText << "BBTagInfo::update_xbbServerAddData(): Attempt to create the tagfile failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
+            errorText << "BBTagInfo::addTagHandle(): Attempt to load tagfile failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
@@ -59,43 +59,50 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             rc = TagFile::load(l_TagFile, l_TagFilePath);
             if (!rc)
             {
-                for (size_t i=0; (i<l_TagFile->tagHandles.size() && (!rc)); i++)
+                for (size_t i=0; (i<l_TagFile->tagHandles.size() && (rc == 0 || rc == 2)); i++)
                 {
-                    if (l_TagFile->tagHandles[i].handle == pHandle)
+                    if (l_TagFile->tagHandles[i].tag == pTag)
                     {
-                        // Same handle value
-                        if (l_TagFile->tagHandles[i].tag == pTag)
+                        // Same tag value
+                        if (!(l_TagFile->tagHandles[i].compareContrib(pExpectContrib)))
                         {
-                            // Same tag value
-                            if (!(l_TagFile->tagHandles[i].compareContrib(pExpectContrib)))
-                            {
-                                // Same contrib vector
-                                rc = 1;
-                            }
-                            else
-                            {
-                                // Different contrib vector
-                                rc = -3;
-                            }
+                            // Same contrib vector
+                            // Handle value has already been assigned for this tag/contrib vector.
+                            // Return the already assigned handle value for this tag/contrib vector.
+                            pHandle = l_TagFile->tagHandles[i].handle;
+                            rc = 1;
                         }
                         else
                         {
-                            rc = 2;
+                            // Different contrib vector
+                            // ERROR - Tag value has already been used for a different contrib vector.
+                            rc = -2;
                         }
-                    }
-                    else if (l_TagFile->tagHandles[i].tag == pTag)
-                    {
-                        // Different handle, same tag.  Error condition.
-                        rc = -2;
                     }
                     else
                     {
-                        // Neither the handle value nor the tag value match.  Continue...
+                        if (l_TagFile->tagHandles[i].handle == pHandle)
+                        {
+                            // Different tag, but handle value matches.
+                            // Return, indicating to generate a new handle value and retry.
+                            // NOTE:  But, we continue to search through the remaining TagHandles
+                            //        looking for a matching tag value.  If the tag value is found,
+                            //        then either the already assigned handle value will be passed
+                            //        back or an error will be generated if the found tag is for a
+                            //        different contrib vector.
+                            rc = 2;
+                        }
+                        else
+                        {
+                            // Neither the handle value nor the tag value match.  Continue...
+                        }
                     }
                 }
 
                 if (!rc)
                 {
+                    // Neither the tag, nor passed in handle value were found.
+                    // Add the passed in values for tag/contrib vector/handle as a new TagHandle.
                     BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
                     l_TagFile->tagHandles.push_back(l_TagHandle);
                     l_TagFile->save();
@@ -104,7 +111,15 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             else
             {
                 // Could not load the tagfile
+                // NOTE: error state already filled in...
+                SET_RC(rc);
             }
+        }
+        else
+        {
+            // Could not lock the tagfile
+            // NOTE: error state already filled in...
+            SET_RC(rc);
         }
     }
     catch(ExceptionBailout& e) { }
@@ -203,11 +218,13 @@ int TagFile::load(TagFile* &pTagFile, const bfs::path& pTagFileName)
        gettimeofday(&l_StopTime, NULL);
        if (!rc)
         {
-            LOG(bb,warning) << "Loading " << pTagFileName.c_str() << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " after recovering from archive exception(s)";
+            LOG(bb,warning) << "Loading " << pTagFileName.c_str() << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
+                            << " after recovering from archive exception(s)";
         }
         else
         {
-            LOG(bb,error) << "Loading " << pTagFileName.c_str() << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" << " when attempting to recover from archive exception(s)";
+            LOG(bb,error) << "Loading " << pTagFileName.c_str() << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
+                          << " when attempting to recover from archive exception(s).  The most likely cause is due to the job being ended and/or removed.";
         }
     }
 
@@ -264,7 +281,9 @@ int TagFile::lock(const bfs::path& pJobStepPath)
         {
             case -2:
             {
-                errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ":" << strerror(errno);
+                rc = -1;
+                errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
+                          << ". The most likely cause is due to the job being ended and/or removed.";
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
             }
             break;
