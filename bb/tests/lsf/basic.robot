@@ -292,3 +292,45 @@ LSF throttled transfers from SSD to devnull multi node
 
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
+
+LSF get handle create performance single node
+	[Tags]  lsf
+	[Timeout]  20 minutes
+	Using SSD  512
+	Set num computes  1
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 500
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 1000
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 2000
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 4000
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 1000
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 200
+
+LSF get handle create performance multi node
+	[Tags]  lsf
+	[Timeout]  20 minutes
+	Using SSD  512
+	
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 100
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 200
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 400
+
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 800
+
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 100
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 20
