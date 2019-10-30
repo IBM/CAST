@@ -1007,6 +1007,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     return rc;
 }
 
+#define ATTEMPTS 10
 int HandleFile::lock(const char* pFilePath)
 {
     int rc = -2;
@@ -1031,69 +1032,86 @@ int HandleFile::lock(const char* pFilePath)
         endOnError();
     }
 
-    uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
-
-    uint64_t l_FL_Counter2 = metadataCounter.getNext();
-    FL_Write(FLMetaData, HF_Open, "open HF, counter=%ld", l_FL_Counter2, 0, 0, 0);
-
-    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
-    fd = open(l_LockFile, O_WRONLY);
-    threadLocalTrackSyscallPtr->clearTrack();
-
-    FL_Write(FLMetaData, HF_Open_End, "open HF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
-
-    if (fd >= 0)
+    int l_Attempts = ATTEMPTS;
+    while (l_Attempts--)
     {
-        // Exclusive lock and this will block if needed
-        LOG(bb,debug) << "lock(): Open issued for handle file " << l_LockFile << ", fd=" << fd;
-        struct flock l_LockOptions;
-        l_LockOptions.l_whence = SEEK_SET;
-        l_LockOptions.l_start = 0;
-        l_LockOptions.l_len = 0;    // Lock entire file for writing
-        l_LockOptions.l_type = F_WRLCK;
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
-        rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
+        uint64_t l_FL_Counter = metadataCounter.getNext();
+        FL_Write(FLMetaData, HF_Lock, "lock HF, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+        uint64_t l_FL_Counter2 = metadataCounter.getNext();
+        FL_Write(FLMetaData, HF_Open, "open HF, counter=%ld", l_FL_Counter2, 0, 0, 0);
+
+        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_LockFile, __LINE__);
+        fd = open(l_LockFile, O_WRONLY);
         threadLocalTrackSyscallPtr->clearTrack();
-    }
 
-    switch(rc)
-    {
-        case -2:
+        FL_Write(FLMetaData, HF_Open_End, "open HF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+
+        if (fd >= 0)
         {
-            errorText << "Could not open handle file " << l_LockFile << " for locking, errno=" << errno << ":" << strerror(errno);
-            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+            // Exclusive lock and this will block if needed
+            LOG(bb,debug) << "lock(): Open issued for handle file " << l_LockFile << ", fd=" << fd;
+            struct flock l_LockOptions;
+            l_LockOptions.l_whence = SEEK_SET;
+            l_LockOptions.l_start = 0;
+            l_LockOptions.l_len = 0;    // Lock entire file for writing
+            l_LockOptions.l_type = F_WRLCK;
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_LockFile, __LINE__);
+            rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
+            threadLocalTrackSyscallPtr->clearTrack();
         }
-        break;
 
-        case -1:
+        switch(rc)
         {
-            errorText << "Could not exclusively lock handle file " << l_LockFile << ", errno=" << errno << ":" << strerror(errno);
-            LOG_ERROR_TEXT_ERRNO(errorText, errno);
-
-            if (fd >= 0)
+            case -2:
             {
-                LOG(bb,debug) << "lock(): Issue close for handle file fd " << fd;
-                uint64_t l_FL_Counter = metadataCounter.getNext();
-                FL_Write(FLMetaData, HF_CouldNotLockExcl, "open HF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
-                ::close(fd);
-                FL_Write(FLMetaData, HF_CouldNotLockExcl_End, "open HF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                if (!l_Attempts)
+                {
+                    errorText << "Could not open handle file " << l_LockFile << " for locking, errno=" << errno << ":" << strerror(errno);
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                }
+                else
+                {
+                    // Delay one second and try again
+                    // NOTE: We may have hit the window between the creation of the handle directory
+                    //       and creating the lockfile in that handle directory.
+                    usleep((useconds_t)1000000);
+                }
             }
-            fd = -1;
-        }
-        break;
+            break;
 
-        default:
-        {
-            // Successful lock...
+            case -1:
+            {
+                errorText << "Could not exclusively lock handle file " << l_LockFile << ", errno=" << errno << ":" << strerror(errno);
+                LOG_ERROR_TEXT_ERRNO(errorText, errno);
+
+                if (fd >= 0)
+                {
+                    LOG(bb,debug) << "lock(): Issue close for handle file fd " << fd;
+                    uint64_t l_FL_Counter = metadataCounter.getNext();
+                    FL_Write(FLMetaData, HF_CouldNotLockExcl, "open HF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
+                    ::close(fd);
+                    FL_Write(FLMetaData, HF_CouldNotLockExcl_End, "open HF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                }
+                fd = -1;
+                l_Attempts = 0;
+            }
+            break;
+
+            default:
+            {
+                // Successful lock...
+                l_Attempts = 0;
+            }
+            break;
         }
-        break;
+
+        FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
     }
-
-    FL_Write(FLMetaData, HF_Lock_End, "lock HF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
 
     return fd;
 }
+#undef ATTEMPTS
 
 int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles, const char* pDataStoreName, const BBSTATUS pMatchStatus)
 {
