@@ -61,7 +61,7 @@ Use hosts with defined server
     #  Regenerate ranks
     ${numranks} =  Get Length	  ${newlist}
     @{_ranklist} =  create list
-    :FOR  ${rank}  in range  ${numranks}    
+    :FOR  ${rank}  IN RANGE  ${numranks}    
     \  append to list  ${_ranklist}  ${rank}
     
     ${tmp}=  Catenate  SEPARATOR=,  @{_ranklist}

@@ -35,7 +35,7 @@ User can get transfers
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  in  @{handles}
+     :FOR  ${handle}  IN  @{handles}
      \  Transfer status is  ${handle}   BBFULLSUCCESS
      \  Transfer has completed   ${handle}
      Teardown logical volume  ${MOUNTPT}
@@ -84,7 +84,7 @@ Verify Transfer usage info for read
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  in  @{handles}
+     :FOR  ${handle}  IN  @{handles}
      \  Transfer status is  ${handle}   BBFULLSUCCESS
      \  Transfer has completed   ${handle}
 
@@ -117,7 +117,7 @@ Verify Transfer usage info for write
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  in  @{handles}
+     :FOR  ${handle}  IN  @{handles}
      \  Transfer status is  ${handle}   BBFULLSUCCESS
      \  Transfer has completed   ${handle}
 

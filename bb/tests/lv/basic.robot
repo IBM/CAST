@@ -52,7 +52,7 @@ User can create logical volume
     [Tags]  unittest  lv
      Start job
      Run as root
-     :FOR  ${size}  in  132M  1G  2G  100G  800G
+     :FOR  ${size}  IN  132M  1G  2G  100G  800G
      \  Setup logical volume  ${MOUNTPT}  ${size}
      \  Verify block  ${MOUNTPT}  ${size}  4M
      \  Teardown logical volume  ${MOUNTPT}
@@ -94,7 +94,7 @@ User cannot create logical volume with invalid size
     [Tags]  unittest  lv  badpath
      Start job
      Run as root
-     :FOR  ${size}  in  -1G  0  1  1M  4M  7000G
+     :FOR  ${size}  IN  -1G  0  1  1M  4M  7000G
      \  Setup logical volume  ${MOUNTPT}  ${size}  -1
      \  Teardown logical volume  ${MOUNTPT}
      [TEARDOWN]  Teardown logical volume  ${MOUNTPT}

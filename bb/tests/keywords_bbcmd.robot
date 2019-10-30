@@ -108,7 +108,7 @@ activate connection
 for all ranks
     [Arguments]  ${keyword}  @{varargs}
     @{allranks} =  split string  ${RANKLIST}  ,
-    :FOR  ${rank}  in  @{allranks}
+    :FOR  ${rank}  IN  @{allranks}
     \	  Run keyword  ${keyword}  ${rank}  @{varargs}
 
 Check write threshold

@@ -23,10 +23,10 @@ Basic BSCFS setup using LSF
 Load job queue with BB
      [Tags]  lsf
      using SSD  100
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  bsub  job${i}  hostname
      
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  waitproc  job${i}  0
 
 Load job queue with BSCFS
@@ -34,10 +34,10 @@ Load job queue with BSCFS
      using SSD  100
      using bscfs
 
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  bsub  job${i}  hostname
      
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  waitproc  job${i}  0
 
 Stage-in script does not exist

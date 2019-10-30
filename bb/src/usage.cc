@@ -536,17 +536,24 @@ void* diskstatsMonitorThread(void* ptr)
     map<string,string> diskStatCache;
     while(1)
     {
-        for(const auto& line : runCommand("/usr/bin/iostat -xm -p ALL"))
+        try
         {
-            auto tokens = buildTokens(line, " ");
-            if(tokens.size() > 10)
+            for(const auto& line : runCommand("/usr/bin/iostat -xm -p ALL"))
             {
-                if(diskStatCache[tokens[0]] != line)
+                auto tokens = buildTokens(line, " ");
+                if(tokens.size() > 10)
                 {
-                    diskStatCache[tokens[0]] = line;
-                    LOG(bb,always) << "DISKSTAT:  " << line;
-                }                
+                    if(diskStatCache[tokens[0]] != line)
+                    {
+                        diskStatCache[tokens[0]] = line;
+                        LOG(bb,always) << "DISKSTAT:  " << line;
+                    }                
+                }
             }
+        }
+        catch(ExceptionBailout& e)
+        {
+            LOG(bb,error) << "DISKSTAT: exception while executing iostat";
         }
         sleep(rate);
     }

@@ -7,7 +7,7 @@ Library       String
 Run parameterized transfer
     [Arguments]
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  in range  ${numiter}
+     :FOR  ${tagid}  IN RANGE  ${numiter}
      \  Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
      \  ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist
      \  Wait Until Keyword Succeeds  ${polltimeout}  1 second  transfer has completed  ${handle}
@@ -18,7 +18,7 @@ Run parameterized transfer
 Run parameterized transfer with Special Chars
     [Arguments]   ${spC}  ${expect_rc}=0
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  in range  ${numiter}
+     :FOR  ${tagid}  IN RANGE  ${numiter}
      \  Generate File List with Special Chars   ${source}  ${dest}  ${MOUNTPT}/filelist  ${spC}
      \  ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist  ${expect_rc}
      \  Run keyword if  ${expect_rc} == 0  Wait Transfer Complete and Check  ${handle}  ${MOUNTPT}/filelist
@@ -41,7 +41,7 @@ Run a file transfer
 API_Run parameterized transfer
     [Arguments]
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  in range  ${numiter}
+     :FOR  ${tagid}  IN RANGE  ${numiter}
      \  Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
      \  API_Run a file transfer  ${MOUNTPT}/filelist
      \  Compare Random files  ${MOUNTPT}/filelist
@@ -149,7 +149,7 @@ Remove directories
     [Arguments]
     [Timeout]  30 seconds
     Run as root
-    :FOR  ${path}  in  @{MOUNTDIRS}
+    :FOR  ${path}  IN  @{MOUNTDIRS}
     \  Run Keyword And Continue On Failure  bbcmd  remove  --mount=${path}
     \  bbcmd    rmdir    --path  ${path}
     \  Status should be  0
@@ -159,7 +159,7 @@ Teardown Logical Volume
     [Arguments]  ${path}
     [Timeout]  600 seconds
     Run as root
-    :FOR  ${path}  in  @{MOUNTLVS}
+    :FOR  ${path}  IN  @{MOUNTLVS}
     \  bbcmd  remove  --mount=${path}
     \  Remove Values from List  ${MOUNTLVS}  ${path}
     Run Keyword And Continue On Failure  Remove directories

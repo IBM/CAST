@@ -84,7 +84,7 @@ User can perform small checkpoints to PFS
       [Tags]  unittest  transfer  fromssd  small  scrlike  sw37
       [Timeout]  300 seconds
       ok to run mpi executable
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  Run Keyword And Continue On Failure  Remove Directory  ${PFSDIR}/ckpttest  recursive=yes
       \  OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
@@ -97,7 +97,7 @@ User can perform large checkpoint to PFS
       [Timeout]  3600 seconds
       ok to run mpi executable
       ${checksize} =   Evaluate  ${LARGEFILESIZE}/8
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  Run Keyword And Continue On Failure  Remove Directory  ${PFSDIR}/ckpttest  recursive=yes
       \  OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
@@ -113,7 +113,7 @@ User can perform small checkpoint restore from PFS
       OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
       mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -c -m 512 -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 0 -w 1
       
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  mpirun  rm -rf ${MOUNTPT}/ckpt_wave1
       \  ${result}=  mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -c -m 512 -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 1 -w 1
@@ -128,7 +128,7 @@ User can perform large checkpoint restore from PFS
       OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
       mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -c -m ${checksize} -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 0 -w 1
       
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  mpirun  rm -rf ${MOUNTPT}/ckpt_wave1
       \  ${result}=  mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -c -m ${checksize} -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 1 -w 1
@@ -176,7 +176,7 @@ User can perform large checkpoint to PFS without bbapi
       [Timeout]  3600 seconds
       ok to run mpi executable
       ${checksize} =   Evaluate  ${LARGEFILESIZE}/8
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  Run Keyword And Continue On Failure  Remove Directory  ${PFSDIR}/ckpttest  recursive=yes
       \  OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
@@ -193,7 +193,7 @@ User can perform large checkpoint restore from PFS without bbapi
       OperatingSystem.Create Directory  ${PFSDIR}/ckpttest
       mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -b -c -m ${checksize} -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 0 -w 1
 
-      :FOR  ${tagid}  in range  5
+      :FOR  ${tagid}  IN RANGE  5
       \  Start job step
       \  mpirun  rm -rf ${MOUNTPT}/ckpt_wave1
       \  ${result}=  mpirun  ${WORKDIR}/bb/tests/bin/test_ckpt_mpi -b -c -m ${checksize} -l ${MOUNTPT} -p ${PFSDIR}/ckpttest -i ${JOBID} -r 1 -w 1
@@ -204,7 +204,7 @@ Check scaling of checkpoint file size
       [Tags]  unittest  transfer  fromssd  large  scrlike  sw37
       [Timeout]  3600 seconds
       ok to run mpi executable
-      :FOR  ${tagid}  in range  17
+      :FOR  ${tagid}  IN RANGE  17
       \  Start job step
       \  ${checksize} =   Evaluate  65536 * 2**${tagid}
       \  Run Keyword And Continue On Failure  Remove Directory  ${PFSDIR}/ckpttest  recursive=yes
@@ -218,7 +218,7 @@ Check scaling of checkpoint file size without bbapi
       [Tags]  unittest  transfer  fromssd  large  scrlike  sw37  nobbapi  nofvt
       [Timeout]  3600 seconds
       ok to run mpi executable
-      :FOR  ${tagid}  in range  17
+      :FOR  ${tagid}  IN RANGE  17
       \  Start job step
       \  ${checksize} =   Evaluate  65536 * 2**${tagid}
       \  Run Keyword And Continue On Failure  Remove Directory  ${PFSDIR}/ckpttest  recursive=yes

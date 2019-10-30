@@ -163,7 +163,7 @@ Execute 100 Times - Open connection to backup server while performing transfer t
     Generate File List  ${PFSDIR}  ${MOUNTPT}  ${MOUNTPT}/filelist
     ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
 
-    :FOR  ${l_idx}   in range   1   100
+    :FOR  ${l_idx}   IN RANGE   1   100
     \  Open connection  backup
     \  Close connection  backup
 
@@ -224,7 +224,7 @@ Execute 100 Times - Open connection to backup server while performing transfer f
     Generate File List  ${MOUNTPT}  ${PFSDIR}  ${MOUNTPT}/filelist
     ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
 
-    :FOR  ${l_idx}   in range   1   100
+    :FOR  ${l_idx}   IN RANGE   1   100
     \  Open connection  backup
     \  Close connection  backup
     
@@ -311,7 +311,7 @@ Connection establishment stress
     Use hosts with defined server  backup
     
     # Connect/Disconnect
-    :FOR  ${iteration}  in range  100
+    :FOR  ${iteration}  IN RANGE  100
     \    Open connection  backup
     \	 Close connection  backup
     
