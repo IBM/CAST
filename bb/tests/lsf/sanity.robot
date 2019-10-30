@@ -34,8 +34,8 @@ Sanity check LSF+CSM+JSM configuration multi-node
 
 Sanity check LSF+CSM+JSM configuration under queue load
      [Tags]  lsf
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  bsub  job${i}  ${jsrun} hostname
      
-     :FOR  ${i}   in range   1   10
+     :FOR  ${i}   IN RANGE   1   10
      \  waitproc  job${i}  0
