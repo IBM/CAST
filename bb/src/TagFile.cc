@@ -132,7 +132,13 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     if (l_TagFileLocked)
     {
         l_TagFileLocked = 0;
-        l_TagFile->unlock();
+        TagFile::unlock();
+    }
+
+    if (l_TagFile)
+    {
+        delete l_TagFile;
+        l_TagFile = 0;
     }
 
     if (l_LocalMetadataUnlocked)
@@ -343,59 +349,6 @@ int TagFile::lock(const bfs::path& pJobStepPath)
 }
 #undef ATTEMPTS
 
-/*
- * Non-static methods
- */
-int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
-{
-    int rc = 0;
-
-    size_t l_NumExpectContrib = pContribVector.size();
-    if (l_NumExpectContrib == expectContrib.size())
-    {
-        for (size_t i=0; i<l_NumExpectContrib; ++i)
-        {
-            if (pContribVector[i] != expectContrib[i])
-            {
-                rc = 1;
-                break;
-            }
-        }
-    }
-    else
-    {
-        rc = 1;
-    }
-
-    return rc;
-}
-
-int TagFile::save()
-{
-    int rc = 0;
-
-    uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, TF_Save, "saveTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
-
-    try
-    {
-        LOG(bb,debug) << "Writing:" << filename;
-        ofstream l_ArchiveFile{filename};
-        text_oarchive l_Archive{l_ArchiveFile};
-        l_Archive << *this;
-    }
-    catch(ExceptionBailout& e) { }
-    catch(exception& e)
-    {
-        rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    FL_Write(FLMetaData, TF_Save_End, "saveTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
-
-    return rc;
-}
-
 void TagFile::unlock()
 {
     if (tagFileLockFd != -1)
@@ -451,4 +404,58 @@ void TagFile::unlock(const int pFd)
     FL_Write(FLMetaData, TF_Unlock_End, "unlock TF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
     return;
+}
+
+
+/*
+ * Non-static methods
+ */
+int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
+{
+    int rc = 0;
+
+    size_t l_NumExpectContrib = pContribVector.size();
+    if (l_NumExpectContrib == expectContrib.size())
+    {
+        for (size_t i=0; i<l_NumExpectContrib; ++i)
+        {
+            if (pContribVector[i] != expectContrib[i])
+            {
+                rc = 1;
+                break;
+            }
+        }
+    }
+    else
+    {
+        rc = 1;
+    }
+
+    return rc;
+}
+
+int TagFile::save()
+{
+    int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TF_Save, "saveTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+    try
+    {
+        LOG(bb,debug) << "Writing:" << filename;
+        ofstream l_ArchiveFile{filename};
+        text_oarchive l_Archive{l_ArchiveFile};
+        l_Archive << *this;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    FL_Write(FLMetaData, TF_Save_End, "saveTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+
+    return rc;
 }
