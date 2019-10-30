@@ -132,7 +132,13 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     if (l_TagFileLocked)
     {
         l_TagFileLocked = 0;
-        l_TagFile->unlock();
+        TagFile::unlock();
+    }
+
+    if (l_TagFile)
+    {
+        delete l_TagFile;
+        l_TagFile = 0;
     }
 
     if (l_LocalMetadataUnlocked)
@@ -242,6 +248,7 @@ int TagFile::load(TagFile* &pTagFile, const bfs::path& pTagFileName)
     return rc;
 }
 
+#define ATTEMPTS 10
 int TagFile::lock(const bfs::path& pJobStepPath)
 {
     int rc = -2;
@@ -251,68 +258,84 @@ int TagFile::lock(const bfs::path& pJobStepPath)
     std::string l_TagLockFileName = (pJobStepPath / LOCK_TAG_FILENAME).string();
     if (tagFileLockFd == -1)
     {
-        uint64_t l_FL_Counter = metadataCounter.getNext();
-        FL_Write(FLMetaData, TF_Lock, "lock TF, counter=%ld", l_FL_Counter, 0, 0, 0);
-
-        uint64_t l_FL_Counter2 = metadataCounter.getNext();
-        FL_Write(FLMetaData, TF_Open, "open TF, counter=%ld", l_FL_Counter2, 0, 0, 0);
-
-        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_TagLockFileName, __LINE__);
-        fd = open(l_TagLockFileName.c_str(), O_WRONLY);
-        threadLocalTrackSyscallPtr->clearTrack();
-
-        FL_Write(FLMetaData, TF_Open_End, "open TF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
-
-        if (fd >= 0)
+        int l_Attempts = ATTEMPTS;
+        while (l_Attempts--)
         {
-            // Exclusive lock and this will block if needed
-            LOG(bb,debug) << "lock(): Open issued for tag lockfile " << l_TagLockFileName << ", fd=" << fd;
-            struct flock l_LockOptions;
-            l_LockOptions.l_whence = SEEK_SET;
-            l_LockOptions.l_start = 0;
-            l_LockOptions.l_len = 0;    // Lock entire file for writing
-            l_LockOptions.l_type = F_WRLCK;
-            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_TagLockFileName, __LINE__);
-            rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
+            uint64_t l_FL_Counter = metadataCounter.getNext();
+            FL_Write(FLMetaData, TF_Lock, "lock TF, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+            uint64_t l_FL_Counter2 = metadataCounter.getNext();
+            FL_Write(FLMetaData, TF_Open, "open TF, counter=%ld", l_FL_Counter2, 0, 0, 0);
+
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_TagLockFileName, __LINE__);
+            fd = open(l_TagLockFileName.c_str(), O_WRONLY);
             threadLocalTrackSyscallPtr->clearTrack();
-        }
 
-        switch(rc)
-        {
-            case -2:
+            FL_Write(FLMetaData, TF_Open_End, "open TF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+
+            if (fd >= 0)
             {
-                rc = -1;
-                errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
-                          << ". The most likely cause is due to the job being ended and/or removed.";
-                LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                // Exclusive lock and this will block if needed
+                LOG(bb,debug) << "lock(): Open issued for tag lockfile " << l_TagLockFileName << ", fd=" << fd;
+                struct flock l_LockOptions;
+                l_LockOptions.l_whence = SEEK_SET;
+                l_LockOptions.l_start = 0;
+                l_LockOptions.l_len = 0;    // Lock entire file for writing
+                l_LockOptions.l_type = F_WRLCK;
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_TagLockFileName, __LINE__);
+                rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
+                threadLocalTrackSyscallPtr->clearTrack();
             }
-            break;
 
-            case -1:
+            switch(rc)
             {
-                errorText << "Could not exclusively lock tag lockfile " << l_TagLockFileName << ", errno=" << errno << ":" << strerror(errno);
-                LOG_ERROR_TEXT_ERRNO(errorText, errno);
-
-                if (fd >= 0)
+                case -2:
                 {
-                    LOG(bb,debug) << "lock(): Issue close for tagfile fd " << fd;
-                    uint64_t l_FL_Counter = metadataCounter.getNext();
-                    FL_Write(FLMetaData, TF_CouldNotLockExcl, "open TF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
-                    ::close(fd);
-                    FL_Write(FLMetaData, TF_CouldNotLockExcl_End, "open TF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                    if (!l_Attempts)
+                    {
+                        rc = -1;
+                        errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
+                                  << ". The most likely cause is due to the job being ended and/or removed.";
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                    }
+                    else
+                    {
+                        // Delay one second and try again
+                        // NOTE: We may have hit the window between the creation of the jobstep directory
+                        //       and creating the lockfile/tagfile in that jobstep directory.
+                        usleep((useconds_t)1000000);
+                    }
                 }
-            }
-            break;
+                break;
 
-            default:
-            {
-                // Successful lock...
-                tagFileLockFd = fd;
+                case -1:
+                {
+                    errorText << "Could not exclusively lock tag lockfile " << l_TagLockFileName << ", errno=" << errno << ":" << strerror(errno);
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+
+                    if (fd >= 0)
+                    {
+                        LOG(bb,debug) << "lock(): Issue close for tagfile fd " << fd;
+                        uint64_t l_FL_Counter = metadataCounter.getNext();
+                        FL_Write(FLMetaData, TF_CouldNotLockExcl, "open TF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
+                        ::close(fd);
+                        FL_Write(FLMetaData, TF_CouldNotLockExcl_End, "open TF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                    }
+                    l_Attempts = 0;
+                }
+                break;
+
+                default:
+                {
+                    // Successful lock...
+                    tagFileLockFd = fd;
+                    l_Attempts = 0;
+                }
+                break;
             }
-            break;
+
+            FL_Write(FLMetaData, TF_Lock_End, "lock TF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
         }
-
-        FL_Write(FLMetaData, TF_Lock_End, "lock TF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
     }
     else
     {
@@ -324,60 +347,7 @@ int TagFile::lock(const bfs::path& pJobStepPath)
 
     return rc;
 }
-
-
-/*
- * Non-static methods
- */
-int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
-{
-    int rc = 0;
-
-    size_t l_NumExpectContrib = pContribVector.size();
-    if (l_NumExpectContrib == expectContrib.size())
-    {
-        for (size_t i=0; i<l_NumExpectContrib; ++i)
-        {
-            if (pContribVector[i] != expectContrib[i])
-            {
-                rc = 1;
-                break;
-            }
-        }
-    }
-    else
-    {
-        rc = 1;
-    }
-
-    return rc;
-}
-
-int TagFile::save()
-{
-    int rc = 0;
-
-    uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, TF_Save, "saveTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
-
-    try
-    {
-        LOG(bb,debug) << "Writing:" << filename;
-        ofstream l_ArchiveFile{filename};
-        text_oarchive l_Archive{l_ArchiveFile};
-        l_Archive << *this;
-    }
-    catch(ExceptionBailout& e) { }
-    catch(exception& e)
-    {
-        rc = -1;
-        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    FL_Write(FLMetaData, TF_Save_End, "saveTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
-
-    return rc;
-}
+#undef ATTEMPTS
 
 void TagFile::unlock()
 {
@@ -434,4 +404,58 @@ void TagFile::unlock(const int pFd)
     FL_Write(FLMetaData, TF_Unlock_End, "unlock TF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
     return;
+}
+
+
+/*
+ * Non-static methods
+ */
+int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
+{
+    int rc = 0;
+
+    size_t l_NumExpectContrib = pContribVector.size();
+    if (l_NumExpectContrib == expectContrib.size())
+    {
+        for (size_t i=0; i<l_NumExpectContrib; ++i)
+        {
+            if (pContribVector[i] != expectContrib[i])
+            {
+                rc = 1;
+                break;
+            }
+        }
+    }
+    else
+    {
+        rc = 1;
+    }
+
+    return rc;
+}
+
+int TagFile::save()
+{
+    int rc = 0;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, TF_Save, "saveTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+    try
+    {
+        LOG(bb,debug) << "Writing:" << filename;
+        ofstream l_ArchiveFile{filename};
+        text_oarchive l_Archive{l_ArchiveFile};
+        l_Archive << *this;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    FL_Write(FLMetaData, TF_Save_End, "saveTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+
+    return rc;
 }

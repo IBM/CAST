@@ -149,7 +149,8 @@ public:
     static int createLockFile(const string pFilePath);
     static int load(TagFile* &pTagFile, const bfs::path& pTagFileName);
     static int lock(const bfs::path& pJobStepPath);
-
+    static void unlock();
+    static void unlock(const int pFd);
 
     /*
      * Inlined methods
@@ -215,8 +216,6 @@ public:
      * Non-static methods
      */
     int save();
-    void unlock();
-    void unlock(const int pFd);
 
     /*
      * Data members

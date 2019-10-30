@@ -25,6 +25,7 @@ namespace bs = boost::system;
 #include "BBLV_ExtentInfo.h"
 #include "BBTransferDef.h"
 #include "bbinternal.h"
+#include "TagFile.h"
 #include "bbwrkqmgr.h"
 
 
@@ -508,6 +509,16 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                         bberror << err("error.path", jobstepid.c_str());
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                     }
+
+                    // Create the lock file for the tagfile
+                    rc = TagFile::createLockFile(jobstepid.string());
+                    if (rc) BAIL;
+
+                    // Create the tagfile
+                    bfs::path l_TagFilePath = jobstepid / TAGFILENAME;
+                    TagFile l_TagFileStg(l_TagFilePath.string());
+                    rc = l_TagFileStg.save();
+                    if (rc) BAIL;
                 }
 
                 // Unconditionally perform a chmod to 0770 for the handle directory.
