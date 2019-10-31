@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    TagFile.h
+ |    TagInfo.h
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -11,8 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#ifndef BB_TAGFILE_H_
-#define BB_TAGFILE_H_
+#ifndef BB_TAGINFO_H_
+#define BB_TAGINFO_H_
 
 #include <sstream>
 #include <vector>
@@ -28,6 +28,7 @@
 
 #include "bbinternal.h"
 #include "BBJob.h"
+#include "HandleInfo.h"
 #include "LVKey.h"
 
 
@@ -45,8 +46,8 @@ namespace bfs = boost::filesystem;
 const uint32_t ARCHIVE_TAG_VERSION_1 = 1;
 
 const char LOCK_TAG_FILENAME[] = "lockfile";
-const char TAGFILENAME[] = "tagfile";
-const int MAXIMUM_TAGFILE_LOADTIME = 10;     // In seconds
+const char TAGINFONAME[] = "taginfo";
+const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
 
 
 /*******************************************************************************
@@ -59,7 +60,7 @@ extern int unlockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod)
 /*******************************************************************************
  | External data
  *******************************************************************************/
-extern thread_local int tagFileLockFd;
+extern thread_local int TagInfoLockFd;
 
 
 /*******************************************************************************
@@ -104,7 +105,7 @@ public:
 };
 
 
-class TagFile
+class TagInfo
 {
 public:
     friend class boost::serialization::access;
@@ -120,25 +121,25 @@ public:
         return;
     }
 
-    TagFile() :
+    TagInfo() :
         serializeVersion(0),
         objectVersion(ARCHIVE_TAG_VERSION_1),
         filename("") {
         tagHandles = std::vector<BBTagHandle>();
     }
 
-    TagFile(const std::string pFileName) :
+    TagInfo(const std::string pFileName) :
         serializeVersion(0),
         objectVersion(ARCHIVE_TAG_VERSION_1),
         filename(pFileName) {
         tagHandles = std::vector<BBTagHandle>();
     }
 
-    virtual ~TagFile()
+    virtual ~TagInfo()
     {
-        // NOTE:  We do not unlock/close the tagfile here as the
-        //        tagfile being deleted is a local copy.
-        //        If the tagfile in the metadata is deleted,
+        // NOTE:  We do not unlock/close the taginfo here as the
+        //        taginfo being deleted is a local copy.
+        //        If the taginfo in the metadata is deleted,
         //        it should already be unlocked/closed.
     }
 
@@ -147,7 +148,7 @@ public:
      */
     static int addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle);
     static int createLockFile(const string pFilePath);
-    static int load(TagFile* &pTagFile, const bfs::path& pTagFileName);
+    static int load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName);
     static int lock(const bfs::path& pJobStepPath);
     static void unlock();
     static void unlock(const int pFd);
@@ -226,6 +227,4 @@ public:
     std::vector<BBTagHandle> tagHandles;
 };
 
-#endif /* BB_TAGFILE_H_ */
-
-
+#endif /* BB_TAGINFO_H_ */
