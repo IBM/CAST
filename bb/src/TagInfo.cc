@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    TagFile.cc
+ |    TagInfo.cc
  |
  |   Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -12,7 +12,7 @@
  *******************************************************************************/
 
 #include "bbserver_flightlog.h"
-#include "TagFile.h"
+#include "TagInfo.h"
 #include "tracksyscall.h"
 
 using namespace boost::archive;
@@ -22,20 +22,22 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | External data
  *******************************************************************************/
-thread_local int tagFileLockFd = -1;
+thread_local int TagInfoLockFd = -1;
 
 
 /*
  * Static methods
  */
 
-int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle)
+#define NUMBER_OF_BUCKETS 256
+int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle)
 {
     int rc = 0;
     stringstream errorText;
 
-    TagFile* l_TagFile = 0;
-    int l_TagFileLocked = 0;
+    TagInfo* l_TagInfo = 0;
+    HandleInfo* l_HandleInfo = 0;
+    int l_TagInfoLocked = 0;
 
     int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
 
@@ -47,29 +49,31 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         if(!bfs::is_directory(l_JobStepPath))
         {
             rc = -1;
-            errorText << "BBTagInfo::addTagHandle(): Attempt to load tagfile failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
+            errorText << "BBTagInfo::addTagHandle(): Attempt to load taginfo file failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
-        rc = TagFile::lock(l_JobStepPath);
+        rc = TagInfo::lock(l_JobStepPath);
         if (!rc)
         {
-            l_TagFileLocked = 1;
-            bfs::path l_TagFilePath = l_JobStepPath / TAGFILENAME;
-            rc = TagFile::load(l_TagFile, l_TagFilePath);
+            l_TagInfoLocked = 1;
+            char l_TagInfoName[64] = {'\0'};
+            snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s_%lu", TAGINFONAME, (pTag%NUMBER_OF_BUCKETS));
+            bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
+            rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
             if (!rc)
             {
-                for (size_t i=0; (i<l_TagFile->tagHandles.size() && (rc == 0 || rc == 2)); i++)
+                for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
                 {
-                    if (l_TagFile->tagHandles[i].tag == pTag)
+                    if (l_TagInfo->tagHandles[i].tag == pTag)
                     {
                         // Same tag value
-                        if (!(l_TagFile->tagHandles[i].compareContrib(pExpectContrib)))
+                        if (!(l_TagInfo->tagHandles[i].compareContrib(pExpectContrib)))
                         {
                             // Same contrib vector
                             // Handle value has already been assigned for this tag/contrib vector.
                             // Return the already assigned handle value for this tag/contrib vector.
-                            pHandle = l_TagFile->tagHandles[i].handle;
+                            pHandle = l_TagInfo->tagHandles[i].handle;
                             rc = 1;
                         }
                         else
@@ -79,45 +83,57 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                             rc = -2;
                         }
                     }
-                    else
-                    {
-                        if (l_TagFile->tagHandles[i].handle == pHandle)
-                        {
-                            // Different tag, but handle value matches.
-                            // Return, indicating to generate a new handle value and retry.
-                            // NOTE:  But, we continue to search through the remaining TagHandles
-                            //        looking for a matching tag value.  If the tag value is found,
-                            //        then either the already assigned handle value will be passed
-                            //        back or an error will be generated if the found tag is for a
-                            //        different contrib vector.
-                            rc = 2;
-                        }
-                        else
-                        {
-                            // Neither the handle value nor the tag value match.  Continue...
-                        }
-                    }
                 }
 
                 if (!rc)
                 {
-                    // Neither the tag, nor passed in handle value were found.
-                    // Add the passed in values for tag/contrib vector/handle as a new TagHandle.
-                    BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
-                    l_TagFile->tagHandles.push_back(l_TagHandle);
-                    l_TagFile->save();
+                    // The passed in tag was not found.  Now, determine if we have a duplicate
+                    // handle value.
+                    char l_HandleInfoName[64] = {'\0'};
+                    snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s_%lu", HANDLEINFONAME, (pHandle%NUMBER_OF_BUCKETS));
+                    bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
+                    rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
+                    if (!rc)
+                    {
+                        for (size_t i=0; (i<l_HandleInfo->handles.size() && (rc == 0 || rc == 2)); i++)
+                        {
+                            if (l_HandleInfo->handles[i] == pHandle)
+                            {
+                                // Same handle value.  Indicate to re-generate the handle vlaue and retry.
+                                rc = 2;
+                            }
+                        }
+
+                        if (!rc)
+                        {
+                            // Add the passed in values for tag/contrib vector/handle as a new TagHandle
+                            // in the taginfo file
+                            BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
+                            l_TagInfo->tagHandles.push_back(l_TagHandle);
+                            l_TagInfo->save();
+                            // Add the passed in handle value to the handleinfo file
+                            l_HandleInfo->handles.push_back(pHandle);
+                            l_HandleInfo->save();
+                        }
+                    }
+                    else
+                    {
+                        // Could not load the handleinfo
+                        // NOTE: error state already filled in...
+                        SET_RC(rc);
+                    }
                 }
             }
             else
             {
-                // Could not load the tagfile
+                // Could not load the taginfo
                 // NOTE: error state already filled in...
                 SET_RC(rc);
             }
         }
         else
         {
-            // Could not lock the tagfile
+            // Could not lock the taginfo
             // NOTE: error state already filled in...
             SET_RC(rc);
         }
@@ -129,16 +145,22 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_TagFileLocked)
+    if (l_TagInfoLocked)
     {
-        l_TagFileLocked = 0;
-        TagFile::unlock();
+        l_TagInfoLocked = 0;
+        TagInfo::unlock();
     }
 
-    if (l_TagFile)
+    if (l_HandleInfo)
     {
-        delete l_TagFile;
-        l_TagFile = 0;
+        delete l_HandleInfo;
+        l_HandleInfo = 0;
+    }
+
+    if (l_TagInfo)
+    {
+        delete l_TagInfo;
+        l_TagInfo = 0;
     }
 
     if (l_LocalMetadataUnlocked)
@@ -148,8 +170,9 @@ int TagFile::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     return rc;
 }
+#undef NUMBER_OF_BUCKETS
 
-int TagFile::createLockFile(const string pFilePath)
+int TagInfo::createLockFile(const string pFilePath)
 {
     int rc = 0;
 
@@ -161,102 +184,107 @@ int TagFile::createLockFile(const string pFilePath)
     return rc;
 }
 
-int TagFile::load(TagFile* &pTagFile, const bfs::path& pTagFileName)
+int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 {
     int rc;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, TF_Load, "loadTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+    FL_Write(FLMetaData, TF_Load, "loadTagInfo, counter=%ld", l_FL_Counter, 0, 0, 0);
 
-    pTagFile = NULL;
-    TagFile* l_TagFile = new TagFile();
+    pTagInfo = NULL;
+    TagInfo* l_TagInfo = new TagInfo(pTagInfoName.string());
 
-    struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
-    bool l_AllDone = false;
-    int l_Attempts = 0;
-    int l_ElapsedTime = 0;
-    int l_LastConsoleOutput = -1;
-
-    while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_TAGFILE_LOADTIME))
+    if(bfs::exists(pTagInfoName))
     {
-        rc = 0;
-        l_AllDone = true;
-        ++l_Attempts;
-        try
-        {
-            LOG(bb,debug) << "Reading:" << pTagFileName;
-            ifstream l_ArchiveFile{pTagFileName.c_str()};
-            text_iarchive l_Archive{l_ArchiveFile};
-            l_Archive >> *l_TagFile;
-            pTagFile = l_TagFile;
-        }
-        catch(archive_exception& e)
-        {
-            // NOTE: If we take an 'archieve exception' we do not delay before attempting the next
-            //       read of the archive file.  More than likely, we just had a concurrent update
-            //       to the tagfile.
-            rc = -1;
-            l_AllDone = false;
+        struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
+        bool l_AllDone = false;
+        int l_Attempts = 0;
+        int l_ElapsedTime = 0;
+        int l_LastConsoleOutput = -1;
 
-            gettimeofday(&l_StopTime, NULL);
-            if (l_Attempts == 1)
+        while ((!l_AllDone) && (l_ElapsedTime < MAXIMUM_TAGINFO_LOADTIME))
+        {
+            rc = 0;
+            l_AllDone = true;
+            ++l_Attempts;
+            try
             {
-                l_StartTime = l_StopTime;
+                LOG(bb,debug) << "Reading:" << pTagInfoName;
+                ifstream l_ArchiveFile{pTagInfoName.c_str()};
+                text_iarchive l_Archive{l_ArchiveFile};
+                l_Archive >> *l_TagInfo;
             }
-            l_ElapsedTime = int(l_StopTime.tv_sec - l_StartTime.tv_sec);
-
-            if (l_ElapsedTime && (l_ElapsedTime % 3 == 0) && (l_ElapsedTime != l_LastConsoleOutput))
+            catch(archive_exception& e)
             {
-                l_LastConsoleOutput = l_ElapsedTime;
-                LOG(bb,warning) << "Archive exception thrown in " << __func__ << " was " << e.what() \
-                                << " when attempting to load archive " << pTagFileName.c_str() << ". Elapsed time=" << l_ElapsedTime << " second(s). Retrying...";
+                // NOTE: If we take an 'archieve exception' we do not delay before attempting the next
+                //       read of the archive file.
+                rc = -1;
+                l_AllDone = false;
+
+                gettimeofday(&l_StopTime, NULL);
+                if (l_Attempts == 1)
+                {
+                    l_StartTime = l_StopTime;
+                }
+                l_ElapsedTime = int(l_StopTime.tv_sec - l_StartTime.tv_sec);
+
+                if (l_ElapsedTime && (l_ElapsedTime % 3 == 0) && (l_ElapsedTime != l_LastConsoleOutput))
+                {
+                    l_LastConsoleOutput = l_ElapsedTime;
+                    LOG(bb,warning) << "Archive exception thrown in " << __func__ << " was " << e.what() \
+                                    << " when attempting to load archive " << pTagInfoName.c_str() << ". Elapsed time=" << l_ElapsedTime << " second(s). Retrying...";
+                }
+            }
+            catch(exception& e)
+            {
+                rc = -1;
+                LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pTagInfoName.c_str();
             }
         }
-        catch(exception& e)
+
+        if (l_LastConsoleOutput > 0)
         {
-            rc = -1;
-            LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pTagFileName.c_str();
+           gettimeofday(&l_StopTime, NULL);
+           if (!rc)
+            {
+                LOG(bb,warning) << "Loading " << pTagInfoName.c_str() << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
+                                << " after recovering from archive exception(s)";
+            }
+            else
+            {
+                LOG(bb,error) << "Loading " << pTagInfoName.c_str() << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
+                              << " when attempting to recover from archive exception(s).  The most likely cause is due to the job being ended and/or removed.";
+            }
         }
+
+        FL_Write(FLMetaData, TF_Load_End, "loadTagInfo, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
     }
 
-    if (l_LastConsoleOutput > 0)
+    if (!rc)
     {
-       gettimeofday(&l_StopTime, NULL);
-       if (!rc)
-        {
-            LOG(bb,warning) << "Loading " << pTagFileName.c_str() << " became successful after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
-                            << " after recovering from archive exception(s)";
-        }
-        else
-        {
-            LOG(bb,error) << "Loading " << pTagFileName.c_str() << " failed after " << (l_StopTime.tv_sec - l_StartTime.tv_sec) << " second(s)" \
-                          << " when attempting to recover from archive exception(s).  The most likely cause is due to the job being ended and/or removed.";
-        }
+        pTagInfo = l_TagInfo;
     }
-
-    if (rc)
+    else
     {
-        if (l_TagFile)
+        if (l_TagInfo)
         {
-            delete l_TagFile;
-            l_TagFile = NULL;
+            delete l_TagInfo;
+            l_TagInfo = NULL;
         }
     }
-
-    FL_Write(FLMetaData, TF_Load_End, "loadTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
 
     return rc;
 }
 
 #define ATTEMPTS 10
-int TagFile::lock(const bfs::path& pJobStepPath)
+int TagInfo::lock(const bfs::path& pJobStepPath)
 {
     int rc = -2;
     int fd = -1;
     stringstream errorText;
 
     std::string l_TagLockFileName = (pJobStepPath / LOCK_TAG_FILENAME).string();
-    if (tagFileLockFd == -1)
+    if (TagInfoLockFd == -1)
     {
         int l_Attempts = ATTEMPTS;
         while (l_Attempts--)
@@ -302,7 +330,7 @@ int TagFile::lock(const bfs::path& pJobStepPath)
                     {
                         // Delay one second and try again
                         // NOTE: We may have hit the window between the creation of the jobstep directory
-                        //       and creating the lockfile/tagfile in that jobstep directory.
+                        //       and creating the lockfile/taginfo in that jobstep directory.
                         usleep((useconds_t)1000000);
                     }
                 }
@@ -315,7 +343,7 @@ int TagFile::lock(const bfs::path& pJobStepPath)
 
                     if (fd >= 0)
                     {
-                        LOG(bb,debug) << "lock(): Issue close for tagfile fd " << fd;
+                        LOG(bb,debug) << "lock(): Issue close for taginfo fd " << fd;
                         uint64_t l_FL_Counter = metadataCounter.getNext();
                         FL_Write(FLMetaData, TF_CouldNotLockExcl, "open TF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
                         ::close(fd);
@@ -328,7 +356,7 @@ int TagFile::lock(const bfs::path& pJobStepPath)
                 default:
                 {
                     // Successful lock...
-                    tagFileLockFd = fd;
+                    TagInfoLockFd = fd;
                     l_Attempts = 0;
                 }
                 break;
@@ -349,18 +377,18 @@ int TagFile::lock(const bfs::path& pJobStepPath)
 }
 #undef ATTEMPTS
 
-void TagFile::unlock()
+void TagInfo::unlock()
 {
-    if (tagFileLockFd != -1)
+    if (TagInfoLockFd != -1)
     {
-        unlock(tagFileLockFd);
-        tagFileLockFd = -1;
+        unlock(TagInfoLockFd);
+        TagInfoLockFd = -1;
     }
 
     return;
 }
 
-void TagFile::unlock(const int pFd)
+void TagInfo::unlock(const int pFd)
 {
     stringstream errorText;
 
@@ -377,7 +405,7 @@ void TagFile::unlock(const int pFd)
             l_LockOptions.l_start = 0;
             l_LockOptions.l_len = 0;    // Unlock entire file
             l_LockOptions.l_type = F_UNLCK;
-            LOG(bb,debug) << "unlock(): Issue unlock for tagfile fd " << pFd;
+            LOG(bb,debug) << "unlock(): Issue unlock for taginfo fd " << pFd;
             threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, pFd, __LINE__);
             int rc = ::fcntl(pFd, F_SETLK, &l_LockOptions);
             threadLocalTrackSyscallPtr->clearTrack();
@@ -387,9 +415,9 @@ void TagFile::unlock(const int pFd)
             }
             else
             {
-                LOG(bb,warning) << "Could not exclusively unlock tagfile fd " << pFd << ", errno=" << errno << ":" << strerror(errno);
+                LOG(bb,warning) << "Could not exclusively unlock taginfo fd " << pFd << ", errno=" << errno << ":" << strerror(errno);
             }
-            LOG(bb,debug) << "close(): Issue close for tagfile fd " << pFd;
+            LOG(bb,debug) << "close(): Issue close for taginfo fd " << pFd;
 
             ::close(pFd);
 
@@ -434,12 +462,12 @@ int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
     return rc;
 }
 
-int TagFile::save()
+int TagInfo::save()
 {
     int rc = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, TF_Save, "saveTagFile, counter=%ld", l_FL_Counter, 0, 0, 0);
+    FL_Write(FLMetaData, TF_Save, "saveTagInfo, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     try
     {
@@ -455,7 +483,7 @@ int TagFile::save()
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    FL_Write(FLMetaData, TF_Save_End, "saveTagFile, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+    FL_Write(FLMetaData, TF_Save_End, "saveTagInfo, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
 
     return rc;
 }

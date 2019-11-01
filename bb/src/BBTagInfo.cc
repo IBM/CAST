@@ -24,7 +24,7 @@
 #include "HandleFile.h"
 #include "logging.h"
 #include "LVUuidFile.h"
-#include "TagFile.h"
+#include "TagInfo.h"
 
 using namespace std;
 using namespace boost::archive;
@@ -226,7 +226,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
 
 int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle)
 {
-    return TagFile::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle);
+    return TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle);
 }
 
 int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
@@ -293,14 +293,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
                 LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
             }
 
-            // Create the lock file for the tagfile
-            rc = TagFile::createLockFile(jobstepid.string());
-            if (rc) BAIL;
-
-            // Create the tagfile
-            bfs::path l_TagFilePath = jobstepid / TAGFILENAME;
-            TagFile l_TagFileStg(l_TagFilePath.string());
-            rc = l_TagFileStg.save();
+            // Create the lock file for the taginfo
+            rc = TagInfo::createLockFile(jobstepid.string());
             if (rc) BAIL;
         }
     }
@@ -1102,14 +1096,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_JobStepDirectoryExists)
                     {
-                        // Create the lock file for the tagfile
-                        rc = TagFile::createLockFile(l_JobStepPath.string());
-                        if (rc) BAIL;
-
-                        // Create the tagfile
-                        bfs::path l_TagFilePath = l_JobStepPath / TAGFILENAME;
-                        TagFile l_TagFileStg(l_TagFilePath.string());
-                        rc = l_TagFileStg.save();
+                        // Create the lock file for the taginfo
+                        rc = TagInfo::createLockFile(l_JobStepPath.string());
                         if (rc) BAIL;
 
                         // Unconditionally perform a chmod to 0770 for the jobstepid directory.

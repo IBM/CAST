@@ -25,7 +25,7 @@ namespace bs = boost::system;
 #include "BBLV_ExtentInfo.h"
 #include "BBTransferDef.h"
 #include "bbinternal.h"
-#include "TagFile.h"
+#include "TagInfo.h"
 #include "bbwrkqmgr.h"
 
 
@@ -510,14 +510,8 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                     }
 
-                    // Create the lock file for the tagfile
-                    rc = TagFile::createLockFile(jobstepid.string());
-                    if (rc) BAIL;
-
-                    // Create the tagfile
-                    bfs::path l_TagFilePath = jobstepid / TAGFILENAME;
-                    TagFile l_TagFileStg(l_TagFilePath.string());
-                    rc = l_TagFileStg.save();
+                    // Create the lock file for the taginfo
+                    rc = TagInfo::createLockFile(jobstepid.string());
                     if (rc) BAIL;
                 }
 
