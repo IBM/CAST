@@ -245,6 +245,7 @@ fi
 
 # 4.2.3 Prolog/Epilog Scripts Compute
 xdcp csm_comp /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
+xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
 # Start Daemons
 systemctl start csmd-master
@@ -256,3 +257,8 @@ xdsh csm_comp "systemctl start csmd-compute"
 # Daemon Reload
 systemctl daemon-reload
 xdsh csm_comp,utility "systemctl daemon-reload"
+
+# Start Nvidia daemons
+xdsh csm_comp,utility,service "systemctl start nvidia-persistenced"
+xdsh csm_comp,utility,service "systemctl start dcgm"
+wait
