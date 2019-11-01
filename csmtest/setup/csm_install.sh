@@ -261,3 +261,4 @@ xdsh csm_comp,utility "systemctl daemon-reload"
 # Start Nvidia daemons
 xdsh csm_comp,utility,service "systemctl start nvidia-persistenced"
 xdsh csm_comp,utility,service "systemctl start dcgm"
+wait
