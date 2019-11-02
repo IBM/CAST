@@ -432,7 +432,23 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
     {
         bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
-        bfs::path handle = jobstepid / bfs::path(to_string(pTagInfo->getTransferHandle()));
+        uint64_t l_Handle = pTagInfo->getTransferHandle();
+        bfs::path l_ToplevelHandleDirectoryPath = jobstepid / bfs::path(HandleFile::getToplevelHandleName(l_Handle));
+        bfs::path handle = l_ToplevelHandleDirectoryPath / bfs::path(to_string(l_Handle));
+
+        // Note if the jobstepid directory exists...
+        bool l_JobStepDirectoryExists = false;
+        if(bfs::exists(jobstepid))
+        {
+            l_JobStepDirectoryExists = true;
+        }
+
+        // Note if the toplevel handle directory exists...
+        bool l_ToplevelHandleDirectoryExists = false;
+        if(bfs::exists(l_ToplevelHandleDirectoryPath))
+        {
+            l_ToplevelHandleDirectoryExists = true;
+        }
 
         // NOTE:  There is a window between creating the job directory and
         //        performing the chmod to the correct uid:gid.  Therefore, if
@@ -440,18 +456,11 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         //        attempting for 2 minutes.
         bs::error_code l_ErrorCode;
         bool l_AllDone = false;
-        bool l_JobStepDirectoryAlreadyExists = false;
         int l_Attempts = 120;
         while ((!l_AllDone) && l_Attempts-- > 0)
         {
             if(!bfs::exists(handle))
             {
-                // Note if the jobstepid directory exists...
-                if(bfs::exists(jobstepid))
-                {
-                    l_JobStepDirectoryAlreadyExists = true;
-                }
-
                 // On first attempt, log the creation of the handle directory...
                 if (l_Attempts == 119)
                 {
@@ -496,7 +505,7 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
             rc = HandleFile::saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pTag, *pTagInfo, pTagInfo->getTransferHandle());
             if (!rc)
             {
-                if (!l_JobStepDirectoryAlreadyExists)
+                if (!l_JobStepDirectoryExists)
                 {
                     // Perform a chmod to 0770 for the jobstepid directory.
 
@@ -513,6 +522,20 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                     // Create the lock file for the taginfo
                     rc = TagInfo::createLockFile(jobstepid.string());
                     if (rc) BAIL;
+                }
+
+                if (!l_ToplevelHandleDirectoryExists)
+                {
+                    // Unconditionally perform a chmod to 0770 for the toplevel handle directory.
+                    // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
+                    //        contained in this tree is controlled there.
+                    rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0770);
+                    if (rc)
+                    {
+                        errorText << "chmod failed";
+                        bberror << err("error.path", l_ToplevelHandleDirectoryPath.string());
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                    }
                 }
 
                 // Unconditionally perform a chmod to 0770 for the handle directory.

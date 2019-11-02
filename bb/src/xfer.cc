@@ -886,6 +886,7 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     l_HandleFilePath /= bfs::path(to_string(pJobId));
     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+    l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     l_HandleFilePath /= bfs::path(to_string(pHandle));
 
     int l_Attempts = 1;
@@ -1302,6 +1303,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
                                             l_HandleFilePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
                                             l_HandleFilePath /= bfs::path(to_string(pTransferDef->getJobId()));
                                             l_HandleFilePath /= bfs::path(to_string(pTransferDef->getJobStepId()));
+                                            l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
                                             l_HandleFilePath /= bfs::path(to_string(pHandle));
                                         }
                                         int rc2 = ContribIdFile::loadContribIdFile(l_ContribIdFile, &pKey, l_HandleFilePath, pContribId);
@@ -1478,6 +1480,7 @@ int fileToBeRestarted(const LVKey* pLVKey, BBTransferDef* pTransferDef, Extent p
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     l_HandleFilePath /= bfs::path(to_string(pJobId));
     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+    l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     l_HandleFilePath /= bfs::path(to_string(pHandle));
     rc = ContribIdFile::loadContribIdFile(l_ContribIdFile, l_HandleFilePath, pContribId);
     if (rc >= 0)
@@ -1518,6 +1521,7 @@ int forceStopTransfer(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t
     bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     l_HandleFilePath /= bfs::path(to_string(pJobId));
     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
+    l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     l_HandleFilePath /= bfs::path(to_string(pHandle));
     int l_RC = ContribIdFile::loadContribIdFile(l_ContribIdFile, pLVKey, l_HandleFilePath, pContribId);
     switch (l_RC)

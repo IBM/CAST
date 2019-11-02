@@ -159,6 +159,10 @@ const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
 
+const uint64_t NUMBER_OF_TAGINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_HANDLEINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS = 256;
+
 const string ALL = "*";
 
 const string DEFAULT_JOBID_ENVVAR = "LSFJOBID";
@@ -184,6 +188,8 @@ const char ERROR_PREFIX[] = "ERROR - ";
 const char LV_DISPLAY_PREFIX[] = "LV Path";
 const char LV_DISPLAY_OPEN_PREFIX[] = "# open";
 const char MOUNTS_DIRECTORY[] = "/proc/mounts";
+const char TOPLEVEL_HANDLEFILE_NAME[] = "handle_";
+
 
 /*******************************************************************************
  | Enumerators

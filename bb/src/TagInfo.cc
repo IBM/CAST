@@ -29,7 +29,6 @@ thread_local int TagInfoLockFd = -1;
  * Static methods
  */
 
-#define NUMBER_OF_BUCKETS 256
 int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle)
 {
     int rc = 0;
@@ -58,7 +57,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         {
             l_TagInfoLocked = 1;
             char l_TagInfoName[64] = {'\0'};
-            snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s_%lu", TAGINFONAME, (pTag%NUMBER_OF_BUCKETS));
+            snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % NUMBER_OF_TAGINFO_BUCKETS));
             bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
             rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
             if (!rc)
@@ -90,7 +89,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                     // The passed in tag was not found.  Now, determine if we have a duplicate
                     // handle value.
                     char l_HandleInfoName[64] = {'\0'};
-                    snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s_%lu", HANDLEINFONAME, (pHandle%NUMBER_OF_BUCKETS));
+                    snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
                     bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
                     rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
                     if (!rc)
@@ -170,7 +169,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     return rc;
 }
-#undef NUMBER_OF_BUCKETS
 
 int TagInfo::createLockFile(const string pFilePath)
 {

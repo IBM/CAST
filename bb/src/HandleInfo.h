@@ -40,7 +40,7 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const char HANDLEINFONAME[] = "handleinfo";
+const char HANDLEINFONAME[] = "handleinfo_";
 const int MAXIMUM_HANDLEINFO_LOADTIME = 10;     // In seconds
 
 

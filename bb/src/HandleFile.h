@@ -32,7 +32,6 @@
 #include "bbwrkqmgr.h"
 
 using namespace boost::archive;
-namespace bfs = boost::filesystem;
 
 /*******************************************************************************
  | Forward declarations
@@ -154,6 +153,8 @@ public:
      */
 //    static int calculate_xbbServerHandleStatus(HandleFile* pHandleFile, const char* pHandleFilePath, uint64_t& pStatus);
     static int createLockFile(const char* pFilePath);
+    static string getToplevelHandleName(const uint64_t pHandle);
+    static string getToplevelHandleName(const string& pHandle);
     static int getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer);
     static int get_xbbServerGetCurrentJobIds(vector<string>& pJobIds, const RETURN_REMOVED_JOBIDS_INDICATOR pReturnRemovedJobIds=ONLY_RETURN_VALID_JOBIDS);
     static int get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobStepId, const uint64_t pHandle);
@@ -162,6 +163,8 @@ public:
     static int get_xbbServerHandleList(vector<uint64_t>& pHandles, const BBJob pJob, const BBSTATUS pMatchStatus);
     static int get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     static int get_xbbServerHandleTransferKeys(string& pTransferKeys, const uint64_t pJobId, const uint64_t pHandle);
+    static int isCorrectToplevelHandleDirectory(const string& pToplevelDirectoryName, const uint64_t pHandle);
+    static int isToplevelHandleDirectory(const string& pToplevelDirectoryName);
     static int loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName);
     static int loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const HANDLEFILE_LOCK_OPTION pLockOption, HANDLEFILE_LOCK_FEEDBACK* pLockFeedback=NULL);
     static int lock(const char* pFile);

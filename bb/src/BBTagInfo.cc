@@ -233,23 +233,22 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
 {
     int rc = 0;
     stringstream errorText;
-    int l_JobStepDirectoryAlreadyExists = 0;
 
     try
     {
         bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
 
-        // NOTE:  There is a window between creating the job directory and
-        //        performing the chmod to the correct uid:gid.  Therefore, if
-        //        create_directories() returns EACCESS (permission denied), keep
-        //        attempting for 2 minutes.
-        bs::error_code l_ErrorCode;
-        int l_Attempts = 120;
-        while (l_Attempts-- > 0)
+        if(!bfs::exists(jobstepid))
         {
-            // Note if the jobstepid directory exists...
-            if(!bfs::exists(jobstepid))
+            // Job step directory does not exist
+            // NOTE:  There is a window between creating the job directory and
+            //        performing the chmod to the correct uid:gid.  Therefore, if
+            //        create_directories() returns EACCESS (permission denied), keep
+            //        attempting for 2 minutes.
+            bs::error_code l_ErrorCode;
+            int l_Attempts = 120;
+            while (l_Attempts-- > 0)
             {
                 // Attempt to create the jobstepid directory
                 bfs::create_directories(jobstepid, l_ErrorCode);
@@ -263,15 +262,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
                     l_Attempts = -1;
                 }
             }
-            else
-            {
-                // Jobstepid directory already exists.  Nothing to do...
-                l_JobStepDirectoryAlreadyExists = 1;
-            }
-        }
 
-        if (!l_JobStepDirectoryAlreadyExists)
-        {
             if (l_Attempts == 0)
             {
                 // Error returned via create_directories...
@@ -540,50 +531,54 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
 
     if(bfs::exists(jobstep))
     {
-        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+        for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            if (!bfs::is_directory(handle)) continue;
-            if (l_Handle == UNDEFINED_HANDLE)
+            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
+            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
             {
-                bfs::path handlefile = handle.path() / bfs::path(handle.path().filename().string());
-                int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
-                if (!rc)
+                if (l_Handle == UNDEFINED_HANDLE)
                 {
-                    if (l_HandleFile->tag == pTag)
+                    string l_HandleStr = handle.path().filename().string();
+                    bfs::path handlefile = handle.path() / bfs::path(HandleFile::getToplevelHandleName(l_HandleStr)) / bfs::path(l_HandleStr);
+                    int rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                    if (!rc)
                     {
-                        // Tags match...  Now, compare the list of contribs...
-                        l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
-
-                        if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                        if (l_HandleFile->tag == pTag)
                         {
-                            l_Handle = stoull(handle.path().filename().string());
+                            // Tags match...  Now, compare the list of contribs...
+                            l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+
+                            if (!compareContrib(l_NumOfContribsInArray, l_ContribArray))
+                            {
+                                l_Handle = stoull(handle.path().filename().string());
+                            }
+                            else
+                            {
+                                LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                            }
+                            delete[] l_ContribArray;
+                            l_ContribArray = 0;
                         }
                         else
                         {
-                            LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", contributor vectors do not match";
+                            LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
                         }
-                        delete[] l_ContribArray;
-                        l_ContribArray = 0;
                     }
                     else
                     {
-                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), exsting handle " << handlefile.string() << ", tags do not match. Input tag is " << pTag << ", existing handle tag is " << l_HandleFile->tag;
+                        LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
+                    }
+
+                    if (l_HandleFile)
+                    {
+                        delete l_HandleFile;
+                        l_HandleFile = 0;
                     }
                 }
                 else
                 {
-                    LOG(bb,debug) << "BBTagInfo::get_xbbServerHandle(): For job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), existing handle file " << handlefile.string() << " could not be loaded, rc=" << rc;
+                    break;
                 }
-
-                if (l_HandleFile)
-                {
-                    delete l_HandleFile;
-                    l_HandleFile = 0;
-                }
-            }
-            else
-            {
-                break;
             }
         }
     }
@@ -1089,6 +1084,13 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         l_JobStepDirectoryExists = 1;
                     }
 
+                    int l_ToplevelHandleDirectoryExists = 0;
+                    bfs::path l_ToplevelHandleDirectoryPath = l_JobStepPath / bfs::path(HandleFile::getToplevelHandleName(pHandle));
+                    if (bfs::exists(l_ToplevelHandleDirectoryPath))
+                    {
+                        l_ToplevelHandleDirectoryExists = 1;
+                    }
+
                     LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
                                  << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
                     bfs::path l_LVUuidPath = handle / bfs::path(lv_uuid_str);
@@ -1108,6 +1110,20 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         {
                             errorText << "chmod failed";
                             bberror << err("error.path", l_JobStepPath.string());
+                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                        }
+                    }
+
+                    if (!l_ToplevelHandleDirectoryExists)
+                    {
+                        // Unconditionally perform a chmod to 0770 for the toplevel handle directory.
+                        // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
+                        //        contained in this tree is controlled there.
+                        rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0770);
+                        if (rc)
+                        {
+                            errorText << "chmod failed";
+                            bberror << err("error.path", l_ToplevelHandleDirectoryPath.string());
                             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                         }
                     }
@@ -1248,6 +1264,7 @@ int BBTagInfo::xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle
     bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
     handle /= bfs::path(to_string(pJob.getJobId()));
     handle /= bfs::path(to_string(pJob.getJobStepId()));
+    handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     handle /= bfs::path(to_string(pHandle));
 
     return (!bfs::exists(handle));

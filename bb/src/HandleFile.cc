@@ -45,7 +45,6 @@ bool accessDir(const std::string& pF)
     return true;
 }
 
-
 int HandleFile::createLockFile(const char* pFilePath)
 {
     int rc = 0;
@@ -56,6 +55,16 @@ int HandleFile::createLockFile(const char* pFilePath)
     bfs::ofstream l_LockFile{l_LockFileName};
 
     return rc;
+}
+
+string HandleFile::getToplevelHandleName(const uint64_t pHandle)
+{
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+}
+
+string HandleFile::getToplevelHandleName(const string& pHandle)
+{
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
 }
 
 int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer)
@@ -207,15 +216,19 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                     for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                     {
                         if ((!rc) || (!accessDir(jobstep.path().string()))) continue;
-                        for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        for (auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
-                            if (!bfs::is_directory(handle)) continue;
-                            if (handle.path().filename().string() == to_string(pHandle))
+                            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string())) ||
+                                (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
+                            for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
-                                rc = 0;
-                                pJobId = stoull(job.filename().string());
-                                pJobStepId = stoull(jobstep.path().filename().string());
-                                break;
+                                if (handle.path().filename().string() == to_string(pHandle))
+                                {
+                                    rc = 0;
+                                    pJobId = stoull(job.filename().string());
+                                    pJobStepId = stoull(jobstep.path().filename().string());
+                                    break;
+                                }
                             }
                         }
                     }
@@ -304,36 +317,39 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                             if(!accessDir(jobstep.path().string())) continue;
                             if(jobstep.path().filename().string() == to_string(pJob.getJobStepId()))
                             {
-                                for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                                for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                                 {
-                                    if (!bfs::is_directory(handle)) continue;
-                                    bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-                                    rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
-                                    if (!rc)
+                                    if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
+                                    for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                     {
-                                        if (l_HandleFile->tag == pTag)
+                                        bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
+                                        rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                                        if (!rc)
                                         {
-                                            // Tags match...  Now, compare the list of contribs...
-                                            l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
-                                            if (!BBTagInfo::compareContrib(l_NumOfContribsInArray, l_ContribArray, pContrib))
+                                            if (l_HandleFile->tag == pTag)
                                             {
-                                                rc = 1;
-                                                pHandle = stoull(handle.path().filename().string());
+                                                // Tags match...  Now, compare the list of contribs...
+                                                l_HandleFile->getContribArray(l_NumOfContribsInArray, l_ContribArray);
+                                                if (!BBTagInfo::compareContrib(l_NumOfContribsInArray, l_ContribArray, pContrib))
+                                                {
+                                                    rc = 1;
+                                                    pHandle = stoull(handle.path().filename().string());
+                                                }
+
+                                                delete[] l_ContribArray;
+                                                l_ContribArray = 0;
                                             }
-
-                                            delete[] l_ContribArray;
-                                            l_ContribArray = 0;
                                         }
-                                    }
-                                    else
-                                    {
-                                        LOG(bb,error) << "Could not load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << " using handle path " << handle.path().string();
-                                    }
+                                        else
+                                        {
+                                            LOG(bb,error) << "Could not load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << " using handle path " << handle.path().string();
+                                        }
 
-                                    if (l_HandleFile)
-                                    {
-                                        delete l_HandleFile;
-                                        l_HandleFile = 0;
+                                        if (l_HandleFile)
+                                        {
+                                            delete l_HandleFile;
+                                            l_HandleFile = 0;
+                                        }
                                     }
                                 }
                             }
@@ -431,39 +447,43 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                     {
                         if(!accessDir(jobstep.path().string())) continue;
                         l_JobStepId = stoull(jobstep.path().filename().string());
-                        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
-                            if (!bfs::is_directory(handle)) continue;
-                            if(handle.path().filename().string() == to_string(pHandle))
+                            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string())) ||
+                                (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
+                            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
-                                bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-                                rc = loadHandleFile(pHandleFile, handlefile.string().c_str());
-//                                rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
-                                if (!rc)
+                                if(handle.path().filename().string() == to_string(pHandle))
                                 {
-                                    // Store the jobid and jobstepid values in the return variables...
-                                    pJobId = l_JobId;
-                                    pJobStepId = l_JobStepId;
-
-                                    uint64_t l_NumberOfLVUuidReportingContribs = 0;
-                                    rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handle.path(), pContribId);
-                                    switch (rc)
+                                    bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
+                                    rc = loadHandleFile(pHandleFile, handlefile.string().c_str());
+//                                    rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
+                                    if (!rc)
                                     {
-                                        case 0:
-                                        case 1:
+                                        // Store the jobid and jobstepid values in the return variables...
+                                        pJobId = l_JobId;
+                                        pJobStepId = l_JobStepId;
+
+                                        uint64_t l_NumberOfLVUuidReportingContribs = 0;
+                                        rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handle.path(), pContribId);
+                                        switch (rc)
                                         {
-                                            rc = 0;
-                                            break;
-                                        }
-                                        default:
-                                        {
-                                            LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handle.path().string();
+                                            case 0:
+                                            case 1:
+                                            {
+                                                rc = 0;
+                                                break;
+                                            }
+                                            default:
+                                            {
+                                                LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handle.path().string();
+                                            }
                                         }
                                     }
-                                }
-                                else
-                                {
-                                    LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handle.path().string();
+                                    else
+                                    {
+                                        LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handle.path().string();
+                                    }
                                 }
                             }
                         }
@@ -683,29 +703,33 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                         for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                         {
                             if(!accessDir(jobstep.path().string()) ) continue;
-                            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                            for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                             {
-                                if(!bfs::is_directory(handle)) continue;
-                                if(handle.path().filename().string() == to_string(pHandle))
+                                if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string())) ||
+                                    (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
+                                for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                 {
-                                    bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-                                    HandleFile* l_HandleFile = 0;
-                                    rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
-                                    if (!rc)
+                                    if(handle.path().filename().string() == to_string(pHandle))
                                     {
-                                        // The string is terminated with a line feed...  Don't copy the last character...
-                                        pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
-                                    }
-                                    else
-                                    {
-                                        errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", handle " << pHandle;
-                                        LOG_ERROR_TEXT_RC(errorText, rc);
-                                    }
+                                        bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
+                                        HandleFile* l_HandleFile = 0;
+                                        rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                                        if (!rc)
+                                        {
+                                            // The string is terminated with a line feed...  Don't copy the last character...
+                                            pTransferKeys = (l_HandleFile->transferKeys).substr(0,((l_HandleFile->transferKeys).length()-1));
+                                        }
+                                        else
+                                        {
+                                            errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", handle " << pHandle;
+                                            LOG_ERROR_TEXT_RC(errorText, rc);
+                                        }
 
-                                    if (l_HandleFile)
-                                    {
-                                        delete l_HandleFile;
-                                        l_HandleFile = 0;
+                                        if (l_HandleFile)
+                                        {
+                                            delete l_HandleFile;
+                                            l_HandleFile = 0;
+                                        }
                                     }
                                 }
                             }
@@ -752,6 +776,29 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
     return rc;
 }
 #undef ATTEMPTS
+
+int HandleFile::isCorrectToplevelHandleDirectory(const string& pToplevelDirectoryName, const uint64_t pHandle)
+{
+    int rc = 0;
+    size_t l_Index = pToplevelDirectoryName.find('_');
+    if (l_Index != std::string::npos)
+    {
+//        uint64_t l_Temp = strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10);
+//        uint64_t l_Temp2 = (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+//        if (l_Temp == l_Temp2)
+        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS))
+        {
+            rc = 1;
+        }
+    }
+
+    return rc;
+}
+
+int HandleFile::isToplevelHandleDirectory(const string& pToplevelDirectoryName)
+{
+    return (pToplevelDirectoryName.find(TOPLEVEL_HANDLEFILE_NAME) == 0) ? 1 : 0;
+}
 
 int HandleFile::loadHandleFile(HandleFile* &pHandleFile, const char* pHandleFileName)
 {
@@ -862,7 +909,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     char* l_ArchivePathWithName = new char[PATH_MAX];
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
-    snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
+    snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%s/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle);
     snprintf(l_ArchivePathWithName, PATH_MAX, "%s/%lu", l_ArchivePath, pHandle);
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
@@ -1123,28 +1170,31 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
 
     bfs::path jobstep(pDataStoreName);
     if(!bfs::is_directory(jobstep)) return rc;
-    for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+    for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
     {
-        if (!bfs::is_directory(handle)) continue;
-        bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-        int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
-        if ((!rc) && l_HandleFile)
+        if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
+        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
         {
-            if (BBSTATUS_AND(pMatchStatus, l_HandleFile->status) != BBNONE)
+            bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
+            int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+            if ((!rc) && l_HandleFile)
             {
-                pHandles.push_back(stoull(handle.path().filename().string()));
+                if (BBSTATUS_AND(pMatchStatus, l_HandleFile->status) != BBNONE)
+                {
+                    pHandles.push_back(stoull(handle.path().filename().string()));
+                }
             }
-        }
 
-        if (l_HandleFile)
-        {
-            delete l_HandleFile;
-            l_HandleFile = 0;
-        }
+            if (l_HandleFile)
+            {
+                delete l_HandleFile;
+                l_HandleFile = 0;
+            }
 
-        if (rc)
-        {
-            break;
+            if (rc)
+            {
+                break;
+            }
         }
     }
 
@@ -1163,7 +1213,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     FL_Write(FLMetaData, HF_Save1, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
-    snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle);
+    snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%s/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle);
     snprintf(l_ArchivePathWithName, sizeof(l_ArchivePathWithName), "%s/%lu", l_ArchivePath, pHandle);
     LOG(bb,info) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
     ofstream l_ArchiveFile{l_ArchivePathWithName};
@@ -1224,7 +1274,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     FL_Write(FLMetaData, HF_Save2, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
     string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
-    snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, pHandle, pHandle);
+    snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%s/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle, pHandle);
     LOG(bb,debug) << "saveHandleFile (existing):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
     text_oarchive l_Archive{l_ArchiveFile};
@@ -1558,6 +1608,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
             bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
             handle /= bfs::path(to_string(pJobId));
             handle /= bfs::path(to_string(pJobStepId));
+            handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
             handle /= bfs::path(to_string(pHandle));
 
             // Now, determine if all extents have been sent for each contributor
@@ -1915,44 +1966,48 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                     {
                         if (!accessDir(jobstep.path().string()) ) continue;
                         l_JobStepId = stoull(jobstep.path().filename().string());
-                        for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        for (auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                         {
-                            if (!bfs::is_directory(handle)) continue;
-                            if (handle.path().filename().string() == to_string(pHandle))
+                            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string())) ||
+                                (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
+                            for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
-                                // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
-                                //       be updating simultaneously
-                                rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
-                                if (!rc)
+                                if (handle.path().filename().string() == to_string(pHandle))
                                 {
-                                    string l_TransferKeys = l_HandleFile->transferKeys;
-                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after load: l_TransferKeys=" << l_TransferKeys;
-
-                                    boost::property_tree::ptree l_PropertyTree;
-                                    if (l_TransferKeys.length())
+                                    // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
+                                    //       be updating simultaneously
+                                    rc = loadHandleFile(l_HandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
+                                    if (!rc)
                                     {
-                                        std::istringstream l_InputStream(l_TransferKeys);
-                                        boost::property_tree::read_json(l_InputStream, l_PropertyTree);
-                                    }
+                                        string l_TransferKeys = l_HandleFile->transferKeys;
+                                        LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after load: l_TransferKeys=" << l_TransferKeys;
 
-                                    for(auto& e : pTransferDef->keyvalues)
+                                        boost::property_tree::ptree l_PropertyTree;
+                                        if (l_TransferKeys.length())
+                                        {
+                                            std::istringstream l_InputStream(l_TransferKeys);
+                                            boost::property_tree::read_json(l_InputStream, l_PropertyTree);
+                                        }
+
+                                        for(auto& e : pTransferDef->keyvalues)
+                                        {
+                                            l_PropertyTree.put((char*)e.first.c_str(), (char*)e.second.c_str());
+                                        }
+
+                                        std::ostringstream l_OutputStream;
+                                        boost::property_tree::write_json(l_OutputStream, l_PropertyTree, false);
+                                        l_TransferKeys = l_OutputStream.str();
+                                        LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_TransferKeys=" << l_TransferKeys;
+                                        l_HandleFile->transferKeys = l_TransferKeys;
+                                        LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_HandleFile->transferKeys=" << l_HandleFile->transferKeys;
+
+                                        rc = saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
+                                    }
+                                    else
                                     {
-                                        l_PropertyTree.put((char*)e.first.c_str(), (char*)e.second.c_str());
+                                        errorText << "Failure when attempting to load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+                                        LOG_ERROR_TEXT_RC(errorText, rc);
                                     }
-
-                                    std::ostringstream l_OutputStream;
-                                    boost::property_tree::write_json(l_OutputStream, l_PropertyTree, false);
-                                    l_TransferKeys = l_OutputStream.str();
-                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_TransferKeys=" << l_TransferKeys;
-                                    l_HandleFile->transferKeys = l_TransferKeys;
-                                    LOG(bb,debug) << "update_xbbServerHandleTransferKeys() after insert: l_HandleFile->transferKeys=" << l_HandleFile->transferKeys;
-
-                                    rc = saveHandleFile(l_HandleFile, pLVKey, pJob.getJobId(), pJob.getJobStepId(), pHandle);
-                                }
-                                else
-                                {
-                                    errorText << "Failure when attempting to load the handle file for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
                                 }
                             }
                         }

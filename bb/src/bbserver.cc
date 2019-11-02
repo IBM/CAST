@@ -2050,6 +2050,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
                                         l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
                                         l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
+                                        l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(l_Handle));
                                         l_HandleFilePath /= bfs::path(to_string(l_Handle));
                                         Uuid l_lvuuid3 = Uuid();
                                         Uuid* l_lvuuid3_Ptr = &l_lvuuid3;

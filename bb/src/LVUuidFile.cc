@@ -12,6 +12,7 @@
  *******************************************************************************/
 
 #include "bbserver_flightlog.h"
+#include "HandleFile.h"
 #include "LVUuidFile.h"
 
 
@@ -37,34 +38,37 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
     for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
     {
         if(!bfs::is_directory(jobstep)) continue;
-        for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+        for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            if(!bfs::is_directory(handle)) continue;
-            for(auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
+            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
+            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
             {
-                if(lvuuid.path().filename() == lv_uuid_str)
+                for(auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
                 {
-                    bfs::path metafile = lvuuid.path();
-                    metafile /= bfs::path(lv_uuid_str);
-
-                    LVUuidFile l_LVUuidFile;
-                    int rc2 = l_LVUuidFile.load(metafile.string());
-                    if (!rc2)
+                    if(lvuuid.path().filename() == lv_uuid_str)
                     {
-                        l_Flags = l_LVUuidFile.flags;
-                        SET_FLAG_VAR(l_NewFlags, l_Flags, pFlags, pValue);
-                        if (l_Flags != l_NewFlags)
+                        bfs::path metafile = lvuuid.path();
+                        metafile /= bfs::path(lv_uuid_str);
+
+                        LVUuidFile l_LVUuidFile;
+                        int rc2 = l_LVUuidFile.load(metafile.string());
+                        if (!rc2)
                         {
-                            LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << handle.path().filename() << ":";
-                            LOG(bb,debug) << "           LVUuid flags changing from 0x" << hex << uppercase << setfill('0') << l_Flags << " to 0x" << l_NewFlags <<nouppercase << dec << ".";
-                        }
-                        l_LVUuidFile.flags = l_NewFlags;
+                            l_Flags = l_LVUuidFile.flags;
+                            SET_FLAG_VAR(l_NewFlags, l_Flags, pFlags, pValue);
+                            if (l_Flags != l_NewFlags)
+                            {
+                                LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << handle.path().filename() << ":";
+                                LOG(bb,debug) << "           LVUuid flags changing from 0x" << hex << uppercase << setfill('0') << l_Flags << " to 0x" << l_NewFlags <<nouppercase << dec << ".";
+                            }
+                            l_LVUuidFile.flags = l_NewFlags;
 
-                        rc = l_LVUuidFile.save(metafile.string());
-                    }
-                    else
-                    {
-                    	rc = -1;
+                            rc = l_LVUuidFile.save(metafile.string());
+                        }
+                        else
+                        {
+                        	rc = -1;
+                        }
                     }
                 }
             }
