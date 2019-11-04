@@ -82,6 +82,7 @@ NodeController_CSM::NodeController_CSM()
     vg.total_size     = vgtotal;
     vg.available_size = vgfree;
     vg.vg_name        = (char*)config.get(process_whoami+".volumegroup", "bb").c_str();
+    vg.scheduler      = true;
     vg.ssd_info_count = 1;
     vg.ssd_info       = (csmi_bb_vg_ssd_info_t**)malloc(vg.ssd_info_count * sizeof(csmi_bb_vg_ssd_info_t*));
     vg.ssd_info[0]    = &ssdinfo;

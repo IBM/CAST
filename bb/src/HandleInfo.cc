@@ -25,7 +25,7 @@ namespace bfs = boost::filesystem;
  */
 int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
 {
-    int rc;
+    int rc = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HI_Load, "loadHandleInfo, counter=%ld", l_FL_Counter, 0, 0, 0);

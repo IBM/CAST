@@ -2082,7 +2082,7 @@ void* transferWorker(void* ptr)
     LVKey l_Key = LVKey_Null;
     BBTagID l_TagId;
     ExtentInfo l_ExtentInfo;
-    BBLV_Info* l_LV_Info;
+    BBLV_Info* l_LV_Info = NULL;
     stringstream errorText;
 
     double l_ThreadDelay = 0;

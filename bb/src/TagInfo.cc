@@ -186,7 +186,7 @@ int TagInfo::createLockFile(const string pFilePath)
 
 int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 {
-    int rc;
+    int rc = 0;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, TF_Load, "loadTagInfo, counter=%ld", l_FL_Counter, 0, 0, 0);
