@@ -55,7 +55,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
 
     if (pTransferDef->extents.size())
     {
-        if (config.get(process_whoami+".bringup.dumpStatsBeforeAddingToAllExtents", 1))
+        if (g_DumpStatsBeforeAddingToAllExtents)
         {
             for (size_t i = 0; i < pStats->size(); i=i+2)
             {
@@ -169,7 +169,8 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
             rc = pTransferDef->replaceExtentVector(&l_NewList);
             if (!rc)
             {
-                if (config.get(process_whoami+".bringup.dumpExtentsBeforeAddingToAllExtents", 0)) {
+                if (g_DumpExtentsBeforeAddingToAllExtents)
+                {
                     pTransferDef->dumpExtents("info", "New vector of extents before being added to allExtents");
                 }
                 for(std::vector<Extent>::size_type i = 0; i < pTransferDef->extents.size(); ++i)
@@ -998,7 +999,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 //                    allExtents[i].verify();
                 }
 
-                if (config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), 0))
+                if (g_DumpExtentsBeforeSort)
                 {
                     dumpExtents("info", "Before sort/copy processing");
                 }
@@ -1116,7 +1117,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 #endif
         LOG(bb,debug) << "sortExtents(): For " << *pLVKey << ", " << allExtents.size() << " extent(s) on the queue when exiting sort.";
 
-        if (config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), 0))
+        if (g_DumpExtentsAfterSort)
         {
             dumpExtents("info", "After sort/copy processing");
         }

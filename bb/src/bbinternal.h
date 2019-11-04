@@ -84,6 +84,13 @@ extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
 extern double g_AsyncRemoveJobInfoInterval;
+extern bool g_UseDirectIO;
+extern int g_DumpTransferMetadataAfterQueue;
+extern int g_DumpStatsBeforeAddingToAllExtents;
+extern int g_DumpExtentsBeforeAddingToAllExtents;
+extern int g_DumpExtentsBeforeSort;
+extern int g_DumpExtentsAfterSort;
+extern string g_BBServer_Metadata_Path;
 
 void setSsdWriteDirect(unsigned int pValue);
 #endif
@@ -136,6 +143,13 @@ const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
 const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
 const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
 const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
+const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
+
+const int DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE = 0;
+const int DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 1;
+const int DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 0;
+const int DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE = 0;
+const int DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE = 0;
 
 const uint64_t UNDEFINED_JOBID = 0;
 const uint64_t UNDEFINED_JOBSTEPID = 0;
@@ -158,6 +172,10 @@ const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
 //       changed to the default rate/sec value used for BB throttling.
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
+
+const uint64_t NUMBER_OF_TAGINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_HANDLEINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS = 256;
 
 const string ALL = "*";
 
@@ -184,6 +202,8 @@ const char ERROR_PREFIX[] = "ERROR - ";
 const char LV_DISPLAY_PREFIX[] = "LV Path";
 const char LV_DISPLAY_OPEN_PREFIX[] = "# open";
 const char MOUNTS_DIRECTORY[] = "/proc/mounts";
+const char TOPLEVEL_HANDLEFILE_NAME[] = "handle_";
+
 
 /*******************************************************************************
  | Enumerators

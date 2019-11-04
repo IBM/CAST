@@ -46,7 +46,7 @@ namespace bfs = boost::filesystem;
 const uint32_t ARCHIVE_TAG_VERSION_1 = 1;
 
 const char LOCK_TAG_FILENAME[] = "lockfile";
-const char TAGINFONAME[] = "taginfo";
+const char TAGINFONAME[] = "taginfo_";
 const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
 
 
