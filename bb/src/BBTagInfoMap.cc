@@ -437,18 +437,10 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         bfs::path handle = l_ToplevelHandleDirectoryPath / bfs::path(to_string(l_Handle));
 
         // Note if the jobstepid directory exists...
-        bool l_JobStepDirectoryExists = false;
-        if(bfs::exists(jobstepid))
-        {
-            l_JobStepDirectoryExists = true;
-        }
+        bool l_JobStepDirectoryExists = bfs::exists(jobstepid) ? true : false;
 
         // Note if the toplevel handle directory exists...
-        bool l_ToplevelHandleDirectoryExists = false;
-        if(bfs::exists(l_ToplevelHandleDirectoryPath))
-        {
-            l_ToplevelHandleDirectoryExists = true;
-        }
+        bool l_ToplevelHandleDirectoryExists = bfs::exists(l_ToplevelHandleDirectoryPath) ? true : false;
 
         // NOTE:  There is a window between creating the job directory and
         //        performing the chmod to the correct uid:gid.  Therefore, if

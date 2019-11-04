@@ -1075,21 +1075,13 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
 
-                    int l_JobStepDirectoryExists = 0;
                     bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
-                    if (bfs::exists(l_JobStepPath))
-                    {
-                        l_JobStepDirectoryExists = 1;
-                    }
+                    int l_JobStepDirectoryExists = bfs::exists(l_JobStepPath) ? 1 : 0;
 
-                    int l_ToplevelHandleDirectoryExists = 0;
                     bfs::path l_ToplevelHandleDirectoryPath = l_JobStepPath / bfs::path(HandleFile::getToplevelHandleName(pHandle));
-                    if (bfs::exists(l_ToplevelHandleDirectoryPath))
-                    {
-                        l_ToplevelHandleDirectoryExists = 1;
-                    }
+                    int l_ToplevelHandleDirectoryExists = bfs::exists(l_ToplevelHandleDirectoryPath) ? 1 : 0;
 
                     LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
                                  << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
@@ -1098,10 +1090,6 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_JobStepDirectoryExists)
                     {
-                        // Create the lock file for the taginfo
-                        rc = TagInfo::createLockFile(l_JobStepPath.string());
-                        if (rc) BAIL;
-
                         // Unconditionally perform a chmod to 0770 for the jobstepid directory.
                         // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                         //        contained in this tree is controlled there.
@@ -1112,6 +1100,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                             bberror << err("error.path", l_JobStepPath.string());
                             LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
                         }
+
+                        // Create the lock file for the taginfo
+                        rc = TagInfo::createLockFile(l_JobStepPath.string());
+                        if (rc) BAIL;
                     }
 
                     if (!l_ToplevelHandleDirectoryExists)
