@@ -2504,7 +2504,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
     bool l_TransferQueueLocked = false;
 
     pAsyncRequestFileName = new char[PATH_MAX+1];
-    string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
+    string l_DataStorePath = g_BBServer_Metadata_Path;
 
     bfs::path datastore(l_DataStorePath);
     if(bfs::is_directory(datastore))

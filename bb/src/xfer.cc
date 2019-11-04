@@ -3343,7 +3343,7 @@ int queueTransfer(const std::string& pConnectionName, LVKey* pLVKey, BBJob pJob,
                                         // Reset the extent for the minimum trim anchor point...
                                         l_LV_Info->resetMinTrimAnchorExtent();
 
-                                        if (config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), 0))
+                                        if (g_DumpTransferMetadataAfterQueue)
                                         {
                                             metadata.dump(const_cast<char*>("info"));
                                         }

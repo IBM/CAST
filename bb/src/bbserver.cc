@@ -89,6 +89,27 @@ bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
 double g_AsyncRemoveJobInfoInterval = DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE;
 
+// Use DirectI/O
+bool g_UseDirectIO = DEFAULT_USE_DIRECT_IO_VALUE;
+
+// Dump Transfer Metadata After Queue
+int g_DumpTransferMetadataAfterQueue = DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE;
+
+// Dump Stats Before Adding To AllExtents
+int g_DumpStatsBeforeAddingToAllExtents = DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE;
+
+// Dump Extents Before Adding To AllExtents
+int g_DumpExtentsBeforeAddingToAllExtents = DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE;
+
+// Dump Extents Before Sort
+int g_DumpExtentsBeforeSort = DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE;
+
+// Dump Extents After Sort
+int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
+
+// BBServer Metadata Path
+string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
+
 
 //*****************************************************************************
 //  Support routines
@@ -2047,7 +2068,7 @@ void msgin_starttransfer(txp::Id id, const string& pConnectionName, txp::Msg* ms
                                         l_HandleFile = 0;
 
                                         //  Next, determine if this contributor has already been registered
-                                        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                                        bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
                                         l_HandleFilePath /= bfs::path(to_string(l_Job.getJobId()));
                                         l_HandleFilePath /= bfs::path(to_string(l_Job.getJobStepId()));
                                         l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(l_Handle));
@@ -3011,6 +3032,13 @@ int bb_main(std::string who)
         {
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
         }
+        g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
+        g_DumpTransferMetadataAfterQueue = config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE);
+        g_DumpStatsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpStatsBeforeAddingToAllExtents"), DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
+        g_DumpExtentsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeAddingToAllExtents"), DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
+        g_DumpExtentsBeforeSort = config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeSort"), DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE);
+        g_DumpExtentsAfterSort = config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE);
+        g_BBServer_Metadata_Path = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
 
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
@@ -3077,7 +3105,7 @@ int bb_main(std::string who)
         //        from all local metadata caches and the cross-bbServer metadata.  This may occur in
         //        test environments...
         uint32_t l_Count = 0;
-        boost::filesystem::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        boost::filesystem::path datastore(g_BBServer_Metadata_Path);
         if (boost::filesystem::is_directory(datastore))
         {
             bool l_AllDone = false;

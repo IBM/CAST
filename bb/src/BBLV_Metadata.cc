@@ -55,7 +55,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     {
         if (pJobId != UNDEFINED_JOBID)
         {
-            bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+            bfs::path job(g_BBServer_Metadata_Path);
             job /= bfs::path(to_string(pJobId));
 
             if(bfs::exists(job))
@@ -130,7 +130,7 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
 
     try
     {
-        bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path job(g_BBServer_Metadata_Path);
         job /= bfs::path(to_string(pJobId));
 
         if(bfs::exists(job))
@@ -143,7 +143,7 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
             }
             else
             {
-                bfs::path hidejob(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                bfs::path hidejob(g_BBServer_Metadata_Path);
                 string hidejobname = "." + to_string(pJobId);
                 hidejob /= bfs::path(hidejobname);
                 bfs::rename(job, hidejob);

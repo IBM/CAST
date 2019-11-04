@@ -84,6 +84,13 @@ extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
 extern double g_AsyncRemoveJobInfoInterval;
+extern bool g_UseDirectIO;
+extern int g_DumpTransferMetadataAfterQueue;
+extern int g_DumpStatsBeforeAddingToAllExtents;
+extern int g_DumpExtentsBeforeAddingToAllExtents;
+extern int g_DumpExtentsBeforeSort;
+extern int g_DumpExtentsAfterSort;
+extern string g_BBServer_Metadata_Path;
 
 void setSsdWriteDirect(unsigned int pValue);
 #endif
@@ -136,6 +143,13 @@ const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
 const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
 const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
 const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
+const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
+
+const int DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE = 0;
+const int DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 1;
+const int DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 0;
+const int DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE = 0;
+const int DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE = 0;
 
 const uint64_t UNDEFINED_JOBID = 0;
 const uint64_t UNDEFINED_JOBSTEPID = 0;

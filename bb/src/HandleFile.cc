@@ -116,7 +116,7 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds, const RET
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_GetCurrentJobIds, "get current jobids, counter=%ld", l_FL_Counter, 0, 0, 0);
 
-    bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path datastore(g_BBServer_Metadata_Path);
     if(bfs::is_directory(datastore))
     {
         // Build a vector of jobids that the current uid/gid is authorized to access.
@@ -582,7 +582,7 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         uint64_t l_JobStepId = pJob.getJobStepId();
         if (l_JobStepId == 0)
         {
-            bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+            bfs::path job(g_BBServer_Metadata_Path);
             job /= bfs::path(to_string(pJob.getJobId()));
             if(!bfs::is_directory(job)) BAIL;
             for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
@@ -596,7 +596,7 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         }
         else
         {
-            bfs::path jobstep(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+            bfs::path jobstep(g_BBServer_Metadata_Path);
             jobstep /= bfs::path(to_string(pJob.getJobId()));
             jobstep /= bfs::path(to_string(l_JobStepId));
             if(!bfs::is_directory(jobstep)) BAIL;
@@ -669,7 +669,7 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
 
     pTransferKeys = "";
 
-    bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path datastore(g_BBServer_Metadata_Path);
     if(!bfs::is_directory(datastore)) return rc;
     int l_catch_count=ATTEMPTS;
     vector<string> l_PathJobIds;
@@ -908,7 +908,7 @@ int HandleFile::loadHandleFile(HandleFile* &pHandleFile, char* &pHandleFileName,
     char l_ArchivePath[PATH_MAX-64] = {'\0'};
     char* l_ArchivePathWithName = new char[PATH_MAX];
 
-    string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
+    string l_DataStorePath = g_BBServer_Metadata_Path;
     snprintf(l_ArchivePath, PATH_MAX-64, "%s/%lu/%lu/%s/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle);
     snprintf(l_ArchivePathWithName, PATH_MAX, "%s/%lu", l_ArchivePath, pHandle);
 
@@ -1212,7 +1212,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Save1, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
-    string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
+    string l_DataStorePath = g_BBServer_Metadata_Path;
     snprintf(l_ArchivePath, sizeof(l_ArchivePath), "%s/%lu/%lu/%s/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle);
     snprintf(l_ArchivePathWithName, sizeof(l_ArchivePathWithName), "%s/%lu", l_ArchivePath, pHandle);
     LOG(bb,info) << "saveHandleFile (created): l_ArchiveName=" << l_ArchivePathWithName;
@@ -1273,7 +1273,7 @@ int HandleFile::saveHandleFile(HandleFile* &pHandleFile, const LVKey* pLVKey, co
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_Save2, "saveHandleFile, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJobId, pHandle, 0);
 
-    string l_DataStorePath = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
+    string l_DataStorePath = g_BBServer_Metadata_Path;
     snprintf(l_ArchiveName, sizeof(l_ArchiveName), "%s/%lu/%lu/%s/%lu/%lu", l_DataStorePath.c_str(), pJobId, pJobStepId, HandleFile::getToplevelHandleName(pHandle).c_str(), pHandle, pHandle);
     LOG(bb,debug) << "saveHandleFile (existing):" << l_ArchiveName;
     ofstream l_ArchiveFile{l_ArchiveName};
@@ -1605,7 +1605,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
             (!(l_StartingStatus == BBCANCELED)))
         {
-            bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+            bfs::path handle(g_BBServer_Metadata_Path);
             handle /= bfs::path(to_string(pJobId));
             handle /= bfs::path(to_string(pJobStepId));
             handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -1928,7 +1928,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HF_UpdateTransferKeys, "update handle transfer keys, counter=%ld, jobid=%ld, handle=%ld", l_FL_Counter, pJob.getJobId(), pHandle, 0);
 
-    bfs::path datastore(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path datastore(g_BBServer_Metadata_Path);
     if(!bfs::is_directory(datastore)) return rc;
     int l_catch_count=10;
     vector<string> l_PathJobIds;

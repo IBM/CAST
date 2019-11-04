@@ -236,7 +236,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
 
     try
     {
-        bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path jobstepid(g_BBServer_Metadata_Path);
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
 
         if(!bfs::exists(jobstepid))
@@ -525,7 +525,7 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, TI_GetServerHandle, "BBTagInfo get server handle, counter=%ld, jobid=%ld", l_FL_Counter, pJob.getJobId(), 0, 0);
 
-    bfs::path jobstep(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path jobstep(g_BBServer_Metadata_Path);
     jobstep /= bfs::path(to_string(pJob.getJobId()));
     jobstep /= bfs::path(to_string(pJob.getJobStepId()));
 
@@ -1076,7 +1076,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     }
 
                     int l_JobStepDirectoryExists = 0;
-                    bfs::path l_JobStepPath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                    bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
                     if (bfs::exists(l_JobStepPath))
@@ -1261,7 +1261,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
 int BBTagInfo::xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle)
 {
-    bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path handle(g_BBServer_Metadata_Path);
     handle /= bfs::path(to_string(pJob.getJobId()));
     handle /= bfs::path(to_string(pJob.getJobStepId()));
     handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));

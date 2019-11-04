@@ -225,7 +225,7 @@ int BBIO_Regular::open(uint32_t pFileIndex, uint64_t pBBFileFlags, const string&
         bfs::create_directories(bfs::path(pFileName).parent_path());
     }
 
-    if(pBBFileFlags & BBI_TargetSSD)
+    if (pBBFileFlags & BBI_TargetSSD)
     {
         oflags = O_RDONLY;
     }
@@ -233,12 +233,12 @@ int BBIO_Regular::open(uint32_t pFileIndex, uint64_t pBBFileFlags, const string&
     if (pBBFileFlags & BBI_TargetPFS)
     {
         oflags = O_CREAT | O_TRUNC | O_WRONLY;
-        if((pFileName != string("/dev/null")) && (config.get(process_whoami+".usedirectio", true)))
+        if (g_UseDirectIO && (pFileName != string("/dev/null")))
         {
             oflags |= O_DIRECT;
         }
     }
-    
+
     //LOG(bb,info) << "filename:  " << pFileName << ", oflags=" << oflags << ", mode=" << pMode;
     filehandle* l_fhPtr = new filehandle(pFileName, oflags, pMode);
     if (l_fhPtr->validfd())

@@ -81,7 +81,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
     FL_Write(FLMetaData, TD_RetrieveTransfers, "BBTransferDef retrieve transfers, counter=%ld", l_FL_Counter, 0, 0, 0);
 
     // Iterate through the jobs...
-    bfs::path jobpath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path jobpath(g_BBServer_Metadata_Path);
     bool l_AllDone = false;
     while (!l_AllDone)
     {
@@ -1100,7 +1100,7 @@ BBFILESTATUS BBTransferDef::getFileStatus(const LVKey* pLVKey, ExtentInfo& pExte
     BBFILESTATUS l_FileStatus = BBFILE_NONE;
 
     ContribIdFile* l_ContribIdFile = 0;
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(getJobId()));
     l_HandleFilePath /= bfs::path(to_string(getJobStepId()));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pExtentInfo.getHandle()));
@@ -1678,7 +1678,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
                     ContribIdFile* l_ContribIdFile = 0;
                     if (!l_UnconditionalRestart)
                     {
-                        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+                        bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
                         l_HandleFilePath /= bfs::path(to_string(pJobId));
                         l_HandleFilePath /= bfs::path(to_string(pJobStepId));
                         l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));

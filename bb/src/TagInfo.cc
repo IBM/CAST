@@ -42,7 +42,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     try
     {
-        bfs::path l_JobStepPath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
         l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
         l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
         if(!bfs::is_directory(l_JobStepPath))

@@ -430,7 +430,7 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
 
     try
     {
-        bfs::path jobstepid(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path jobstepid(g_BBServer_Metadata_Path);
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
         uint64_t l_Handle = pTagInfo->getTransferHandle();
         bfs::path l_ToplevelHandleDirectoryPath = jobstepid / bfs::path(HandleFile::getToplevelHandleName(l_Handle));

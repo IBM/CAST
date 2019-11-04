@@ -28,7 +28,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
 {
     int rc = 1;   // Success, all extents transferred...
 
-    bfs::path handle(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path handle(g_BBServer_Metadata_Path);
     handle /= bfs::path(to_string(pTagId.getJobId()));
     handle /= bfs::path(to_string(pTagId.getJobStepId()));
     handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -96,7 +96,7 @@ int ContribIdFile::isStopped(const BBJob pJob, const uint64_t pHandle, const uin
 
     ContribIdFile* l_ContribIdFile = 0;
 
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -141,7 +141,7 @@ string ContribIdFile::isServicedBy(const BBJob pJob, const uint64_t pHandle, con
     string l_ServicingHostname = "";
     ContribIdFile* l_ContribIdFile = 0;
 
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -442,7 +442,7 @@ string ContribIdFile::toBeServicedBy(const BBJob pJob, const uint64_t pHandle, c
     string l_ToBeServicingHostname = "";
     ContribIdFile* l_ContribIdFile = 0;
 
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobId()));
     l_HandleFilePath /= bfs::path(to_string(pJob.getJobStepId()));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -501,7 +501,7 @@ int ContribIdFile::update_xbbServerContribIdFile(const LVKey* pLVKey, const uint
 
     if (!rc)
     {
-        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
         l_HandleFilePath /= bfs::path(to_string(pJobId));
         l_HandleFilePath /= bfs::path(to_string(pJobStepId));
         l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -672,7 +672,7 @@ int ContribIdFile::update_xbbServerContribIdFileNewHostName(const LVKey* pLVKey,
     rc = HandleFile::loadHandleFile(l_HandleFile, l_HandleFileName, pJobId, pJobStepId, pHandle, LOCK_HANDLEFILE, &l_LockFeedback);
     if (!rc)
     {
-        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
         l_HandleFilePath /= bfs::path(to_string(pJobId));
         l_HandleFilePath /= bfs::path(to_string(pJobStepId));
         l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -756,7 +756,7 @@ int ContribIdFile::update_xbbServerContribIdFileResetForRestart(const LVKey* pLV
     FL_Write(FLMetaData, CIF_UpdateResetRestart, "update contribid file, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
 
     ContribIdFile* l_ContribIdFile = 0;
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(pJobId));
     l_HandleFilePath /= bfs::path(to_string(pJobStepId));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -864,7 +864,7 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 
     if (!rc)
     {
-        bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+        bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
         l_HandleFilePath /= bfs::path(to_string(pTransferDef->getJobId()));
         l_HandleFilePath /= bfs::path(to_string(pTransferDef->getJobStepId()));
         l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
@@ -1116,7 +1116,7 @@ int ContribIdFile::update_xbbServerFileStatusForRestart(const LVKey* pLVKey, BBT
 
     ContribIdFile* l_ContribIdFile = 0;
     int64_t l_Size = 0;
-    bfs::path l_HandleFilePath(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path l_HandleFilePath(g_BBServer_Metadata_Path);
     l_HandleFilePath /= bfs::path(to_string(pRebuiltTransferDef->getJobId()));
     l_HandleFilePath /= bfs::path(to_string(pRebuiltTransferDef->getJobStepId()));
     l_HandleFilePath /= bfs::path(HandleFile::getToplevelHandleName(pHandle));

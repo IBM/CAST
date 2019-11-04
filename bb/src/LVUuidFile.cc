@@ -28,7 +28,7 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
     uint64_t l_Flags = 0;
     uint64_t l_NewFlags = 0;
 
-    bfs::path job(config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH));
+    bfs::path job(g_BBServer_Metadata_Path);
     job /= bfs::path(to_string(pJobId));
     if(!bfs::is_directory(job)) return -2;
 
