@@ -334,3 +334,39 @@ LSF get handle create performance multi node
 
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 20
+
+LSF 128 GiB transfer to GPFS multi node
+	[Tags]  lsf
+	[Timeout]  40 minutes
+	Using SSD  512
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} 137438953472  0  20 minutes
+	
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} 6871947674  0  20 minutes
+
+LSF 128 GiB transfer from GPFS multi node
+	[Tags]  lsf
+	[Timeout]  40 minutes
+	Using SSD  512
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 ${PFSDIR} 137438953472  0  20 minutes
+	
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 ${PFSDIR} 6871947674  0  20 minutes
+
+LSF 128 GiB transfer to devnull multi node
+	[Tags]  lsf
+	[Timeout]  40 minutes
+	Using SSD  512
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null 137438953472  0  20 minutes
+	
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null 6871947674  0  20 minutes
