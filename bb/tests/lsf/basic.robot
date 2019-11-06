@@ -311,7 +311,7 @@ LSF get handle create performance single node
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 1000
 
 	Set ppn  20
-	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 200
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 1000
 
 LSF get handle create performance multi node
 	[Tags]  lsf
@@ -330,10 +330,10 @@ LSF get handle create performance multi node
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 800
 
 	Set ppn  4
-	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 100
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 800  0  20 minutes
 
 	Set ppn  20
-	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 800  0  20 minutes
 
 LSF 128 GiB transfer to GPFS multi node
 	[Tags]  lsf
