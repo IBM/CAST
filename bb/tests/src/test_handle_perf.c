@@ -110,7 +110,7 @@ int main(int argc, char** argv)
     addMetadata("jobid",       getenv("LSB_JOBID"));
     addMetadata("jobstep",     getenv("PMIX_NAMESPACE"));
     addMetadata("user",        getenv("USER"));
-    addMetadata("iterations",  maxiterations);
+    addMetadata_fp("iterations",  (double)maxiterations);
     addMetadata("execname",    argv[0]);    
     addMetadata_fp("ranks",    size);
 
