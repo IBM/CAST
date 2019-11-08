@@ -1,7 +1,7 @@
 filebeat.inputs:
 - type: log
   enabled: true
-  close_removed: 1h
+  close_removed: true
   close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_transaction.log.*
@@ -9,7 +9,7 @@ filebeat.inputs:
 
 - type: log
   enabled: true
-  close_removed: 1h
+  close_removed: true
   close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_allocation_metrics.log.*
@@ -17,7 +17,7 @@ filebeat.inputs:
 
 - type: log 
   enabled: true
-  close_removed: 1h
+  close_removed: true
   close_inactive: 1h
   paths:
     - "/var/log/ibm/csm/archive/*.json"
@@ -25,7 +25,7 @@ filebeat.inputs:
 
 - type: log 
   enabled: true
-  close_removed: 1h
+  close_removed: true
   close_inactive: 1h
   paths:
     - /var/log/ibm/csm/csm_ras_events.log
