@@ -70,7 +70,7 @@ foreach $HOST (@HOSTLIST_ARRAY)
     push(@args, $PRE_INSTALL_OPTION);
     $cmd = join(" ", @args);
     my $tmpfile = "/tmp/bscfs.$$.$HOST";
-    forkcmd("ssh $HOST \" $env $cmd \" &> $tmpfile");
+    forkcmd("ssh $HOST \"/bin/env $env $cmd \" &> $tmpfile");
     $PIDMETA{$LASTPID}{"output"} = $tmpfile;
     $NODE++;
 }
