@@ -125,7 +125,7 @@ int main(int argc, char** argv)
     start = MPI_Wtime();
     for(x=0; x<maxiterations; x++)
     {
-        rc = BB_GetTransferHandle( x, 1, contribListArray, &thandle);
+        rc = BB_GetTransferHandle( x, size, contribListArray, &thandle);
         check(rc);
     }
     MPI_Barrier(MPI_COMM_WORLD);

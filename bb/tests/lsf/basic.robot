@@ -352,7 +352,7 @@ LSF get handle create performance multi node iterative scale
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 4096
 
 
-LSF get handle create performance multi node
+LSF get handle spanner multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
 	Using SSD  512
