@@ -54,7 +54,10 @@ const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
  | External methods
  *******************************************************************************/
 extern void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
-extern int unlockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod);
+extern int lockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod);
+extern void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
+extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
+extern int unlockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
 
 
 /*******************************************************************************

@@ -36,9 +36,9 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataLocked = 0;
     int l_TagInfoLocked = 0;
-
-    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
 
     try
     {
@@ -52,7 +52,12 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
+        l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "addTagHandle");
+        // This lock serializes amongst request/transfer threads on this bbServer...
+        l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
+        // This lock serializes amongst bbServers...
         rc = TagInfo::lock(l_JobStepPath);
+
         if (!rc)
         {
             l_TagInfoLocked = 1;
@@ -150,6 +155,16 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         TagInfo::unlock();
     }
 
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(pLVKey, "addTagHandle");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue(pLVKey, "addTagHandle");
+    }
+
     if (l_HandleInfo)
     {
         delete l_HandleInfo;
@@ -160,11 +175,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     {
         delete l_TagInfo;
         l_TagInfo = 0;
-    }
-
-    if (l_LocalMetadataUnlocked)
-    {
-        lockLocalMetadata(pLVKey, "addTagHandle");
     }
 
     return rc;
