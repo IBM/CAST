@@ -337,6 +337,31 @@ LSF get handle create performance multi node iterative scale
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 4096
 
 
+LSF get handle create performance single node
+	[Tags]  lsf
+	[Timeout]  20 minutes
+	Using SSD  512
+	
+	Set num computes  1
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+	Set ppn  2
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+	Set ppn  8
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+	Set ppn  16
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 512
+
+
 LSF get handle create performance multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
