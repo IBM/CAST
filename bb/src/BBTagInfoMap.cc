@@ -57,9 +57,10 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
 
     LOG(bb,debug) << "BBTagInfoMap::addTagInfo(): LVKey " << *pLVKey << ", job (" << pJob.getJobId() << "," << pJob.getJobStepId() << "), tagid " << pTagId.getTag() << ", generated handle " << pGeneratedHandle;
 
-    // It is possible to enter this section of code without the transfer queue locked.
+    // It is possible to enter this section of code without the local metadata locked.
     // Inserting into a std::map is not thread safe, so we must acquire the lock around
     // the insert.
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::addTagInfo");
 
     tagInfoMap[pTagId] = *pTagInfo;
@@ -68,6 +69,11 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata(pLVKey, "BBTagInfoMap::addTagInfo");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue((LVKey*)0, "BBTagInfoMap::getTagInfo");
     }
 
     if (pGeneratedHandle) {

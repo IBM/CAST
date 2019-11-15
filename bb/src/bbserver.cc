@@ -700,7 +700,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     verifyInitLockState();
 
     uint64_t l_Handle = UNDEFINED_HANDLE;
-    int l_LocalMetadataLocked = 0;
     LVKey l_LVKey;
     LVKey* l_LVKeyPtr = &l_LVKey;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
@@ -746,8 +745,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
 
         switchIds(msg);
 
-        lockLocalMetadata((LVKey*)0, "msgin_gettransferhandle");
-        l_LocalMetadataLocked = 1;
         //  NOTE:  We set up to wait 2 minutes for the necessary LVKey to appear if we can't find
         //         it right away and the handle is not in the cross-bbServer metadata.
         //         This closes the window during activate server between the activation
@@ -842,12 +839,6 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-    }
-
-    if (l_LocalMetadataLocked)
-    {
-        l_LocalMetadataLocked = 0;
-        unlockLocalMetadata((LVKey*)0, "msgin_gettransferhandle");
     }
 
     // Build the response message
