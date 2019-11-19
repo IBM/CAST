@@ -87,9 +87,10 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
     {
         l_AllDone = true;
         l_HostNameFound = false;
+        ++l_Attempts;
         for (auto& l_JobId : boost::make_iterator_range(bfs::directory_iterator(jobpath), {}))
         {
-            ++l_Attempts;
+            LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for jobid " << l_JobId.path().filename().string();
             try
             {
                 if (!bfs::is_directory(l_JobId)) continue;
@@ -115,6 +116,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                             delete l_HandleFile;
                                             l_HandleFile = 0;
                                         }
+                                        LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for handle " << l_Handle.path().filename().string();
                                         bfs::path handlefile = l_Handle.path() / bfs::path(l_Handle.path().filename());
                                         rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                         if (!rc)
@@ -162,6 +164,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                                 rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
                                                                 if (!rc)
                                                                 {
+                                                                    LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for LVUuid " << l_LVUuid.path().filename().string();
                                                                     // Iterate through the contributors...
                                                                     for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                                                                     {
@@ -262,6 +265,10 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                 // More than likely, the cross-bbServer data was altered under us...  Restart the walk of the job directories...
                 LOG(bb,info) << "Attempting to retrieve transfer definitions from the cross-bbserver metadata again...";
 
+                // Empty any result we may have collected
+                pTransferDefs.clear();
+
+                // Restart the retrieval
                 rc = 0;
                 l_AllDone = false;
                 break;
