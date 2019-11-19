@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.2.0)
 project (ibm)
 
 set(BUILDID_RELEASE    1)
-set(BUILDID_CUMULFIXID 7)
+set(BUILDID_CUMULFIXID 8)
 set(BUILDID_EFIXID     0)
 
 execute_process(
