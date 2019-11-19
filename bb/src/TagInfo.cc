@@ -52,6 +52,17 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
+        // For create/get handle performance, we want to hold the taginfo lock as short
+        // as possible.  Do any necessary preprations before obtaining the lock.
+        char l_TagInfoName[64] = {'\0'};
+        snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % NUMBER_OF_TAGINFO_BUCKETS));
+        bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
+        char l_HandleInfoName[64] = {'\0'};
+        snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
+        bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
+        BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
+
+        // Perform the necessary locking
         l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "addTagHandle");
         // This lock serializes amongst request/transfer threads on this bbServer...
         l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
@@ -61,9 +72,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         if (!rc)
         {
             l_TagInfoLocked = 1;
-            char l_TagInfoName[64] = {'\0'};
-            snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % NUMBER_OF_TAGINFO_BUCKETS));
-            bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
             rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
             if (!rc)
             {
@@ -93,9 +101,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                 {
                     // The passed in tag was not found.  Now, determine if we have a duplicate
                     // handle value.
-                    char l_HandleInfoName[64] = {'\0'};
-                    snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
-                    bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
                     rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
                     if (!rc)
                     {
@@ -112,7 +117,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                         {
                             // Add the passed in values for tag/contrib vector/handle as a new TagHandle
                             // in the taginfo file
-                            BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
                             l_TagInfo->tagHandles.push_back(l_TagHandle);
                             l_TagInfo->save();
                             // Add the passed in handle value to the handleinfo file
