@@ -23,6 +23,7 @@ set(SUBDIR logstash)
 file(GLOB INSTALL_PROGRAMS
   "config-scripts/deployConfigs.sh"
   "config-scripts/removeConfigs.sh"
+  "patches/csm_logstash_6-8-1_patch.sh"
 )
 
 install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT ${BDS_RPM_NAME} DESTINATION ${BDS_BASE_NAME}/${SUBDIR})
