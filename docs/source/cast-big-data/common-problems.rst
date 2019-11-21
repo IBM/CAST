@@ -10,6 +10,33 @@ resolve the described issues.
     :local:
 
 
+Beats Not Starting
+------------------
+
+There was a typo in a previous version of CAST. The field "close_removed" is a bool in the ELK config. This typo caused beats to not start up correctly. The CAST team has updated the config file to address this issue. 
+
+Logstash Not Starting
+---------------------
+
+In ELK 6.8.1, Logstash may not start and run on Power, due to an arch issue. 
+
+.. code-block:: none
+
+    [2019-05-03T10:41:38,701][ERROR][org.logstash.Logstash    ] 
+    java.lang.IllegalStateException: Logstash stopped processing because of an error: 
+    (LoadError) load error: ffi/ffi -- java.lang.NullPointerException: null
+
+
+The CAST team was able to trace the bug to `jruby/lib/ruby/stdlib/ffi/platform/powerpc64-linux/`. It looks as though the platform.conf file was not created for this platform. Copying the types.conf file to platform.conf appears to resolve the problem.
+ 
+GitHub Issue: https://github.com/elastic/logstash/issues/10755
+
+IBM and the CAST team have made a script to fix this packaging issue. 
+
+The patch can be found in the CAST repo at: https://github.com/IBM/CAST/blob/master/csm_big_data/logstash/patches/csm_logstash_6-8-1_patch.sh and in the install dir at: ``/opt/ibm/csm/bigdata/logstash/patches/csm_logstash_6-8-1_patch.sh``.
+
+Run this patch before starting Logstash. 
+
 Timestamps
 ----------
 
