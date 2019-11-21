@@ -95,6 +95,7 @@ curr_rpm_list+=`rpm -qa | grep ibm-csm-hcdiag`
 curr_rpm_list+=`rpm -qa | grep ibm-flightlog`
 curr_rpm_list+=`rpm -qa | grep ibm-csm-db`
 curr_rpm_list+=`rpm -qa | grep ibm-csm-restd`
+curr_rpm_list+=`rpm -qa | grep ibm-csm-bds`
 curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
 curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
 
