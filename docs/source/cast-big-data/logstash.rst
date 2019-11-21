@@ -17,13 +17,18 @@ removed.
 CAST provides an event correlator for Logstash to assist in the generation of RAS events for
 specific messages.
 
-Configuration
--------------
+Installation and Configuration
+------------------------------
 
-.. note:: This guide has been tested using Logstash 6.3.2, the latest RPM may be downloaded from
+Installation
+^^^^^^^^^^^^
+
+.. note:: This guide has been tested using Logstash 6.8.1, the latest RPM may be downloaded from
    `the Elastic Site <https://www.elastic.co/downloads/logstash>`_.
 
-The following is a brief introduction to the installation and configuration of the logstash service.
+For the official install guide of Logstash in the ELK stack go to: `Installing Logstash`_
+
+The following is a brief guide to the installation of Logstash with relation to CAST. The user should use the offical ELK documentation above as the main reference of information for installing Logstash.
 CAST provides a set of sample configuration files in the repository at `csm_big_data/logstash/`.
 If the |csm-bds| rpm has been installed the sample configurations may be found 
 in `/opt/ibm/csm/bigdata/logstash/`.
@@ -99,8 +104,8 @@ Please refer to `CSM Event Correlator`_ for more details.
 Logstash should now be operational. At this point data aggregators should be configured to point
 to your Logstash node as appropriate.
 
-Tuning Logstash
----------------
+Configuration
+^^^^^^^^^^^^^
 
 Tuning logstash is highly dependant on your use case and environment. What follows is a set of
 recommendations based on the research and experimentation of the CAST Big Data team.
@@ -111,7 +116,7 @@ Here are some useful resources for learning more about profiling and tuning logs
 * `Tuning Logstash`_
 
 logstash.yml
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 This configuration file specifies details about the Logstash service:
 
@@ -124,13 +129,13 @@ For more details please refer to the `Logstash settings file`_ documentation.
 .. TODO Add more to this as CAST learns more
 
 jvm.options
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 The configuration file for the Logstash JVM. The supplied settings are CAST's recommendation,
 however, the efficacy of these settings entirely depends on your Logstash node.
 
 logstash.conf
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 The `logstash.conf` is the core configuration file for determining the behavior of the Logstash
 pipeline in the default CAST configuration. This configuration file is split into three components:
@@ -190,7 +195,7 @@ configuration the port should be `9200`. An example of this configuration is as 
 
 
 grok
-^^^^
+~~~~
 
 Logstash provides a `grok` utility to perform regular expression pattern recognition and extraction.
 When writing grok patterns several rules of thumb are recommended by the CAST team:
@@ -218,6 +223,7 @@ documentation is an abridged version.
 .. Links
 .. _Logstash: https://www.elastic.co/products/logstash
 .. _Do you grok Grok?: https://www.elastic.co/blog/do-you-grok-grok
+.. _Installing Logstash: https://www.elastic.co/guide/en/logstash/current/installing-logstash.html#installing-logstash
 .. _Tuning Logstash: https://www.elastic.co/guide/en/logstash/current/tuning-logstash.html
 .. _configuration file structure: https://www.elastic.co/guide/en/logstash/current/configuration-file-structure.html
 .. _elasticsearch plugin: https://www.elastic.co/guide/en/logstash/current/plugins-outputs-elasticsearch.html
