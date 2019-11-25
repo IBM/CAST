@@ -63,6 +63,21 @@ in `/opt/ibm/csm/bigdata/logstash/`.
 .. note:: Target files are relative to `/etc/logstash`. Repo Directories are relative to 
    `csm_big_data/logstash`. RPM Directories are relative to `/opt/ibm/csm/bigdata/logstash/`.
 
+3. Install the `CSM Event Correlator`_ 
+    
+.. code:: bash
+
+    rpm -ivh ibm-csm-bds-logstash*.noarch.rpm
+
+.. note:: This change is effective in the 1.3.0 release of the CAST rpms.
+
+Please refer to `CSM Event Correlator`_ for more details.
+
+.. note:: The bin directory is relative to your logstash install location.
+
+Configuration
+^^^^^^^^^^^^^
+
 .. note:: The `conf.d/logstash.conf` file requires the ELASTIC-INSTANCE field be replaced with
    your cluster's Elasticsearch nodes.
    
@@ -80,32 +95,6 @@ in `/opt/ibm/csm/bigdata/logstash/`.
    pipeline.batch.delay: 50  # Maximum time to wait to execute an underfilled queue in milliseconds.
    queue.type: persisted
    ...
-
-3. Install the `CSM Event Correlator`_ 
-    
-.. code:: bash
-
-    rpm -ivh ibm-csm-bds-logstash*.noarch.rpm
-
-.. note:: This change is effective in the 1.3.0 release of the CAST rpms.
-
-Please refer to `CSM Event Correlator`_ for more details.
-
-.. note:: The bin directory is relative to your logstash install location.
-
-
-4. Start Logstash:
-
-.. code-block:: bash
-
-    systemctl enable logstash
-    systemctl start logstash
-
-Logstash should now be operational. At this point data aggregators should be configured to point
-to your Logstash node as appropriate.
-
-Configuration
-^^^^^^^^^^^^^
 
 Tuning logstash is highly dependant on your use case and environment. What follows is a set of
 recommendations based on the research and experimentation of the CAST Big Data team.
@@ -204,6 +193,19 @@ When writing grok patterns several rules of thumb are recommended by the CAST te
 2. Grok failure can be expensive, use anchors (^ and $) to make string matches precise to reduce failure costs.
 3. _groktimeout tagging can set an upper bound time limit for grok operations.
 4. Avoid `DATA` and `GREEDYDATA` if possible.
+
+Starting Logstash
+-----------------
+
+Now that every thing has been installed and configured. You can start Logstash. 
+
+.. code-block:: bash
+
+    systemctl enable logstash
+    systemctl start logstash
+
+Logstash should now be operational. At this point data aggregators should be configured to point
+to your Logstash node as appropriate.
 
 CSM Event Correlator
 ---------------------
