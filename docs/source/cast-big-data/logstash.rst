@@ -207,6 +207,8 @@ Now that every thing has been installed and configured. You can start Logstash.
 Logstash should now be operational. At this point data aggregators should be configured to point
 to your Logstash node as appropriate.
 
+.. note:: In ELK 6.8.1, Logstash may not start and run on Power, due to an arch issue. Please see: `CASTBDSCommon`_
+
 CSM Event Correlator
 ---------------------
 
