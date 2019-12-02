@@ -1567,7 +1567,7 @@ int setupBBproxyListener(string whoami)
             try{
                 sslSock->loadCertificates(cert,key);
             }
-            catch (std::runtime_error e){
+            catch (std::runtime_error& e){
                 LOG(bb,always) << "loadCertificates failed for (SSL) what=" << e.what();
                 unlockConnectionMaps("setupBBproxyListener - failure, sslSock->bindCnxSock()");
                 delete sslSock;

@@ -39,7 +39,9 @@ int StringTokenizer::tokenize(const std::string &rStr,
 {
     clear();        // clear out the last string.
     if (pDelimiters == NULL)            // no delimiters, then nothing to do...
+    {
         return(0);
+    }
 	std::string::size_type lastPos(rStr.find_first_not_of(pDelimiters, 0));
 	std::string::size_type pos(rStr.find_first_of(pDelimiters, lastPos));
 	while (std::string::npos != pos || std::string::npos != lastPos)
