@@ -285,7 +285,7 @@ int Coral_InitLibrary(uint32_t pContribId, const char* pClientVersion, const cha
                 {
                     rc = ENOENT;
                     errorText << "Error loading alternate configuration from " << pConfigfile;
-                    cerr << errorText << endl;
+                    cerr << errorText.str() << endl;
                     bberror << err("error.configfile", pConfigfile);
                     LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                 }
@@ -301,7 +301,7 @@ int Coral_InitLibrary(uint32_t pContribId, const char* pClientVersion, const cha
                 {
                     rc = ENOENT;
                     errorText << "Error loading configuration from " << DEFAULT_CONFIGFILE;
-                    cerr << errorText << endl;
+                    cerr << errorText.str() << endl;
                     LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                 }
             }

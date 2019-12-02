@@ -1659,7 +1659,7 @@ int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, B
     HANDLEFILE_LOCK_FEEDBACK l_LockFeedback = HANDLEFILE_WAS_NOT_LOCKED;
 
     l_Text << "xfer::prepareForRestart(): Pass " << pPass;
-    LOG(bb,debug) << l_Text;
+    LOG(bb,debug) << l_Text.str();
 
     // It is possible to entry this section of code without the transfer queue locked.
     // If not locked, we lock the transfer queue during the prepareForRestart() logic.
