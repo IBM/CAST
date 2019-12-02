@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/sysmacros.h>
 
 #include "bbproxy_flightlog.h"
 #include "logging.h"
