@@ -220,7 +220,7 @@ int BB_InitLibrary(uint32_t pContribId, const char* pClientVersion)
                     {
                         rc = ENOENT;
                         errorText << "Error loading configuration from " << DEFAULT_CONFIGFILE;
-                        cerr << errorText << endl;
+                        cerr << errorText.str() << endl;
                         LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
                     }
                 }
