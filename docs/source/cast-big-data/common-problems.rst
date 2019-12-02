@@ -15,6 +15,8 @@ Beats Not Starting
 
 There was a typo in a previous version of CAST. The field "close_removed" is a bool in the ELK config. This typo caused beats to not start up correctly. The CAST team has updated the config file to address this issue. 
 
+.. _Logstash_Not_Starting:
+
 Logstash Not Starting
 ---------------------
 
