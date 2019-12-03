@@ -22,7 +22,6 @@
 #include "logging.h"
 #include "util.h"
 #include <dirent.h>
-#include <linux/stat.h>
 #include <string>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -1622,7 +1621,7 @@ void *MessageHandler::run(unsigned numthreads) {
   pthread_t tid;
   void *rtnvalue;
   std::vector<pthread_t> blocklist;
-  LOG(fshipd, always) << "numthreads=" << x << " main pid=" << getpid();
+  LOG(fshipd, always) << "numthreads=" << numthreads << " main pid=" << getpid();
   for (x = 0; x < numthreads; x++) {
     rc = pthread_create(&tid, NULL, workerThread, this);
     if (rc != 0) {

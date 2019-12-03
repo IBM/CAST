@@ -11,6 +11,7 @@ IF(NOT FUSE_LIBRARY)
        set(FUSE_FOUND FALSE)
 ENDIF(NOT FUSE_LIBRARY)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-deprecated-declarations")
 
 IF(FUSE_FOUND)
         message(STATUS "Found Fuse: ${FUSE_LIBRARY}" )

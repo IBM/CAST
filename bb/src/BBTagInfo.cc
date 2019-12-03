@@ -91,7 +91,7 @@ void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uin
     typedef union
     {
         crc_data data;
-        unsigned char str[];
+        unsigned char str[sizeof(crc_data)];
     } crc_t;
 
     uint64_t l_SizeOfCRC = sizeof(((crc_data*)0)->jobid) + sizeof(((crc_data*)0)->jobstepid) + sizeof(((crc_data*)0)->tag) + (pContrib.size()*sizeof(uint32_t));

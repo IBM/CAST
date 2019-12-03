@@ -217,7 +217,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
             else
             {
                 rc = -2;
-                LOG(bb,info) << errorText << " Tolerated exception.";
+                LOG(bb,info) << errorText.str() << " Tolerated exception.";
             }
             break;
         }
@@ -234,7 +234,7 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
                 else
                 {
                     rc = -2;
-                    LOG(bb,info) << errorText << " Tolerated exception.";
+                    LOG(bb,info) << errorText.str() << " Tolerated exception.";
                 }
                 break;
             }

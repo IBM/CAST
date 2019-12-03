@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/sysmacros.h>
 
 #include "bbinternal.h"
 #include "connections.h"
@@ -215,7 +216,7 @@ int proxy_GetUsage(const char* mountpoint, BBUsage_t& usage)
     chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
 #endif
 
-    memset(&usage, 0, sizeof(usage));
+    memset((char*)&usage, 0, sizeof(usage));
 
     dev_t dinfo;
     rc = getDevice(mountpoint, dinfo);

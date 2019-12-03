@@ -731,7 +731,7 @@ int bbcmd_setusagelimit(po::variables_map& vm)
 
     VMEXISTS("mount");
 
-    memset(&usage,0,sizeof(usage));
+    memset((char*)&usage,0,sizeof(usage));
     usage.totalBytesRead = vm["rl"].as<unsigned long>();
     usage.totalBytesWritten = vm["wl"].as<unsigned long>();
 
@@ -1142,7 +1142,7 @@ int main(int orig_argc, const char** orig_argv)
         {
             rc = -1;
             errorText << "Error loading configuration from " << configfile;
-            cerr << errorText << endl;
+            cerr << errorText.str() << endl;
             bberror << err("error.configfile", configfile);
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }

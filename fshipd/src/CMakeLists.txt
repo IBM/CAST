@@ -9,6 +9,8 @@ add_dependencies(fshipd fsutil)
 #SET(CMAKE_CXX_COMPILER /path/to/cpp/compiler)
 #SET(CMAKE_C_COMPILER /path/to/c/compiler)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
 target_compile_definitions(fshipd PRIVATE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26 -DUSE_SC_LOGGER=1)
 target_link_libraries(fshipd fsutil -lpthread)
 target_link_libraries(fshipd txp)
