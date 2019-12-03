@@ -14,7 +14,7 @@ storage or large numbers of drives are prefered.
 Configuration
 -------------
 
-.. note:: This guide has been tested using Elasticsearch 6.3.2, the latest RPM may be downloaded from
+.. note:: This guide has been tested using Elasticsearch 6.8.1, the latest RPM may be downloaded from
     `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_.
 
 The following is a brief introduction to the installation and configuration of the elasticsearch service.
