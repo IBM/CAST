@@ -10,7 +10,7 @@ CAST provides a utility plugin for multistep searches of CSM jobs in Kibana dash
 Configuration
 -------------
 
-.. note:: This guide has been tested using Kibana 6.3.2, the latest RPM may be downloaded from
+.. note:: This guide has been tested using Kibana 6.8.1, the latest RPM may be downloaded from
     `the Elastic Site <https://www.elastic.co/downloads/kibana>`_.
 
 The following is a brief introduction to the installation and configuration of the Kibana service.
