@@ -163,7 +163,7 @@ if($::SRMTYPE eq "LSF")
     $::BADNONRECOVEXITRC = $ENV{"LSB_EXIT_PRE_ABORT"};
     $::BADNONRECOVEXITRC = 125 if(exists $ENV{"LSF_STAGE_JOBID"});
     $::BPOSTMBOX         = 0;
-    setupBBPATH();
+    $::BADNONRECOVEXITRC = 125 if(setupBBPATH() eq -1);
 }
 elsif($::SRMTYPE eq "shell")
 {
@@ -494,8 +494,25 @@ sub openBBENV
 sub setupBBPATH
 {
     my $bpostbin = $ENV{'LSF_BINDIR'};
-    my $bbpathdata = `$bpostbin/bread -w -i 119 $::JOBID`;  # root calls this, cannot use files
-    ($ENV{"BBPATH"} = $::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
+    my $envnotready = 60;
+    my $bbpathdata = "";
+    do 
+    {
+        $bbpathdata = `$bpostbin/bread -w -i 119 $::JOBID`;  # root calls this, cannot use files  
+        ($ENV{"BBPATH"} = $::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
+        if($::BBPATH eq "")
+        {
+            $envnotready--;
+            sleep(1);
+        }
+        else
+        {
+            $envnotready = -1;
+        }
+    }
+    while($envnotready > 0);
+    return -1 if($envnotready == 0);
+    return 0;
 }
 
 sub setupUserEnvironment
