@@ -67,6 +67,8 @@ rpm -ivh ${INSTALL_DIR}/ibm-csm-api-*
 rpm -ivh ${INSTALL_DIR}/ibm-csm-db-*
 rpm -ivh ${INSTALL_DIR}/ibm-csm-hcdiag-*
 rpm -ivh ${INSTALL_DIR}/ibm-csm-restd-*
+rpm -ivh ${INSTALL_DIR}/ibm-csm-bds-logstash-*
+rpm -ivh ${INSTALL_DIR}/ibm-csm-bds-1*
 
 # Install new CSM RPMs - Aggregator node
 xdcp ${AGGREGATOR_A} -R ${INSTALL_DIR} /root/
@@ -125,6 +127,7 @@ xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 
 # 4.2.3 Prolog/Epilog Scripts Compute
 xdcp csm_comp /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
+xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
 # Start Daemons
 systemctl start mosquitto
@@ -136,3 +139,8 @@ xdsh csm_comp "systemctl start csmd-compute"
 # Daemon Reload
 systemctl daemon-reload
 xdsh csm_comp,utility "systemctl daemon-reload"
+
+# Start Nvidia daemons
+xdsh csm_comp,utility,service "systemctl start nvidia-persistenced"
+xdsh csm_comp,utility,service "systemctl start dcgm"
+wait
