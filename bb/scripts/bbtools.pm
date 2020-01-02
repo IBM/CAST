@@ -499,7 +499,8 @@ sub setupBBPATH
     do 
     {
         $bbpathdata = `$bpostbin/bread -w -i 119 $::JOBID`;  # root calls this, cannot use files  
-        ($ENV{"BBPATH"} = $::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
+        ($::BBPATH) = $bbpathdata =~ /BB Path=(\S+)/;
+        $ENV{"BBPATH"} = $::BBPATH;
         if($::BBPATH eq "")
         {
             $envnotready--;
