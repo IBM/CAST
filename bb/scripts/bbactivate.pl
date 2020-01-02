@@ -232,7 +232,7 @@ sub setDefaults
     &def("bbhealth",         1, 1);
     &def("fvt",              1, 0);
     &def("shutdown",         1, 0);
-    &def("sharednode",       1, 0);
+    &def("sharednode",       1, 1);
     &def("sslcert",          1, "default");
     &def("sslpriv",          1, "default");
     &def("metadata",         1, "");

@@ -89,6 +89,10 @@ bbactivate will output the commands that it would run, but it will not modify th
 
 When used in combination with --dryrun, the file system changes will be written to file(s) in the directory specified by --drypath instead of the actual file locations.  
 
+=item B<--sharednode>
+
+When true, bbactivate does not reset the NVMe over Fabrics connections.  Default is true.
+
 =item B<--fvt>
 
 Artifically changes the configuration for FVT performance tests.  Not recommended for production usage.
