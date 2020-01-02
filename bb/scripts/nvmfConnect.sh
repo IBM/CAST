@@ -27,7 +27,7 @@ $cmd
 
 NVMEKEY=$(<$keyfile)
 
-cmd="/usr/sbin/nvme connect -t $network -n $nameSpace -a $ipAddr -s $port --hostnqn"
+cmd="/usr/sbin/nvme connect -l 60 -t $network -n $nameSpace -a $ipAddr -s $port --hostnqn"
 echo "Executing: $cmd <redacted>"
 
 if [[ $NVMEKEY ]]; then
