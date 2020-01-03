@@ -12,7 +12,7 @@
       "portid": 1, 
       "referrals": [], 
       "subsystems": [
-        "burstbuffer"
+        "not_set"
       ]
     },
     {
@@ -26,7 +26,7 @@
       "portid": 2,
       "referrals": [], 
       "subsystems": [
-        "burstbuffer"
+        "not_set"
       ]
     }
   ], 

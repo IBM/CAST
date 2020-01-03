@@ -515,8 +515,11 @@ sub configureNVMeTarget
 
     my $nvmetjson = cat($CFG{"nvmetempl"});
     my $json      = decode_json($nvmetjson);
+    
+    $json->{"subsystems"}[0]{"nqn"} = $nodename;
     my $ns        = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
     my $nqn       = $json->{"subsystems"}[0]{"nqn"};
+
 
     requireBlockDevice($json->{"subsystems"}[0]{"namespaces"}[0]{"device"}{"path"});
 
@@ -568,6 +571,7 @@ sub configureNVMeTarget
     foreach $port (@{$json->{"ports"}})
     {
         $port->{"addr"}{"traddr"} = $myip;
+        $port->{"subsystems"}[0] = $nqn;
     }
 
     $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
@@ -651,7 +655,17 @@ sub configureVolumeGroup
 sub clearNVMf
 {
     setprefix("Clearing NVMf connections: ");
-    cmd("nvme disconnect -n burstbuffer", 1);
+    my $out = safe_cmd("nvme list-subsys");
+    foreach $line (split("\n", $out))
+    {
+        if(($line =~ /NQN=\S+/) && ($line !~ /PM1725a/i))
+        {
+            my $nqn;
+            ($nqn) = $line =~ /NQN=(\S+)/;
+            cmd("nvme disconnect -n $nqn");
+        }
+
+    }
 }
 
 sub startServer
