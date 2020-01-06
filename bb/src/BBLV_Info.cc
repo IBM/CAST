@@ -131,6 +131,18 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
             int l_DelayMsgLogged = 0;
             if (!pSourceIndex)
             {
+                // NOTE: We only wait for all other extents to be pulled from the inflight queue in the cancel/failover cases.
+                //       When pSourceIndex is passed, this is for a failed transfer of an extent for a file.  In that case,
+                //       if we have multiple threads processing extents for the same file and more than one extent failed to transfer,
+                //       we could end up in a deadlock waiting for all other extents for that file to be pulled from the inflight queue.
+                //       (The threads could end up waiting for each other to pull it's extent from the inflight queue.)
+                //       It is not a problem to not wait as this isn't a real cancel situation and we are not needing to post a message
+                //       indicating that the extents for the file have been canceled.  We are simply trying to clear the extents for the failed
+                //       file transfer as quickly as possible from both the inflight and work queues.
+                //
+                //       In the cancel/failover cases, deadlock is not a concern as there will only be a single thread doing the processing.
+                //       We wait for the inflight queue to clear of extents in the case where we could possibly remove the target file
+                //       from the file system (code below) as part of the cancel operation.
                 while (extentInfo.moreExtentsToTransfer((int64_t)(*pHandle), (int32_t)(*pContribId), pNumberOfExpectedInFlight, l_DumpOption))
                 {
                     unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
@@ -160,39 +172,6 @@ void BBLV_Info::cancelExtents(const LVKey* pLVKey, uint64_t* pHandle, uint32_t* 
                     lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
                     lockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransfer() to be processed");
                 }
-            }
-            else
-            {
-                while (extentInfo.moreExtentsToTransferForFile((int64_t)(*pHandle), (int32_t)(*pContribId), (int32_t)(*pSourceIndex), pNumberOfExpectedInFlight, l_DumpOption))
-                {
-                    unlockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
-                    unlockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
-                    {
-                        // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                        if ((i++ % 60) == 48)
-                        {
-                            FL_Write(FLDelay, CancelExtents2, "Cancel operation in progress for handle %ld, contribid %ld, sourceindex %ld. Waiting for the canceled extents to be processed. Delay of 1 second before retry.",
-                                     (uint64_t)(*pHandle), (uint64_t)(*pContribId), (uint64_t)(*pSourceIndex), 0);
-                            LOG(bb,info) << ">>>>> DELAY <<<<< BBLV_Info::cancelExtents: For " << *pLVKey << ", handle " << *pHandle << ", contribid " << *pContribId << ", sourceindex " << *pSourceIndex \
-                                         << ", waiting for all canceled extents to finished being processed.  Delay of 1 second before retry.";
-                            l_DelayMsgLogged = 1;
-                        }
-                        pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
-                        usleep((useconds_t)250000);
-                        // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                        if ((i % 60) == 48)
-                        {
-                            l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
-                        }
-                        else
-                        {
-                            l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
-                        }
-                    }
-                    lockLocalMetadata(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
-                    lockTransferQueue(pLVKey, "cancelExtents - Waiting for the moreExtentsToTransferForFile() to be processed");
-                }
-
             }
 
             if (l_DelayMsgLogged)
@@ -1059,7 +1038,7 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
         // Sort the extents, moving the canceled extents to the front of
         // the work queue so they are immediately removed...
         uint32_t l_ContribId = UNDEFINED_CONTRIBID;
-        uint32_t* l_SourceIndex = 0;
+        uint32_t* l_SourceIndex = NULL;
         cancelExtents(pLVKey, &pHandle, &l_ContribId, l_SourceIndex, 0, pLockWasReleased, pRemoveOption);
     }
 
