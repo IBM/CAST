@@ -25,6 +25,9 @@
 
 namespace bfs = boost::filesystem;
 
+static uint64_t l_Total_PFS_Reads = 0;
+static uint64_t l_Total_PFS_Writes = 0;
+
 int BBIO_Regular::close(uint32_t pFileIndex)
 {
     int rc = 0;
@@ -267,16 +270,17 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
     filehandle* fh = getFileHandle(pFileIndex);
     if (fh)
     {
+        bool l_ForcePFSReadError = (g_ForcePFSReadError ? ++l_Total_PFS_Reads >= g_ForcePFSReadError ? true : false : false);
         int fd = fh->getfd();
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, fd,__LINE__, pMaxBytesToRead,pOffset);
-        bytesRead = ::pread(fd, pBuffer, pMaxBytesToRead, pOffset);
+        bytesRead = (!l_ForcePFSReadError) ? ::pread(fd, pBuffer, pMaxBytesToRead, pOffset) : -1;
         threadLocalTrackSyscallPtr->clearTrack();
         if (bytesRead < 0)
         {
             stringstream errorText;
             errorText << "BBIO_Regular::pread: Read from PFS file failed, file index " << pFileIndex << ", max bytes to read " << pMaxBytesToRead << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
-            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO(errorText, (!l_ForcePFSReadError) ? errno : 5);
             SET_RC_AND_RAS(bytesRead, bb.sc.pread.pfs);
         }
     }
@@ -299,9 +303,10 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
     filehandle* fh = getFileHandle(pFileIndex);
     if (fh)
     {
+        bool l_ForcePFSWriteError = (g_ForcePFSWriteError ? ++l_Total_PFS_Writes >= g_ForcePFSWriteError ? true : false : false);
         int fd = fh->getfd();
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, fd,__LINE__,pMaxBytesToWrite ,pOffset);
-        bytesWritten = ::pwrite(fd, pBuffer, pMaxBytesToWrite, pOffset);
+        bytesWritten = (!l_ForcePFSWriteError) ? ::pwrite(fd, pBuffer, pMaxBytesToWrite, pOffset) : -1;
         threadLocalTrackSyscallPtr->clearTrack();
 
         if (bytesWritten < 0)
@@ -309,7 +314,7 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
             stringstream errorText;
             errorText << "BBIO_Regular::pwrite: Write to PFS file failed, file index " << pFileIndex << ", max bytes to write " << pMaxBytesToWrite << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
-            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+            LOG_ERROR_TEXT_ERRNO(errorText, (!l_ForcePFSWriteError) ? errno : 5);
             SET_RC_AND_RAS(bytesWritten, bb.sc.pwrite.pfs);
         }
     }

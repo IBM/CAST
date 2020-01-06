@@ -79,6 +79,18 @@ AtomicCounter metadataCounter;
 // Log update handle status elapsed time clip value
 double g_LogUpdateHandleStatusElapsedTimeClipValue = DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE;
 
+// Force SSD Read error
+uint64_t g_ForceSSDReadError = DEFAULT_FORCE_SSD_READ_ERROR;
+
+// Force SSD Write error
+uint64_t g_ForceSSDWriteError = DEFAULT_FORCE_SSD_WRITE_ERROR;
+
+// Force PFS Read error
+uint64_t g_ForcePFSReadError = DEFAULT_FORCE_PFS_READ_ERROR;
+
+// Force SSD Write error
+uint64_t g_ForcePFSWriteError = DEFAULT_FORCE_PFS_WRITE_ERROR;
+
 // Abort on critical error indicator
 bool g_AbortOnCriticalError = DEFAULT_ABORT_ON_CRITICAL_ERROR;
 
@@ -3024,6 +3036,10 @@ int bb_main(std::string who)
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
+        g_ForceSSDReadError = config.get(process_whoami + ".bringup.forceSSDReadError", DEFAULT_FORCE_SSD_READ_ERROR);
+        g_ForceSSDWriteError = config.get(process_whoami + ".bringup.forceSSDWriteError", DEFAULT_FORCE_SSD_WRITE_ERROR);
+        g_ForcePFSReadError = config.get(process_whoami + ".bringup.forcePFSReadError", DEFAULT_FORCE_PFS_READ_ERROR);
+        g_ForcePFSWriteError = config.get(process_whoami + ".bringup.forcePFSWriteError", DEFAULT_FORCE_PFS_WRITE_ERROR);
         g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
         g_LogUpdateHandleStatusElapsedTimeClipValue = config.get(process_whoami+".bringup.logUpdateHandleStatusElapsedTimeClipValue", DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE);
         g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
