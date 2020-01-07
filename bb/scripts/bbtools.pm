@@ -30,6 +30,7 @@ require AutoLoader;
              setupUserEnvironment
              bbfail
              bbwaitTransfersComplete
+             bbwaitBBServerUp
 );
 
 $VERSION = '0.01';
@@ -288,13 +289,69 @@ sub bbwaitTransfersComplete
     return $result;
 }
 
+sub bbwaitBBServerUp
+{
+    my $rc = 0;
+    my $timeout = 3600;
+    $timeout = $json->{"bb"}{"scripts"}{"transfertimeout"} if(exists $json->{"bb"}{"scripts"}{"transfertimeout"});
+
+    my $starttime  = time();
+    my $result     = bbcmd("$::TARGET_ALL_NOBCAST getserver --connected=active");
+    return -1 if($result->{"rc"});
+
+    foreach $rank (keys %{$result})
+    {
+        next if($rank !~ /^\d+/);
+        if($result->{$rank}{"out"}{"serverList"} eq "none")
+        {
+            # Check recovery status
+            while(1)
+            {
+                my $nodedata = bbcmd("--target=$rank getserver --connected=active");
+                if($nodedata->{"rc"})
+                {
+                    $rc = 2;
+                    last;
+                }
+                last if($nodedata->{$rank}{"out"}{"serverList"} ne "none"); # got connection
+
+                $nodedata = bbcmd("--target=$rank getserver --connected=recovery");
+                if($nodedata->{"rc"})
+                {
+                    $rc = 2;
+                    last;
+                }
+
+                if($nodedata->{$rank}{"out"}{"serverList"} > 4)
+                {
+                    $rc = 1;
+                    bpost("BB: Rank $rank unable to reestablish bbServer connection");
+                    last;
+                }
+                bpost("BB: Waiting for rank $rank to reestablish a bbServer connection");
+                sleep(30);
+                my $curtime = time();
+                if($curtime - $starttime > $timeout)
+                {
+                    bpost("BB: Waiting for bbServer connection reestablishment has timed out");
+                    $rc = 3;
+                    last;
+                }
+            }
+        }
+        last if($rc == 3);
+    }
+
+    return $rc;
+}
+
 sub bbcmd
 {
-    my($foo) = @_;
+    my($foo, $timeout) = @_;
     $cmd = untaint($foo);
     if(!$QUIET) { print "\ncmd: $BBCMDPATH/bbcmd $cmd\n" }
 
-    my $timeout = 600;
+    $timeout = 600 if(!defined $timeout);
     $timeout = $json->{"bb"}{"scripts"}{"bbcmdtimeout"} if(exists $json->{"bb"}{"scripts"}{"bbcmdtimeout"});
 
     alarm($timeout);
