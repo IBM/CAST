@@ -465,8 +465,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                 l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
 
                 {
-                    // NOTE: Currently set to send info to console after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i++ % 60) == 48)
+                    // NOTE: Currently set to send info to console after 15 seconds of not being able to clear, and every 30 seconds thereafter...
+                    // NOTE: Retrieve transfers can cause this delay...
+                    if ((i++ % 120) == 60)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
                                  pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);
@@ -475,8 +476,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                         l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
-                    // NOTE: Currently set to dump after 12 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if ((i % 60) == 48)
+                    // NOTE: Currently set to dump after 60 seconds of not being able to clear, and every 120 seconds thereafter...
+                    if ((i % 480) == 240)
                     {
                         l_DumpOption = MORE_EXTENTS_TO_TRANSFER;
                     }
