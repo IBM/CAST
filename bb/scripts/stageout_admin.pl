@@ -58,6 +58,7 @@ exit($exitstatus);
 
 sub phase1
 {
+    &bbwaitBBServerUp();
     my $timeout = 600;
     $timeout = $jsoncfg->{"bb"}{"scripts"}{"stageout1timeout"} if(exists $jsoncfg->{"bb"}{"scripts"}{"stageout1timeout"});
 
