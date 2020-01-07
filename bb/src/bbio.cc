@@ -27,6 +27,9 @@ static pthread_mutex_t    freeTransferBuffers_mutex = PTHREAD_MUTEX_INITIALIZER;
 static queue<void*>       freeTransferBuffers;
 static sem_t              numFreeBuffers;
 
+static uint64_t l_Total_SSD_Reads = 0;
+static uint64_t l_Total_SSD_Writes = 0;
+
 int setupTransferBuffer(int fileindex)
 {
     if(threadTransferBuffer == NULL)
@@ -203,6 +206,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
             // Target is SSD...
             unlockTransferQueue(&pKey, "performIO - Before perform I/O to SSD for extent");
 
+            bool l_ForceSSDWriteError = (g_ForceSSDWriteError ? ++l_Total_SSD_Writes >= g_ForceSSDWriteError ? true : false : false);
             try
             {
                 LOG(bb,debug) << "Copying to SSD from sourceindex=" << pExtent->sourceindex;
@@ -224,7 +228,6 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                               << " dst offset=0x" << setw(8) << offset_dst \
                               << " size=0x" << setw(8) << count \
                               << setfill(' ') << std::nouppercase << std::dec;
-
                 while ((!rc) && count > 0)
                 {
                     setupTransferBuffer(pExtent->sourceindex);
@@ -250,14 +253,14 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
 
                         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpwritesyscall, ssd_fd,__LINE__, ssdWriteAdjust(bytesRead),offset_dst);
                         transferDef->preProcessWrite(l_Time);
-                        bytesWritten = ::pwrite(ssd_fd, threadTransferBuffer, ssdWriteAdjust(bytesRead), offset_dst);
+                        bytesWritten = (!l_ForceSSDWriteError) ? ::pwrite(ssd_fd, threadTransferBuffer, ssdWriteAdjust(bytesRead), offset_dst) : -1;
                         transferDef->postProcessWrite(pExtent->sourceindex, l_Time);
                         threadLocalTrackSyscallPtr->clearTrack();
 
-                        if ( __glibc_likely(bytesWritten >= 0) )
+                        if ( __glibc_likely(bytesWritten >= 0))
                         {
                             FL_Write6(FLXfer, PWRITE_SSDCMP, "Extent %p, write file descriptor %ld complete.  rc=%ld offset_dst=0x%lx sourceindex=%ld", (uint64_t)pExtent, ssd_fd, bytesWritten, offset_dst, pExtent->sourceindex, 0);
-                            if (bytesWritten > bytesRead)bytesWritten = bytesRead;  //fixup for page pad
+                            if (bytesWritten > bytesRead) bytesWritten = bytesRead;  //fixup for page pad
                             offset_src += bytesWritten;
                             offset_dst += bytesWritten;
                             count      -= bytesWritten;
@@ -268,7 +271,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                             FL_Write6(FLXfer, PWRITE_SSDFAIL, "Extent %p, write to remote SSD failed. fd=%ld  offset_dst=%ld  bytesWritten=%ld  errno=%ld", (uint64_t)pExtent, ssd_fd, offset_dst, bytesWritten, errno, 0);
                             rc = -1;
                             errorText << "Write to remote SSD failed";
-                            LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.sc.pwrite.ssd);
+                            LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, (!l_ForceSSDWriteError) ? errno : 5, bb.sc.pwrite.ssd);
                             bberror << err("rc", rc);
                         }
                     }
@@ -312,6 +315,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
             // Target is PFS...
             unlockTransferQueue(&pKey, "performIO - Before perform I/O to PFS for extent");
 
+            bool l_ForceSSDReadError = (g_ForceSSDReadError ? ++l_Total_SSD_Reads >= g_ForceSSDReadError ? true : false : false);
             try
             {
                 LOG(bb,debug) << "Copying to targetindex=" << pExtent->targetindex << " from SSD";
@@ -342,7 +346,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
 
                     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::SSDpreadsyscall, ssd_fd,__LINE__, ssdReadCount,ssdReadOffset);
                     transferDef->preProcessRead(l_Time);
-                    bytesRead = ::pread(ssd_fd, threadTransferBuffer, ssdReadCount, ssdReadOffset);
+                    bytesRead = (!l_ForceSSDReadError) ? ::pread(ssd_fd, threadTransferBuffer, ssdReadCount, ssdReadOffset) : -1;
                     transferDef->postProcessRead(pExtent->sourceindex, l_Time);
                     threadLocalTrackSyscallPtr->clearTrack();
 
@@ -381,7 +385,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         FL_Write6(FLXfer, PREAD_SSDFAIL, "Extent %p, read from remote SSD failed.  fd=%ld  offset_src=%ld  bytesRead=%ld  errno=%ld", (uint64_t)pExtent, ssd_fd, offset_src, bytesRead, errno, 0);
                         rc = -1;
                         errorText << "Read from remote SSD failed";
-                        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.sc.pread.ssd);
+                        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, (!l_ForceSSDReadError) ? errno : 5, bb.sc.pread.ssd);
                         bberror << err("rc", rc);
                     }
                 }

@@ -77,19 +77,23 @@ extern BBLV_Metadata metadata;
 #if BBSERVER
 extern WRKQMGR wrkqmgr;
 extern WRKQE* HPWrkQE;
-extern double ResizeSSD_TimeInterval;
-extern double Throttle_TimeInterval;
 extern Timer ResizeSSD_Timer;
 extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
-extern double g_AsyncRemoveJobInfoInterval;
 extern bool g_UseDirectIO;
 extern int g_DumpTransferMetadataAfterQueue;
 extern int g_DumpStatsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeSort;
 extern int g_DumpExtentsAfterSort;
+extern uint64_t g_ForceSSDReadError;
+extern uint64_t g_ForceSSDWriteError;
+extern uint64_t g_ForcePFSReadError;
+extern uint64_t g_ForcePFSWriteError;
+extern double ResizeSSD_TimeInterval;
+extern double Throttle_TimeInterval;
+extern double g_AsyncRemoveJobInfoInterval;
 extern string g_BBServer_Metadata_Path;
 
 void setSsdWriteDirect(unsigned int pValue);
@@ -112,16 +116,40 @@ extern void flightlog_Backtrace(uint64_t key);
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const double DEFAULT_BBSERVER_CONSOLE_TRANSFER_STATUS_TIME_INTERVAL = 5;        // in seconds
-const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 3600;                   // in seconds (1 hour)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 300;                    // in seconds (5 minutes)
+const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 120;                    // in seconds (2 minutes)
 const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    // in seconds
 const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
 const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;                       // in seconds
-const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 300;                // in seconds
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
+                                                                                // NOTE: The default declareServerDeadCount value
+                                                                                //       is 2 * heartbeat time interval, which by
+                                                                                //       default is 4 minutes.  The declareServerDeadCount
+                                                                                //       is then set to the max(default declareServerDeadCount,
+                                                                                //                              MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE)
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
+
+// NOTE: If the BB throttling rate is used to limit the amount of
+//       bandwidth BB consumes, the following default value should be
+//       changed to the default rate/sec value used for BB throttling.
+const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
+const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
+const uint64_t DEFAULT_FORCE_SSD_READ_ERROR = 0;
+const uint64_t DEFAULT_FORCE_SSD_WRITE_ERROR = 0;
+const uint64_t DEFAULT_FORCE_PFS_READ_ERROR = 0;
+const uint64_t DEFAULT_FORCE_PFS_WRITE_ERROR = 0;
+
+const uint64_t NUMBER_OF_TAGINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_HANDLEINFO_BUCKETS = 256;
+const uint64_t NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS = 256;
+
+const uint64_t UNDEFINED_JOBID = 0;
+const uint64_t UNDEFINED_JOBSTEPID = 0;
+const uint64_t DEFAULT_JOBID = 1;
+const uint64_t DEFAULT_JOBSTEPID = 1;
+const uint64_t UNDEFINED_HANDLE = 0;
 
 const int CONSECUTIVE_SUSPENDED_WORK_QUEUES_NOT_PROCESSED_THRESHOLD = 10;
 const int DO_NOT_DUMP_QUEUES_ON_VALUE = -1;
@@ -137,29 +165,11 @@ const int THIRD_PASS = 3;
 const int RESUME = 0;
 const int SUSPEND = 1;
 
-const bool DEFAULT_USE_DISCARD_ON_MOUNT_OPTION = false;
-const bool DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM = true;
-const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
-const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
-const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
-const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
-const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
-
 const int DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE = 0;
 const int DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 1;
 const int DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE = 0;
-
-const uint64_t UNDEFINED_JOBID = 0;
-const uint64_t UNDEFINED_JOBSTEPID = 0;
-const uint64_t DEFAULT_JOBID = 1;
-const uint64_t DEFAULT_JOBSTEPID = 1;
-const uint64_t UNDEFINED_HANDLE = 0;
-
-
-const int32_t DEFAULT_LOGICAL_VOLUME_READAHEAD = -1;
-const int32_t DO_NOT_TRANSFER_FILE = INT32_MAX;
 
 const uint32_t NO_CONTRIBID = 999999998;
 const uint32_t CONTRIBID_AS_INITIALIZED = NO_CONTRIBID;
@@ -167,15 +177,16 @@ const uint32_t UNDEFINED_CONTRIBID = 999999999;
 const uint32_t DEFAULT_CONTRIBID = 0;
 const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
 
-// NOTE: If the BB throttling rate is used to limit the amount of
-//       bandwidth BB consumes, the following default value should be
-//       changed to the default rate/sec value used for BB throttling.
-const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
-const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
+const int32_t DEFAULT_LOGICAL_VOLUME_READAHEAD = -1;
+const int32_t DO_NOT_TRANSFER_FILE = INT32_MAX;
 
-const uint64_t NUMBER_OF_TAGINFO_BUCKETS = 256;
-const uint64_t NUMBER_OF_HANDLEINFO_BUCKETS = 256;
-const uint64_t NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS = 256;
+const bool DEFAULT_USE_DISCARD_ON_MOUNT_OPTION = false;
+const bool DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM = true;
+const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
+const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
+const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
+const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
+const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
 
 const string ALL = "*";
 
