@@ -50,7 +50,7 @@ const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
 const int DEFAULT_RETRY_VALUE = 10;         // Default, retry value for fread, fwrite, fseek, and ftell
-const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 30.0;    // In seconds, default is to dump wrkqmgr every minute
+const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 30.0;    // In seconds, default is to dump wrkqmgr every 30 seconds
 const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 120;   // Default, if no activity, dump every hour
                                                                         // NOTE:  120*30 = 3600 seconds
 
