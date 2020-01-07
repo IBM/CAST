@@ -66,7 +66,8 @@ txp::Connex*  makeConnection2remoteSSL(const std::string& pName,std::string pIPi
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
+                int l__tcpusertimeout = config.get("bb.tcpusertimeout", 120*1000);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount, l__tcpusertimeout);
             }
             sock->keepAlive();
         }
@@ -120,7 +121,8 @@ txp::Connex*  makeConnection2remoteNonSSL(const std::string& pName,std::string p
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
+                int l__tcpusertimeout = config.get("bb.tcpusertimeout", 120*1000);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount, l__tcpusertimeout);
             }
             sock->keepAlive();
         }

@@ -264,6 +264,10 @@ int ConnexSocket::poll4DataIn() {
             if (setsockopt(_sockfd, SOL_TCP, TCP_KEEPCNT, &_keepAliveCount, sizeof(_keepAliveCount)) != 0){
                 LOGERRNO(txp,error,errno);//syslog that something bad happened
             }
+            //set TCP_USER_TIMEOUT (rfc5482)
+            if (setsockopt(_sockfd, SOL_TCP, TCP_USER_TIMEOUT, &_userTimeout, sizeof(_userTimeout)) != 0){
+                LOGERRNO(txp,error,errno);//syslog that something bad happened
+            }
 
             val=1; //on=1
             if (setsockopt(_sockfd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) != 0) {
