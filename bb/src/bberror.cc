@@ -118,7 +118,7 @@ int BBHandler::clear(const std::string& pConnectionName)
     // NOTE:  We do not log any bberror without a connection name.
     if (!connectionNameIsEmpty())
     {
-        if ((errstate.get("rc", "0") != "0") || config.get(process_whoami+".bringup.dump_bberror_onclear", 0))
+        if ((errstate.get("rc", "0") != "0") && config.get(process_whoami+".bringup.dump_bberror_onclear", 0))
         {
             std::string result = get("json");
             if (std::count(result.begin(), result.end(), ':') != 2)
