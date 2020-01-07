@@ -116,15 +116,19 @@ extern void flightlog_Backtrace(uint64_t key);
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const double DEFAULT_BBSERVER_CONSOLE_TRANSFER_STATUS_TIME_INTERVAL = 5;        // in seconds
-const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 3600;                   // in seconds (1 hour)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 300;                    // in seconds (5 minutes)
+const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 120;                    // in seconds (2 minutes)
 const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    // in seconds
 const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
 const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;                       // in seconds
-const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 300;                // in seconds
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
+                                                                                // NOTE: The default declareServerDeadCount value
+                                                                                //       is 2 * heartbeat time interval, which by
+                                                                                //       default is 4 minutes.  The declareServerDeadCount
+                                                                                //       is then set to the max(default declareServerDeadCount,
+                                                                                //                              MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE)
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
 
 // NOTE: If the BB throttling rate is used to limit the amount of
