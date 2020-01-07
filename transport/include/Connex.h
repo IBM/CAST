@@ -232,6 +232,7 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         int _keepAliveIntvl;   //!  the interval seconds between subsequential keepalive probes
         int _keepAliveIdle;    //!  the interval seconds between the last data packet sent and the first keepalive probe
         int _keepAliveCount;   //!  the maximum number of unacknowledged probes to send
+        int _userTimeout;      //!  the number of milliseconds for a TCP response
         bool _turnOnKeepAlive; //!  turn keepAlive on if true; turn off if false
 
     public:
@@ -276,11 +277,12 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         int attachRemote(int retryTime, int retryCount);
         virtual int keepAlive();
         void setKeepAliveBool(bool pTurnOnKeepAlive){_turnOnKeepAlive=pTurnOnKeepAlive;}
-        void setKeepAliveParms(int pKeepAliveIntvl, int pKeepAliveIdle, int pKeepAliveCount )
+        void setKeepAliveParms(int pKeepAliveIntvl, int pKeepAliveIdle, int pKeepAliveCount, int pUserTimeout )
         {
             _keepAliveIntvl = pKeepAliveIntvl;
             _keepAliveIdle = pKeepAliveIdle;   
             _keepAliveCount = pKeepAliveCount;   
+            _userTimeout = pUserTimeout;
         }
 
 
