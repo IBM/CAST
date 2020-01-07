@@ -32,7 +32,7 @@ Offline primary connection and reactivate
 
     # Connect/Disconnect
     Offline connection  primary
-    Get transfer handle list  -1
+    Get transfer handle list  -2
     Activate connection  primary
     Get transfer handle list
 
