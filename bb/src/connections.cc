@@ -739,6 +739,7 @@ int sendMessage(const string& name, txp::Msg* msg)
                 name2connections.erase(iter);
             }
             LOG(bb,error) << "SendMessage--Unable to find connection to '" << name << "' msg="<<msg<< " Msg#=" << msg->getMsgNumber() << ", RMsg#=" << msg->getRequestMsgNumber();
+            rc = -2;
         }
     }
     unlockConnectionWrite("sendMessage(string, txp::Msg*)");
@@ -832,6 +833,7 @@ int sendMessage(const string& name, txp::Msg* msg, ResponseDescriptor& reply, bo
                     name2connections.erase(iter);
                 }
                 LOG(bb,error) << "SendMessageWithReply--Unable to find connection to '" << name << "'";
+                rc = -2;
             }
         }
         unlockConnectionMaps("sendMessage(string, txp::Msg*, ResponseDescriptor&)");
@@ -940,7 +942,7 @@ int waitReply(ResponseDescriptor& reply, txp::Msg*& response_msg)
     if(reply.reply == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
-        return -1;
+        return -2;
     }
 
     return 0;
@@ -971,7 +973,7 @@ int waitReplyNoErase(ResponseDescriptor& reply, txp::Msg*& response_msg)
     if(response_msg == NULL)
     {
         bberror << err("error.text", "Connection closed waiting for the reply");
-        return -1;
+        return -2;
     }
 
     return 0;
@@ -1534,7 +1536,8 @@ int setupBBproxyListener(string whoami)
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
+                int l__tcpusertimeout = config.get("bb.tcpusertimeout", 120*1000);
+                sock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount, l__tcpusertimeout);
             }
 
             connections[sock->getSockfd()] = sock;
@@ -1601,7 +1604,8 @@ int setupBBproxyListener(string whoami)
                 int l_keepAliveIdle   = config.get("bb.keepaliveidle", 60);
                 int l_keepAliveCount  = config.get("bb.keepalivecount", 12);
                 int l__keepAliveIntvl = config.get("bb.keepaliveinterval", 5);
-                sslSock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount);
+                int l__tcpusertimeout = config.get("bb.tcpusertimeout", 120*1000);
+                sslSock->setKeepAliveParms(l__keepAliveIntvl, l_keepAliveIdle, l_keepAliveCount, l__tcpusertimeout);
             }
 
 

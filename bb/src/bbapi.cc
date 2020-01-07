@@ -2231,6 +2231,10 @@ int BB_GetServer(const char* type, size_t bufsize, char* buffer)
         else if (l_type=="primary"){
             l_query=BBPRIMARY;
         }
+        else if (l_type=="recovery")
+        {
+            l_query=BBRECOVERYATTEMPT;
+        }
         else {
             rc=EINVAL;
             errorText << "Invalid type value " << l_type << " passed.  Expecting all, active, or ready";

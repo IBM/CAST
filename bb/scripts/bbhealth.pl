@@ -169,6 +169,11 @@ sub monitor
                 }
             }
         }
+        open(TMP, ">/tmp/bbhealth.status");
+        print TMP "$failurecnt\n";
+        close(TMP);
+        chmod(0644, "/tmp/bbhealth.status");
+        
         $pollcount++;
         $backoffFactor = 1;
         $backoffFactor = 2**($failurecnt - 4)       if($failurecnt > 4);
@@ -204,6 +209,6 @@ sub failover
 ##########################
 ###  Switch over transfers
 
-    $result = bbcmd("adminfailover --resume=1");
+    $result = bbcmd("adminfailover --resume=1", 1800);
     return -1 if(bbgetrc($result) != 0);
 }

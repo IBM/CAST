@@ -4126,26 +4126,48 @@ void msgin_getserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
         switchIds();
 
         // Check permissions
-        checkForSuperUserPermission();
+        // checkForSuperUserPermission();
 
         int64_t l_Value = ((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::value64))->getData();
         BBServerQuery l_query = (BBServerQuery)l_Value;
-
         switch(l_query){
             case BBALLCONNECTED:
                 result= connectionNameFromAlias() + " " + readyBBserverList();
+                if(result == "") 
+                {
+                    result = string("none");
+                }
                 break;
             case BBACTIVE:
                 result= connectionNameFromAlias();
+                if(result == "") 
+                {
+                    result = string("none");
+                }
                 break;
             case BBREADY:
                 result = readyBBserverList();
+                if(result == "") 
+                {
+                    result = string("none");
+                }
                 break;
             case BBBACKUP:
                 result = getBACKUP();
+                if(result == "") 
+                {
+                    result = string("none");
+                }
                 break;
             case BBPRIMARY:
                 result = getPRIMARY();
+                if(result == "") 
+                {
+                    result = string("none");
+                }
+                break;
+            case BBRECOVERYATTEMPT:
+                result = (runCommand("/tmp/bbhealth.status", 1)) [0];
                 break;
             default:
                 rc=EINVAL;

@@ -111,7 +111,8 @@ typedef enum BBERRORFORMAT BBERRORFORMAT;
         BBREADY=2,
         BBBACKUP=3,
         BBPRIMARY=4,
-        BBWAITFOREPLYCOUNT=5
+        BBWAITFOREPLYCOUNT=5,
+        BBRECOVERYATTEMPT=6
     };
 
     typedef enum BBServerQuery BBServerQuery;
