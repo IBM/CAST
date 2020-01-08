@@ -265,7 +265,7 @@ int ConnexSocket::poll4DataIn() {
                 LOGERRNO(txp,error,errno);//syslog that something bad happened
             }
             //set TCP_USER_TIMEOUT (rfc5482)
-            if (setsockopt(_sockfd, SOL_TCP, TCP_USER_TIMEOUT, &_userTimeout, sizeof(_userTimeout)) != 0){
+            if (setsockopt(_sockfd, SOL_TCP, TCP_USER_TIMEOUT, &_tcpUserTimeout, sizeof(_tcpUserTimeout)) != 0){
                 LOGERRNO(txp,error,errno);//syslog that something bad happened
             }
 
