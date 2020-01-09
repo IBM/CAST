@@ -515,11 +515,11 @@ sub configureNVMeTarget
 
     my $nvmetjson = cat($CFG{"nvmetempl"});
     my $json      = decode_json($nvmetjson);
-    
-    $json->{"subsystems"}[0]{"nqn"} = $nodename;
+    my $bootid    = cat("/proc/sys/kernel/random/boot_id");
+    my $nqn       = substr($nodename . "-" . $bootid, 5, 14);
+    chomp($bootid);
+    $json->{"subsystems"}[0]{"nqn"} = $nqn;
     my $ns        = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
-    my $nqn       = $json->{"subsystems"}[0]{"nqn"};
-
 
     requireBlockDevice($json->{"subsystems"}[0]{"namespaces"}[0]{"device"}{"path"});
 
