@@ -124,7 +124,6 @@ int getWriteFdByExtent(Extent* pExtent)
     return fd;
 }
 
-
 /*
  * Member methods
  */
@@ -207,6 +206,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
             unlockTransferQueue(&pKey, "performIO - Before perform I/O to SSD for extent");
 
             bool l_ForceSSDWriteError = (g_ForceSSDWriteError ? ++l_Total_SSD_Writes >= g_ForceSSDWriteError ? true : false : false);
+            int l_PostToReadGovernor = 0;
             try
             {
                 LOG(bb,debug) << "Copying to SSD from sourceindex=" << pExtent->sourceindex;
@@ -232,12 +232,24 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                 {
                     setupTransferBuffer(pExtent->sourceindex);
 
+                    if (l_SSD_Read_Governor_Active)
+                    {
+                        sem_wait(&l_SSD_Read_Governor);
+                        l_PostToReadGovernor = 1;
+                    }
+
                     FL_Write6(FLXfer, PREAD_PFS, "Extent %p, reading from target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->sourceindex, (uint64_t)threadTransferBuffer, MIN(transferBufferSize, count), offset_src, 0);
 
                     transferDef->preProcessRead(l_Time);
                     //pread is bbio::pread derived
                     bytesRead = pread(pExtent->sourceindex, threadTransferBuffer, MIN(transferBufferSize, count), offset_src);
                     transferDef->postProcessRead(pExtent->sourceindex, l_Time);
+
+                    if (l_PostToReadGovernor)
+                    {
+                        l_PostToReadGovernor = 0;
+                        sem_post(&l_SSD_Read_Governor);
+                    }
 
                     FL_Write(FLXfer, PREAD_PFSCMP, "Extent %p, reading from target index %ld.  bytesRead=%ld errno=%ld", (uint64_t)pExtent, pExtent->sourceindex, bytesRead,errno);
 
@@ -295,6 +307,12 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                 LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
             }
 
+            if (l_PostToReadGovernor)
+            {
+                l_PostToReadGovernor = 0;
+                sem_post(&l_SSD_Read_Governor);
+            }
+
             lockTransferQueue(&pKey, "performIO - After perform I/O to SSD for extent");
         }
         else
@@ -316,6 +334,7 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
             unlockTransferQueue(&pKey, "performIO - Before perform I/O to PFS for extent");
 
             bool l_ForceSSDReadError = (g_ForceSSDReadError ? ++l_Total_SSD_Reads >= g_ForceSSDReadError ? true : false : false);
+            int l_PostToWriteGovernor = 0;
             try
             {
                 LOG(bb,debug) << "Copying to targetindex=" << pExtent->targetindex << " from SSD";
@@ -357,12 +376,24 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
                         l_Buffer = &threadTransferBuffer[offset_src&BLKSIZE];
                         l_Length = MIN((ssize_t)count, bytesRead - (offset_src&BLKSIZE));
 
+                        if (l_SSD_Write_Governor_Active)
+                        {
+                            sem_wait(&l_SSD_Write_Governor);
+                            l_PostToWriteGovernor = 1;
+                        }
+
                         FL_Write6(FLXfer, PWRITE_PFS, "Extent %p, writing to target index %ld into %p, len=%ld at offset 0x%lx", (uint64_t)pExtent, pExtent->targetindex, (uint64_t)l_Buffer, l_Length, offset_dst, 0);
 
                         transferDef->preProcessWrite(l_Time);
                         // bbio::pwrite derived
                         bytesWritten = pwrite(pExtent->targetindex, l_Buffer, l_Length, offset_dst);
                         transferDef->postProcessWrite(pExtent->sourceindex, l_Time);
+
+                        if (l_PostToWriteGovernor)
+                        {
+                            l_PostToWriteGovernor = 0;
+                            sem_post(&l_SSD_Write_Governor);
+                        }
 
                         if ( __glibc_likely(bytesWritten >= 0) )
                         {
@@ -395,6 +426,12 @@ int BBIO::performIO(LVKey& pKey, Extent* pExtent)
             {
                 rc = -1;
                 LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+            }
+
+            if (l_PostToWriteGovernor)
+            {
+                l_PostToWriteGovernor = 0;
+                sem_post(&l_SSD_Write_Governor);
             }
 
             lockTransferQueue(&pKey, "performIO - After perform I/O to PFS for extent");

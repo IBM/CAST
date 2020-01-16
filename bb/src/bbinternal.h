@@ -95,6 +95,10 @@ extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern double g_AsyncRemoveJobInfoInterval;
 extern string g_BBServer_Metadata_Path;
+extern int l_SSD_Read_Governor_Active;
+extern int l_SSD_Write_Governor_Active;
+extern sem_t l_SSD_Read_Governor;
+extern sem_t l_SSD_Write_Governor;
 
 void setSsdWriteDirect(unsigned int pValue);
 #endif
@@ -176,6 +180,8 @@ const uint32_t CONTRIBID_AS_INITIALIZED = NO_CONTRIBID;
 const uint32_t UNDEFINED_CONTRIBID = 999999999;
 const uint32_t DEFAULT_CONTRIBID = 0;
 const uint32_t MAX_NUMBER_OF_CONTRIBS = 1*64*1024;
+const uint32_t DEFAULT_SSD_READ_GOVERNOR = 0;
+const uint32_t DEFAULT_SSD_WRITE_GOVERNOR = 0;
 
 const int32_t DEFAULT_LOGICAL_VOLUME_READAHEAD = -1;
 const int32_t DO_NOT_TRANSFER_FILE = INT32_MAX;
