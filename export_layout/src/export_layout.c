@@ -66,6 +66,8 @@ static int export_layout_debug = 0;
 static int export_layout_callback_debug = 1;
 module_param(export_layout_debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(export_layout_debug, "  Debug level (default 0=off).");
+module_param(export_layout_callback_debug, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(export_layout_callback_debug, "  Debug level 1=on (default) 0=off");
 
 static int export_layout_open(struct inode *, struct file *);
 static int export_layout_release(struct inode *, struct file *);
