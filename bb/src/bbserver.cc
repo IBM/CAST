@@ -122,6 +122,12 @@ int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
 // BBServer Metadata Path
 string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
 
+// SSD I/O governors
+int l_SSD_Read_Governor_Active = 0;
+int l_SSD_Write_Governor_Active = 0;
+sem_t l_SSD_Read_Governor;
+sem_t l_SSD_Write_Governor;
+
 
 //*****************************************************************************
 //  Support routines
@@ -3089,6 +3095,21 @@ int bb_main(std::string who)
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
         LOG(bb,info) << "ssdwritedirect="<<ssdwritedirect;
         setSsdWriteDirect(ssdwritedirect);
+
+        // Initialize SSD governors
+        uint32_t l_SSD_Read_Governor_Value = config.get(process_whoami + ".SSDReadGovernor", DEFAULT_SSD_READ_GOVERNOR);
+        if (l_SSD_Read_Governor_Value)
+        {
+            sem_init(&l_SSD_Read_Governor, 0, l_SSD_Read_Governor_Value);
+            l_SSD_Read_Governor_Active = 1;
+        }
+
+        uint32_t l_SSD_Write_Governor_Value = config.get(process_whoami + ".SSDWriteGovernor", DEFAULT_SSD_WRITE_GOVERNOR);
+        if (l_SSD_Write_Governor_Value)
+        {
+            sem_init(&l_SSD_Write_Governor, 0, l_SSD_Write_Governor_Value);
+            l_SSD_Write_Governor_Active = 1;
+        }
 
         // Add a work queue for high priority cross bbserver 'requests'
         char FOXFOX = 0xFF;
