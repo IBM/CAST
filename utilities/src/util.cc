@@ -414,6 +414,7 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
         {
             std::stringstream errorText;
             errorText << ERROR_PREFIX << "Read failure, errno=" << errno << " (" << strerror(errno) << ")";
+            LOG(bb,error) << errorText.str();
             output.push_back(errorText.str());
             runCommandError << err("error.cmd",cmd)<<errloc(errno) << err("error.read", strerror(errno))<<bailout;
             if (errno) errno=readError;
@@ -428,6 +429,7 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
     {
         std::stringstream errorText;
         errorText << ERROR_PREFIX << "Open failure, errno=" << errno << " (" << strerror(errno) << ")";
+        LOG(bb,error) << errorText.str();
         output.push_back(errorText.str());
         runCommandError << err("error.cmd",cmd) <<errloc(errno) << err("error.open", strerror(errno)) << bailout;
     }
