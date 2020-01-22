@@ -296,6 +296,11 @@ int main (int argc, char **argv)
 	fprintf(stderr, "Error loading configuration\n");
 	exit(-1);
     }
+    std::string filelogpath = config.get("bb.bscfsagent.log.fileLog", "none");
+    if(filelogpath == std::string("BBPATH"))
+    {
+        config.put("bb.bscfsagent.log.fileLog", std::string(bscfs_data.bb_path) + std::string("/bscfs.log"));
+    }
     initializeLogging("bb.bscfsagent.log", config);
     LOG(bscfsagent,info)
 	<< "\nbscfsAgent starting, with these parameters:"
