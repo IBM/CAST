@@ -140,6 +140,8 @@ int main(int argc, char **argv)
         Check(rc == 0, "BSCFS_GlobalFlushCompleted(%s) failed",
                             Chkpnt(n), rc);
         
+        MPI_Barrier(MPI_COMM_WORLD);
+
         rc = BSCFS_Forget(Chkpnt(n));
         Check(rc == 0, "BSCFS_Forget(%s) failed", Chkpnt(n), errno);
         
