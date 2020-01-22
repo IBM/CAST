@@ -410,6 +410,7 @@ void findSerials(void)
         throw;
     }
     catch(ExceptionBailout& e) { 
+        pthread_mutex_unlock(&findSerialMutex);
         throw;
     }
     
