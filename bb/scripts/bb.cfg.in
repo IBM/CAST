@@ -88,7 +88,7 @@
 			{
 				"consoleLog"  : true,
 				"default_sev" : "info",
-				"fileLog"     : "none"
+				"fileLog"     : "BBPATH"
 			},
 			"flightlog" : "none"
 		}
