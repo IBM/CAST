@@ -447,3 +447,32 @@ LSF 128 GiB transfer to devnull multi node
 	
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null 6871947674  0  20 minutes
+
+LSF transfer cancel from SSD to gpfs single node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	Set num computes  1
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
+
+LSF transfer cancel from SSD to gpfs multi node
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  512
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  1
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
+	
+	Set ppn  4
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
+
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
