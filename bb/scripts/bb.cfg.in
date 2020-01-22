@@ -25,6 +25,8 @@
 			"flightlog"          : "/var/log/bbserver@USERSUFFIX@",
 			"sslcertif"          : "/etc/ibm/cert.pem",
 			"sslpriv"            : "/etc/ibm/key.pem",
+			"SSDReadGovernor"    : 0,
+			"SSDWriteGovernor"   : 0,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,
