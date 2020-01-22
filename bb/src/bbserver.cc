@@ -3093,11 +3093,12 @@ int bb_main(std::string who)
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
-        LOG(bb,info) << "ssdwritedirect="<<ssdwritedirect;
+        LOG(bb,info) << "SSD Write Direct=" << ssdwritedirect;
         setSsdWriteDirect(ssdwritedirect);
 
         // Initialize SSD governors
         uint32_t l_SSD_Read_Governor_Value = config.get(process_whoami + ".SSDReadGovernor", DEFAULT_SSD_READ_GOVERNOR);
+        LOG(bb,info) << "SSD Read Governor=" << l_SSD_Read_Governor_Value;
         if (l_SSD_Read_Governor_Value)
         {
             sem_init(&l_SSD_Read_Governor, 0, l_SSD_Read_Governor_Value);
@@ -3105,6 +3106,7 @@ int bb_main(std::string who)
         }
 
         uint32_t l_SSD_Write_Governor_Value = config.get(process_whoami + ".SSDWriteGovernor", DEFAULT_SSD_WRITE_GOVERNOR);
+        LOG(bb,info) << "SSD Write Governor=" << l_SSD_Write_Governor_Value;
         if (l_SSD_Write_Governor_Value)
         {
             sem_init(&l_SSD_Write_Governor, 0, l_SSD_Write_Governor_Value);
