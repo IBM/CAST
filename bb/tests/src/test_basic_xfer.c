@@ -18,6 +18,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "bb/include/bbapi.h"
 
@@ -89,27 +91,39 @@ int main(int argc, char** argv)
 
     if(argc < 4)
     {
-        printf("testcase <dir> <pfspath> <size>\n");
+        printf("testcase <dir> <pfspath> <size> [use subdir]\n");
         exit(-1);
     }
     int dir         = strtoul(argv[1], NULL, 10);
     char* pfspath   = argv[2];
     size_t filesize = strtoul(argv[3], NULL, 10);
+    bool use_subdir = false;
+    if(argc > 4)
+    {
+        if('1' == argv[4][0] || 'y' == argv[4][0] || 'Y' == argv[4][0])
+        {
+            use_subdir = true;
+        }
+    }
 
     BBTransferInfo_t info;
     double start, stop;
     int dogenerate = 1;
+    char host_name[MPI_MAX_PROCESSOR_NAME];
+    int h_len;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    printf("My rank is %d out of %d\n", rank, size);
+    MPI_Get_processor_name(host_name, &h_len);
+    printf("My rank is %d out of %d running on %s\n", rank, size, host_name);
 
     rc = BB_InitLibrary(rank, BBAPI_CLIENTVERSIONSTR);
     check(rc);
 
     char sfn[256];
     char tfn[256];
+    char tdn[256];
     char cmd[256];
     const char* bbpath = getenv("BBPATH");
 
@@ -123,7 +137,29 @@ int main(int argc, char** argv)
             }
             else
             {
-                snprintf(sfn, sizeof(sfn), "%s/rank.%d", pfspath, rank);
+                if(use_subdir)
+                {
+                    snprintf(sfn, sizeof(sfn), "%s/%s/rank.%d", pfspath, host_name, rank);
+                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath, host_name);
+                    struct stat st_buf = {0};
+                    if(0 != stat(tdn, &st_buf))
+                    {
+                        if(0 != mkdir(tdn, 0700))
+                        {
+                            // It is ok if the directory exists (our peer probably created it)
+                            // Throw a warning if the error is something else.
+                            if(EEXIST != errno)
+                            {
+                                printf("%d/%d on %s) Warning. mkdir() returned the error (%d): %s\n",
+                                       rank, size, host_name, errno, strerror(errno));
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    snprintf(sfn, sizeof(sfn), "%s/rank.%d", pfspath, rank);
+                }
             }
             snprintf(tfn, sizeof(tfn), "%s/rank.%d", bbpath, rank);
             break;
@@ -135,7 +171,29 @@ int main(int argc, char** argv)
             }
             else
             {
-                snprintf(tfn, sizeof(tfn), "%s/rank.%d", pfspath, rank);
+                if(use_subdir)
+                {
+                    snprintf(tfn, sizeof(tfn), "%s/%s/rank.%d", pfspath, host_name, rank);
+                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath, host_name);
+                    struct stat st_buf = {0};
+                    if(0 != stat(tdn, &st_buf))
+                    {
+                        if(0 != mkdir(tdn, 0700))
+                        {
+                            // It is ok if the directory exists (our peer probably created it)
+                            // Throw a warning if the error is something else.
+                            if(EEXIST != errno)
+                            {
+                                printf("%d/%d on %s) Warning. mkdir() returned the error (%d): %s\n",
+                                       rank, size, host_name, errno, strerror(errno));
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    snprintf(tfn, sizeof(tfn), "%s/rank.%d", pfspath, rank);
+                }
             }
             break;
         default:
