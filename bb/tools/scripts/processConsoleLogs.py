@@ -23,6 +23,11 @@ import common as cmn
 
 
 #
+# RegEx search pattern for BSCFS files
+#
+BSCFS_File = re.compile(".*/\.bscfs/.*\.data$")
+
+#
 # Helper routines for ElapsedTimeData
 #
 
@@ -68,6 +73,13 @@ def addServerData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pCo
     l_ElapsedTimeEntry[pServerName]["NumberOfConnections"] = 0
     l_ElapsedTimeEntry[pServerName]["NumberOfContribIds"] = 0
 
+    if "BSCFS" in pCtx:
+        # Second pass through console logs
+        if pJobId in pCtx["BSCFS"]:
+            if pJobStepId in pCtx["BSCFS"][pJobId]:
+                if pServerName not in pCtx["BSCFS"][pJobId][pJobStepId]:
+                    pCtx["BSCFS"][pJobId][pJobStepId][pServerName] = {}                   
+
     l_ElapsedTimeEntry[pServerName]["connections"] = {}
     addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName, pConnection, pSizeTransferred)
 
@@ -86,6 +98,14 @@ def addConnectionData(pCtx, pLogDate, pLogTime, pJobId, pJobStepId, pServerName,
     l_ElapsedTimeEntry[pConnection]["EndDateTime"] = (pLogDate, pLogTime)
     l_ElapsedTimeEntry[pConnection]["ElapsedTime (secs)"] = float(cmn.calculateTimeDifferenceInSeconds(l_ElapsedTimeEntry[pConnection]["EndDateTime"], l_ElapsedTimeEntry[pConnection]["StartDateTime"]))
     l_ElapsedTimeEntry[pConnection]["SizeTransferred"] = pSizeTransferred
+
+    if "BSCFS" in pCtx:
+        # Second pass through console logs
+        if pJobId in pCtx["BSCFS"]:
+            if pJobStepId in pCtx["BSCFS"][pJobId]:
+                if pServerName in pCtx["BSCFS"][pJobId][pJobStepId]:
+                    if pConnection not in pCtx["BSCFS"][pJobId][pJobStepId][pServerName]:
+                        pCtx["BSCFS"][pJobId][pJobStepId][pServerName][pConnection] = {}                   
 
     return
 
@@ -110,6 +130,13 @@ def GetHandle(pCtx, pData, *pArgs):
 
 def FileCompletion(pCtx, pData, *pArgs):
     pServerName, pLogDate, pLogTime, pFileName, pConnection, pConnectionIP, pLVUuid, pHandle, pContribId, pSourceIndex, pStatus, pTransferType, pTransferSize, pReadCount, pReadTime, pWriteCount, pWriteTime, pDummy, pSyncCount, pSyncTime = pArgs[0]
+
+    if "BSCFS_Handles" in pCtx:
+        # First pass through console logs, so
+        # determine if this is a handle for BSCFS
+        l_Success = BSCFS_File.search(pFileName)
+        if l_Success:
+            pCtx["BSCFS_Handles"].add(pHandle)
 
     # Add data to the appropriate file entry
     if "Files" not in pData["Handles"][pHandle]["Connections"][pConnection]["LVUuids"][pLVUuid]["ContribIds"][pContribId]:
@@ -171,6 +198,19 @@ def ContribIdCompletion(pCtx, pData, *pArgs):
             l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
             l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["connections"][pConnection]["NumberOfContribIds"] += 1
             l_ElapsedTimeEntry["jobIds"][l_JobId]["jobStepIds"][l_JobStepId]["servers"][pServerName]["connections"][pConnection]["SizeTransferred"] += l_ContribIdEntry["SizeTransferred"]
+
+            if "BSCFS" in pCtx:
+                if l_JobId in pCtx["BSCFS"]:
+                    if l_JobStepId in pCtx["BSCFS"][l_JobId]:
+                        if pServerName in pCtx["BSCFS"][l_JobId][l_JobStepId]:
+                            if pConnection in pCtx["BSCFS"][l_JobId][l_JobStepId][pServerName]:
+                                if pHandle not in pCtx["BSCFS"][l_JobId][l_JobStepId][pServerName][pConnection]:
+                                    l_Temp = [0, pHandle, pContribId, 0, pLogTime, pSizeTransferred]
+                                    pCtx["BSCFS"][l_JobId][l_JobStepId][pServerName][pConnection][pHandle] = l_Temp
+                                else:
+                                    l_Temp = pCtx["BSCFS"][l_JobId][l_JobStepId][pServerName][pConnection][pHandle]
+                                    l_Temp[4] = pLogTime
+                                    l_Temp[5] = pSizeTransferred
     else:
         print "JobId was not found for handle %d, connection %s, LVUuid %s, contribid %d.  Related transfer rate(s) will not be accurate."
 
@@ -230,7 +270,19 @@ def StartTransfer(pCtx, pData, *pArgs):
                 if cmn.compareTimes((pLogDate, pLogTime), l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"]) == -1:
                     l_ElapsedTimeEntry[pJobStepId]["servers"][pServerName]["connections"][pConnection]["StartDateTime"] = (pLogDate, pLogTime)
 
-    return
+    if "BSCFS" in pCtx:
+        if pJobId in pCtx["BSCFS"]:
+            if pJobStepId in pCtx["BSCFS"][pJobId]:
+                if pServerName in pCtx["BSCFS"][pJobId][pJobStepId]:
+                    if pConnection in pCtx["BSCFS"][pJobId][pJobStepId][pServerName]:
+                        if pHandle not in pCtx["BSCFS"][pJobId][pJobStepId][pServerName][pConnection]:
+                            l_Temp = [0, pHandle, pContribId, pLogTime, 0, 0]
+                            l_Temp = pCtx["BSCFS"][pJobId][pJobStepId][pServerName][pConnection][pHandle] = l_Temp
+                        else:
+                            l_Temp = pCtx["BSCFS"][pJobId][pJobStepId][pServerName][pConnection][pHandle]
+                            l_Temp[3] = pLogTime
+
+    return              
 
 def StartDumpWorkQueueMgr(pCtx, pData, *pArgs):
     pServerName, pLineData = pArgs[0]
@@ -615,29 +667,69 @@ def walkPaths(pCtx, pPath):
 
     return
 
+def findBSCFS_Jobs(pCtx, pBSCFS):
+    if len(pCtx["BSCFS_Handles"]) > 0:
+        l_Data = pCtx["ServerData"]
+        for l_Server in l_Data.keys():
+            if "Handles" in l_Data[l_Server]:
+                for l_Handle in l_Data[l_Server]["Handles"]:
+                    if l_Handle in pCtx["BSCFS_Handles"]:
+                        if "JobId" in l_Data[l_Server]["Handles"][l_Handle] and "JobStepId" in l_Data[l_Server]["Handles"][l_Handle]:
+                            if l_Data[l_Server]["Handles"][l_Handle]["JobId"] not in pBSCFS.keys():
+                                pBSCFS[l_Data[l_Server]["Handles"][l_Handle]["JobId"]] = {}
+                            if l_Data[l_Server]["Handles"][l_Handle]["JobStepId"] not in pBSCFS[l_Data[l_Server]["Handles"][l_Handle]["JobId"]].keys():
+                                pBSCFS[l_Data[l_Server]["Handles"][l_Handle]["JobId"]][l_Data[l_Server]["Handles"][l_Handle]["JobStepId"]] = {}
+
+    return
+
 
 # Main routine
 def main(*pArgs):
-    l_Ctx = {}                    # Environmental context
-    l_Ctx["FilesToProcess"] = {}
-    l_Ctx["ServerData"] = {}      # Server data is stored here
-    l_Ctx["ElapsedTimeData"] = {} # Start/end time, transfer sizes stored here by jobid/server/connection
-    l_Ctx["ElapsedTimeData"]["jobIds"] = {}
-    l_Ctx["StageInData"] = {} # Stagein data stored here by jobid
-    l_Ctx["StageInData"]["jobIds"] = {}
-    l_Ctx["StageOutData"] = {} # Stageout data stored here by jobid
-    l_Ctx["StageOutData"]["jobIds"] = {}
+    l_BSCFS = {}
 
-    # Establish the context
-    getOptions(l_Ctx, pArgs[0])
-    # Ensure that the output directory exists...
-    cmn.ensure(l_Ctx["OUTPUT_DIRECTORY"])
+    l_AllDone = False
+    while not l_AllDone:
+        l_AllDone = True
+        l_Ctx = {}                    # Environmental context
+        l_Ctx["FilesToProcess"] = {}
+        l_Ctx["ServerData"] = {}      # Server data is stored here
+        l_Ctx["ElapsedTimeData"] = {} # Start/end time, transfer sizes stored here by jobid/server/connection
+        l_Ctx["ElapsedTimeData"]["jobIds"] = {}
+        l_Ctx["StageInData"] = {}     # Stagein data stored here by jobid
+        l_Ctx["StageInData"]["jobIds"] = {}
+        l_Ctx["StageOutData"] = {}    # Stageout data stored here by jobid
+        l_Ctx["StageOutData"]["jobIds"] = {}
+        
+        if len(l_BSCFS.keys()) == 0:
+            l_Ctx["BSCFS_Handles"] = set()
+        else:
+            l_Ctx["BSCFS"] = l_BSCFS
+            l_BSCFS = None
+    
+        # Establish the context
+        getOptions(l_Ctx, pArgs[0])
+        # Ensure that the output directory exists...
+        cmn.ensure(l_Ctx["OUTPUT_DIRECTORY"])
+    
+        # Walk the paths processing data along the way, starting with the input root directory
+        walkPaths(l_Ctx, l_Ctx["ROOTDIR"])
+    
+        # Process the files
+        processFiles(l_Ctx)
+    
+        # If first pass, find BSCFS jobid/jobstepids
+        if l_BSCFS is not None:
+            findBSCFS_Jobs(l_Ctx, l_BSCFS)
 
-    # Walk the paths processing data along the way, starting with the input root directory
-    walkPaths(l_Ctx, l_Ctx["ROOTDIR"])
+            # If BSCFS is involved, then re-process the console logs
+            # so we can calculate the BSCFS transfer rates
+            if len(l_BSCFS.keys()) > 0:
+                print("BSCFS files/handles were found.  Must re-process the console logs to calculate BSCFS transfer rates.")
+                l_AllDone = False
 
-    # Process the files
-    processFiles(l_Ctx)
+    # Ensure that the "BSCFS" key exists in l_Ctx
+    if "BSCFS" not in l_Ctx:
+        l_Ctx["BSCFS"] = {}
 
     # Optionally, print the results
     if l_Ctx["PRINT_PICKLED_RESULTS"]:
