@@ -3756,6 +3756,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
 
     LVKey l_LVKey = *pLVKey;
     l_LV_Info = metadata.getLV_Info(&l_LVKey);
+
     if (l_LV_Info)
     {
         // LVKey value found in BBLV_Info...
