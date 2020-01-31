@@ -1977,6 +1977,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if (handle.path().filename().string() == to_string(pHandle))
                                 {
                                     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may

@@ -43,6 +43,7 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
             if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
             for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
             {
+                if (!bfs::is_directory(handle)) continue;
                 for(auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
                 {
                     if(lvuuid.path().filename() == lv_uuid_str)
