@@ -29,7 +29,7 @@ thread_local int TagInfoLockFd = -1;
  * Static methods
  */
 
-int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle)
+int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle, const uint32_t pBumpCount)
 {
     int rc = 0;
     stringstream errorText;
@@ -38,7 +38,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     HandleInfo* l_HandleInfo = 0;
     int l_TransferQueueWasUnlocked = 0;
     int l_LocalMetadataLocked = 0;
-    int l_TagInfoLocked = 0;
+    int l_HandleBucketLocked = 0;
 
     try
     {
@@ -60,81 +60,108 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         char l_HandleInfoName[64] = {'\0'};
         snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
         bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
+        char l_HandleBucketName[64] = {'\0'};
+        snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
+        bfs::path l_HandleBucketPath = l_JobStepPath / l_HandleBucketName;
         BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
 
         // Perform the necessary locking
         l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "addTagHandle");
         // This lock serializes amongst request/transfer threads on this bbServer...
         l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
-        // This lock serializes amongst bbServers...
-        rc = TagInfo::lock(l_JobStepPath);
 
         if (!rc)
         {
-            l_TagInfoLocked = 1;
-            rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
+            rc = HandleInfo::lockHandleBucket(l_HandleBucketPath);
             if (!rc)
             {
-                for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
+                l_HandleBucketLocked = 1;
+                rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
+                if (!rc)
                 {
-                    if (l_TagInfo->tagHandles[i].tag == pTag)
+                    for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
                     {
-                        // Same tag value
-                        if (!(l_TagInfo->tagHandles[i].compareContrib(pExpectContrib)))
+                        if (l_TagInfo->tagHandles[i].tag == pTag)
                         {
-                            // Same contrib vector
-                            // Handle value has already been assigned for this tag/contrib vector.
-                            // Return the already assigned handle value for this tag/contrib vector.
-                            pHandle = l_TagInfo->tagHandles[i].handle;
-                            rc = 1;
+                            // Same tag value
+                            if (!(l_TagInfo->tagHandles[i].compareContrib(pExpectContrib)))
+                            {
+                                // Same contrib vector
+                                // Handle value has already been assigned for this tag/contrib vector.
+                                // Return the already assigned handle value for this tag/contrib vector.
+                                pHandle = l_TagInfo->tagHandles[i].handle;
+                                rc = 1;
+                            }
+                            else
+                            {
+                                // Different contrib vector
+                                // ERROR - Tag value has already been used for a different contrib vector.
+                                rc = -2;
+                            }
+                        }
+                    }
+
+                    if (!rc)
+                    {
+                        // The passed in tag was not found.  Now, determine if we have a duplicate
+                        // handle value.
+                        rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
+                        if (!rc)
+                        {
+                            for (size_t i=0; (i<l_HandleInfo->handles.size() && (rc == 0 || rc == 2)); i++)
+                            {
+                                if (l_HandleInfo->handles[i] == pHandle)
+                                {
+                                    // Same handle value.  Indicate to re-generate the handle vlaue and retry.
+                                    rc = 2;
+                                }
+                            }
+
+                            if (!rc)
+                            {
+                                rc = TagInfo::update(l_JobStepPath, l_TagInfoPath, l_HandleInfoPath, pBumpCount, l_TagHandle, pHandle);
+                                switch (rc)
+                                {
+                                    case 0:
+                                    {
+                                        // Update was successful
+                                    }
+                                    break;
+
+                                    case 1:
+                                    {
+                                        // Bump count mismatch...
+                                        rc = -3;
+                                    }
+                                    break;
+
+                                    default:
+                                    {
+                                        // Could not update the TagInfo or HandleInfo file
+                                        // NOTE: error state already filled in...
+                                        SET_RC(rc);
+                                    }
+                                }
+                            }
                         }
                         else
                         {
-                            // Different contrib vector
-                            // ERROR - Tag value has already been used for a different contrib vector.
-                            rc = -2;
+                            // Could not load the handleinfo
+                            // NOTE: error state already filled in...
+                            SET_RC(rc);
                         }
                     }
                 }
-
-                if (!rc)
+                else
                 {
-                    // The passed in tag was not found.  Now, determine if we have a duplicate
-                    // handle value.
-                    rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
-                    if (!rc)
-                    {
-                        for (size_t i=0; (i<l_HandleInfo->handles.size() && (rc == 0 || rc == 2)); i++)
-                        {
-                            if (l_HandleInfo->handles[i] == pHandle)
-                            {
-                                // Same handle value.  Indicate to re-generate the handle vlaue and retry.
-                                rc = 2;
-                            }
-                        }
-
-                        if (!rc)
-                        {
-                            // Add the passed in values for tag/contrib vector/handle as a new TagHandle
-                            // in the taginfo file
-                            l_TagInfo->tagHandles.push_back(l_TagHandle);
-                            l_TagInfo->save();
-                            // Add the passed in handle value to the handleinfo file
-                            l_HandleInfo->handles.push_back(pHandle);
-                            l_HandleInfo->save();
-                        }
-                    }
-                    else
-                    {
-                        // Could not load the handleinfo
-                        // NOTE: error state already filled in...
-                        SET_RC(rc);
-                    }
+                    // Could not load the taginfo
+                    // NOTE: error state already filled in...
+                    SET_RC(rc);
                 }
             }
             else
             {
-                // Could not load the taginfo
+                // Could not lock the handle bucket
                 // NOTE: error state already filled in...
                 SET_RC(rc);
             }
@@ -153,10 +180,10 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
-    if (l_TagInfoLocked)
+    if (l_HandleBucketLocked)
     {
-        l_TagInfoLocked = 0;
-        TagInfo::unlock();
+        l_HandleBucketLocked = 0;
+        HandleInfo::unlockHandleBucket();
     }
 
     if (l_LocalMetadataLocked)
@@ -184,7 +211,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     return rc;
 }
 
-int TagInfo::createLockFile(const string pFilePath)
+int TagInfo::createLockFile(const string& pFilePath)
 {
     int rc = 0;
 
@@ -192,6 +219,30 @@ int TagInfo::createLockFile(const string pFilePath)
     snprintf(l_LockFileName, sizeof(l_LockFileName), "%s/%s", pFilePath.c_str(), LOCK_TAG_FILENAME);
 
     bfs::ofstream l_LockFile{l_LockFileName};
+
+    writeBumpCountFile(pFilePath, 1);
+
+    return rc;
+}
+
+int TagInfo::incrBumpCountFile(const string& pFilePath)
+{
+    int rc = 0;
+    uint32_t l_BumpCount;
+
+    rc = TagInfo::readBumpCountFile(pFilePath, l_BumpCount);
+    if (!rc)
+    {
+        do {
+            l_BumpCount += 1;
+        } while (l_BumpCount == 0);
+        rc = TagInfo::writeBumpCountFile(pFilePath, l_BumpCount);
+    }
+
+    if (rc)
+    {
+        LOG(bb,error) << "Failed to increment bump count file located at " << pFilePath;
+    }
 
     return rc;
 }
@@ -389,6 +440,31 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
 }
 #undef ATTEMPTS
 
+int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
+{
+    int rc = 0;
+    pBumpCount = 0;
+    string l_Line;
+
+    char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
+    snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
+
+    ifstream l_BumpCountFile(l_BumpCountFileName);
+    if (l_BumpCountFile.is_open())
+    {
+        getline(l_BumpCountFile, l_Line);
+        l_BumpCountFile.close();
+    }
+    else
+    {
+        rc = -1;
+        LOG(bb,error) << "Failed to open/read file " << l_BumpCountFileName;
+    }
+    pBumpCount = stoi(l_Line);
+
+    return rc;
+};
+
 void TagInfo::unlock()
 {
     if (TagInfoLockFd != -1)
@@ -446,6 +522,77 @@ void TagInfo::unlock(const int pFd)
     return;
 }
 
+int TagInfo::update(const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle)
+{
+    int rc = 0;
+
+    TagInfo* l_TagInfo = 0;
+    HandleInfo* l_HandleInfo = 0;
+
+    // This lock serializes amongst bbServers...
+    rc = TagInfo::lock(pJobStepPath);
+    if (!rc)
+    {
+        uint32_t l_BumpCount = 0;
+        rc = readBumpCountFile(pJobStepPath.string(), l_BumpCount);
+
+        if (l_BumpCount == pBumpCount)
+        {
+            // Add the passed in values for tag/contrib vector/handle as a new TagHandle
+            // in the taginfo file
+            rc = TagInfo::load(l_TagInfo, pTagInfoPath);
+            if (!rc)
+            {
+                rc = HandleInfo::load(l_HandleInfo, pHandleInfoPath);
+                if (!rc)
+                {
+                    // Add the taghandle value to the taginfo file
+                    l_TagInfo->tagHandles.push_back(pTagHandle);
+                    l_TagInfo->save();
+
+                    // Add the handle value to the handleinfo file
+                    l_HandleInfo->handles.push_back(pHandle);
+                    l_HandleInfo->save();
+                }
+                else
+                {
+
+                }
+            }
+            else
+            {
+
+            }
+        }
+        else
+        {
+            // Bump count mismatch...
+            rc = 1;
+        }
+    }
+    else
+    {
+
+    }
+
+    // Unlock the TagInfo file
+    TagInfo::unlock();
+
+    if (l_HandleInfo)
+    {
+        delete l_HandleInfo;
+        l_HandleInfo = 0;
+    }
+
+    if (l_TagInfo)
+    {
+        delete l_TagInfo;
+        l_TagInfo = 0;
+    }
+
+    return rc;
+}
+
 
 /*
  * Non-static methods
@@ -496,6 +643,29 @@ int TagInfo::save()
     }
 
     FL_Write(FLMetaData, TF_Save_End, "saveTagInfo, counter=%ld, rc=%ld", l_FL_Counter, rc, 0, 0);
+
+    return rc;
+}
+
+int TagInfo::writeBumpCountFile(const string& pFilePath, const uint32_t pValue)
+{
+    int rc = 0;
+
+    char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
+    snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
+
+    ofstream l_BumpCountFile(l_BumpCountFileName);
+    if(l_BumpCountFile.is_open())
+    {
+        l_BumpCountFile << pValue << std::endl;
+        l_BumpCountFile.flush();
+        l_BumpCountFile.close();
+    }
+    else
+    {
+        rc = -1;
+        LOG(bb,error) << "Failed to open/create/write file " << l_BumpCountFileName;
+    }
 
     return rc;
 }

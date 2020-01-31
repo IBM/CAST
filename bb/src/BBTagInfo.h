@@ -67,7 +67,7 @@ class BBTagInfo
     static int compareContrib(const uint64_t pNumContrib, const uint32_t pContrib[], vector<uint32_t>& pContribVector);
     static void genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib);
     static int getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagInfo* &pTagInfo, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
-    static int processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle);
+    static int processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle, const uint32_t pBumpCount);
     static int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob);
 
     // Non-static methods

@@ -222,6 +222,7 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if (handle.path().filename().string() == to_string(pHandle))
                                 {
                                     rc = 0;
@@ -322,6 +323,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                                     if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
                                     for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                     {
+                                        if (!bfs::is_directory(handle)) continue;
                                         bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
                                         rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                         if (!rc)
@@ -453,6 +455,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if(handle.path().filename().string() == to_string(pHandle))
                                 {
                                     bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
@@ -709,6 +712,7 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                                     (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                                 for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                 {
+                                    if (!bfs::is_directory(handle)) continue;
                                     if(handle.path().filename().string() == to_string(pHandle))
                                     {
                                         bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
@@ -1175,6 +1179,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
         {
+            if (!bfs::is_directory(handle)) continue;
             bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
             int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
             if ((!rc) && l_HandleFile)

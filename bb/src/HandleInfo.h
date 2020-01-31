@@ -40,6 +40,7 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
+const char LOCK_HANDLE_BUCKET_FILENAME[] = "lockfile";
 const char HANDLEINFONAME[] = "handleinfo_";
 const int MAXIMUM_HANDLEINFO_LOADTIME = 10;     // In seconds
 
@@ -52,6 +53,7 @@ const int MAXIMUM_HANDLEINFO_LOADTIME = 10;     // In seconds
 /*******************************************************************************
  | External data
  *******************************************************************************/
+extern thread_local int HandleBucketLockFd;
 
 
 /*******************************************************************************
@@ -85,7 +87,11 @@ public:
    /*
      * Static methods
      */
+    static int createLockFile(const string& pFilePath);
     static int load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName);
+    static int lockHandleBucket(const bfs::path& l_HandleInfoPath);
+    static void unlockHandleBucket();
+    static void unlockHandleBucket(const int pFd);
 
     /*
      * Inlined methods
