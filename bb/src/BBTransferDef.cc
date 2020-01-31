@@ -108,6 +108,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                 if ((!bfs::is_directory(l_TlHandle)) || (!HandleFile::isToplevelHandleDirectory(l_TlHandle.path().filename().string()))) continue;
                                 for (auto& l_Handle : boost::make_iterator_range(bfs::directory_iterator(l_TlHandle.path()), {}))
                                 {
+                                    if (!bfs::is_directory(l_Handle)) continue;
                                     if ((pTransferDefs.handle == UNDEFINED_HANDLE) || (l_Handle.path().filename().string() == to_string(pTransferDefs.handle)))
                                     {
                                         // Handle of interest...

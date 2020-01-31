@@ -143,9 +143,13 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
 
     if (!rc)
     {
+        bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
+        l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
+        l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
         while (l_Continue)
         {
             l_Continue = false;
+            uint32_t l_BumpCount = 0;
             vector<uint32_t> l_ExpectContrib;
             if (l_Handle == UNDEFINED_HANDLE)
             {
@@ -156,55 +160,90 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
             }
 
-            // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
-            int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle);
-
-            // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
-            switch (rc2)
+            // This lock serializes amongst bbServers...
+            int rc2 = TagInfo::lock(l_JobStepPath);
+            if (!rc2)
             {
-                case 0:
-                {
-                    // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
-                    // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
-                }
-                break;
+                rc2 = TagInfo::readBumpCountFile(l_JobStepPath.string(), l_BumpCount);
+                TagInfo::unlock();
+            }
 
-                case 1:
-                {
-                    // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
-                    // Use the returned handle value passed back in l_Handle.
-                }
-                break;
+            if (!rc2)
+            {
+                // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
+                int rc3 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle, l_BumpCount);
 
-                case 2:
+                // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
+                switch (rc3)
                 {
-                    // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
-                    // Assign a new handle value and try to process the new handle value again.
-                    do
+                    case 0:
                     {
-                        bumpTransferHandle(l_Handle);
-                    } while(l_Handle == 0);
-                    l_Continue = true;
-                }
-                break;
+                        // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
+                        // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
+                    }
+                    break;
 
-                case -2:
-                {
-                    // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
-                    rc = -1;
-                    errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                              << " but for a different contrib vector. Another tag value must be specified.";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
-                }
-                break;
+                    case 1:
+                    {
+                        // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
+                        // Use the returned handle value passed back in l_Handle.
+                    }
+                    break;
 
-                default:
-                {
-                    // Some other error
-                    rc = -1;
-                    errorText << "Unexpected error occurred during the generation of a handle value.";
-                    LOG_ERROR_TEXT_RC(errorText, rc);
+                    case 2:
+                    {
+                        // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
+                        // Assign a new handle value and try to process the new handle value again.
+                        do
+                        {
+                            bumpTransferHandle(l_Handle);
+                        } while(l_Handle == 0);
+                        if (!TagInfo::incrBumpCountFile(l_JobStepPath.string()))
+                        {
+                            l_Continue = true;
+                        }
+                        else
+                        {
+                            // Error from incrBumpCount()
+                            rc = -1;
+                            errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
+                            LOG_ERROR_TEXT_RC(errorText, rc);
+                        }
+                    }
+                    break;
+
+                    case -2:
+                    {
+                        // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
+                        rc = -1;
+                        errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                  << " but for a different contrib vector. Another tag value must be specified.";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
+                    break;
+
+                    case -3:
+                    {
+                        // Bump count did not match...  Just start over...
+                        l_Continue = true;
+                    }
+                    break;
+
+                    default:
+                    {
+                        // Some other error
+                        rc = -1;
+                        errorText << "Unexpected error occurred during the generation of a handle value.";
+                        LOG_ERROR_TEXT_RC(errorText, rc);
+                    }
                 }
+            }
+            else
+            {
+                // Error from readBumpCountFile()
+                rc = -1;
+                errorText << "Unexpected error occurred during the generation of a handle value.  Could not lock the TagInfo file or could not retrieve the bump count file/value.";
+                LOG_ERROR_TEXT_RC(errorText, rc);
             }
         }
 
@@ -224,9 +263,9 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     return rc;
 }
 
-int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle)
+int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle, const uint32_t pBumpCount)
 {
-    return TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle);
+    return TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle, pBumpCount);
 }
 
 int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
@@ -536,6 +575,7 @@ uint64_t BBTagInfo::get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag)
             if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
             for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
             {
+                if (!bfs::is_directory(handle)) continue;
                 if (l_Handle == UNDEFINED_HANDLE)
                 {
                     string l_HandleStr = handle.path().filename().string();
