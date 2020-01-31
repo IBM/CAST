@@ -1069,8 +1069,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
 //                    allExtents[i].verify();
                 }
 
-                // Remove all canceled extents that are not marked as a
-                // 'first' or 'last' extent
+                // Remove all canceled extents that are not marked as a 'last' extent
                 bool l_AllDone = false;
                 size_t l_RemovedAsCanceled = 0;
                 while (!l_AllDone)
@@ -1082,7 +1081,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
                         l_ExtentPtr = it->getExtent();
                         if (l_ExtentPtr->isCanceled())
                         {
-                            if (!(l_ExtentPtr->isFirstExtent() || l_ExtentPtr->isLastExtent()))
+                            if (!l_ExtentPtr->isLastExtent())
                             {
                                 allExtents.erase(it);
                                 ++l_RemovedAsCanceled;
