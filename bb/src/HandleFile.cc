@@ -59,12 +59,12 @@ int HandleFile::createLockFile(const char* pFilePath)
 
 string HandleFile::getToplevelHandleName(const uint64_t pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % g_Number_Toplevel_Handlefile_Buckets);
 }
 
 string HandleFile::getToplevelHandleName(const string& pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % g_Number_Toplevel_Handlefile_Buckets);
 }
 
 int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer)
@@ -788,9 +788,9 @@ int HandleFile::isCorrectToplevelHandleDirectory(const string& pToplevelDirector
     if (l_Index != std::string::npos)
     {
 //        uint64_t l_Temp = strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10);
-//        uint64_t l_Temp2 = (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+//        uint64_t l_Temp2 = (pHandle % g_Number_Toplevel_Handlefile_Buckets);
 //        if (l_Temp == l_Temp2)
-        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS))
+        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % g_Number_Toplevel_Handlefile_Buckets))
         {
             rc = 1;
         }

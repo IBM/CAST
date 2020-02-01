@@ -54,6 +54,9 @@ const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
 /*******************************************************************************
  | External methods
  *******************************************************************************/
+extern uint64_t g_Number_Taginfo_Buckets;
+extern uint64_t g_Number_Handleinfo_Buckets;
+extern uint64_t g_Number_Toplevel_Handlefile_Buckets;
 extern void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
 extern int lockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod);
 extern void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
