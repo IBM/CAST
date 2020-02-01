@@ -55,13 +55,13 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         // For create/get handle performance, we want to hold the taginfo lock as short
         // as possible.  Do any necessary preprations before obtaining the lock.
         char l_TagInfoName[64] = {'\0'};
-        snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % NUMBER_OF_TAGINFO_BUCKETS));
+        snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % g_Number_Taginfo_Buckets));
         bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
         char l_HandleInfoName[64] = {'\0'};
-        snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
+        snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % g_Number_Handleinfo_Buckets));
         bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
         char l_HandleBucketName[64] = {'\0'};
-        snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, (pHandle % NUMBER_OF_HANDLEINFO_BUCKETS));
+        snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, (pHandle % g_Number_Toplevel_Handlefile_Buckets));
         bfs::path l_HandleBucketPath = l_JobStepPath / l_HandleBucketName;
         BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
 

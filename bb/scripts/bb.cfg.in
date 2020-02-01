@@ -1,32 +1,36 @@
 {
 	"bb" :
 	{
-		"nvmecliPath"                : "/usr/sbin/nvme",
-		"unixpath"                   : "/run/bb_socket@USERSUFFIX@",
-		"bbserverMetadataPath"       : "@METADATAPATH@",
-		"bbserverFileIOwarnSeconds"  : 20,
-		"bbserverFileIOStuckSeconds" : 60,
-		"usekeepalive"               : true,
-		"keepaliveidle"              : 60,
-		"keepalivecount"             : 12,
-		"keepaliveinterval"          :  5,
+		"nvmecliPath"                  : "/usr/sbin/nvme",
+		"unixpath"                     : "/run/bb_socket@USERSUFFIX@",
+		"bbserverMetadataPath"         : "@METADATAPATH@",
+		"bbserverFileIOwarnSeconds"    : 20,
+		"bbserverFileIOStuckSeconds"   : 60,
+		"usekeepalive"                 : true,
+		"keepaliveidle"                : 60,
+		"keepalivecount"               : 12,
+		"keepaliveinterval"            : 5,
+		"numTaginfoBuckets"            : 1024,
+        "numHandleinfoBuckets"         : 1024,
+		"numToplevelHandlefileBuckets" : 1024,
 
 		"scripts" :
 		{
 			"transfertimeout" : 3600,
 			"bbcmdtimeout"    : 600
 		},
+
 		"server0" :
 		{
-			"ssladdress"         : "0.0.0.0:@SSLPORT@",
-			"numRequestThreads"  : 64,
-			"numTransferThreads" : 64,
-			"workerBufferSize"   : 67108864,
-			"flightlog"          : "/var/log/bbserver@USERSUFFIX@",
-			"sslcertif"          : "/etc/ibm/cert.pem",
-			"sslpriv"            : "/etc/ibm/key.pem",
-			"SSDReadGovernor"    : 0,
-			"SSDWriteGovernor"   : 0,
+			"ssladdress"           : "0.0.0.0:@SSLPORT@",
+			"numRequestThreads"    : 64,
+			"numTransferThreads"   : 64,
+			"workerBufferSize"     : 67108864,
+			"flightlog"            : "/var/log/bbserver@USERSUFFIX@",
+			"sslcertif"            : "/etc/ibm/cert.pem",
+			"sslpriv"              : "/etc/ibm/key.pem",
+			"SSDReadGovernor"      : 0,
+			"SSDWriteGovernor"     : 0,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,
@@ -37,6 +41,7 @@
 				"format"       : "%TimeStamp% %ThreadID% %SubComponent%::%Severity% | %Message%"
 			}
 		},
+
 		"proxy" :
 		{
 			"servercfg"                   : "bb.server0",
@@ -58,6 +63,7 @@
 				"archiveLogs"  : "/var/log/bbproxy@USERSUFFIX@/oldlogs"
 			}
 		},
+
 		"api" :
 		{
 			"numRequestThreads"  : 0,
