@@ -204,19 +204,18 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
                 {
                     case -2:
                     {
-                        if (!l_Attempts)
-                        {
-                            rc = -1;
-                            errorText << "Could not open tag lockfile " << l_HandleBucketLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
-                                      << ". The most likely cause is due to the job being ended and/or removed.";
-                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                        }
-                        else
+                        if (l_Attempts)
                         {
                             // Delay one second and try again
                             // NOTE: We may have hit the window between the creation of the jobstep/handle_bucket directory
                             //       and creating the lockfile in that jobstep/handle_bucket directory.
                             usleep((useconds_t)1000000);
+                        }
+                        else
+                        {
+                            rc = -1;
+                            errorText << "Could not open handle bucket lockfile " << l_HandleBucketLockFileName << " for locking, errno=" << errno << ": " << strerror(errno);
+                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
                         }
                     }
                     break;

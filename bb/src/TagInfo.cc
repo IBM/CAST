@@ -382,19 +382,19 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
             {
                 case -2:
                 {
-                    if (!l_Attempts)
-                    {
-                        rc = -1;
-                        errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
-                                  << ". The most likely cause is due to the job being ended and/or removed.";
-                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                    }
-                    else
+                    if (l_Attempts)
                     {
                         // Delay one second and try again
                         // NOTE: We may have hit the window between the creation of the jobstep directory
                         //       and creating the lockfile/taginfo in that jobstep directory.
                         usleep((useconds_t)1000000);
+                    }
+                    else
+                    {
+                        rc = -1;
+                        errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
+                                  << ". The most likely cause is due to the job being ended and/or removed.";
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
                     }
                 }
                 break;
@@ -438,11 +438,12 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
 
     return rc;
 }
-#undef ATTEMPTS
 
 int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
 {
     int rc = 0;
+    stringstream errorText;
+
     pBumpCount = 0;
     string l_Line;
 
@@ -451,25 +452,41 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
 
     try
     {
-        ifstream l_BumpCountFile(l_BumpCountFileName);
-        if (l_BumpCountFile.is_open())
+        int l_Attempts = ATTEMPTS;
+        while (l_Attempts-- && (!rc))
         {
-            getline(l_BumpCountFile, l_Line);
-            l_BumpCountFile.close();
-        }
-        else
-        {
-            rc = -1;
-            LOG(bb,error) << "Failed to open/read file " << l_BumpCountFileName;
-        }
-        if (l_Line.length() > 0 && all_of(l_Line.begin(), l_Line.end(), ::isdigit))
-        {
-            pBumpCount = stoi(l_Line);
-        }
-        else
-        {
-            rc = -1;
-            LOG(bb,error) << "Bump count file at " << l_BumpCountFileName << " has invalid contents of |" << l_Line.c_str() << "|";
+            ifstream l_BumpCountFile(l_BumpCountFileName);
+            if (l_BumpCountFile.is_open())
+            {
+                getline(l_BumpCountFile, l_Line);
+                if (l_Line.length() > 0 && all_of(l_Line.begin(), l_Line.end(), ::isdigit))
+                {
+                    pBumpCount = stoi(l_Line);
+                    l_Attempts = 0;
+                }
+                else
+                {
+                    rc = -1;
+                    LOG(bb,error) << "Bump count file at " << l_BumpCountFileName << " has invalid contents of |" << l_Line.c_str() << "|";
+                }
+                l_BumpCountFile.close();
+            }
+            else
+            {
+                if (l_Attempts)
+                {
+                    // Delay one second and try again
+                    // NOTE: We may have hit the window between the creation of the jobstep directory
+                    //       and creating the lockfile/taginfo in that jobstep directory.
+                    usleep((useconds_t)1000000);
+                }
+                else
+                {
+                    rc = -1;
+                    errorText << "Failed to open bump count file " << l_BumpCountFileName << ", errno=" << errno << ": " << strerror(errno);
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                }
+            }
         }
     }
     catch(exception& e)
@@ -480,6 +497,7 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
 
     return rc;
 };
+#undef ATTEMPTS
 
 void TagInfo::unlock()
 {
@@ -700,7 +718,7 @@ int TagInfo::writeBumpCountFile(const string& pFilePath, const uint32_t pValue)
         else
         {
             rc = -1;
-            LOG(bb,error) << "Failed to open/create/write file " << l_BumpCountFileName;
+            LOG(bb,error) << "Failed to open bump count file " << l_BumpCountFileName << ", errno=" << errno << ": " << strerror(errno);
         }
     }
     catch(exception& e)
