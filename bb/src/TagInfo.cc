@@ -449,18 +449,34 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
     char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
     snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
 
-    ifstream l_BumpCountFile(l_BumpCountFileName);
-    if (l_BumpCountFile.is_open())
+    try
     {
-        getline(l_BumpCountFile, l_Line);
-        l_BumpCountFile.close();
+        ifstream l_BumpCountFile(l_BumpCountFileName);
+        if (l_BumpCountFile.is_open())
+        {
+            getline(l_BumpCountFile, l_Line);
+            l_BumpCountFile.close();
+        }
+        else
+        {
+            rc = -1;
+            LOG(bb,error) << "Failed to open/read file " << l_BumpCountFileName;
+        }
+        if (l_Line.length() > 0 && all_of(l_Line.begin(), l_Line.end(), ::isdigit))
+        {
+            pBumpCount = stoi(l_Line);
+        }
+        else
+        {
+            rc = -1;
+            LOG(bb,error) << "Bump count file at " << l_BumpCountFileName << " has invalid contents of |" << l_Line.c_str() << "|";
+        }
     }
-    else
+    catch(exception& e)
     {
         rc = -1;
-        LOG(bb,error) << "Failed to open/read file " << l_BumpCountFileName;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
     }
-    pBumpCount = stoi(l_Line);
 
     return rc;
 };
@@ -528,55 +544,73 @@ int TagInfo::update(const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
+    int l_TagInfoLocked = 0;
 
-    // This lock serializes amongst bbServers...
-    rc = TagInfo::lock(pJobStepPath);
-    if (!rc)
+    try
     {
-        uint32_t l_BumpCount = 0;
-        rc = readBumpCountFile(pJobStepPath.string(), l_BumpCount);
-
-        if (l_BumpCount == pBumpCount)
+        // This lock serializes amongst bbServers...
+        rc = TagInfo::lock(pJobStepPath);
+        if (!rc)
         {
-            // Add the passed in values for tag/contrib vector/handle as a new TagHandle
-            // in the taginfo file
-            rc = TagInfo::load(l_TagInfo, pTagInfoPath);
-            if (!rc)
+            l_TagInfoLocked = 1;
+
+            uint32_t l_BumpCount = 0;
+            rc = readBumpCountFile(pJobStepPath.string(), l_BumpCount);
+
+            if (l_BumpCount == pBumpCount)
             {
-                rc = HandleInfo::load(l_HandleInfo, pHandleInfoPath);
+                // Add the passed in values for tag/contrib vector/handle as a new TagHandle
+                // in the taginfo file
+                rc = TagInfo::load(l_TagInfo, pTagInfoPath);
                 if (!rc)
                 {
-                    // Add the taghandle value to the taginfo file
-                    l_TagInfo->tagHandles.push_back(pTagHandle);
-                    l_TagInfo->save();
+                    rc = HandleInfo::load(l_HandleInfo, pHandleInfoPath);
+                    if (!rc)
+                    {
+                        // Add the taghandle value to the taginfo file
+                        l_TagInfo->tagHandles.push_back(pTagHandle);
+                        l_TagInfo->save();
 
-                    // Add the handle value to the handleinfo file
-                    l_HandleInfo->handles.push_back(pHandle);
-                    l_HandleInfo->save();
+                        // Add the handle value to the handleinfo file
+                        l_HandleInfo->handles.push_back(pHandle);
+                        l_HandleInfo->save();
+                    }
+                    else
+                    {
+                        rc = -1;
+                        LOG(bb,error) << "Could not load handleinfo file " << pHandleInfoPath.c_str();
+                    }
                 }
                 else
                 {
-
+                    rc = -1;
+                    LOG(bb,error) << "Could not load taginfo file " << pTagInfoPath.c_str();
                 }
             }
             else
             {
-
+                // Bump count mismatch...  Indicate to invoker to retry...
+                rc = 1;
             }
         }
         else
         {
-            // Bump count mismatch...
-            rc = 1;
+            rc = -1;
+            LOG(bb,error) << "Could not lock the taginfo lockfile located at " << pJobStepPath.c_str();
         }
     }
-    else
+    catch(exception& e)
     {
-
+        rc = -1;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
     }
 
-    // Unlock the TagInfo file
-    TagInfo::unlock();
+    if (l_TagInfoLocked)
+    {
+        // Unlock the TagInfo file
+        l_TagInfoLocked = 0;
+        TagInfo::unlock();
+    }
 
     if (l_HandleInfo)
     {
@@ -654,17 +688,25 @@ int TagInfo::writeBumpCountFile(const string& pFilePath, const uint32_t pValue)
     char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
     snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
 
-    ofstream l_BumpCountFile(l_BumpCountFileName);
-    if(l_BumpCountFile.is_open())
+    try
     {
-        l_BumpCountFile << pValue << std::endl;
-        l_BumpCountFile.flush();
-        l_BumpCountFile.close();
+        ofstream l_BumpCountFile(l_BumpCountFileName);
+        if(l_BumpCountFile.is_open())
+        {
+            l_BumpCountFile << pValue << std::endl;
+            l_BumpCountFile.flush();
+            l_BumpCountFile.close();
+        }
+        else
+        {
+            rc = -1;
+            LOG(bb,error) << "Failed to open/create/write file " << l_BumpCountFileName;
+        }
     }
-    else
+    catch(exception& e)
     {
         rc = -1;
-        LOG(bb,error) << "Failed to open/create/write file " << l_BumpCountFileName;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
     }
 
     return rc;
