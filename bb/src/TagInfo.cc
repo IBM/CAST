@@ -339,7 +339,7 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
     return rc;
 }
 
-#define ATTEMPTS 10
+#define ATTEMPTS 200
 int TagInfo::lock(const bfs::path& pJobStepPath)
 {
     int rc = -2;
@@ -384,10 +384,10 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
                 {
                     if (l_Attempts)
                     {
-                        // Delay one second and try again
+                        // Delay fifty milliseconds and try again
                         // NOTE: We may have hit the window between the creation of the jobstep directory
                         //       and creating the lockfile/taginfo in that jobstep directory.
-                        usleep((useconds_t)1000000);
+                        usleep((useconds_t)50000);
                     }
                     else
                     {
@@ -468,10 +468,10 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
                 {
                     if (l_Attempts)
                     {
-                        // Delay one second and try again
+                        // Delay fifty milliseconds and try again
                         // NOTE: We may have hit the window between the creation of the jobstep directory
                         //       and creating/populating of the bump count file in that jobstep directory.
-                        usleep((useconds_t)1000000);
+                        usleep((useconds_t)50000);
                     }
                     else
                     {
@@ -485,10 +485,10 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
             {
                 if (l_Attempts)
                 {
-                    // Delay one second and try again
+                    // Delay fifty milliseconds and try again
                     // NOTE: We may have hit the window between the creation of the jobstep directory
                     //       and creating/populating of the bump count file in that jobstep directory.
-                    usleep((useconds_t)1000000);
+                    usleep((useconds_t)50000);
                 }
                 else
                 {
