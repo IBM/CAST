@@ -132,7 +132,7 @@ int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
     return rc;
 }
 
-#define ATTEMPTS 10
+#define ATTEMPTS 200
 int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
 {
     int rc = -2;
@@ -206,10 +206,10 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
                     {
                         if (l_Attempts)
                         {
-                            // Delay one second and try again
+                            // Delay fifty milliseconds and try again
                             // NOTE: We may have hit the window between the creation of the jobstep/handle_bucket directory
                             //       and creating the lockfile in that jobstep/handle_bucket directory.
-                            usleep((useconds_t)1000000);
+                            usleep((useconds_t)50000);
                         }
                         else
                         {
