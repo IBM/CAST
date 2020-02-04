@@ -466,8 +466,18 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
                 }
                 else
                 {
-                    rc = -1;
-                    LOG(bb,error) << "Bump count file at " << l_BumpCountFileName << " has invalid contents of |" << l_Line.c_str() << "|";
+                    if (l_Attempts)
+                    {
+                        // Delay one second and try again
+                        // NOTE: We may have hit the window between the creation of the jobstep directory
+                        //       and creating/populating of the bump count file in that jobstep directory.
+                        usleep((useconds_t)1000000);
+                    }
+                    else
+                    {
+                        rc = -1;
+                        LOG(bb,error) << "Bump count file at " << l_BumpCountFileName << " has invalid contents of |" << l_Line.c_str() << "|";
+                    }
                 }
                 l_BumpCountFile.close();
             }
@@ -477,7 +487,7 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
                 {
                     // Delay one second and try again
                     // NOTE: We may have hit the window between the creation of the jobstep directory
-                    //       and creating the lockfile/taginfo in that jobstep directory.
+                    //       and creating/populating of the bump count file in that jobstep directory.
                     usleep((useconds_t)1000000);
                 }
                 else
