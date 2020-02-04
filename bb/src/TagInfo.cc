@@ -85,8 +85,40 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                             }
                             else
                             {
-                                // Different contrib vector
                                 // ERROR - Tag value has already been used for a different contrib vector.
+                                stringstream l_Temp;
+                                l_Temp << "(";
+                                uint64_t l_NumContrib = pExpectContrib.size();
+                                for(uint64_t j=0; j<l_NumContrib; ++j)
+                                {
+                                    if (j!=l_NumContrib-1)
+                                    {
+                                        l_Temp << pExpectContrib[j] << ",";
+                                    }
+                                    else
+                                    {
+                                        l_Temp << pExpectContrib[j];
+                                    }
+                                }
+
+                                l_Temp << ")";
+                                stringstream l_Temp2;
+                                l_Temp2 << "(";
+                                l_NumContrib = (l_TagInfo->tagHandles[i]).expectContrib.size();
+                                for(uint64_t j=0; j<l_NumContrib; ++j)
+                                {
+                                    if (j!=l_NumContrib-1)
+                                    {
+                                        l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j] << ",";
+                                    }
+                                    else
+                                    {
+                                        l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j];
+                                    }
+                                }
+                                l_Temp2 << ")";
+                                LOG(bb,error) << "For jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", tag " << pTag \
+                                              << ", the expected contrib is " << l_Temp.str() << ". Existing contrib for handle and tag is " << l_Temp2.str() << ".";
                                 rc = -2;
                             }
                         }
@@ -237,6 +269,7 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 
     pTagInfo = NULL;
     TagInfo* l_TagInfo = new TagInfo(pTagInfoName.string());
+    int l_TagInfoLocked = 0;
 
     if(bfs::exists(pTagInfoName))
     {
@@ -253,10 +286,15 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
             ++l_Attempts;
             try
             {
-                LOG(bb,debug) << "Reading:" << pTagInfoName;
-                ifstream l_ArchiveFile{pTagInfoName.c_str()};
-                text_iarchive l_Archive{l_ArchiveFile};
-                l_Archive >> *l_TagInfo;
+                rc = lock(pTagInfoName.parent_path());
+                if (!rc)
+                {
+                    l_TagInfoLocked = 1;
+                    LOG(bb,debug) << "Reading:" << pTagInfoName;
+                    ifstream l_ArchiveFile{pTagInfoName.c_str()};
+                    text_iarchive l_Archive{l_ArchiveFile};
+                    l_Archive >> *l_TagInfo;
+                }
             }
             catch(archive_exception& e)
             {
@@ -284,6 +322,12 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
                 rc = -1;
                 LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pTagInfoName.c_str();
             }
+        }
+
+        if (l_TagInfoLocked)
+        {
+            l_TagInfoLocked = 0;
+            unlock();
         }
 
         if (l_LastConsoleOutput > 0)
@@ -334,16 +378,16 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
         while (l_Attempts--)
         {
             uint64_t l_FL_Counter = metadataCounter.getNext();
-            FL_Write(FLMetaData, TF_Lock, "lock TF, counter=%ld", l_FL_Counter, 0, 0, 0);
+            FL_Write(FLMetaData, TI_Lock, "lock TI, counter=%ld", l_FL_Counter, 0, 0, 0);
 
             uint64_t l_FL_Counter2 = metadataCounter.getNext();
-            FL_Write(FLMetaData, TF_Open, "open TF, counter=%ld", l_FL_Counter2, 0, 0, 0);
+            FL_Write(FLMetaData, TI_Open, "open TI, counter=%ld", l_FL_Counter2, 0, 0, 0);
 
             threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_TagLockFileName, __LINE__);
             fd = open(l_TagLockFileName.c_str(), O_WRONLY);
             threadLocalTrackSyscallPtr->clearTrack();
 
-            FL_Write(FLMetaData, TF_Open_End, "open TF, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+            FL_Write(FLMetaData, TI_Open_End, "open TI, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
 
             if (fd >= 0)
             {
@@ -373,8 +417,7 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
                     else
                     {
                         rc = -1;
-                        errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno) \
-                                  << ". The most likely cause is due to the job being ended and/or removed.";
+                        errorText << "Could not open tag lockfile " << l_TagLockFileName << " for locking, errno=" << errno << ": " << strerror(errno);
                         LOG_ERROR_TEXT_ERRNO(errorText, errno);
                     }
                 }
@@ -387,11 +430,11 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
 
                     if (fd >= 0)
                     {
-                        LOG(bb,debug) << "lock(): Issue close for taginfo fd " << fd;
+                        LOG(bb,debug) << "lock(): Issue close for tag lockfile fd " << fd;
                         uint64_t l_FL_Counter = metadataCounter.getNext();
-                        FL_Write(FLMetaData, TF_CouldNotLockExcl, "open TF, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
+                        FL_Write(FLMetaData, TI_CouldNotLockExcl, "open TI, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
                         ::close(fd);
-                        FL_Write(FLMetaData, TF_CouldNotLockExcl_End, "open TF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                        FL_Write(FLMetaData, TI_CouldNotLockExcl_End, "open TI, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
                     }
                     l_Attempts = 0;
                 }
@@ -406,7 +449,7 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
                 break;
             }
 
-            FL_Write(FLMetaData, TF_Lock_End, "lock TF, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
+            FL_Write(FLMetaData, TI_Lock_End, "lock TI, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
         }
     }
     else
@@ -420,6 +463,7 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
     return rc;
 }
 
+// NOTE: TagInfo lock MUST be held when invoking this method
 int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
 {
     int rc = 0;
@@ -428,7 +472,6 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
     pBumpCount = 0;
     string l_Line;
 
-    // NOTE: TagInfo lock MUST be held when invoking this method
     char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
     snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
 
@@ -507,7 +550,7 @@ void TagInfo::unlock(const int pFd)
     stringstream errorText;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, TF_Unlock, "unlock TF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+    FL_Write(FLMetaData, TI_Unlock, "unlock TI, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
     if (pFd >= 0)
     {
@@ -519,7 +562,7 @@ void TagInfo::unlock(const int pFd)
             l_LockOptions.l_start = 0;
             l_LockOptions.l_len = 0;    // Unlock entire file
             l_LockOptions.l_type = F_UNLCK;
-            LOG(bb,debug) << "unlock(): Issue unlock for taginfo fd " << pFd;
+            LOG(bb,debug) << "unlock(): Issue unlock for tag lockfile fd " << pFd;
             threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, pFd, __LINE__);
             int rc = ::fcntl(pFd, F_SETLK, &l_LockOptions);
             threadLocalTrackSyscallPtr->clearTrack();
@@ -529,13 +572,13 @@ void TagInfo::unlock(const int pFd)
             }
             else
             {
-                LOG(bb,warning) << "Could not exclusively unlock taginfo fd " << pFd << ", errno=" << errno << ":" << strerror(errno);
+                LOG(bb,warning) << "Could not exclusively unlock tag lockfile fd " << pFd << ", errno=" << errno << ":" << strerror(errno);
             }
-            LOG(bb,debug) << "close(): Issue close for taginfo fd " << pFd;
+            LOG(bb,debug) << "close(): Issue close for tag lockfile fd " << pFd;
 
             ::close(pFd);
 
-            FL_Write(FLMetaData, TF_Close_End, "close TF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+            FL_Write(FLMetaData, TI_Close_End, "close TI, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
         }
         catch(exception& e)
         {
@@ -543,7 +586,7 @@ void TagInfo::unlock(const int pFd)
         }
     }
 
-    FL_Write(FLMetaData, TF_Unlock_End, "unlock TF, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+    FL_Write(FLMetaData, TI_Unlock_End, "unlock TI, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
 
     return;
 }
@@ -665,6 +708,7 @@ int BBTagHandle::compareContrib(vector<uint32_t>& pContribVector)
     return rc;
 }
 
+// NOTE: TagInfo lock MUST be held when invoking this method
 int TagInfo::save()
 {
     int rc = 0;
