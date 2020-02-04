@@ -36,8 +36,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
-    int l_TransferQueueWasUnlocked = 0;
-    int l_LocalMetadataLocked = 0;
     int l_HandleBucketLocked = 0;
 
     try
@@ -52,8 +50,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
-        // For create/get handle performance, we want to hold the taginfo lock as short
-        // as possible.  Do any necessary preprations before obtaining the lock.
         char l_TagInfoName[64] = {'\0'};
         snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % g_Number_Taginfo_Buckets));
         bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
@@ -64,11 +60,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, (pHandle % g_Number_Toplevel_Handlefile_Buckets));
         bfs::path l_HandleBucketPath = l_JobStepPath / l_HandleBucketName;
         BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
-
-        // Perform the necessary locking
-        l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "addTagHandle");
-        // This lock serializes amongst request/transfer threads on this bbServer...
-        l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "addTagHandle");
 
         if (!rc)
         {
@@ -184,16 +175,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     {
         l_HandleBucketLocked = 0;
         HandleInfo::unlockHandleBucket();
-    }
-
-    if (l_LocalMetadataLocked)
-    {
-        unlockLocalMetadata(pLVKey, "addTagHandle");
-    }
-
-    if (l_TransferQueueWasUnlocked)
-    {
-        lockTransferQueue(pLVKey, "addTagHandle");
     }
 
     if (l_HandleInfo)
@@ -447,6 +428,7 @@ int TagInfo::readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount)
     pBumpCount = 0;
     string l_Line;
 
+    // NOTE: TagInfo lock MUST be held when invoking this method
     char l_BumpCountFileName[PATH_MAX+64] = {'\0'};
     snprintf(l_BumpCountFileName, sizeof(l_BumpCountFileName), "%s/%s", pFilePath.c_str(), BUMP_COUNT_FILENAME);
 
