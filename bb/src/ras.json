@@ -302,6 +302,18 @@
 	      "message" : "verifyInitLockState: Residual lock (4)",
 	      "description" : "verifyInitLockState:  Residual lock (4)"
 	  },
+	  "residual5" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (5)",
+	      "description" : "verifyInitLockState:  Residual lock (5)"
+	  },
+	  "residual6" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "verifyInitLockState: Residual lock (6)",
+	      "description" : "verifyInitLockState:  Residual lock (6)"
+	  },
 	  "lockhf1" :
 	  {
 	      "severity" : "WARNING",

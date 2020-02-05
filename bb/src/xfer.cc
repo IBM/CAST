@@ -543,6 +543,22 @@ void verifyInitLockState()
         endOnError();
     }
 
+    if (TagInfoLockFd != -1)
+    {
+        FL_Write(FLError, lockPV_Residual5, "verifyInitLockState: Taginfo lock file is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: Taginfo lock file is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual5)
+        endOnError();
+    }
+
+    if (HandleBucketLockFd != -1)
+    {
+        FL_Write(FLError, lockPV_Residual6, "verifyInitLockState: Handle bucket is still locked at the beginning of new work",0,0,0,0);
+        errorText << "verifyInitLockState: Handle bucket is still locked at the beginning of new work";
+        LOG_ERROR_TEXT_AND_RAS(errorText, bb.internal.lockprotocol.residual6)
+        endOnError();
+    }
+
     CurrentWrkQE = (WRKQE*)0;
 
     return;
