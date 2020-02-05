@@ -36,6 +36,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
+    int l_TagInfoLocked = 0;
     int l_HandleBucketLocked = 0;
 
     try
@@ -67,117 +68,130 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             if (!rc)
             {
                 l_HandleBucketLocked = 1;
-                rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
+                rc = lock(l_JobStepPath);
                 if (!rc)
                 {
-                    for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
+                    l_TagInfoLocked = 1;
+                    rc = TagInfo::load(l_TagInfo, l_TagInfoPath);
+                    if (!rc)
                     {
-                        if (l_TagInfo->tagHandles[i].tag == pTag)
+                        l_TagInfoLocked = 0;
+                        unlock();
+                        for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
                         {
-                            // Same tag value
-                            if (!(l_TagInfo->tagHandles[i].compareContrib(pExpectContrib)))
+                            if (l_TagInfo->tagHandles[i].tag == pTag)
                             {
-                                // Same contrib vector
-                                // Handle value has already been assigned for this tag/contrib vector.
-                                // Return the already assigned handle value for this tag/contrib vector.
-                                pHandle = l_TagInfo->tagHandles[i].handle;
-                                rc = 1;
+                                // Same tag value
+                                if (!(l_TagInfo->tagHandles[i].compareContrib(pExpectContrib)))
+                                {
+                                    // Same contrib vector
+                                    // Handle value has already been assigned for this tag/contrib vector.
+                                    // Return the already assigned handle value for this tag/contrib vector.
+                                    pHandle = l_TagInfo->tagHandles[i].handle;
+                                    rc = 1;
+                                }
+                                else
+                                {
+                                    // ERROR - Tag value has already been used for a different contrib vector.
+                                    stringstream l_Temp;
+                                    l_Temp << "(";
+                                    uint64_t l_NumContrib = pExpectContrib.size();
+                                    for(uint64_t j=0; j<l_NumContrib; ++j)
+                                    {
+                                        if (j!=l_NumContrib-1)
+                                        {
+                                            l_Temp << pExpectContrib[j] << ",";
+                                        }
+                                        else
+                                        {
+                                            l_Temp << pExpectContrib[j];
+                                        }
+                                    }
+
+                                    l_Temp << ")";
+                                    stringstream l_Temp2;
+                                    l_Temp2 << "(";
+                                    l_NumContrib = (l_TagInfo->tagHandles[i]).expectContrib.size();
+                                    for(uint64_t j=0; j<l_NumContrib; ++j)
+                                    {
+                                        if (j!=l_NumContrib-1)
+                                        {
+                                            l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j] << ",";
+                                        }
+                                        else
+                                        {
+                                            l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j];
+                                        }
+                                    }
+                                    l_Temp2 << ")";
+                                    LOG(bb,error) << "For jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", tag " << pTag \
+                                                  << ", the expected contrib is " << l_Temp.str() << ". Existing contrib for handle and tag is " << l_Temp2.str() << ".";
+                                    rc = -2;
+                                }
+                            }
+                        }
+
+                        if (!rc)
+                        {
+                            // The passed in tag was not found.  Now, determine if we have a duplicate
+                            // handle value.
+                            rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
+                            if (!rc)
+                            {
+                                for (size_t i=0; (i<l_HandleInfo->handles.size() && (rc == 0 || rc == 2)); i++)
+                                {
+                                    if (l_HandleInfo->handles[i] == pHandle)
+                                    {
+                                        // Same handle value.  Indicate to re-generate the handle vlaue and retry.
+                                        rc = 2;
+                                    }
+                                }
+
+                                if (!rc)
+                                {
+                                    rc = TagInfo::update(l_JobStepPath, l_TagInfoPath, l_HandleInfoPath, pBumpCount, l_TagHandle, pHandle);
+                                    switch (rc)
+                                    {
+                                        case 0:
+                                        {
+                                            // Update was successful
+                                        }
+                                        break;
+
+                                        case 1:
+                                        {
+                                            // Bump count mismatch...
+                                            rc = -3;
+                                        }
+                                        break;
+
+                                        default:
+                                        {
+                                            // Could not update the TagInfo or HandleInfo file
+                                            // NOTE: error state already filled in...
+                                            SET_RC(rc);
+                                        }
+                                    }
+                                }
                             }
                             else
                             {
-                                // ERROR - Tag value has already been used for a different contrib vector.
-                                stringstream l_Temp;
-                                l_Temp << "(";
-                                uint64_t l_NumContrib = pExpectContrib.size();
-                                for(uint64_t j=0; j<l_NumContrib; ++j)
-                                {
-                                    if (j!=l_NumContrib-1)
-                                    {
-                                        l_Temp << pExpectContrib[j] << ",";
-                                    }
-                                    else
-                                    {
-                                        l_Temp << pExpectContrib[j];
-                                    }
-                                }
-
-                                l_Temp << ")";
-                                stringstream l_Temp2;
-                                l_Temp2 << "(";
-                                l_NumContrib = (l_TagInfo->tagHandles[i]).expectContrib.size();
-                                for(uint64_t j=0; j<l_NumContrib; ++j)
-                                {
-                                    if (j!=l_NumContrib-1)
-                                    {
-                                        l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j] << ",";
-                                    }
-                                    else
-                                    {
-                                        l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j];
-                                    }
-                                }
-                                l_Temp2 << ")";
-                                LOG(bb,error) << "For jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", tag " << pTag \
-                                              << ", the expected contrib is " << l_Temp.str() << ". Existing contrib for handle and tag is " << l_Temp2.str() << ".";
-                                rc = -2;
+                                // Could not load the handleinfo
+                                // NOTE: error state already filled in...
+                                SET_RC(rc);
                             }
                         }
                     }
-
-                    if (!rc)
+                    else
                     {
-                        // The passed in tag was not found.  Now, determine if we have a duplicate
-                        // handle value.
-                        rc = HandleInfo::load(l_HandleInfo, l_HandleInfoPath);
-                        if (!rc)
-                        {
-                            for (size_t i=0; (i<l_HandleInfo->handles.size() && (rc == 0 || rc == 2)); i++)
-                            {
-                                if (l_HandleInfo->handles[i] == pHandle)
-                                {
-                                    // Same handle value.  Indicate to re-generate the handle vlaue and retry.
-                                    rc = 2;
-                                }
-                            }
-
-                            if (!rc)
-                            {
-                                rc = TagInfo::update(l_JobStepPath, l_TagInfoPath, l_HandleInfoPath, pBumpCount, l_TagHandle, pHandle);
-                                switch (rc)
-                                {
-                                    case 0:
-                                    {
-                                        // Update was successful
-                                    }
-                                    break;
-
-                                    case 1:
-                                    {
-                                        // Bump count mismatch...
-                                        rc = -3;
-                                    }
-                                    break;
-
-                                    default:
-                                    {
-                                        // Could not update the TagInfo or HandleInfo file
-                                        // NOTE: error state already filled in...
-                                        SET_RC(rc);
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Could not load the handleinfo
-                            // NOTE: error state already filled in...
-                            SET_RC(rc);
-                        }
+                        // Could not load the taginfo
+                        // NOTE: error state already filled in...
+                        SET_RC(rc);
                     }
                 }
                 else
                 {
-                    // Could not load the taginfo
+                    // Could not lock the tag lockfile
                     // NOTE: error state already filled in...
                     SET_RC(rc);
                 }
@@ -201,6 +215,12 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_TagInfoLocked)
+    {
+        l_TagInfoLocked = 0;
+        unlock();
     }
 
     if (l_HandleBucketLocked)
@@ -260,6 +280,7 @@ int TagInfo::incrBumpCountFile(const string& pFilePath)
     return rc;
 }
 
+// NOTE: TagInfo lock MUST be held when invoking this method
 int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 {
     int rc = 0;
@@ -269,7 +290,6 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 
     pTagInfo = NULL;
     TagInfo* l_TagInfo = new TagInfo(pTagInfoName.string());
-    int l_TagInfoLocked = 0;
 
     if(bfs::exists(pTagInfoName))
     {
@@ -286,15 +306,10 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
             ++l_Attempts;
             try
             {
-                rc = lock(pTagInfoName.parent_path());
-                if (!rc)
-                {
-                    l_TagInfoLocked = 1;
-                    LOG(bb,debug) << "Reading:" << pTagInfoName;
-                    ifstream l_ArchiveFile{pTagInfoName.c_str()};
-                    text_iarchive l_Archive{l_ArchiveFile};
-                    l_Archive >> *l_TagInfo;
-                }
+                LOG(bb,debug) << "Reading:" << pTagInfoName;
+                ifstream l_ArchiveFile{pTagInfoName.c_str()};
+                text_iarchive l_Archive{l_ArchiveFile};
+                l_Archive >> *l_TagInfo;
             }
             catch(archive_exception& e)
             {
@@ -322,12 +337,6 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
                 rc = -1;
                 LOG(bb,error) << "Exception thrown in " << __func__ << " was " << e.what() << " when attempting to load archive " << pTagInfoName.c_str();
             }
-        }
-
-        if (l_TagInfoLocked)
-        {
-            l_TagInfoLocked = 0;
-            unlock();
         }
 
         if (l_LastConsoleOutput > 0)
