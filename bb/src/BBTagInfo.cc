@@ -263,7 +263,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     return rc;
 }
 
-int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const vector<uint32_t> pExpectContrib, uint64_t& l_Handle, const uint32_t pBumpCount)
+int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pExpectContrib, uint64_t& l_Handle, const uint32_t pBumpCount)
 {
     return TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle, pBumpCount);
 }

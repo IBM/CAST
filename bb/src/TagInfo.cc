@@ -29,7 +29,7 @@ thread_local int TagInfoLockFd = -1;
  * Static methods
  */
 
-int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle, const uint32_t pBumpCount)
+int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pExpectContrib, uint64_t& pHandle, const uint32_t pBumpCount)
 {
     int rc = 0;
     stringstream errorText;
