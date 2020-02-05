@@ -145,6 +145,13 @@ const uint64_t DEFAULT_FORCE_SSD_WRITE_ERROR = 0;
 const uint64_t DEFAULT_FORCE_PFS_READ_ERROR = 0;
 const uint64_t DEFAULT_FORCE_PFS_WRITE_ERROR = 0;
 
+//NOTE:  The following three values should all be set to the same value.
+//       Otherwise, the current taginfo/handle bucket locking strategy must
+//       change.  We rely on the handle bucket lock to prevent a concurrent
+//       write/read to the handleinfo data.  If these values are the same,
+//       then we do not have to have a separate handleinfo lock around the
+//       load/save of handleinfo data, as the handle bucket lock prevents
+//       the concurrent write/read of the handleinfo data.
 const uint64_t DEFAULT_NUMBER_OF_TAGINFO_BUCKETS = 1024;
 const uint64_t DEFAULT_NUMBER_OF_HANDLEINFO_BUCKETS = 1024;
 const uint64_t DEFAULT_NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS = 1024;
