@@ -146,11 +146,11 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
         bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
         l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
         l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
+        vector<uint32_t> l_ExpectContrib;
         while (l_Continue)
         {
             l_Continue = false;
             uint32_t l_BumpCount = 0;
-            vector<uint32_t> l_ExpectContrib;
             if (l_Handle == UNDEFINED_HANDLE)
             {
                 for (size_t i=0; i<(size_t)pNumContrib; ++i)
