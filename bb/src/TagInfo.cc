@@ -39,6 +39,10 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     int l_TagInfoLocked = 0;
     int l_HandleBucketLocked = 0;
 
+    stringstream l_Input;
+    contribToString(l_Input, pExpectContrib);
+    LOG(bb,info) << "Entry addTagHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
+
     try
     {
         bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
@@ -94,36 +98,9 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                                 {
                                     // ERROR - Tag value has already been used for a different contrib vector.
                                     stringstream l_Temp;
-                                    l_Temp << "(";
-                                    uint64_t l_NumContrib = pExpectContrib.size();
-                                    for(uint64_t j=0; j<l_NumContrib; ++j)
-                                    {
-                                        if (j!=l_NumContrib-1)
-                                        {
-                                            l_Temp << pExpectContrib[j] << ",";
-                                        }
-                                        else
-                                        {
-                                            l_Temp << pExpectContrib[j];
-                                        }
-                                    }
-
-                                    l_Temp << ")";
+                                    contribToString(l_Temp, pExpectContrib);
                                     stringstream l_Temp2;
-                                    l_Temp2 << "(";
-                                    l_NumContrib = (l_TagInfo->tagHandles[i]).expectContrib.size();
-                                    for(uint64_t j=0; j<l_NumContrib; ++j)
-                                    {
-                                        if (j!=l_NumContrib-1)
-                                        {
-                                            l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j] << ",";
-                                        }
-                                        else
-                                        {
-                                            l_Temp2 << (l_TagInfo->tagHandles[i]).expectContrib[j];
-                                        }
-                                    }
-                                    l_Temp2 << ")";
+                                    contribToString(l_Temp2, (l_TagInfo->tagHandles[i]).expectContrib);
                                     LOG(bb,error) << "For jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", tag " << pTag \
                                                   << ", the expected contrib is " << l_Temp.str() << ". Existing contrib for handle and tag is " << l_Temp2.str() << ".";
                                     rc = -2;
@@ -216,6 +193,10 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
+
+    stringstream l_Input2;
+    contribToString(l_Input2, pExpectContrib);
+    LOG(bb,info) << "Exit addTagHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
 
     if (l_TagInfoLocked)
     {

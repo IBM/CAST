@@ -138,6 +138,27 @@ sem_t l_SSD_Write_Governor;
 //  Support routines
 //*****************************************************************************
 
+void contribToString(stringstream& pOutput, vector<uint32_t>& pContrib)
+{
+    pOutput << "(";
+    uint64_t l_NumContrib = pContrib.size();
+    for(uint64_t i=0; i<l_NumContrib; ++i)
+    {
+        if (i!=l_NumContrib-1)
+        {
+            pOutput << pContrib[i] << ",";
+        }
+        else
+        {
+            pOutput << pContrib[i];
+        }
+    }
+    pOutput << ")";
+
+    return;
+}
+
+
 int hasContribId(const uint32_t pContribId, const uint64_t pNumOfContribsInArray, uint32_t* pContribArray)
 {
     int rc = 0;
