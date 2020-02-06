@@ -725,6 +725,7 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     l_Complete->addAttribute(txp::status, (int64_t)l_Status);
     l_Complete->addAttribute(txp::totalProcessingTime, pTransferDef->processingTime);
     l_Complete->addAttribute(txp::totalTransferSize, (uint64_t)l_TotalSizeTransferred);
+    l_Complete->addAttribute(txp::timeBaseScale, g_TimeBaseScale);
 
     //    std::string pConnectionName=getConnectionName(pConnection); // $$$mea
     try{
@@ -876,6 +877,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::writetime, pTransferDef->writeOperations[pExtentInfo.getSourceIndex()].second);
     l_Complete->addAttribute(txp::synccount, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].first);
     l_Complete->addAttribute(txp::synctime, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second);
+    l_Complete->addAttribute(txp::timeBaseScale, g_TimeBaseScale);
 
     unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");

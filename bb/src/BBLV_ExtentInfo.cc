@@ -682,6 +682,7 @@ void BBLV_ExtentInfo::sendAllTransfersCompleteMsg(const string& pConnectionName,
     //        Our copy can then go out of scope...
     l_Complete->addAttribute(txp::uuid, lv_uuid_str, sizeof(lv_uuid_str), txp::COPY_TO_HEAP);
     l_Complete->addAttribute(txp::totalProcessingTime, processingTime);
+    l_Complete->addAttribute(txp::timeBaseScale, g_TimeBaseScale);
 
     // Send the all transfers complete message
 
