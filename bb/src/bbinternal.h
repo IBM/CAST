@@ -110,12 +110,13 @@ extern uint64_t g_TimeBaseScale;
 /*******************************************************************************
  | External methods
  *******************************************************************************/
+extern void contribToString(stringstream& pOutput, vector<uint32_t>& pContrib);
+extern void flightlog_Backtrace(uint64_t key);
 extern int logBacktrace();
 extern int32_t readVar(const char* pVariable);
 extern string resolveServerConfigKey(const string& pKey);
 extern int sameHostName(const string& pHostName);
 extern void writeVar(const char* pVariable, const char* pValue);
-extern void flightlog_Backtrace(uint64_t key);
 
 /*******************************************************************************
  | Constants
