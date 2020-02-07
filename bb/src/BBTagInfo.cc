@@ -160,10 +160,6 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
             }
 
-            stringstream l_Input;
-            contribToString(l_Input, l_ExpectContrib);
-            LOG(bb,info) << "Entry getTransferHandle(): Address of input contrib: " << &l_ExpectContrib << ", input contrib: " << l_Input.str();
-
             // This lock serializes amongst bbServers...
             int rc2 = TagInfo::lock(l_JobStepPath);
             if (!rc2)
@@ -241,10 +237,6 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                         LOG_ERROR_TEXT_RC(errorText, rc);
                     }
                 }
-
-                stringstream l_Input2;
-                contribToString(l_Input2, l_ExpectContrib);
-                LOG(bb,info) << "Exit getTransferHandle(): Address of input contrib: " << &l_ExpectContrib << ", input contrib: " << l_Input.str() << ", continue: " << l_Continue << ", rc3: " << rc3;
             }
             else
             {
@@ -273,17 +265,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
 
 int BBTagInfo::processNewHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pExpectContrib, uint64_t& l_Handle, const uint32_t pBumpCount)
 {
-    stringstream l_Input;
-    contribToString(l_Input, pExpectContrib);
-    LOG(bb,info) << "Entry processNewHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
-
-    int rc = TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle, pBumpCount);
-
-    stringstream l_Input2;
-    contribToString(l_Input2, pExpectContrib);
-    LOG(bb,info) << "Exit processNewHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
-
-    return rc;
+    return TagInfo::addTagHandle(pLVKey, pJob, pTag, pExpectContrib, l_Handle, pBumpCount);
 }
 
 int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)

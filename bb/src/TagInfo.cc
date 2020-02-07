@@ -39,10 +39,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     int l_TagInfoLocked = 0;
     int l_HandleBucketLocked = 0;
 
-    stringstream l_Input;
-    contribToString(l_Input, pExpectContrib);
-    LOG(bb,info) << "Entry addTagHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
-
     try
     {
         bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
@@ -193,10 +189,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-
-    stringstream l_Input2;
-    contribToString(l_Input2, pExpectContrib);
-    LOG(bb,info) << "Exit addTagHandle(): Address of input contrib: " << &pExpectContrib << ", input contrib: " << l_Input.str();
 
     if (l_TagInfoLocked)
     {
