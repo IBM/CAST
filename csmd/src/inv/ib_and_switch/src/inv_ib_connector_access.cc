@@ -80,7 +80,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// Get a list of endpoints corresponding to the server name.
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(),"http");
+		tcp::resolver::query query(rest_address.c_str(),"https");
 		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 		//tcp::resolver::iterator end; // End marker.
 
