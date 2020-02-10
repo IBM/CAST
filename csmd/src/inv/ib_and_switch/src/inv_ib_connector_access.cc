@@ -112,6 +112,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// Check that response is OK.
 		std::istream response_stream(&response);
 		std::string http_version;
+
+		//IDK
+		std::cout << "The response stream: " << std::endl;
+		std::cout << response_stream << std::endl;
+		std::cout << " #=# END response stream #=# " << std::endl;
+
+
 		response_stream >> http_version;
 		unsigned int status_code;
 		response_stream >> status_code;
