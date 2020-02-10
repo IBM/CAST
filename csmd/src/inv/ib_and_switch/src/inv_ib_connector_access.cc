@@ -80,8 +80,18 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// Get a list of endpoints corresponding to the server name.
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(),"https");
+		tcp::resolver::query query(rest_address.c_str(),"http");
 		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+		//tcp::resolver::iterator end; // End marker.
+
+		// while (endpoint_iterator != end)
+		// {
+		//     tcp::endpoint endpoint = *endpoint_iterator++;
+		//     std::cout << endpoint << std::endl;
+		// }
+
+		tcp::endpoint endpoint = *endpoint_iterator;
+		std::cout << endpoint << std::endl;
 	
 		// Try each endpoint until we successfully establish a connection.
 		tcp::socket socket(io_service);
@@ -98,6 +108,15 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		request_stream << "Host: " << rest_address << " \r\n";
 		request_stream << "Connection: close\r\n\r\n";
 
+		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
+		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
+
+		//IDK
+		std::cout << "The requestCOPY_TEST: " << std::endl;
+		// This is a pointer
+		std::cout << requestCOPY_TEST.c_str() << std::endl;
+		std::cout << " #=# END requestCOPY_TEST #=# " << std::endl;
+
 		// Send the request.
 		boost::asio::write(socket, request);
 		
@@ -112,7 +131,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		//IDK
 		std::cout << "The response_copy_1: " << std::endl;
 		// This is a pointer
-		std::cout << response_copy_1 << std::endl;
+		std::cout << response_copy_1.c_str() << std::endl;
 		std::cout << " #=# END response_copy_1 #=# " << std::endl;
 	
 		// Check that response is OK.
@@ -123,6 +142,12 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::cout << "The response stream: " << std::endl;
 		// This is a pointer
 		std::cout << response_stream << std::endl;
+		std::cout << " #=# END response stream #=# " << std::endl;
+
+		//IDK
+		std::cout << "The response stream: " << std::endl;
+		// This is a pointer
+		std::cout << &response_stream << std::endl;
 		std::cout << " #=# END response stream #=# " << std::endl;
 
 		std::cout << "The response stream: " << std::endl;
