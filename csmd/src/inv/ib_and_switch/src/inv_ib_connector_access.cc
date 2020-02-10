@@ -108,6 +108,12 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::read_until(socket, response, "\r\n");
 		boost::asio::streambuf::const_buffers_type buf_1 = response.data();
 		std::string response_copy_1(boost::asio::buffers_begin(buf_1), boost::asio::buffers_begin(buf_1) + response.size());
+
+		//IDK
+		std::cout << "The response_copy_1: " << std::endl;
+		// This is a pointer
+		std::cout << response_copy_1 << std::endl;
+		std::cout << " #=# END response_copy_1 #=# " << std::endl;
 	
 		// Check that response is OK.
 		std::istream response_stream(&response);
@@ -115,6 +121,12 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 		//IDK
 		std::cout << "The response stream: " << std::endl;
+		// This is a pointer
+		std::cout << response_stream << std::endl;
+		std::cout << " #=# END response stream #=# " << std::endl;
+
+		std::cout << "The response stream: " << std::endl;
+		// This is a pointer
 		std::cout << response_stream << std::endl;
 		std::cout << " #=# END response stream #=# " << std::endl;
 
