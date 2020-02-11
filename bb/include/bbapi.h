@@ -299,6 +299,21 @@ extern int BB_GetTransferList(BBSTATUS matchstatus, uint64_t* numHandles, BBTran
 extern int BB_GetTransferInfo(BBTransferHandle_t handle, BBTransferInfo_t* info);
 
 /**
+ *  \brief Gets the count of files currently being transferred for a handle on the compute node
+ *  \par Description
+ *  The BB_GetTransferCount routine returns the count of the number of active file transfers for the given transfer handle
+ *  that have been initiated on the compute node.  This can be used to query activity without querying the bbServer metadata.
+ *
+ *  \param[in]  handle      Transfer handle
+ *  \param[out] count       Caller provides storage for count.
+ *  \return Error code
+ *  \retval 0 Success
+ *  \retval errno Positive non-zero values correspond with errno.  strerror() can be used to interpret.
+ *  \ingroup bbapi
+ */
+extern int BB_GetTransferCount(BBTransferHandle_t pHandle, uint64_t* count);
+
+/**
  *  \brief Gets the transfer rate for a given tag
  *  \par Description
  *   The BB_GetThrottleRate routine retrieves the throttled transfer rate for the specified transfer handle.

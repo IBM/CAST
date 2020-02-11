@@ -1791,6 +1791,50 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
     return;
 }
 
+void msgin_gettransfercount(txp::Id id, const string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    updateEnv(pConnectionName);
+
+    int rc;
+    stringstream errorText;
+    
+    uint64_t l_JobId = UNDEFINED_JOBID;
+    uint64_t l_Handle = UNDEFINED_HANDLE;
+    uint64_t count = 0;
+
+    FL_Write(FLProxy, Msg_XferCount, "GetTransferCount id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
+    bberror << err("in.apicall", "BB_GetTransferCount");
+    try
+    {
+        l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+        l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
+
+        bberror << err("in.parms.jobid",  l_JobId);
+        bberror << err("in.parms.handle", l_Handle);
+        rc = numActiveFileTransfers(l_JobId, l_Handle, count);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+    if(!rc)
+    {
+        response->addAttribute(txp::count, count);
+    }
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
+
 void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -4647,6 +4691,7 @@ int registerHandlers()
     registerMessageHandler(txp::BB_GETTHROTTLERATE, msgin_getthrottlerate);
     registerMessageHandler(txp::BB_GETTRANSFERHANDLE, msgin_gettransferhandle);
     registerMessageHandler(txp::BB_GETTRANSFERINFO, msgin_gettransferinfo);
+    registerMessageHandler(txp::BB_GETTRANSFERCOUNT, msgin_gettransfercount);
     registerMessageHandler(txp::BB_GETTRANSFERKEYS, msgin_gettransferkeys);
     registerMessageHandler(txp::BB_GETTRANSFERLIST, msgin_gettransferlist);
     registerMessageHandler(txp::BB_GETUSAGE, msgin_getusage);
@@ -4674,6 +4719,8 @@ int registerHandlers()
     registerMessageHandler(txp::CORAL_GETVAR, msgin_getvar);
     registerMessageHandler(txp::CORAL_SETVAR, msgin_setvar);
     registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
+
+    
 
     return 0;
 }

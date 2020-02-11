@@ -321,6 +321,7 @@ CORAL_IDS = {'CORAL_AUTHENTICATE':1,
              'BB_OPENSERVER':289,
              'BB_CLOSESERVER':290,
              'BB_GETSERVERBYNAME':291,
+             'BB_GETTRANSFERCOUNT':292,
             }
 
 IDS_NOT_SUPPORTED = (
