@@ -91,18 +91,26 @@ int main(int argc, char** argv)
 
     if(argc < 4)
     {
-        printf("testcase <dir> <pfspath> <size> [use subdir]\n");
+        printf("testcase <dir> <pfspath> <size> [use subdir] [use xfer count]\n");
         exit(-1);
     }
     int dir         = strtoul(argv[1], NULL, 10);
     char* pfspath   = argv[2];
     size_t filesize = strtoul(argv[3], NULL, 10);
     bool use_subdir = false;
+    bool use_xfercount = false;
     if(argc > 4)
     {
         if('1' == argv[4][0] || 'y' == argv[4][0] || 'Y' == argv[4][0])
         {
             use_subdir = true;
+        }
+    }
+    if(argc > 5)
+    {
+        if('1' == argv[5][0] || 'y' == argv[5][0] || 'Y' == argv[5][0])
+        {
+            use_xfercount = true;
         }
     }
 
@@ -116,7 +124,7 @@ int main(int argc, char** argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Get_processor_name(host_name, &h_len);
-    printf("My rank is %d out of %d running on %s\n", rank, size, host_name);
+    //printf("My rank is %d out of %d running on %s\n", rank, size, host_name);
 
     rc = BB_InitLibrary(rank, BBAPI_CLIENTVERSIONSTR);
     check(rc);
@@ -200,9 +208,12 @@ int main(int argc, char** argv)
             exit(-1);
     }
     
-    printf("source file: %s\n", sfn);
-    printf("target file: %s\n", tfn);
-    
+    if(rank == 0)
+    {
+        printf("Source file: %s\n", sfn);
+        printf("Target file: %s\n", tfn);
+    }
+
     addMetadata("branch",      getenv("BRANCH_NAME"));
     addMetadata("gitcommit",   getenv("GIT_COMMIT"));
     addMetadata("job",         getenv("TESTNAME"));
@@ -219,8 +230,11 @@ int main(int argc, char** argv)
 
     if(dogenerate)
     {
-        snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --size=%ld", sfn, filesize);
-        printf("generate random file: %s\n", cmd);
+        snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --by 512 --size=%ld", sfn, filesize);
+        if(rank == 0)
+        {
+            printf("Generate random file: %s\n", cmd);
+        }
         system(cmd);
     }
 
@@ -228,15 +242,25 @@ int main(int argc, char** argv)
     BBTransferHandle_t thandle;
     uint32_t contriblist = rank;
 
-    printf("Creating transfer definition\n");
+    if(rank == 0)
+    {
+        printf("Creating transfer definition\n");
+    }
     rc = BB_CreateTransferDef(&tdef);
     check(rc);
 
-    printf("Adding files to transfer definition\n");
+    if(rank == 0)
+    {
+        printf("Adding files to transfer definition\n");
+    }
     rc = BB_AddFiles(tdef, sfn, tfn, 0);
     check(rc);
 
-    printf("Obtaining transfer handle\n");
+    if(rank == 0)
+    {
+        printf("Obtaining transfer handle\n");
+    }
+
     MPI_Barrier(MPI_COMM_WORLD);
     start = MPI_Wtime();
     rc = BB_GetTransferHandle(getpid(), 1, &contriblist, &thandle); /* \todo tag generation uses getpid() - need something better */
@@ -249,7 +273,10 @@ int main(int argc, char** argv)
         addMetric("bbGetTransferHandle_time", stop-start);
     }
 
-    printf("Starting transfer\n");
+    if(rank == 0)
+    {
+        printf("Starting transfer\n");
+    }
     start = MPI_Wtime();
     rc = BB_StartTransfer(tdef, thandle);
     check(rc);
@@ -265,12 +292,25 @@ int main(int argc, char** argv)
     start = MPI_Wtime();
     do
     {
-        rc = BB_GetTransferInfo(thandle, &info);
-        check(rc);
-        if(info.status != BBFULLSUCCESS)
+        if(use_xfercount)
         {
+            uint64_t count = 0;
+            rc = BB_GetTransferCount(thandle, &count);
+            if(count == 0)
+                break;
+            info.status = BBINPROGRESS;
             sleep(1);
         }
+        else
+        {
+            rc = BB_GetTransferInfo(thandle, &info);
+            check(rc);
+            if(info.status != BBFULLSUCCESS)
+            {
+                sleep(1);
+            }
+        }
+        
     }
     while(info.status != BBFULLSUCCESS);
     
@@ -284,7 +324,10 @@ int main(int argc, char** argv)
         addMetric("bbTransfer_bandwidth", filesize * size / (stop-start));
     }
 
-    printf("Terminating BB library\n");
+    if(rank == 0)
+    {
+        printf("Terminating BB library\n");
+    }
     rc = BB_TerminateLibrary();
     check(rc);
 
