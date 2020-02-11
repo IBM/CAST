@@ -533,13 +533,16 @@ void* mountMonitorThread(void* ptr)
 
 void* diskstatsMonitorThread(void* ptr)
 {
-    int rate = config.get(process_whoami+".diskstatrate", 60);
+    int rate = config.get(process_whoami+".iostatrate", 60);
+    time_t start, end;
     map<string,string> diskStatCache;
+    string cmd = string("/usr/bin/timeout ") + to_string(rate+2) + string(" /usr/bin/iostat -xym -p ALL ") + to_string(rate);
     while(1)
     {
+        start = time(NULL);
         try
         {
-            for(const auto& line : runCommand("/usr/bin/iostat -xm -p ALL"))
+            for(const auto& line : runCommand(cmd))
             {
                 auto tokens = buildTokens(line, " ");
                 if(tokens.size() > 10)
@@ -547,16 +550,45 @@ void* diskstatsMonitorThread(void* ptr)
                     if(diskStatCache[tokens[0]] != line)
                     {
                         diskStatCache[tokens[0]] = line;
-                        LOG(bb,always) << "DISKSTAT:  " << line;
-                    }                
+                        LOG(bb,always) << "IOSTAT:  " << line;
+                    }
+                }
+            }
+            for(const auto& line : runCommand("grep '' /sys/class/infiniband/*/ports/*/*counters/*"))
+            {
+                auto tokens = buildTokens(line, ":");
+                if(tokens.size() == 2)
+                {
+                    if(diskStatCache[tokens[0]] != tokens[1])
+                    {
+                        if(!diskStatCache[tokens[0]].empty())
+                        {
+                            LOG(bb,always) << "IBSTAT:  " << line << " (delta " << (stoull(tokens[1]) - stoull(diskStatCache[tokens[0]])) << ")";
+                        }
+                        else
+                        {
+                            LOG(bb,always) << "IBSTAT:  " << line;
+                        }
+                        
+                        diskStatCache[tokens[0]] = tokens[1];
+                    }
                 }
             }
         }
         catch(ExceptionBailout& e)
         {
-            LOG(bb,error) << "DISKSTAT: exception while executing iostat";
+            LOG(bb,error) << "IOSTAT: exception while executing iostat";
         }
-        sleep(rate);
+        catch(std::exception& e)
+        {
+            LOG(bb,error) << "IOSTAT: std::exception while executing.  e.what=" << e.what();
+        }
+
+        end = time(NULL);  // safety incase timeout call fails
+        if(end-start < rate)
+        {
+            sleep(rate - (end-start));
+        }
     }
     return NULL;
 }

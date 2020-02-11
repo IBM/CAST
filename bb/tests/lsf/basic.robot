@@ -114,7 +114,7 @@ Stage-out2 script is started
 LSF transfers to SSD from gpfs single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 ${PFSDIR} ${LARGEFILESIZE}
@@ -128,7 +128,7 @@ LSF transfers to SSD from gpfs single node
 LSF transfers to SSD from gpfs multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -140,10 +140,19 @@ LSF transfers to SSD from gpfs multi node
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 ${PFSDIR} ${LARGEFILESIZE}
 
+LSF transfers to SSD from gpfs multi node using BB_GetTransferCount
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  256
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 ${PFSDIR} ${LARGEFILESIZE} 0 1
+
 LSF transfers to SSD from devzero single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 0 /dev/zero ${LARGEFILESIZE}
@@ -157,7 +166,7 @@ LSF transfers to SSD from devzero single node
 LSF transfers to SSD from devzero multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -172,7 +181,7 @@ LSF transfers to SSD from devzero multi node
 LSF transfers from SSD to gpfs single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} ${LARGEFILESIZE}
@@ -186,7 +195,7 @@ LSF transfers from SSD to gpfs single node
 LSF transfers from SSD to gpfs multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -198,10 +207,28 @@ LSF transfers from SSD to gpfs multi node
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} ${LARGEFILESIZE}
 
+LSF transfers from SSD to gpfs multi node with subdir
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  256
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} ${LARGEFILESIZE} 1
+
+LSF transfers from SSD to gpfs multi node using BB_GetTransferCount
+	[Tags]  lsf
+	[Timeout]  10 minutes
+	Using SSD  256
+	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
+	Set num computes  ${maxnodes}
+	Set ppn  20
+	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 ${PFSDIR} ${LARGEFILESIZE} 0 1
+
 LSF transfers from SSD to devnull single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_xfer 1 /dev/null ${LARGEFILESIZE}
@@ -215,7 +242,7 @@ LSF transfers from SSD to devnull single node
 LSF transfers from SSD to devnull multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -230,7 +257,7 @@ LSF transfers from SSD to devnull multi node
 LSF throttled transfers to SSD from devzero single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	set environment variable  BBTHROTTLERATE  1073741824
 
 	Set num computes  1
@@ -246,7 +273,7 @@ LSF throttled transfers to SSD from devzero single node
 LSF throttled transfers to SSD from devzero multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	set environment variable  BBTHROTTLERATE  1073741824
 
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
@@ -263,7 +290,7 @@ LSF throttled transfers to SSD from devzero multi node
 LSF throttled transfers from SSD to devnull single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	set environment variable  BBTHROTTLERATE  1073741824
 
 	Set num computes  1
@@ -279,7 +306,7 @@ LSF throttled transfers from SSD to devnull single node
 LSF throttled transfers from SSD to devnull multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	set environment variable  BBTHROTTLERATE  1073741824
 	
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
@@ -296,7 +323,7 @@ LSF throttled transfers from SSD to devnull multi node
 LSF get handle create performance single node iterative scale
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_handle_perf 16
@@ -312,7 +339,7 @@ LSF get handle create performance single node iterative scale
 LSF get handle spanner single node test
 	[Tags]  lsf  spanner
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  16
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_spanner_perf 512
@@ -320,7 +347,7 @@ LSF get handle spanner single node test
 LSF get handle spanner multiple node test
         [Tags]  lsf  spanner
         [Timeout]  20 minutes
-        Using SSD  512 
+        Using SSD  256
         ${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
         Set num computes  ${maxnodes}
         Set ppn  20  
@@ -329,7 +356,7 @@ LSF get handle spanner multiple node test
 LSF get handle create performance multi node iterative scale
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
@@ -347,7 +374,7 @@ LSF get handle create performance multi node iterative scale
 LSF get handle spanner single node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_spanner_perf 512
@@ -355,7 +382,7 @@ LSF get handle spanner single node
 LSF get handle spanner multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
@@ -365,7 +392,7 @@ LSF get handle spanner multi node
 LSF get handle create performance single node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	
 	Set num computes  1
 	Set ppn  1
@@ -390,7 +417,7 @@ LSF get handle create performance single node
 LSF get handle create performance multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  512
+	Using SSD  256
 	
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
@@ -415,7 +442,7 @@ LSF get handle create performance multi node
 LSF 128 GiB transfer to GPFS multi node
 	[Tags]  lsf
 	[Timeout]  40 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -427,7 +454,7 @@ LSF 128 GiB transfer to GPFS multi node
 LSF 128 GiB transfer from GPFS multi node
 	[Tags]  lsf
 	[Timeout]  40 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -439,7 +466,7 @@ LSF 128 GiB transfer from GPFS multi node
 LSF 128 GiB transfer to devnull multi node
 	[Tags]  lsf
 	[Timeout]  40 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1
@@ -451,7 +478,7 @@ LSF 128 GiB transfer to devnull multi node
 LSF transfer cancel from SSD to gpfs single node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	Set num computes  1
 	Set ppn  1
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_basic_cancel 1 ${PFSDIR} ${LARGEFILESIZE}
@@ -465,7 +492,7 @@ LSF transfer cancel from SSD to gpfs single node
 LSF transfer cancel from SSD to gpfs multi node
 	[Tags]  lsf
 	[Timeout]  10 minutes
-	Using SSD  512
+	Using SSD  256
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
 	Set ppn  1

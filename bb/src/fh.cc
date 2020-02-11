@@ -174,6 +174,21 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
     return 0;
 }
 
+int numActiveFileTransfers(uint64_t jobid, uint64_t handle, uint64_t& count)
+{
+    count = 0;
+    FileHandleRegistryLock();
+    for (const auto& fhentry : fhregistry)
+    {
+        if((fhentry.first.jobid == jobid) && (fhentry.first.handle == handle))
+        {
+            count++;
+        }
+    }
+    FileHandleRegistryUnlock();
+    return 0;
+}
+
 void dumpFileHandleMap(const char* pSev, const char* pPrefix)
 {
     FileHandleRegistryLock();

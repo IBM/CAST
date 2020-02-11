@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
             ("targetpath", po::value<string>()->default_value("/tmp/target_not_specified"))	
         ("minfiles", po::value<unsigned long>()->default_value(1))
         ("maxfiles", po::value<unsigned long>()->default_value(1))
-        
+        ("verbose", po::value<unsigned long>()->default_value(0))
         ("size", po::value<unsigned long>(), "fixed size of file")
         ("minsize", po::value<unsigned long>()->default_value(65536))
         ("maxsize", po::value<unsigned long>()->default_value(65536))
@@ -153,17 +153,26 @@ int main(int argc, char *argv[])
             if (vm.count("size") > 0)
             {
                 filesize = vm["size"].as<unsigned long>();
-                cerr << "fixed size: " << filesize << endl;
+                if(vm["verbose"].as<unsigned long>())
+                {
+                    cerr << "fixed size: " << filesize << endl;
+                }
             }
             else
             {
                 filesize = sizerange(gen);
-                cerr << "random size: " << filesize << endl;
+                if(vm["verbose"].as<unsigned long>())
+                {
+                    cerr << "random size: " << filesize << endl;
+                }
             }
 
             size_t skipby = vm["by"].as<unsigned long>();
 
-            cout << "filename: " << fn << endl;
+            if(vm["verbose"].as<unsigned long>())
+            {
+                cout << "filename: " << fn << endl;
+            }
 
             int fd;
             unsigned long BUFFERSIZE = 0;

@@ -82,6 +82,7 @@ extern inline int isMsgIdToLogAsInfo(txp::Id pId)
         case BB_CREATEDIR:
         case BB_GETTHROTTLERATE:
         case BB_GETTRANSFERINFO:
+        case BB_GETTRANSFERCOUNT:
         case BB_GETTRANSFERKEYS:
         case BB_GETTRANSFERLIST:
         case BB_REMOVEDIR:
