@@ -365,8 +365,8 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
 {
     FILE* f = NULL;
     ssize_t frc;
-    char* buffer = NULL;
-    size_t buffersize = 0;
+    size_t buffersize = 256;
+    char* buffer = (char *)malloc(buffersize);
     std::vector<std::string> output;
     TSHandler runCommandError;
     int readError=0;
@@ -384,8 +384,10 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
 
     if (f)
     {
+        int getlineSuccesses=0;
         while((frc = getline(&buffer, &buffersize, f)) >= 0)
         {
+            ++getlineSuccesses;  //track number of getline successes
             if (frc)
             {
                 char* nl = strchr(buffer+frc-1, '\n');
@@ -394,13 +396,6 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
                 if (strlen(buffer))
                     output.push_back(buffer);
             }
-
-            if (buffer)
-            {
-                free(buffer);
-                buffer = NULL;
-            }
-            buffersize = 0;
         }
 
         // Even if getline() 'fails', we should check to free the buffer...
@@ -408,22 +403,24 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
         {
             free(buffer);
             buffer = NULL;
-        }
+        }     
 
-        if (ferror(f))
-        {
-            std::stringstream errorText;
-            errorText << ERROR_PREFIX << "Read failure, errno=" << errno << " (" << strerror(errno) << ")";
-            LOG(bb,error) << errorText.str();
-            output.push_back(errorText.str());
-            runCommandError << err("error.cmd",cmd)<<errloc(errno) << err("error.read", strerror(errno))<<bailout;
-            if (errno) errno=readError;
-        }
-
+        int ferror_rc=ferror(f);   
         if (flatfile)
             fclose(f);
         else
             pclose(f);
+
+
+        if (ferror_rc)
+        {
+            std::stringstream errorText;
+            errorText << ERROR_PREFIX << "Read failure, errno=" << errno << " (" << strerror(errno) << ")";
+            LOG(bb,error) << errorText.str()<<" getlineSuccesses="<<getlineSuccesses;
+            output.push_back(errorText.str());
+            runCommandError << err("error.cmd",cmd)<<errloc(errno) << err("error.read", strerror(errno))<<bailout;
+            if (errno) errno=readError;
+        }
     }
     else
     {
