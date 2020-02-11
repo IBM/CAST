@@ -1796,7 +1796,7 @@ void msgin_gettransfercount(txp::Id id, const string& pConnectionName, txp::Msg*
     ENTRY(__FILE__,__FUNCTION__);
     updateEnv(pConnectionName);
 
-    int rc;
+    int rc = -1;
     stringstream errorText;
     
     uint64_t l_JobId = UNDEFINED_JOBID;
