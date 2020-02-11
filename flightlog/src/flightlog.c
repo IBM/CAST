@@ -152,9 +152,20 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		printf("Error mapping flightlog.   errno=%d\n", errno);
 		exit(-1);
 	}
+
+	unsigned long bootid = 0;
+#ifdef __linux__
+	char buffer[1024];
+	FILE* fdbootid = fopen("/proc/sys/kernel/random/boot_id", "r");
+	fgets(buffer, sizeof(buffer), fdbootid);
+	bootid = strtoul(buffer, NULL, 16);
+	fclose(fdbootid);
+#endif
+
 	if(doRegistrySetup == 0)
 	{
-		if(reg->flightchecksum != csum)
+		if((reg->flightchecksum != csum) || 
+		   (reg->bootid != bootid))
 		{
 			// slight race condition whereby same flightlog is generated in parallel.  
 			close(fdout);
@@ -168,6 +179,7 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		reg->flightchecksum = csum;
 		reg->flightlock    = 0;
 		reg->flightsize    = length;
+		reg->bootid        = bootid;
 
 		// Registry Formatting data, not used by runtime:
 #ifdef __linux__

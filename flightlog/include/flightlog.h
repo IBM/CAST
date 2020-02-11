@@ -160,8 +160,8 @@ typedef struct FlightRecorderRegistry
     uint64_t                       num_ids;            ///< maximum number of IDs in the registry.
     double                         timebaseScale;      ///< timebase scaling of the recorded system
     uint64_t                       timebaseAdjust;     ///< calculated adjustment for timebase
+    uint64_t                       bootid;             ///< First 64-bits of the bootid
     uint64_t                       padding2;           ///< pad to 64 byte boundary
-    uint64_t                       padding3;           ///< pad to 64 byte boundary
     const char                     decoderName[64];    ///< path to the flightlog decoder
     const char                     registryName[128];  ///< name of the registry
 } FlightRecorderRegistry_t;
