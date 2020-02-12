@@ -263,7 +263,7 @@ int main(int argc, char** argv)
 
     MPI_Barrier(MPI_COMM_WORLD);
     start = MPI_Wtime();
-    rc = BB_GetTransferHandle(getpid(), 1, &contriblist, &thandle); /* \todo tag generation uses getpid() - need something better */
+    rc = BB_GetTransferHandle(rank, 1, &contriblist, &thandle);
     check(rc);
     MPI_Barrier(MPI_COMM_WORLD);
     stop = MPI_Wtime();
