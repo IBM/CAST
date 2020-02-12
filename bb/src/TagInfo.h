@@ -45,6 +45,7 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_TAG_VERSION_1 = 1;
 
+const char BUMP_COUNT_FILENAME[] = "bump_count";
 const char LOCK_TAG_FILENAME[] = "lockfile";
 const char TAGINFONAME[] = "taginfo_";
 const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
@@ -53,6 +54,9 @@ const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
 /*******************************************************************************
  | External methods
  *******************************************************************************/
+extern uint64_t g_Number_Taginfo_Buckets;
+extern uint64_t g_Number_Handleinfo_Buckets;
+extern uint64_t g_Number_Toplevel_Handlefile_Buckets;
 extern void lockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
 extern int lockLocalMetadataIfNeeded(const LVKey* pLVKey, const char* pMethod);
 extern void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
@@ -149,12 +153,16 @@ public:
     /*
      * Static methods
      */
-    static int addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t> pExpectContrib, uint64_t& pHandle);
-    static int createLockFile(const string pFilePath);
+    static int addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pExpectContrib, uint64_t& pHandle, const uint32_t pBumpCount);
+    static int incrBumpCountFile(const string& pFilePath);
+    static int createLockFile(const string& pFilePath);
     static int load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName);
     static int lock(const bfs::path& pJobStepPath);
+    static int readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount);
     static void unlock();
     static void unlock(const int pFd);
+    static int update(const LVKey* pLVKey, const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle);
+    static int writeBumpCountFile(const string& pFilePath, const uint32_t pValue);
 
     /*
      * Inlined methods

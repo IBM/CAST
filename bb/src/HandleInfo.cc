@@ -19,10 +19,32 @@
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
 
+/*******************************************************************************
+ | External data
+ *******************************************************************************/
+thread_local int HandleBucketLockFd = -1;
+
+
+/*
+ * Static data
+ */
+
 
 /*
  * Static methods
  */
+int HandleInfo::createLockFile(const string& pFilePath)
+{
+    int rc = 0;
+
+    char l_LockFileName[PATH_MAX+64] = {'\0'};
+    snprintf(l_LockFileName, sizeof(l_LockFileName), "%s/%s", pFilePath.c_str(), LOCK_HANDLE_BUCKET_FILENAME);
+
+    bfs::ofstream l_LockFile{l_LockFileName};
+
+    return rc;
+}
+
 int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
 {
     int rc = 0;
@@ -113,6 +135,200 @@ int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
     }
 
     return rc;
+}
+
+#define ATTEMPTS 200
+int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint64_t pHandleBucketNumber)
+{
+    int rc = -2;
+    int rc2 = 0;
+    int fd = -1;
+    stringstream errorText;
+
+    if (!bfs::exists(pHandleBucketPath))
+    {
+        // Create the handle bucket directory
+        bfs::create_directories(pHandleBucketPath);
+
+        // Unconditionally perform a chmod to 0770 for the handle bucket directory.
+        // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
+        rc2 = chmod(pHandleBucketPath.c_str(), 0770);
+        if (!rc2)
+        {
+            rc2 = createLockFile(pHandleBucketPath.string());
+            if (rc2)
+            {
+                errorText << "Creation of the lockfile failed for the handle bucket directory " << pHandleBucketPath.string();
+                bberror << err("error.path", pHandleBucketPath.c_str());
+                LOG_ERROR_TEXT(errorText);
+            }
+        }
+        else
+        {
+            errorText << "chmod failed for the handle bucket directory " << pHandleBucketPath.string();
+            bberror << err("error.path", pHandleBucketPath.c_str());
+            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        }
+    }
+
+    if (!rc2)
+    {
+        string l_HandleBucketLockFileName = pHandleBucketPath.string() + "/" + LOCK_HANDLE_BUCKET_FILENAME;
+        if (HandleBucketLockFd == -1)
+        {
+            int l_Attempts = ATTEMPTS;
+            while (l_Attempts--)
+            {
+                uint64_t l_FL_Counter = metadataCounter.getNext();
+                FL_Write(FLMetaData, HB_Lock, "lock HB, counter=%ld", l_FL_Counter, 0, 0, 0);
+
+                uint64_t l_FL_Counter2 = metadataCounter.getNext();
+                FL_Write(FLMetaData, HB_Open, "open HB, counter=%ld", l_FL_Counter2, 0, 0, 0);
+
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, l_HandleBucketLockFileName, __LINE__);
+                fd = open(l_HandleBucketLockFileName.c_str(), O_WRONLY);
+                threadLocalTrackSyscallPtr->clearTrack();
+
+                FL_Write(FLMetaData, HB_Open_End, "open HB, counter=%ld, fd=%ld", l_FL_Counter2, fd, 0, 0);
+
+                if (fd >= 0)
+                {
+                    // Exclusive lock and this will block if needed
+                    LOG(bb,debug) << "lock(): Open issued for handle bucket lockfile " << l_HandleBucketLockFileName << ", fd=" << fd;
+                    struct flock l_LockOptions;
+                    l_LockOptions.l_whence = SEEK_SET;
+                    l_LockOptions.l_start = 0;
+                    l_LockOptions.l_len = 0;    // Lock entire file for writing
+                    l_LockOptions.l_type = F_WRLCK;
+                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, l_HandleBucketLockFileName, __LINE__);
+                    rc = ::fcntl(fd, F_SETLKW, &l_LockOptions);
+                    threadLocalTrackSyscallPtr->clearTrack();
+                }
+
+                switch(rc)
+                {
+                    case -2:
+                    {
+                        if (l_Attempts)
+                        {
+                            // Delay fifty milliseconds and try again
+                            // NOTE: We may have hit the window between the creation of the jobstep/handle_bucket directory
+                            //       and creating the lockfile in that jobstep/handle_bucket directory.
+                            usleep((useconds_t)50000);
+                        }
+                        else
+                        {
+                            rc = -1;
+                            errorText << "Could not open handle bucket lockfile " << l_HandleBucketLockFileName << " for locking, errno=" << errno << ": " << strerror(errno);
+                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        }
+                    }
+                    break;
+
+                    case -1:
+                    {
+                        errorText << "Could not exclusively lock handle bucket lockfile " << l_HandleBucketLockFileName << ", errno=" << errno << ":" << strerror(errno);
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+
+                        if (fd >= 0)
+                        {
+                            LOG(bb,debug) << "lock(): Issue close for handle bucket fd " << fd;
+                            uint64_t l_FL_Counter = metadataCounter.getNext();
+                            FL_Write(FLMetaData, HB_CouldNotLockExcl, "open HB, could not lock exclusive, performing close, counter=%ld", l_FL_Counter, 0, 0, 0);
+                            ::close(fd);
+                            FL_Write(FLMetaData, HB_CouldNotLockExcl_End, "open HB, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
+                        }
+                        l_Attempts = 0;
+                    }
+                    break;
+
+                    default:
+                    {
+                        // Successful lock...
+                        HandleBucketLockFd = fd;
+                        pthread_mutex_lock(&HandleBucketMutex[pHandleBucketNumber]);
+                        l_Attempts = 0;
+                    }
+                    break;
+                }
+
+                FL_Write(FLMetaData, HB_Lock_End, "lock HB, counter=%ld, fd=%ld, rc=%ld, errno=%ld", l_FL_Counter, fd, rc, errno);
+            }
+        }
+        else
+        {
+            // NOTE:  Should never be the case...
+            rc = -1;
+            errorText << "Handle bucket lockfile " << HandleBucketLockFd << " is currently locked";
+            LOG_ERROR_TEXT_RC(errorText, rc);
+        }
+    }
+    else
+    {
+        rc = -1;
+        SET_RC(rc);
+    }
+
+    return rc;
+}
+#undef ATTEMPTS
+
+void HandleInfo::unlockHandleBucket(const uint64_t pHandleBucketNumber)
+{
+    if (HandleBucketLockFd != -1)
+    {
+        pthread_mutex_unlock(&HandleBucketMutex[pHandleBucketNumber]);
+        unlockHandleBucket(HandleBucketLockFd);
+        HandleBucketLockFd = -1;
+    }
+
+    return;
+}
+
+void HandleInfo::unlockHandleBucket(const int pFd)
+{
+    stringstream errorText;
+
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HB_Unlock, "unlock HB, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
+    if (pFd >= 0)
+    {
+        try
+        {
+            // Unlock the file
+            struct flock l_LockOptions;
+            l_LockOptions.l_whence = SEEK_SET;
+            l_LockOptions.l_start = 0;
+            l_LockOptions.l_len = 0;    // Unlock entire file
+            l_LockOptions.l_type = F_UNLCK;
+            LOG(bb,debug) << "unlock(): Issue unlock for taginfo fd " << pFd;
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fcntlsyscall, pFd, __LINE__);
+            int rc = ::fcntl(pFd, F_SETLK, &l_LockOptions);
+            threadLocalTrackSyscallPtr->clearTrack();
+            if (!rc)
+            {
+                // Successful unlock...
+            }
+            else
+            {
+                LOG(bb,warning) << "Could not exclusively unlock handle bucket fd " << pFd << ", errno=" << errno << ":" << strerror(errno);
+            }
+            LOG(bb,debug) << "close(): Issue close for handle bucket fd " << pFd;
+
+            ::close(pFd);
+
+            FL_Write(FLMetaData, HB_Close_End, "close HB, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+        }
+        catch(exception& e)
+        {
+            LOG(bb,info) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        }
+    }
+
+    FL_Write(FLMetaData, HB_Unlock_End, "unlock HB, counter=%ld, fd=%ld", l_FL_Counter, pFd, 0, 0);
+
+    return;
 }
 
 

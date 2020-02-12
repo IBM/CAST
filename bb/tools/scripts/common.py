@@ -58,6 +58,7 @@ def saveData(pCtx):
     pickle.dump(pCtx["ElapsedTimeData"], l_PickleFile)
     pickle.dump(pCtx["StageInData"], l_PickleFile)
     pickle.dump(pCtx["StageOutData"], l_PickleFile)
+    pickle.dump(pCtx["BSCFS"], l_PickleFile)
     l_PickleFile.close()
     print "Console data results saved to %s" % l_PicklePathFileName
 
@@ -71,6 +72,7 @@ def loadData(pCtx):
     pCtx["ElapsedTimeData"] = pickle.load(l_PickleFile)
     pCtx["StageInData"] = pickle.load(l_PickleFile)
     pCtx["StageOutData"] = pickle.load(l_PickleFile)
+    pCtx["BSCFS"] = pickle.load(l_PickleFile)
     l_PickleFile.close()
     print "Console data results loaded from %s" % l_PicklePathFileName
 

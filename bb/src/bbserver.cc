@@ -44,6 +44,7 @@ using namespace std;
 #include "ContribIdFile.h"
 #include "identity.h"
 #include "HandleFile.h"
+#include "HandleInfo.h"
 #include "LVLookup.h"
 #include "Msg.h"
 #include "Uuid.h"
@@ -122,16 +123,43 @@ int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
 // BBServer Metadata Path
 string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
 
+// Handle related bucket sizes
+uint64_t g_Number_Taginfo_Buckets = DEFAULT_NUMBER_OF_TAGINFO_BUCKETS;
+uint64_t g_Number_Handleinfo_Buckets = DEFAULT_NUMBER_OF_HANDLEINFO_BUCKETS;
+uint64_t g_Number_Toplevel_Handlefile_Buckets = DEFAULT_NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS;
+
 // SSD I/O governors
 int l_SSD_Read_Governor_Active = 0;
 int l_SSD_Write_Governor_Active = 0;
 sem_t l_SSD_Read_Governor;
 sem_t l_SSD_Write_Governor;
 
+pthread_mutex_t* HandleBucketMutex = 0;
 
 //*****************************************************************************
 //  Support routines
 //*****************************************************************************
+
+void contribToString(stringstream& pOutput, vector<uint32_t>& pContrib)
+{
+    pOutput << "(";
+    uint64_t l_NumContrib = pContrib.size();
+    for(uint64_t i=0; i<l_NumContrib; ++i)
+    {
+        if (i!=l_NumContrib-1)
+        {
+            pOutput << pContrib[i] << ",";
+        }
+        else
+        {
+            pOutput << pContrib[i];
+        }
+    }
+    pOutput << ")";
+
+    return;
+}
+
 
 int hasContribId(const uint32_t pContribId, const uint64_t pNumOfContribsInArray, uint32_t* pContribArray)
 {
@@ -3096,6 +3124,11 @@ int bb_main(std::string who)
         LOG(bb,info) << "SSD Write Direct=" << ssdwritedirect;
         setSsdWriteDirect(ssdwritedirect);
 
+        // Handle related bucket sizes
+        g_Number_Taginfo_Buckets = config.get("bb.numTaginfoBuckets", DEFAULT_NUMBER_OF_TAGINFO_BUCKETS);
+        g_Number_Handleinfo_Buckets = config.get("bb.numHandleinfoBuckets", DEFAULT_NUMBER_OF_HANDLEINFO_BUCKETS);
+        g_Number_Toplevel_Handlefile_Buckets = config.get("bb.numToplevelHandlefileBuckets", DEFAULT_NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+
         // Initialize SSD governors
         uint32_t l_SSD_Read_Governor_Value = config.get(process_whoami + ".SSDReadGovernor", DEFAULT_SSD_READ_GOVERNOR);
         LOG(bb,info) << "SSD Read Governor=" << l_SSD_Read_Governor_Value;
@@ -3137,6 +3170,12 @@ int bb_main(std::string who)
             rc = -1;
 	        errorText << "Error occurred when adding the high priority work queue";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
+        HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Toplevel_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
+        for (uint64_t i=0; i<g_Number_Toplevel_Handlefile_Buckets; ++i)
+        {
+            HandleBucketMutex[i] = PTHREAD_MUTEX_INITIALIZER;
         }
 
         // Log which jobs are currently known by the system in the cross bbServer metadata.

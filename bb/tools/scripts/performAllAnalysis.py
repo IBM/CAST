@@ -19,6 +19,7 @@ from basicAnalysis import performBasicAnalysis
 from generateDiskStatsListing import generateDiskStatsListing
 from generateErrorsListing import generateErrorsListing
 from generateTransferRates import calculateTransferRates
+from generateBSCFS_TransferRates import performBSCFS_Analysis
 from generateWorkQueueMgrDumps import generateWorkQueueMgrDumps
 
 
@@ -42,6 +43,7 @@ def main(*pArgs):
     generateDiskStatsListing(l_Ctx)
     generateErrorsListing(l_Ctx)
     calculateTransferRates(l_Ctx)
+    performBSCFS_Analysis(l_Ctx)
     generateWorkQueueMgrDumps(l_Ctx)
 
     return

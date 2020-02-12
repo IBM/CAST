@@ -59,12 +59,12 @@ int HandleFile::createLockFile(const char* pFilePath)
 
 string HandleFile::getToplevelHandleName(const uint64_t pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % g_Number_Toplevel_Handlefile_Buckets);
 }
 
 string HandleFile::getToplevelHandleName(const string& pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % g_Number_Toplevel_Handlefile_Buckets);
 }
 
 int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer)
@@ -222,6 +222,7 @@ int HandleFile::get_xbbServerGetJobForHandle(uint64_t& pJobId, uint64_t& pJobSte
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if (handle.path().filename().string() == to_string(pHandle))
                                 {
                                     rc = 0;
@@ -322,6 +323,7 @@ int HandleFile::get_xbbServerGetHandle(BBJob& pJob, uint64_t pTag, vector<uint32
                                     if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
                                     for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                     {
+                                        if (!bfs::is_directory(handle)) continue;
                                         bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
                                         rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                         if (!rc)
@@ -453,6 +455,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if(handle.path().filename().string() == to_string(pHandle))
                                 {
                                     bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
@@ -709,6 +712,7 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
                                     (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                                 for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                                 {
+                                    if (!bfs::is_directory(handle)) continue;
                                     if(handle.path().filename().string() == to_string(pHandle))
                                     {
                                         bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
@@ -784,9 +788,9 @@ int HandleFile::isCorrectToplevelHandleDirectory(const string& pToplevelDirector
     if (l_Index != std::string::npos)
     {
 //        uint64_t l_Temp = strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10);
-//        uint64_t l_Temp2 = (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+//        uint64_t l_Temp2 = (pHandle % g_Number_Toplevel_Handlefile_Buckets);
 //        if (l_Temp == l_Temp2)
-        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS))
+        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % g_Number_Toplevel_Handlefile_Buckets))
         {
             rc = 1;
         }
@@ -1175,6 +1179,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
         for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
         {
+            if (!bfs::is_directory(handle)) continue;
             bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
             int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
             if ((!rc) && l_HandleFile)
@@ -1559,6 +1564,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
               l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
+    LOG(bb,debug) << "Entry to update_xbbServerHandleStatus(): For " << *pLVKey << ", job " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                  << ", contribid " << pContribId  << ", contrib bumps " << pNumOfContribsBump << ", size " << pSize << ", scan option " << pScanOption;
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
@@ -1600,6 +1607,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         {
             FL_Write(FLMetaData, HF_UpdateStatusFullScan, "update handle status, counter=%ld, starting status=%ld, original scan option=%ld, performing FULL_SCAN",
                      l_FL_Counter, (uint64_t)l_StartingStatus, (uint64_t)pScanOption, 0);
+            LOG(bb,debug) << "update_xbbServerHandleStatus(): Changed scan option to FULL_SCAN";
         }
 
         if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
@@ -1711,6 +1719,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->reportingContribs.push_back(pContribId);
             }
 
+            LOG(bb,debug) << "update_xbbServerHandleStatus(): l_ExitEarly=" << l_ExitEarly \
+                          << ", l_HandleFile->numReportingContribs=" << l_HandleFile->numReportingContribs \
+                          << ", l_HandleFile->numContrib=" << l_HandleFile->numContrib \
+                          << ", l_StoppedDefinitions=" << l_StoppedDefinitions \
+                          << ", l_AllExtentsTransferred=" << l_AllExtentsTransferred \
+                          << ", l_AllFilesClosed=" << l_AllFilesClosed;
             if (!rc)
             {
                 // NOTE: A handle with any failed or individually canceled transfer definitions will remain
@@ -1899,7 +1913,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     {
         FL_Write6(FLMetaData, HF_UpdateStatusTime, "update handle status, counter=%ld, #lvuuids=%ld, #contribs=%ld, #contribids=%ld, elapsed time=%ld, rc=%ld",
                   l_FL_Counter, (uint64_t)l_NumberOfLVUuidFiles, (uint64_t)l_NumberOfContribFiles, (uint64_t)l_NumberOfContribids, (uint64_t)l_Time, rc);
-        LOG(bb,warning) << "update_xbbServerHandleStatus: Handle file name " << l_HandleFileName \
+        LOG(bb,warning) << "update_xbbServerHandleStatus(): Handle file name " << l_HandleFileName \
                         << ", #LVUuidFiles " << l_NumberOfLVUuidFiles << ", #ContribFiles " << l_NumberOfContribFiles \
                         << ", #Contribids " << l_NumberOfContribids << ", elapsed time " << l_ElapsedTime << " seconds, rc " << rc;
     }
@@ -1972,6 +1986,7 @@ int HandleFile::update_xbbServerHandleTransferKeys(BBTransferDef* pTransferDef, 
                                 (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
                             for (auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
                             {
+                                if (!bfs::is_directory(handle)) continue;
                                 if (handle.path().filename().string() == to_string(pHandle))
                                 {
                                     // NOTE: The Handlefile is locked exclusive here to serialize amongst all bbServers that may
