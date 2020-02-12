@@ -1,7 +1,7 @@
 /*******************************************************************************
  |    ContribIdFile.cc
  |
- |   Copyright IBM Corporation 2015,2016. All Rights Reserved
+ |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
  |    This program is licensed under the terms of the Eclipse Public License
  |    v1.0 as published by the Eclipse Foundation and available at
@@ -850,7 +850,7 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_UpdateStatus, "update contribid status, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTransferDef->getJobId(), pHandle, pContribId);
-    LOG(bb,info) << "ContribIdFile::update_xbbServerFileStatus(): Input " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":" \
+    LOG(bb,debug) << "ContribIdFile::update_xbbServerFileStatus(): Input " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":" \
                   << " pFlags=0x" << hex << uppercase << pFlags << nouppercase << dec << ", pValue=" << pValue << ", pTransferDef->stopped()=" << pTransferDef->stopped();
 
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerFileStatus");
@@ -986,8 +986,8 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                     // Only set the BBTD_All_Files_Closed flag for the ContribIdFile if the BBTD_All_Extents_Transferred is set for the overall ContribId file
                     if (!(l_NewContribIdFlags & BBTD_All_Files_Closed))
                     {
-                        LOG(bb,info) << "update_xbbServerFileStatus(): New all extents transferred: 0x" << hex << uppercase << (l_NewContribIdFlags & BBTD_All_Extents_Transferred) \
-                                     << ", Input flags: " << pFlags << nouppercase << dec << ", allFilesClosed(): " << l_ContribIdFile->allFilesClosed();
+                        LOG(bb,debug) << "update_xbbServerFileStatus(): New all extents transferred: 0x" << hex << uppercase << (l_NewContribIdFlags & BBTD_All_Extents_Transferred) \
+                                      << ", Input flags: " << pFlags << nouppercase << dec << ", allFilesClosed(): " << l_ContribIdFile->allFilesClosed();
                         if ((l_NewContribIdFlags & BBTD_All_Extents_Transferred) || (pValue && (pFlags & BBTD_All_Extents_Transferred)))
                         {
                             if (l_ContribIdFile->allFilesClosed())
@@ -1004,24 +1004,24 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
                     // we are now turning on 'extents enqueued', bump the number of reporting contributors
                     if ((!(pTransferDef->builtViaRetrieveTransferDefinition())) && (!(l_ContribIdFlags & BBTD_Extents_Enqueued)) && (pValue && (pFlags & BBTD_Extents_Enqueued)))
                     {
-                        LOG(bb,info) << "xbbServer: l_NumOfContribsBump " << l_NumOfContribsBump << " -> " << l_NumOfContribsBump+1;
+                        LOG(bb,debug) << "xbbServer: l_NumOfContribsBump " << l_NumOfContribsBump << " -> " << l_NumOfContribsBump+1;
                         l_NumOfContribsBump = 1;
                     }
 
                     if ((l_ContribIdFlags != l_NewContribIdFlags) || (l_IncomingFlags != l_NewFlags) || (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize))
                     {
-                        LOG(bb,info) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":";
+                        LOG(bb,debug) << "xbbServer: For " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":";
                         if (l_ContribIdFlags != l_NewContribIdFlags)
                         {
-                            LOG(bb,info) << "           ContribId flags changing from 0x" << hex << uppercase << l_ContribIdFlags << " to 0x" << l_NewContribIdFlags << nouppercase << dec << ".";
+                            LOG(bb,debug) << "           ContribId flags changing from 0x" << hex << uppercase << l_ContribIdFlags << " to 0x" << l_NewContribIdFlags << nouppercase << dec << ".";
                         }
                         if (l_IncomingFlags != l_NewFlags)
                         {
-                            LOG(bb,info) << "           File flags changing from 0x" << hex << uppercase << l_IncomingFlags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
+                            LOG(bb,debug) << "           File flags changing from 0x" << hex << uppercase << l_IncomingFlags << " to 0x" << l_NewFlags << nouppercase << dec << ".";
                         }
                         if (l_IncomingTransferSize != l_ContribIdFile->totalTransferSize)
                         {
-                            LOG(bb,info) << "           ContribId transferred size changing from " << l_IncomingTransferSize << " to " << l_ContribIdFile->totalTransferSize << ".";
+                            LOG(bb,debug) << "           ContribId transferred size changing from " << l_IncomingTransferSize << " to " << l_ContribIdFile->totalTransferSize << ".";
                         }
 
                         // Save the contribid file

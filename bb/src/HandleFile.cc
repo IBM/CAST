@@ -1564,8 +1564,8 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write6(FLMetaData, HF_UpdateStatus, "update handle status, counter=%ld, jobid=%ld, handle=%ld, size=%ld, scan option=%ld",
               l_FL_Counter, pJobId, pHandle, (uint64_t)pSize, pScanOption, 0);
-    LOG(bb,info) << "Entry to update_xbbServerHandleStatus(): For " << *pLVKey << ", job " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
-                 << ", contribid " << pContribId  << ", contrib bumps " << pNumOfContribsBump << ", size " << pSize << ", scan option " << pScanOption;
+    LOG(bb,debug) << "Entry to update_xbbServerHandleStatus(): For " << *pLVKey << ", job " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle \
+                  << ", contribid " << pContribId  << ", contrib bumps " << pNumOfContribsBump << ", size " << pSize << ", scan option " << pScanOption;
 
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "HandleFile::update_xbbServerHandleStatus");
@@ -1607,7 +1607,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
         {
             FL_Write(FLMetaData, HF_UpdateStatusFullScan, "update handle status, counter=%ld, starting status=%ld, original scan option=%ld, performing FULL_SCAN",
                      l_FL_Counter, (uint64_t)l_StartingStatus, (uint64_t)pScanOption, 0);
-            LOG(bb,info) << "update_xbbServerHandleStatus(): Changed scan option to FULL_SCAN";
+            LOG(bb,debug) << "update_xbbServerHandleStatus(): Changed scan option to FULL_SCAN";
         }
 
         if ((!(l_StartingStatus == BBFULLSUCCESS)) &&
@@ -1645,7 +1645,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         {
                             // Not all extents have been transferred yet...
                             l_AllExtentsTransferred = 0;
-                            LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not all extents transferred";
                             if (l_ScanOption == NORMAL_SCAN)
                             {
                                 l_ExitEarly = true;
@@ -1656,7 +1656,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         {
                             // Not all files have been closed yet...
                             l_AllFilesClosed = 0;
-                            LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " not closed";
                         }
                         if (ce->second.flags & BBTD_Stopped)
                         {
@@ -1666,12 +1666,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                         if (ce->second.flags & BBTD_Failed)
                         {
                             l_FailedDefinitions = true;
-                            LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " failed";
                         }
                         if (ce->second.flags & BBTD_Canceled)
                         {
                             l_CanceledDefinitions = true;
-                            LOG(bb,info) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
+                            LOG(bb,debug) << "update_xbbServerHandleStatus(): Contribid " << ce->first << " canceled";
                         }
                     }
                 }
@@ -1719,12 +1719,12 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
                 l_HandleFile->reportingContribs.push_back(pContribId);
             }
 
-            LOG(bb,info) << "update_xbbServerHandleStatus(): l_ExitEarly=" << l_ExitEarly \
-                         << ", l_HandleFile->numReportingContribs=" << l_HandleFile->numReportingContribs \
-                         << ", l_HandleFile->numContrib=" << l_HandleFile->numContrib \
-                         << ", l_StoppedDefinitions=" << l_StoppedDefinitions \
-                         << ", l_AllExtentsTransferred=" << l_AllExtentsTransferred \
-                         << ", l_AllFilesClosed=" << l_AllFilesClosed;
+            LOG(bb,debug) << "update_xbbServerHandleStatus(): l_ExitEarly=" << l_ExitEarly \
+                          << ", l_HandleFile->numReportingContribs=" << l_HandleFile->numReportingContribs \
+                          << ", l_HandleFile->numContrib=" << l_HandleFile->numContrib \
+                          << ", l_StoppedDefinitions=" << l_StoppedDefinitions \
+                          << ", l_AllExtentsTransferred=" << l_AllExtentsTransferred \
+                          << ", l_AllFilesClosed=" << l_AllFilesClosed;
             if (!rc)
             {
                 // NOTE: A handle with any failed or individually canceled transfer definitions will remain
@@ -1846,7 +1846,7 @@ int HandleFile::update_xbbServerHandleStatus(const LVKey* pLVKey, const uint64_t
 #if 0
                     if (l_StartingFlags != l_HandleFile->flags)
                     {
-                        LOG(bb,info) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
+                        LOG(bb,debug) << "           Handle flags changing from 0x" << hex << uppercase << l_StartingFlags << " to 0x" << l_HandleFile->flags << nouppercase << dec << ".";
                     }
 #endif
                     if (l_StartingStatus != l_EndingStatus)
