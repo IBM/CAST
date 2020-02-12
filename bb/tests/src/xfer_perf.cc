@@ -20,33 +20,38 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <string>
+#include <boost/program_options.hpp>
+
+using namespace std;
+namespace po = boost::program_options;
 
 #include "bb/include/bbapi.h"
 
 
 //  mpicc test_basic_xfer.c -o test_basic_xfer -I/opt/ibm -Wl,--rpath /opt/ibm/bb/lib -L/opt/ibm/bb/lib -lbbAPI
 
-int rank = 0;
+int mpirank = 0;
 int size = 0;
 
 int addMetadata(const char* label, const char* value)
 {
-    if(rank == 0) printf("METADATA %s=%s\n", label, value);
+    if(mpirank == 0) printf("METADATA %s=%s\n", label, value);
     return 0;
 }
 int addMetadata_fp(const char* label, double value)
 {
-    if(rank == 0) printf("METADATA %s=%g\n", label, value);
+    if(mpirank == 0) printf("METADATA %s=%g\n", label, value);
     return 0;
 }
 int addMetric(const char* label, double value)
 {
-    if(rank == 0) printf("METRIC %s=%g\n", label, value);
+    if(mpirank == 0) printf("METRIC %s=%g\n", label, value);
     return 0;
 }
 int addMetric_str(const char* label, const char* value)
 {
-    if(rank == 0) printf("METRIC %s=%s\n", label, value);
+    if(mpirank == 0) printf("METRIC %s=%s\n", label, value);
     return 0;
 }
 
@@ -88,31 +93,40 @@ int check(int rc)
 int main(int argc, char** argv)
 {
     int rc;
+    po::variables_map vm;
+    try
+    {
+        po::options_description desc("Allowed options");
+        
+        desc.add_options()
+        ("help",   po::bool_switch(), "Display this help message")
+        ("pfs",    po::value<string>()->default_value("")) 
+        ("size",   po::value<unsigned long>()->default_value(1048576), "fixed size of file")
+        ("in",     po::bool_switch())
+        ("subdir", po::bool_switch())
+        ("opt",    po::bool_switch())
+        ;
+    
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+    }
+    catch (exception& e)
+    {
+        printf("Error: %s\n", e.what());
+        exit(1);
+    }
+    if(vm["help"].as<bool>())
+    {
+        printf("%s --pfs=<path> --size=<bytes> --in --subdir --opt\n", argv[0]);
+        exit(0);
+    }
 
-    if(argc < 4)
-    {
-        printf("testcase <dir> <pfspath> <size> [use subdir] [use xfer count]\n");
-        exit(-1);
-    }
-    int dir         = strtoul(argv[1], NULL, 10);
-    char* pfspath   = argv[2];
-    size_t filesize = strtoul(argv[3], NULL, 10);
-    bool use_subdir = false;
-    bool use_xfercount = false;
-    if(argc > 4)
-    {
-        if('1' == argv[4][0] || 'y' == argv[4][0] || 'Y' == argv[4][0])
-        {
-            use_subdir = true;
-        }
-    }
-    if(argc > 5)
-    {
-        if('1' == argv[5][0] || 'y' == argv[5][0] || 'Y' == argv[5][0])
-        {
-            use_xfercount = true;
-        }
-    }
+    bool dir           = vm["in"].as<bool>();
+    string pfspath     = vm["pfs"].as<string>();
+    size_t filesize    = vm["size"].as<unsigned long>();
+    bool use_subdir    = vm["subdir"].as<bool>();
+    bool optrun        = vm["opt"].as<bool>();;
+
 
     BBTransferInfo_t info;
     double start, stop;
@@ -121,12 +135,12 @@ int main(int argc, char** argv)
     int h_len;
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Get_processor_name(host_name, &h_len);
-    //printf("My rank is %d out of %d running on %s\n", rank, size, host_name);
+    //printf("My rank is %d out of %d running on %s\n", mpirank, size, host_name);
 
-    rc = BB_InitLibrary(rank, BBAPI_CLIENTVERSIONSTR);
+    rc = BB_InitLibrary(mpirank, BBAPI_CLIENTVERSIONSTR);
     check(rc);
 
     char sfn[256];
@@ -137,18 +151,18 @@ int main(int argc, char** argv)
 
     switch(dir)
     {
-        case 0: // GPFS -> SSD
-            if(strcmp(pfspath, "/dev/zero") == 0)
+        case true: // GPFS -> SSD
+            if(strcmp(pfspath.c_str(), "/dev/zero") == 0)
             {
-                snprintf(sfn, sizeof(sfn), "%s", pfspath);
+                snprintf(sfn, sizeof(sfn), "%s", pfspath.c_str());
                 dogenerate = 0;
             }
             else
             {
                 if(use_subdir)
                 {
-                    snprintf(sfn, sizeof(sfn), "%s/%s/rank.%d", pfspath, host_name, rank);
-                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath, host_name);
+                    snprintf(sfn, sizeof(sfn), "%s/%s/rank.%d", pfspath.c_str(), host_name, mpirank);
+                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath.c_str(), host_name);
                     struct stat st_buf = {0};
                     if(0 != stat(tdn, &st_buf))
                     {
@@ -159,30 +173,30 @@ int main(int argc, char** argv)
                             if(EEXIST != errno)
                             {
                                 printf("%d/%d on %s) Warning. mkdir() returned the error (%d): %s\n",
-                                       rank, size, host_name, errno, strerror(errno));
+                                       mpirank, size, host_name, errno, strerror(errno));
                             }
                         }
                     }
                 }
                 else
                 {
-                    snprintf(sfn, sizeof(sfn), "%s/rank.%d", pfspath, rank);
+                    snprintf(sfn, sizeof(sfn), "%s/rank.%d", pfspath.c_str(), mpirank);
                 }
             }
-            snprintf(tfn, sizeof(tfn), "%s/rank.%d", bbpath, rank);
+            snprintf(tfn, sizeof(tfn), "%s/rank.%d", bbpath, mpirank);
             break;
-        case 1:  // SSD -> GPFS
-            snprintf(sfn, sizeof(sfn), "%s/rank.%d", bbpath, rank);
-            if(strcmp(pfspath, "/dev/null") == 0)
+        case false:  // SSD -> GPFS
+            snprintf(sfn, sizeof(sfn), "%s/rank.%d", bbpath, mpirank);
+            if(strcmp(pfspath.c_str(), "/dev/null") == 0)
             {
-                snprintf(tfn, sizeof(tfn), "%s", pfspath);
+                snprintf(tfn, sizeof(tfn), "%s", pfspath.c_str());
             }
             else
             {
                 if(use_subdir)
                 {
-                    snprintf(tfn, sizeof(tfn), "%s/%s/rank.%d", pfspath, host_name, rank);
-                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath, host_name);
+                    snprintf(tfn, sizeof(tfn), "%s/%s/rank.%d", pfspath.c_str(), host_name, mpirank);
+                    snprintf(tdn, sizeof(tdn), "%s/%s", pfspath.c_str(), host_name);
                     struct stat st_buf = {0};
                     if(0 != stat(tdn, &st_buf))
                     {
@@ -193,22 +207,20 @@ int main(int argc, char** argv)
                             if(EEXIST != errno)
                             {
                                 printf("%d/%d on %s) Warning. mkdir() returned the error (%d): %s\n",
-                                       rank, size, host_name, errno, strerror(errno));
+                                       mpirank, size, host_name, errno, strerror(errno));
                             }
                         }
                     }
                 }
                 else
                 {
-                    snprintf(tfn, sizeof(tfn), "%s/rank.%d", pfspath, rank);
+                    snprintf(tfn, sizeof(tfn), "%s/rank.%d", pfspath.c_str(), mpirank);
                 }
             }
             break;
-        default:
-            exit(-1);
     }
     
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Source file: %s\n", sfn);
         printf("Target file: %s\n", tfn);
@@ -217,11 +229,11 @@ int main(int argc, char** argv)
     addMetadata("branch",      getenv("BRANCH_NAME"));
     addMetadata("gitcommit",   getenv("GIT_COMMIT"));
     addMetadata("job",         getenv("TESTNAME"));
-    addMetadata("type",        (dir)?"out":"in");
+    addMetadata("type",        (dir)?"in":"out");
     addMetadata("jobid",       getenv("LSB_JOBID"));
     addMetadata("jobstep",     getenv("PMIX_NAMESPACE"));
     addMetadata("user",        getenv("USER"));
-    addMetadata("pfspath",     pfspath);
+    addMetadata("pfspath",     pfspath.c_str());
     addMetadata("bbpath",      bbpath);
     addMetadata("execname",    argv[0]);
     
@@ -231,7 +243,7 @@ int main(int argc, char** argv)
     if(dogenerate)
     {
         snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --by 512 --size=%ld", sfn, filesize);
-        if(rank == 0)
+        if(mpirank == 0)
         {
             printf("Generate random file: %s\n", cmd);
         }
@@ -240,91 +252,95 @@ int main(int argc, char** argv)
 
     BBTransferDef_t* tdef;
     BBTransferHandle_t thandle;
-    uint32_t contriblist = rank;
+    uint32_t contriblist = mpirank;
 
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Creating transfer definition\n");
     }
     rc = BB_CreateTransferDef(&tdef);
     check(rc);
 
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Adding files to transfer definition\n");
     }
-    rc = BB_AddFiles(tdef, sfn, tfn, 0);
+    rc = BB_AddFiles(tdef, sfn, tfn, (BBFILEFLAGS)0);
     check(rc);
 
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Obtaining transfer handle\n");
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
     start = MPI_Wtime();
-    rc = BB_GetTransferHandle(rank, 1, &contriblist, &thandle);
+    rc = BB_GetTransferHandle(mpirank, 1, &contriblist, &thandle);
     check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    stop = MPI_Wtime();
-    if(rank == 0)
+    if(optrun == false)
     {
-        printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %g seconds\n", dir, pfspath, filesize, size, stop-start);
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    stop = MPI_Wtime();
+    if(mpirank == 0)
+    {
+        printf("PERF(%d,%s,%ld x %d):  BB_GetTransferHandle took %g seconds\n", dir, pfspath.c_str(), filesize, size, stop-start);
         addMetric("bbGetTransferHandle_time", stop-start);
     }
 
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Starting transfer\n");
     }
     start = MPI_Wtime();
     rc = BB_StartTransfer(tdef, thandle);
     check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    stop = MPI_Wtime();
-    if(rank == 0)
+    if(optrun == false)
     {
-        printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %g seconds\n", dir, pfspath, filesize, size, stop-start);
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    stop = MPI_Wtime();
+    if(mpirank == 0)
+    {
+        printf("PERF(%d,%s,%ld x %d):  BB_StartTransfer took %g seconds\n", dir, pfspath.c_str(), filesize, size, stop-start);
         addMetric("bbStartTransfer_time", stop-start);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    start = MPI_Wtime();
-    do
+    if(optrun == false)
     {
-        if(use_xfercount)
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    start = MPI_Wtime();
+    while(1)
+    {
+        if(optrun)
         {
             uint64_t count = 0;
             rc = BB_GetTransferCount(thandle, &count);
-            if(count == 0)
-                break;
-            info.status = BBINPROGRESS;
-            sleep(1);
-        }
-        else
-        {
-            rc = BB_GetTransferInfo(thandle, &info);
-            check(rc);
-            if(info.status != BBFULLSUCCESS)
+            if(count > 0)
             {
-                sleep(1);
+                usleep(250000);
+                continue;
             }
         }
-        
+        rc = BB_GetTransferInfo(thandle, &info);
+        check(rc);
+        if((info.status == BBFULLSUCCESS) || (info.status == BBCANCELED) || (info.status == BBFAILED))
+            break;
+        sleep(1);
     }
-    while(info.status != BBFULLSUCCESS);
     
     MPI_Barrier(MPI_COMM_WORLD);
 
     stop = MPI_Wtime();
-    if(rank == 0)
+    if(mpirank == 0)
     {
-        printf("PERF(%d,%s,%ld x %d):  Transfer took %g seconds (%g MiBps)\n", dir, pfspath, filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
+        printf("PERF(%d,%s,%ld x %d):  Transfer took %g seconds (%g MiBps)\n", dir, pfspath.c_str(), filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
         addMetric("bbTransfer_time", stop-start);
         addMetric("bbTransfer_bandwidth", filesize * size / (stop-start));
     }
 
-    if(rank == 0)
+    if(mpirank == 0)
     {
         printf("Terminating BB library\n");
     }
