@@ -44,6 +44,7 @@ using namespace std;
 #include "ContribIdFile.h"
 #include "identity.h"
 #include "HandleFile.h"
+#include "HandleInfo.h"
 #include "LVLookup.h"
 #include "Msg.h"
 #include "Uuid.h"
@@ -133,6 +134,7 @@ int l_SSD_Write_Governor_Active = 0;
 sem_t l_SSD_Read_Governor;
 sem_t l_SSD_Write_Governor;
 
+pthread_mutex_t* HandleBucketMutex = 0;
 
 //*****************************************************************************
 //  Support routines
@@ -3168,6 +3170,12 @@ int bb_main(std::string who)
             rc = -1;
 	        errorText << "Error occurred when adding the high priority work queue";
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+
+        HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Toplevel_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
+        for (uint64_t i=0; i<g_Number_Toplevel_Handlefile_Buckets; ++i)
+        {
+            HandleBucketMutex[i] = PTHREAD_MUTEX_INITIALIZER;
         }
 
         // Log which jobs are currently known by the system in the cross bbServer metadata.

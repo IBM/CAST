@@ -26,6 +26,11 @@ thread_local int HandleBucketLockFd = -1;
 
 
 /*
+ * Static data
+ */
+
+
+/*
  * Static methods
  */
 int HandleInfo::createLockFile(const string& pFilePath)
@@ -133,7 +138,7 @@ int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
 }
 
 #define ATTEMPTS 200
-int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
+int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint64_t pHandleBucketNumber)
 {
     int rc = -2;
     int rc2 = 0;
@@ -241,6 +246,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
                     {
                         // Successful lock...
                         HandleBucketLockFd = fd;
+                        pthread_mutex_lock(&HandleBucketMutex[pHandleBucketNumber]);
                         l_Attempts = 0;
                     }
                     break;
@@ -267,10 +273,11 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath)
 }
 #undef ATTEMPTS
 
-void HandleInfo::unlockHandleBucket()
+void HandleInfo::unlockHandleBucket(const uint64_t pHandleBucketNumber)
 {
     if (HandleBucketLockFd != -1)
     {
+        pthread_mutex_unlock(&HandleBucketMutex[pHandleBucketNumber]);
         unlockHandleBucket(HandleBucketLockFd);
         HandleBucketLockFd = -1;
     }

@@ -36,6 +36,8 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataLocked = 0;
     int l_TagInfoLocked = 0;
     int l_HandleBucketLocked = 0;
 
@@ -64,11 +66,16 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
         if (!rc)
         {
-            rc = HandleInfo::lockHandleBucket(l_HandleBucketPath);
+            rc = HandleInfo::lockHandleBucket(l_HandleBucketPath, (pHandle % g_Number_Toplevel_Handlefile_Buckets));
             if (!rc)
             {
                 l_HandleBucketLocked = 1;
-                rc = lock(l_JobStepPath);
+
+                l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "TagInfo::addTagHandle");
+                // This lock serializes amongst request/transfer threads on this bbServer...
+                l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "TagInfo::addTagHandle");
+                // Perform the necessary locking across bbServers to read the taginfo
+                rc = TagInfo::lock(l_JobStepPath);
                 if (!rc)
                 {
                     l_TagInfoLocked = 1;
@@ -76,7 +83,17 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
                     if (!rc)
                     {
                         l_TagInfoLocked = 0;
-                        unlock();
+                        TagInfo::unlock();
+                        if (l_LocalMetadataLocked)
+                        {
+                            l_LocalMetadataLocked = 0;
+                            unlockLocalMetadata(pLVKey, "TagInfo::addTagHandle");
+                        }
+                        if (l_TransferQueueWasUnlocked)
+                        {
+                            l_TransferQueueWasUnlocked = 0;
+                            lockTransferQueue(pLVKey, "TagInfo::addTagHandle");
+                        }
                         for (size_t i=0; (i<l_TagInfo->tagHandles.size() && (!rc)); i++)
                         {
                             if (l_TagInfo->tagHandles[i].tag == pTag)
@@ -122,7 +139,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
 
                                 if (!rc)
                                 {
-                                    rc = TagInfo::update(l_JobStepPath, l_TagInfoPath, l_HandleInfoPath, pBumpCount, l_TagHandle, pHandle);
+                                    rc = TagInfo::update(pLVKey, l_JobStepPath, l_TagInfoPath, l_HandleInfoPath, pBumpCount, l_TagHandle, pHandle);
                                     switch (rc)
                                     {
                                         case 0:
@@ -193,13 +210,24 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     if (l_TagInfoLocked)
     {
         l_TagInfoLocked = 0;
-        unlock();
+        TagInfo::unlock();
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(pLVKey, "TagInfo::addTagHandle on exit");
+    }
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, "TagInfo::addTagHandle on exit");
     }
 
     if (l_HandleBucketLocked)
     {
         l_HandleBucketLocked = 0;
-        HandleInfo::unlockHandleBucket();
+        HandleInfo::unlockHandleBucket(pHandle % g_Number_Toplevel_Handlefile_Buckets);
     }
 
     if (l_HandleInfo)
@@ -573,16 +601,22 @@ void TagInfo::unlock(const int pFd)
     return;
 }
 
-int TagInfo::update(const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle)
+int TagInfo::update(const LVKey* pLVKey, const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle)
 {
     int rc = 0;
 
     TagInfo* l_TagInfo = 0;
     HandleInfo* l_HandleInfo = 0;
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataLocked = 0;
     int l_TagInfoLocked = 0;
 
     try
     {
+        l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "TagInfo::update");
+        // This lock serializes amongst request/transfer threads on this bbServer...
+        l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "TagInfo::update");
+
         // This lock serializes amongst bbServers...
         rc = TagInfo::lock(pJobStepPath);
         if (!rc)
@@ -645,6 +679,17 @@ int TagInfo::update(const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath
         // Unlock the TagInfo file
         l_TagInfoLocked = 0;
         TagInfo::unlock();
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(pLVKey, "TagInfo::update");
+    }
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, "TagInfo::update");
     }
 
     if (l_HandleInfo)
