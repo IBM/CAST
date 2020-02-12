@@ -161,7 +161,7 @@ public:
     static int readBumpCountFile(const string& pFilePath, uint32_t& pBumpCount);
     static void unlock();
     static void unlock(const int pFd);
-    static int update(const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle);
+    static int update(const LVKey* pLVKey, const bfs::path& pJobStepPath, const bfs::path& pTagInfoPath, const bfs::path& pHandleInfoPath, const uint32_t pBumpCount, BBTagHandle& pTagHandle, uint64_t pHandle);
     static int writeBumpCountFile(const string& pFilePath, const uint32_t pValue);
 
     /*
