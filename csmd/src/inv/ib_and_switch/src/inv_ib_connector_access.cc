@@ -287,7 +287,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			//Fautso says ignore.
 			//Why?
 			//Nick doesn't know.	
-		}else if(error == 335544539){
+		}else if(error.value() == 335544539){
 			//asio.ssl:335544539
 			//short read
 
