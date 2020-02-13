@@ -283,6 +283,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		{
 			throw boost::system::system_error(error);
 		}
+
+		std::cout << "checkpoint F " << std::endl;
 	
 		// vectors with the fields
 		std::size_t position_delimiter;
@@ -292,6 +294,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// opening input file
 		std::string input_file_name = output_file_name;
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
+
+		std::cout << "checkpoint G " << std::endl;
 		
 		// checking if input file is open
 		if ( ! input_file.is_open() ){
