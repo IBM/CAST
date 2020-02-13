@@ -37,6 +37,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/io_service.hpp>
 
 class INV_IB_CONNECTOR_ACCESS
 {
