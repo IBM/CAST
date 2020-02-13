@@ -261,7 +261,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		if ( ! output_file.is_open() )
 		{
 			// printing error and return
-			std::cout << "Output file " << :query << " not open, return"  << std::endl;
+			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
 			return 1;
 		} 
 
