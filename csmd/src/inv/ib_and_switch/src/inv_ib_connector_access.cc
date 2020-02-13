@@ -19,7 +19,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 using boost::asio::ip::tcp;
-using namespace boost::asio;
 
 INV_IB_CONNECTOR_ACCESS *INV_IB_CONNECTOR_ACCESS::_Instance = nullptr;
 
@@ -81,8 +80,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 	{
 		// Does the thing.
 	    boost::asio::io_service svc;
-	    ssl::context ctx(svc, ssl::context::method::sslv23_client);
-	    ssl::stream<ip::tcp::socket> ssock(svc, ctx);
+	    boost::asio::ssl::context ctx(svc, ssl::context::method::sslv23_client);
+	    boost::asio::ssl::stream<ip::tcp::socket> ssock(svc, ctx);
 	    ssock.lowest_layer().connect({ {}, 443 }); // http://localhost:8087 for test
 	    ssock.handshake(ssl::stream_base::handshake_type::client);
 
