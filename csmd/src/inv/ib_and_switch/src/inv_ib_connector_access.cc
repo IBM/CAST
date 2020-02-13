@@ -192,22 +192,10 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::istream response_stream(&response);
 		std::string http_version;
 
-		//IDK
-		std::cout << "The response stream: " << std::endl;
-		// This is a pointer
-		std::cout << response_stream << std::endl;
-		std::cout << " #=# END response stream #=# " << std::endl;
 
-		//IDK
-		std::cout << "The response stream: " << std::endl;
-		// This is a pointer
-		std::cout << &response_stream << std::endl;
-		std::cout << " #=# END response stream #=# " << std::endl;
 
-		std::cout << "The response stream: " << std::endl;
-		// This is a pointer
-		std::cout << response_stream << std::endl;
-		std::cout << " #=# END response stream #=# " << std::endl;
+
+
 
 
 		response_stream >> http_version;
@@ -227,6 +215,18 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::read_until(socket, response, "\r\n\r\n");
 		boost::asio::streambuf::const_buffers_type buf_2 = response.data();
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
+
+
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
+
+		//nick printing debug info
+		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
+		//IDK
+		std::cout << "The responseCOPY_TEST: " << std::endl;
+		// This is a pointer
+		std::cout << responseCOPY_TEST.c_str() << std::endl;
+		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
 		
 		// Process the response headers.
 		std::string header;
