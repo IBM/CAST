@@ -53,20 +53,22 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
+        uint64_t l_BucketNumber = pHandle % g_Number_Handlefile_Buckets;
+
         char l_TagInfoName[64] = {'\0'};
-        snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, (pTag % g_Number_Taginfo_Buckets));
+        snprintf(l_TagInfoName, sizeof(l_TagInfoName), "%s%lu", TAGINFONAME, l_BucketNumber);
         bfs::path l_TagInfoPath = l_JobStepPath / l_TagInfoName;
         char l_HandleInfoName[64] = {'\0'};
-        snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, (pHandle % g_Number_Handleinfo_Buckets));
+        snprintf(l_HandleInfoName, sizeof(l_HandleInfoName), "%s%lu", HANDLEINFONAME, l_BucketNumber);
         bfs::path l_HandleInfoPath = l_JobStepPath / l_HandleInfoName;
         char l_HandleBucketName[64] = {'\0'};
-        snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, (pHandle % g_Number_Toplevel_Handlefile_Buckets));
+        snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, l_BucketNumber);
         bfs::path l_HandleBucketPath = l_JobStepPath / l_HandleBucketName;
         BBTagHandle l_TagHandle = BBTagHandle(pTag, pHandle, pExpectContrib);
 
         if (!rc)
         {
-            rc = HandleInfo::lockHandleBucket(l_HandleBucketPath, (pHandle % g_Number_Toplevel_Handlefile_Buckets));
+            rc = HandleInfo::lockHandleBucket(l_HandleBucketPath, l_BucketNumber);
             if (!rc)
             {
                 l_HandleBucketLocked = 1;
@@ -227,7 +229,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     if (l_HandleBucketLocked)
     {
         l_HandleBucketLocked = 0;
-        HandleInfo::unlockHandleBucket(pHandle % g_Number_Toplevel_Handlefile_Buckets);
+        HandleInfo::unlockHandleBucket(pHandle % g_Number_Handlefile_Buckets);
     }
 
     if (l_HandleInfo)
@@ -415,6 +417,14 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
 
             switch(rc)
             {
+                case 0:
+                {
+                    // Successful lock...
+                    TagInfoLockFd = fd;
+                    l_Attempts = 0;
+                }
+                break;
+
                 case -2:
                 {
                     if (l_Attempts)
@@ -434,6 +444,7 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
                 break;
 
                 case -1:
+                default:
                 {
                     errorText << "Could not exclusively lock tag lockfile " << l_TagLockFileName << ", errno=" << errno << ":" << strerror(errno);
                     LOG_ERROR_TEXT_ERRNO(errorText, errno);
@@ -447,14 +458,7 @@ int TagInfo::lock(const bfs::path& pJobStepPath)
                         FL_Write(FLMetaData, TI_CouldNotLockExcl_End, "open TI, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
                     }
                     l_Attempts = 0;
-                }
-                break;
-
-                default:
-                {
-                    // Successful lock...
-                    TagInfoLockFd = fd;
-                    l_Attempts = 0;
+                    rc = -1;
                 }
                 break;
             }

@@ -123,10 +123,8 @@ int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
 // BBServer Metadata Path
 string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
 
-// Handle related bucket sizes
-uint64_t g_Number_Taginfo_Buckets = DEFAULT_NUMBER_OF_TAGINFO_BUCKETS;
-uint64_t g_Number_Handleinfo_Buckets = DEFAULT_NUMBER_OF_HANDLEINFO_BUCKETS;
-uint64_t g_Number_Toplevel_Handlefile_Buckets = DEFAULT_NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS;
+// Handlefile bucket size
+uint64_t g_Number_Handlefile_Buckets = DEFAULT_NUMBER_OF_HANDLEFILE_BUCKETS;
 
 // SSD I/O governors
 int l_SSD_Read_Governor_Active = 0;
@@ -3124,10 +3122,8 @@ int bb_main(std::string who)
         LOG(bb,info) << "SSD Write Direct=" << ssdwritedirect;
         setSsdWriteDirect(ssdwritedirect);
 
-        // Handle related bucket sizes
-        g_Number_Taginfo_Buckets = config.get("bb.numTaginfoBuckets", DEFAULT_NUMBER_OF_TAGINFO_BUCKETS);
-        g_Number_Handleinfo_Buckets = config.get("bb.numHandleinfoBuckets", DEFAULT_NUMBER_OF_HANDLEINFO_BUCKETS);
-        g_Number_Toplevel_Handlefile_Buckets = config.get("bb.numToplevelHandlefileBuckets", DEFAULT_NUMBER_OF_TOPLEVEL_HANDLEFILE_BUCKETS);
+        // Handlefile bucket size
+        g_Number_Handlefile_Buckets = config.get("bb.numHandlefileBuckets", DEFAULT_NUMBER_OF_HANDLEFILE_BUCKETS);
 
         // Initialize SSD governors
         uint32_t l_SSD_Read_Governor_Value = config.get(process_whoami + ".SSDReadGovernor", DEFAULT_SSD_READ_GOVERNOR);
@@ -3172,8 +3168,8 @@ int bb_main(std::string who)
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
-        HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Toplevel_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
-        for (uint64_t i=0; i<g_Number_Toplevel_Handlefile_Buckets; ++i)
+        HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
+        for (uint64_t i=0; i<g_Number_Handlefile_Buckets; ++i)
         {
             HandleBucketMutex[i] = PTHREAD_MUTEX_INITIALIZER;
         }

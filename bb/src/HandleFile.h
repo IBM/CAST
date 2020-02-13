@@ -52,7 +52,7 @@ const int MAXIMUM_HANDLEFILE_LOADTIME = 10;     // In seconds
 /*******************************************************************************
  | External data
  *******************************************************************************/
-extern uint64_t g_Number_Toplevel_Handlefile_Buckets;
+extern uint64_t g_Number_Handlefile_Buckets;
 extern double g_LogUpdateHandleStatusElapsedTimeClipValue;
 extern thread_local int handleFileLockFd;
 
