@@ -244,10 +244,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		
 		// opening output file
 
+		std::cout << "checkpoint A " << std::endl;
+
         //TEMP 
         // ToDo: replace this buffer push to a config file update like error paths below. 
         std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.json";
 
+        std::cout << "checkpoint B " << std::endl;
 
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
