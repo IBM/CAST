@@ -642,11 +642,23 @@ int TagInfo::update(const LVKey* pLVKey, const bfs::path& pJobStepPath, const bf
                     {
                         // Add the taghandle value to the taginfo file
                         l_TagInfo->tagHandles.push_back(pTagHandle);
-                        l_TagInfo->save();
+                        rc = l_TagInfo->save();
 
-                        // Add the handle value to the handleinfo file
-                        l_HandleInfo->handles.push_back(pHandle);
-                        l_HandleInfo->save();
+                        if (!rc)
+                        {
+                            // Add the handle value to the handleinfo file
+                            l_HandleInfo->handles.push_back(pHandle);
+                            if (l_HandleInfo->save())
+                            {
+                                rc = -1;
+                                LOG(bb,error) << "Error during the save of handleinfo file " << pHandleInfoPath.c_str();
+                            }
+                        }
+                        else
+                        {
+                            rc = -1;
+                            LOG(bb,error) << "Error during the save of taginfo file " << pTagInfoPath.c_str();
+                        }
                     }
                     else
                     {
