@@ -285,8 +285,11 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		if (error != boost::asio::error::eof)
 		{
 			//throw boost::system::system_error(error);
-			std::cout << "checkpoint E " << std::endl;
+			std::cout << "checkpoint EE " << std::endl;
+			std::cout << "error: " << error << std::endl;
 		}
+
+		std::cout << "checkpoint F " << std::endl;
 
 		std::cout << "error: " << error << std::endl;
 	
