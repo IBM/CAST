@@ -18,6 +18,7 @@
 
 #include <boost/asio.hpp>
 using boost::asio::ip::tcp;
+using namespace boost::asio;
 
 INV_IB_CONNECTOR_ACCESS *INV_IB_CONNECTOR_ACCESS::_Instance = nullptr;
 
@@ -77,11 +78,22 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 {
 	try
 	{
+		// Does the thing.
+	    boost::asio::io_service svc;
+	    ssl::context ctx(svc, ssl::context::method::sslv23_client);
+	    ssl::stream<ip::tcp::socket> ssock(svc, ctx);
+	    ssock.lowest_layer().connect({ {}, 443 }); // http://localhost:8087 for test
+	    ssock.handshake(ssl::stream_base::handshake_type::client);
+
+
+		//=========
+		//Begin old fautso
 		// Get a list of endpoints corresponding to the server name.
-		boost::asio::io_service io_service;
+		/*boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
 		tcp::resolver::query query(rest_address.c_str(),"https");
-		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);*/
+		//end old fautso
 		//tcp::resolver::iterator end; // End marker.
 
 		// while (endpoint_iterator != end)
@@ -90,12 +102,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		//     std::cout << endpoint << std::endl;
 		// }
 
-		tcp::endpoint endpoint = *endpoint_iterator;
-		std::cout << endpoint << std::endl;
+		// Nick trying to print out some extra stuff.
+		// tcp::endpoint endpoint = *endpoint_iterator;
+		// std::cout << endpoint << std::endl;
 	
 		// Try each endpoint until we successfully establish a connection.
-		tcp::socket socket(io_service);
-		boost::asio::connect(socket, endpoint_iterator);
+		// tcp::socket socket(io_service);
+		// boost::asio::connect(socket, endpoint_iterator);
 	
 		// Form the request. We specify the "Connection: close" header so that the
 		// server will close the socket after transmitting the response. This will
@@ -108,14 +121,31 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		request_stream << "Host: " << rest_address << " \r\n";
 		request_stream << "Connection: close\r\n\r\n";
 
-		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
-		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
 
+
+
+
+
+		
+
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
+
+		//nick printing debug info
+		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
 		//IDK
 		std::cout << "The requestCOPY_TEST: " << std::endl;
 		// This is a pointer
 		std::cout << requestCOPY_TEST.c_str() << std::endl;
 		std::cout << " #=# END requestCOPY_TEST #=# " << std::endl;
+
+
+
+
+
+
+
+
 
 		// Send the request.
 		boost::asio::write(socket, request);
