@@ -16,9 +16,9 @@
 #include "../include/inv_ib_connector_access.h"
 #include "logging.h"
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-using namespace boost::asio;
+using boost::asio::ip::tcp;
+namespace ssl = boost::asio::ssl;
+typedef ssl::stream<tcp::socket> ssl_socket;
 
 INV_IB_CONNECTOR_ACCESS *INV_IB_CONNECTOR_ACCESS::_Instance = nullptr;
 
@@ -78,12 +78,33 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 {
 	try
 	{
+		// example from stack overflow
 		// Does the thing.
-	    io_service svc;
+/*	    io_service svc;
 	    ssl::context ctx(svc, ssl::context::method::sslv23_client);
 	    ssl::stream<ip::tcp::socket> ssock(svc, ctx);
 	    ssock.lowest_layer().connect({ {}, 443 }); // http://localhost:8087 for test
-	    ssock.handshake(ssl::stream_base::handshake_type::client);
+	    ssock.handshake(ssl::stream_base::handshake_type::client);*/
+
+
+		// Create a context that uses the default paths for
+		// finding CA certificates.
+		ssl::context ctx(ssl::context::sslv23);
+		ctx.set_default_verify_paths();
+
+		// Open a socket and connect it to the remote host.
+		boost::asio::io_context io_context;
+		ssl_socket socket(io_context, ctx);
+		tcp::resolver resolver(io_context);
+		tcp::resolver::query query("host.name", "https");
+		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
+		socket.lowest_layer().set_option(tcp::no_delay(true));
+
+		// Perform SSL handshake and verify the remote host's
+		// certificate.
+		socket.set_verify_mode(ssl::verify_peer);
+		socket.set_verify_callback(ssl::rfc2818_verification("host.name"));
+		socket.handshake(ssl_socket::client);
 
 
 		//=========
