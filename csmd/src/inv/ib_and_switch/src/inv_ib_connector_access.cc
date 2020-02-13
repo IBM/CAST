@@ -158,7 +158,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		//nick printing debug info
 		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
 		//IDK
-		std::cout << "The requestCOPY_TEST: " << std::endl;
+		std::cout << "#=# The requestCOPY_TEST: " << std::endl;
 		// This is a pointer
 		std::cout << requestCOPY_TEST.c_str() << std::endl;
 		std::cout << " #=# END requestCOPY_TEST #=# " << std::endl;
@@ -183,7 +183,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::string response_copy_1(boost::asio::buffers_begin(buf_1), boost::asio::buffers_begin(buf_1) + response.size());
 
 		//IDK
-		std::cout << "The response_copy_1: " << std::endl;
+		std::cout << "#=# The response_copy_1: " << std::endl;
 		// This is a pointer
 		std::cout << response_copy_1.c_str() << std::endl;
 		std::cout << " #=# END response_copy_1 #=# " << std::endl;
@@ -223,7 +223,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		//nick printing debug info
 		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
 		//IDK
-		std::cout << "The responseCOPY_TEST: " << std::endl;
+		std::cout << "#=# The responseCOPY_TEST: " << std::endl;
 		// This is a pointer
 		std::cout << responseCOPY_TEST.c_str() << std::endl;
 		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
@@ -233,6 +233,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		while (std::getline(response_stream, header) && header != "\r")
 		{
 			// ???
+			std::cout << "Header: " << header << std::endl;
 		}
 	
 		// Write whatever content we already have to output.
