@@ -304,8 +304,6 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 
 		std::cout << "checkpoint F " << std::endl;
-
-		std::cout << "error: " << error << std::endl;
 	
 		// vectors with the fields
 		std::size_t position_delimiter;
