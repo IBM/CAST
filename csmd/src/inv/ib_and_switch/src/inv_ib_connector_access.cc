@@ -17,6 +17,7 @@
 #include "logging.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 using boost::asio::ip::tcp;
 using namespace boost::asio;
 
@@ -126,7 +127,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 
 
-		
+
 
 		//copy the buffer to the request data
 		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
