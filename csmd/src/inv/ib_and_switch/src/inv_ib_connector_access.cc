@@ -255,13 +255,17 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
+		std::cout << "checkpoint C " << std::endl;
+
 		// checking if output file is open
 		if ( ! output_file.is_open() )
 		{
 			// printing error and return
-			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
+			std::cout << "Output file " << :query << " not open, return"  << std::endl;
 			return 1;
 		} 
+
+		std::cout << "checkpoint D " << std::endl;
 
 		boost::system::error_code error;
 		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
@@ -271,6 +275,8 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 		// closing the output file
 		output_file.close();
+
+		std::cout << "checkpoint E " << std::endl;
 
 		// checking for errors
 		if (error != boost::asio::error::eof)
