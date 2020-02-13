@@ -93,17 +93,17 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		ctx.set_default_verify_paths();
 
 		// Open a socket and connect it to the remote host.
-		boost::asio::io_context io_context;
-		ssl_socket socket(io_context, ctx);
-		tcp::resolver resolver(io_context);
-		tcp::resolver::query query("host.name", "https");
+		boost::asio::io_service io_service;
+		ssl_socket socket(io_service, ctx);
+		tcp::resolver resolver(io_service);
+		tcp::resolver::query query(rest_address.c_str(), "https");
 		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
 		socket.lowest_layer().set_option(tcp::no_delay(true));
 
 		// Perform SSL handshake and verify the remote host's
 		// certificate.
 		socket.set_verify_mode(ssl::verify_peer);
-		socket.set_verify_callback(ssl::rfc2818_verification("host.name"));
+		socket.set_verify_callback(ssl::rfc2818_verification(rest_address.c_str()));
 		socket.handshake(ssl_socket::client);
 
 
