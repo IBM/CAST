@@ -287,7 +287,10 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			//Fautso says ignore.
 			//Why?
 			//Nick doesn't know.	
-		}else if(error == asio.ssl:335544539){
+		}else if(error == 335544539){
+			//asio.ssl:335544539
+			//short read
+
 			//This error occured because of an improper close to the SSL connection.
 			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
 			std::cout << "checkpoint EE " << std::endl;
