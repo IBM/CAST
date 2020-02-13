@@ -59,12 +59,12 @@ int HandleFile::createLockFile(const char* pFilePath)
 
 string HandleFile::getToplevelHandleName(const uint64_t pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % g_Number_Toplevel_Handlefile_Buckets);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(pHandle % g_Number_Handlefile_Buckets);
 }
 
 string HandleFile::getToplevelHandleName(const string& pHandle)
 {
-    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % g_Number_Toplevel_Handlefile_Buckets);
+    return TOPLEVEL_HANDLEFILE_NAME + to_string(strtoull(pHandle.c_str(), NULL, 10) % g_Number_Handlefile_Buckets);
 }
 
 int HandleFile::getTransferKeys(const uint64_t pJobId, const uint64_t pHandle, uint64_t& pLengthOfTransferKeys, uint64_t& pBufferSize, char* pBuffer)
@@ -790,7 +790,7 @@ int HandleFile::isCorrectToplevelHandleDirectory(const string& pToplevelDirector
 //        uint64_t l_Temp = strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10);
 //        uint64_t l_Temp2 = (pHandle % g_Number_Toplevel_Handlefile_Buckets);
 //        if (l_Temp == l_Temp2)
-        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % g_Number_Toplevel_Handlefile_Buckets))
+        if (strtoull((pToplevelDirectoryName.substr(l_Index+1)).c_str(), NULL, 10) == (pHandle % g_Number_Handlefile_Buckets))
         {
             rc = 1;
         }
@@ -1114,6 +1114,13 @@ int HandleFile::lock(const char* pFilePath)
 
         switch(rc)
         {
+            case 0:
+            {
+                // Successful lock...
+                l_Attempts = 0;
+            }
+            break;
+
             case -2:
             {
                 if (!l_Attempts)
@@ -1132,6 +1139,7 @@ int HandleFile::lock(const char* pFilePath)
             break;
 
             case -1:
+            default:
             {
                 errorText << "Could not exclusively lock handle file " << l_LockFile << ", errno=" << errno << ":" << strerror(errno);
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
@@ -1145,13 +1153,6 @@ int HandleFile::lock(const char* pFilePath)
                     FL_Write(FLMetaData, HF_CouldNotLockExcl_End, "open HF, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
                 }
                 fd = -1;
-                l_Attempts = 0;
-            }
-            break;
-
-            default:
-            {
-                // Successful lock...
                 l_Attempts = 0;
             }
             break;

@@ -193,7 +193,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
 
                 if (fd >= 0)
                 {
-                    // Exclusive lock and this will block if needed
+                    // Exclusive lock and this will block if needed for bbServer to bbServer serialization
                     LOG(bb,debug) << "lock(): Open issued for handle bucket lockfile " << l_HandleBucketLockFileName << ", fd=" << fd;
                     struct flock l_LockOptions;
                     l_LockOptions.l_whence = SEEK_SET;
@@ -207,6 +207,19 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
 
                 switch(rc)
                 {
+                    case 0:
+                    {
+                        // Successful lock...
+                        HandleBucketLockFd = fd;
+
+                        // The following lock provides serialization amongst the threads on
+                        // this bbServer
+                        pthread_mutex_lock(&HandleBucketMutex[pHandleBucketNumber]);
+
+                        l_Attempts = 0;
+                    }
+                    break;
+
                     case -2:
                     {
                         if (l_Attempts)
@@ -226,6 +239,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
                     break;
 
                     case -1:
+                    default:
                     {
                         errorText << "Could not exclusively lock handle bucket lockfile " << l_HandleBucketLockFileName << ", errno=" << errno << ":" << strerror(errno);
                         LOG_ERROR_TEXT_ERRNO(errorText, errno);
@@ -239,15 +253,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
                             FL_Write(FLMetaData, HB_CouldNotLockExcl_End, "open HB, could not lock exclusive, performing close, counter=%ld, fd=%ld", l_FL_Counter, fd, 0, 0);
                         }
                         l_Attempts = 0;
-                    }
-                    break;
-
-                    default:
-                    {
-                        // Successful lock...
-                        HandleBucketLockFd = fd;
-                        pthread_mutex_lock(&HandleBucketMutex[pHandleBucketNumber]);
-                        l_Attempts = 0;
+                        rc = -1;
                     }
                     break;
                 }

@@ -10,9 +10,7 @@
 		"keepaliveidle"                : 60,
 		"keepalivecount"               : 12,
 		"keepaliveinterval"            : 5,
-		"numTaginfoBuckets"            : 1024,
-        "numHandleinfoBuckets"         : 1024,
-		"numToplevelHandlefileBuckets" : 1024,
+		"numHandlefileBuckets"         : 1024,
 
 		"scripts" :
 		{
