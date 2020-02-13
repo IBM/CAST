@@ -18,7 +18,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-using boost::asio;
+using namespace boost::asio;
 
 INV_IB_CONNECTOR_ACCESS *INV_IB_CONNECTOR_ACCESS::_Instance = nullptr;
 
