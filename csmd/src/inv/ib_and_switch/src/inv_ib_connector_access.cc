@@ -269,7 +269,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::cout << "checkpoint D " << std::endl;
 
 		boost::system::error_code error;
-		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+		//while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+
+		while (boost::asio::read(socket, response, boost::asio::transfer_all(), error))
 		{
 			output_file << &response;
 		}
