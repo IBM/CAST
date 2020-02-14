@@ -99,7 +99,6 @@ int main(int argc, char** argv)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    printf("My rank is %d out of %d\n", rank, size);
 
     rc = BB_InitLibrary(rank, BBAPI_CLIENTVERSIONSTR);
     check(rc);
@@ -120,7 +119,10 @@ int main(int argc, char** argv)
     contribListArray = malloc(sizeof(uint32_t)*size);
     for(i=0;i<size;i++) contribListArray[i]=i;
 
-    printf("Obtaining transfer handle\n");
+    if(rank == 0)
+    {
+        printf("Obtaining transfer handle\n");
+    }
     MPI_Barrier(MPI_COMM_WORLD);
     start = MPI_Wtime();
     for(x=0; x<maxiterations; x++)
@@ -136,7 +138,6 @@ int main(int argc, char** argv)
         addMetric("bbGetTransferHandle_time", stop-start);
     }
 
-    printf("Terminating BB library\n");
     rc = BB_TerminateLibrary();
     check(rc);
 
