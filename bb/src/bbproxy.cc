@@ -1672,6 +1672,18 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
             // Switch to the uid/gid of requester.
             switchIds();
 
+            // Resolve the job identifiers
+            if (bbconnectionName.size())
+            {
+                l_JobId = getJobId(bbconnectionName, PERFORM_VALIDATION);
+            }
+            else
+            {
+                rc = ENOTCONN;
+	            errorText << "NULL connection name";
+                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+            }
+
             // Resolve the contribid value
             l_ContribId = getContribId(bbconnectionName);
 
@@ -1679,6 +1691,7 @@ void msgin_gettransferinfo(txp::Id id, const string& pConnectionName, txp::Msg* 
 
             // Build the message to send to bbserver
             txp::Msg::buildMsg(txp::BB_GETTRANSFERINFO, msgserver);
+            msgserver->addAttribute(txp::jobid, l_JobId);
             msgserver->addAttribute(txp::handle, l_Handle);
             msgserver->addAttribute(txp::contribid, l_ContribId);
 
@@ -1798,7 +1811,7 @@ void msgin_gettransfercount(txp::Id id, const string& pConnectionName, txp::Msg*
 
     int rc = -1;
     stringstream errorText;
-    
+
     uint64_t l_JobId = UNDEFINED_JOBID;
     uint64_t l_Handle = UNDEFINED_HANDLE;
     uint64_t count = 0;
@@ -4723,7 +4736,7 @@ int registerHandlers()
     registerMessageHandler(txp::CORAL_SETVAR, msgin_setvar);
     registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
 
-    
+
 
     return 0;
 }
