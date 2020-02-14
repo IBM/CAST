@@ -102,9 +102,11 @@ int main(int argc, char** argv)
         ("help",   po::bool_switch(), "Display this help message")
         ("pfs",    po::value<string>()->default_value("")) 
         ("size",   po::value<unsigned long>()->default_value(1048576), "fixed size of file")
+        ("poll",   po::value<double>()->default_value(1.0), "number of seconds to polll")
         ("in",     po::bool_switch())
         ("subdir", po::bool_switch())
         ("opt",    po::bool_switch())
+        ("barrier",po::bool_switch())
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -126,10 +128,13 @@ int main(int argc, char** argv)
     size_t filesize    = vm["size"].as<unsigned long>();
     bool use_subdir    = vm["subdir"].as<bool>();
     bool optrun        = vm["opt"].as<bool>();;
+    bool barrier       = vm["barrier"].as<bool>();;
+    double poll_intvl  = vm["poll"].as<double>();;
 
 
     BBTransferInfo_t info;
     double start, stop;
+    double beginning;
     int dogenerate = 1;
     char host_name[MPI_MAX_PROCESSOR_NAME];
     int h_len;
@@ -258,6 +263,8 @@ int main(int argc, char** argv)
     {
         printf("Creating transfer definition\n");
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+    beginning = MPI_Wtime();
     rc = BB_CreateTransferDef(&tdef);
     check(rc);
 
@@ -277,7 +284,7 @@ int main(int argc, char** argv)
     start = MPI_Wtime();
     rc = BB_GetTransferHandle(mpirank, 1, &contriblist, &thandle);
     check(rc);
-    if(optrun == false)
+    if(barrier == false)
     {
         MPI_Barrier(MPI_COMM_WORLD);
     }
@@ -295,10 +302,7 @@ int main(int argc, char** argv)
     start = MPI_Wtime();
     rc = BB_StartTransfer(tdef, thandle);
     check(rc);
-    if(optrun == false)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
+    MPI_Barrier(MPI_COMM_WORLD);
     stop = MPI_Wtime();
     if(mpirank == 0)
     {
@@ -306,10 +310,6 @@ int main(int argc, char** argv)
         addMetric("bbStartTransfer_time", stop-start);
     }
 
-    if(optrun == false)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
     start = MPI_Wtime();
     while(1)
     {
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
             rc = BB_GetTransferCount(thandle, &count);
             if(count > 0)
             {
-                usleep(250000);
+                usleep(poll_intvl * 1000000.0);
                 continue;
             }
         }
@@ -327,7 +327,7 @@ int main(int argc, char** argv)
         check(rc);
         if((info.status == BBFULLSUCCESS) || (info.status == BBCANCELED) || (info.status == BBFAILED))
             break;
-        sleep(1);
+        usleep(poll_intvl * 1000000.0);
     }
     
     MPI_Barrier(MPI_COMM_WORLD);
@@ -338,6 +338,7 @@ int main(int argc, char** argv)
         printf("PERF(%d,%s,%ld x %d):  Transfer took %g seconds (%g MiBps)\n", dir, pfspath.c_str(), filesize, size, stop-start, (double)filesize * size / (stop-start) / 1024 / 1024);
         addMetric("bbTransfer_time", stop-start);
         addMetric("bbTransfer_bandwidth", filesize * size / (stop-start));
+        addMetric("bbFullTransfer_time", stop-beginning);
     }
 
     if(mpirank == 0)
