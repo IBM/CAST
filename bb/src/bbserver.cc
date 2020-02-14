@@ -951,6 +951,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
     try
     {
         // Demarshall data from the message
+        l_JobId = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::jobid))->getData();
         l_Handle = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::handle))->getData();
         l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
         LOG(bb,debug) << "msgin_gettransferinfo: handle = " << l_Handle << ", contribid = " << l_ContribId;

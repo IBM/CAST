@@ -404,165 +404,190 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
     int rc = 0;
     stringstream errorText;
 
+    uint64_t l_FL_Counter = metadataCounter.getNext();
+    FL_Write(FLMetaData, HF_GetHandleInfo, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
+
+    int l_catch_count = 0;
+    vector<string> l_PathJobIds;
+    l_PathJobIds.reserve(100);
+
+    uint64_t l_BucketNumber = pHandle % g_Number_Handlefile_Buckets;
+    string l_HandleStr = to_string(pHandle);
+
+    char l_HandleBucketName[64] = {'\0'};
+    snprintf(l_HandleBucketName, sizeof(l_HandleBucketName), "%s%lu", TOPLEVEL_HANDLEFILE_NAME, l_BucketNumber);
+
+    bool l_SearchOnlyWithinJobId = (pJobId != UNDEFINED_JOBID ? true : false);
+    uint64_t l_SavedJobId = pJobId;
+
+    // Initialze return values
     pJobId = UNDEFINED_JOBID;
     pJobStepId = UNDEFINED_JOBSTEPID;
     pNumberOfReportingContribs = 0;
     pHandleFile = 0;
     pContribIdFile = 0;
 
-    uint64_t l_JobId = pJobId;
-    uint64_t l_JobStepId = pJobStepId;
-//    char* l_HandleFileName = 0;
-    int l_catch_count=ATTEMPTS;
-    vector<string> l_PathJobIds;
-    l_PathJobIds.reserve(100);
-
-    uint64_t l_FL_Counter = metadataCounter.getNext();
-    FL_Write(FLMetaData, HF_GetHandleInfo, "get handle info, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pJobId, pHandle, pContribId);
-
-    // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
-    //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
-    //       pointers for success/information.
-
-    // First, build a vector of jobids that the current uid/gid is authorized to access.
-    // We will iterate over these jobids in reverse order, as it is almost always
-    // the case that the jobid we want is the last one...
-    //
-    // NOTE: If we take an exception in the loop below, we do not rebuild this vector
-    //       of jobids.  The job could go away, but any jobid expected by the code
-    //       below should be in the vector.
-    rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
-
-    if (!rc)
+    bool l_HandleFound = 0;
+    bool l_Continue = true;
+    while (l_Continue)
     {
-        bool l_AllDone = false;
-        while (!l_AllDone)
-        {
-            l_AllDone = true;
-            for(vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
-            {
-                try
-                {
-                    bfs::path job = bfs::path(*rit);
-                    l_JobId = stoull(job.filename().string());
-                    for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
-                    {
-                        if(!accessDir(jobstep.path().string())) continue;
-                        l_JobStepId = stoull(jobstep.path().filename().string());
-                        for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
-                        {
-                            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string())) ||
-                                (!HandleFile::isCorrectToplevelHandleDirectory(tlhandle.path().filename().string(), pHandle))) continue;
-                            for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
-                            {
-                                if (!bfs::is_directory(handle)) continue;
-                                if(handle.path().filename().string() == to_string(pHandle))
-                                {
-                                    bfs::path handlefile = handle.path() / bfs::path(handle.path().filename());
-                                    rc = loadHandleFile(pHandleFile, handlefile.string().c_str());
-//                                    rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
-                                    if (!rc)
-                                    {
-                                        // Store the jobid and jobstepid values in the return variables...
-                                        pJobId = l_JobId;
-                                        pJobStepId = l_JobStepId;
+        l_Continue = false;
+        l_catch_count = ATTEMPTS;
+        uint64_t l_JobId = UNDEFINED_JOBID;
+        uint64_t l_JobStepId = UNDEFINED_JOBSTEPID;
 
-                                        uint64_t l_NumberOfLVUuidReportingContribs = 0;
-                                        rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handle.path(), pContribId);
-                                        switch (rc)
-                                        {
-                                            case 0:
-                                            case 1:
-                                            {
-                                                rc = 0;
-                                                break;
-                                            }
-                                            default:
-                                            {
-                                                LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handle.path().string();
-                                            }
-                                        }
-                                    }
-                                    else
+        if (l_SearchOnlyWithinJobId)
+        {
+            l_PathJobIds.push_back(l_HandleStr);
+        }
+        else
+        {
+            // NOTE: The only case where this method will return a non-zero return code is if the xbbServer data store
+            //       cannot be found/loaded.  Otherwise, the invoker MUST check the returned pHandleFile and pContribIdFile
+            //       pointers for success/information.
+
+            // First, build a vector of jobids that the current uid/gid is authorized to access.
+            // We will iterate over these jobids in reverse order, as it is almost always
+            // the case that the jobid we want is the last one...
+            //
+            // NOTE: If we take an exception in the loop below, we do not rebuild this vector
+            //       of jobids.  The job could go away, but any jobid expected by the code
+            //       below should be in the vector.
+            rc = get_xbbServerGetCurrentJobIds(l_PathJobIds);
+        }
+
+        if (!rc)
+        {
+            bool l_AllDone = false;
+            while (!l_AllDone)
+            {
+                l_AllDone = true;
+                for (vector<string>::reverse_iterator rit = l_PathJobIds.rbegin(); rit != l_PathJobIds.rend(); ++rit)
+                {
+                    try
+                    {
+                        bfs::path job = bfs::path(*rit);
+                        l_JobId = stoull(job.filename().string());
+                        for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
+                        {
+                            if(!accessDir(jobstep.path().string())) continue;
+                            l_JobStepId = stoull(jobstep.path().filename().string());
+                            bfs::path handlebucket = jobstep / l_HandleBucketName;
+                            if (!bfs::is_directory(handlebucket)) continue;
+                            bfs::path handledir = handlebucket / l_HandleStr;
+                            if (!bfs::is_directory(handledir)) continue;
+                            bfs::path handlefile = handledir / l_HandleStr;
+                            rc = loadHandleFile(pHandleFile, handlefile.string().c_str());
+//                            rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
+                            if (!rc)
+                            {
+                                // Store the jobid and jobstepid values in the return variables...
+                                pJobId = l_JobId;
+                                pJobStepId = l_JobStepId;
+
+                                uint64_t l_NumberOfLVUuidReportingContribs = 0;
+                                rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handledir, pContribId);
+                                switch (rc)
+                                {
+                                    case 0:
+                                    case 1:
                                     {
-                                        LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handle.path().string();
+                                        l_HandleFound = true;
+                                        rc = 0;
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handledir.string();
                                     }
                                 }
                             }
+                            else
+                            {
+                                LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handledir.string();
+                            }
                         }
                     }
-                }
-                catch(exception& e)
-                {
-                    if (pContribIdFile)
+                    catch(exception& e)
                     {
-                        delete pContribIdFile;
-                        pContribIdFile = 0;
-                    }
-#if 0
-                    if (l_HandleFileName)
-                    {
-                        delete[] l_HandleFileName;
-                        l_HandleFileName = 0;
-                    }
-#endif
-                    if (pHandleFile)
-                    {
-                        delete pHandleFile;
-                        pHandleFile = 0;
-                    }
-                    if (--l_catch_count)
-                    {
-                        // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
-                        //        If not that, log the error and retry.  Before retrying, remove the
-                        //        jobid that failed...
-                        if (errno != ENOENT)
+                        if (pContribIdFile)
                         {
-                            LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
-                                            << ". Retrying the operation...";
+                            delete pContribIdFile;
+                            pContribIdFile = 0;
                         }
-    		        	advance(rit, 1);
-    			        l_PathJobIds.erase(rit.base());
-                        l_AllDone = false;
+#if 0
+                        if (l_HandleFileName)
+                        {
+                            delete[] l_HandleFileName;
+                            l_HandleFileName = 0;
+                        }
+#endif
+                        if (pHandleFile)
+                        {
+                            delete pHandleFile;
+                            pHandleFile = 0;
+                        }
+                        if (--l_catch_count)
+                        {
+                            // NOTE:  'No entry' is an expected error due to a concurrent removeJobInfo.
+                            //        If not that, log the error and retry.  Before retrying, remove the
+                            //        jobid that failed...
+                            if (errno != ENOENT)
+                            {
+                                LOG(bb,warning) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what() \
+                                                << ". Retrying the operation...";
+                            }
+    	    	        	advance(rit, 1);
+    	    		        l_PathJobIds.erase(rit.base());
+                            l_AllDone = false;
+                        }
+                        else //RAS
+                        {
+                            rc=-1;
+                            LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+                            errorText << "get_xbbServerHandleInfo(): exception in looking for handle " << pHandle << ", contribid " << pContribId;
+                            LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.handleinfo);
+                            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+                        }
+                        break;
                     }
-                    else //RAS
-                    {
-                        rc=-1;
-                        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
-                        errorText << "get_xbbServerHandleInfo(): exception in looking for handle " << pHandle << ", contribid " << pContribId;
-                        LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.handleinfo);
-                        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-                    }
-                    break;
                 }
             }
         }
-    }
-    else
-    {
-        // bberror has already been filled in
-    }
-
-    if (rc)
-    {
-        pNumberOfReportingContribs = 0;
-
-        if (pContribIdFile)
+        else
         {
-            delete pContribIdFile;
-            pContribIdFile = 0;
+            // bberror has already been filled in
         }
+
+        if (rc)
+        {
+            pJobId = l_SavedJobId;
+            pJobStepId = UNDEFINED_JOBSTEPID;
+            pNumberOfReportingContribs = 0;
+
+            if (pContribIdFile)
+            {
+                delete pContribIdFile;
+                pContribIdFile = 0;
+            }
 #if 0
-        if (l_HandleFileName)
-        {
-            delete[] l_HandleFileName;
-            l_HandleFileName = 0;
-        }
+            if (l_HandleFileName)
+            {
+                delete[] l_HandleFileName;
+                l_HandleFileName = 0;
+            }
 #endif
-        if (pHandleFile)
+            if (pHandleFile)
+            {
+                delete pHandleFile;
+                pHandleFile = 0;
+            }
+        }
+
+        if ((!l_HandleFound) && l_SearchOnlyWithinJobId)
         {
-            delete pHandleFile;
-            pHandleFile = 0;
+            l_SearchOnlyWithinJobId = false;
+            l_Continue = true;
         }
     }
 
