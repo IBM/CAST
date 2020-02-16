@@ -1,5 +1,5 @@
 /*******************************************************************************
- |    test_basic_xfer.cc
+ |    xfer_perf.cc
  |
  |  © Copyright IBM Corporation 2015,2016. All Rights Reserved
  |
@@ -21,15 +21,13 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string>
+#include <iostream>
 #include <boost/program_options.hpp>
 
 using namespace std;
 namespace po = boost::program_options;
 
 #include "bb/include/bbapi.h"
-
-
-//  mpicc test_basic_xfer.c -o test_basic_xfer -I/opt/ibm -Wl,--rpath /opt/ibm/bb/lib -L/opt/ibm/bb/lib -lbbAPI
 
 int mpirank = 0;
 int size = 0;
@@ -99,38 +97,40 @@ int main(int argc, char** argv)
         po::options_description desc("Allowed options");
         
         desc.add_options()
-        ("help",   po::bool_switch(), "Display this help message")
-        ("pfs",    po::value<string>()->default_value("")) 
-        ("size",   po::value<unsigned long>()->default_value(1048576), "fixed size of file")
-        ("poll",   po::value<double>()->default_value(1.0), "number of seconds to polll")
-        ("in",     po::bool_switch())
-        ("subdir", po::bool_switch())
-        ("opt",    po::bool_switch())
-        ("barrier",po::bool_switch())
+        ("help,h", po::bool_switch(), "Display this help message")
+        ("pfs,p",  po::value<string>()->default_value(""), "Path to the parallel file system") 
+        ("size,s", po::value<unsigned long>()->default_value(1048576), "fixed size of file")
+        ("poll",   po::value<double>()->default_value(1.0), "number of seconds to poll")
+        ("in",     po::bool_switch(), "Perform PFS->SSD transfer")
+        ("subdir", po::bool_switch(), "Create sub-directory for each compute node on the PFS")
+        ("barrier",po::bool_switch(), "Perform barrier between BB operations")
+        ("noinfo", po::bool_switch(), "Skip final BB_GetTransferInfo query")
+        ("noopt",  po::bool_switch(), "Skip BB_GetTransferCount query")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
+
+        if(vm["help"].as<bool>())
+        {
+            cout << desc << endl;
+            exit(0);
+        }
     }
     catch (exception& e)
     {
         printf("Error: %s\n", e.what());
         exit(1);
     }
-    if(vm["help"].as<bool>())
-    {
-        printf("%s --pfs=<path> --size=<bytes> --in --subdir --opt\n", argv[0]);
-        exit(0);
-    }
 
     bool dir           = vm["in"].as<bool>();
     string pfspath     = vm["pfs"].as<string>();
     size_t filesize    = vm["size"].as<unsigned long>();
     bool use_subdir    = vm["subdir"].as<bool>();
-    bool optrun        = vm["opt"].as<bool>();;
+    bool nooptrun      = vm["noopt"].as<bool>();;
     bool barrier       = vm["barrier"].as<bool>();;
     double poll_intvl  = vm["poll"].as<double>();;
-
+    bool noinfo        = vm["noinfo"].as<bool>();;
 
     BBTransferInfo_t info;
     double start, stop;
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
     start = MPI_Wtime();
     while(1)
     {
-        if(optrun)
+        if(!nooptrun)
         {
             uint64_t count = 0;
             rc = BB_GetTransferCount(thandle, &count);
@@ -323,6 +323,8 @@ int main(int argc, char** argv)
                 continue;
             }
         }
+        if(noinfo)
+            break;
         rc = BB_GetTransferInfo(thandle, &info);
         check(rc);
         if((info.status == BBFULLSUCCESS) || (info.status == BBCANCELED) || (info.status == BBFAILED))

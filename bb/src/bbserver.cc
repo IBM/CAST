@@ -3082,6 +3082,7 @@ int bb_main(std::string who)
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
+        LOG(bb,info) << "PFS Direct I/O=" << g_UseDirectIO;
         g_DumpTransferMetadataAfterQueue = config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE);
         g_DumpStatsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpStatsBeforeAddingToAllExtents"), DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
         g_DumpExtentsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeAddingToAllExtents"), DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
