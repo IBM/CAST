@@ -22,13 +22,14 @@
 		{
 			"ssladdress"           : "0.0.0.0:@SSLPORT@",
 			"numRequestThreads"    : 64,
-			"numTransferThreads"   : 64,
-			"workerBufferSize"     : 67108864,
+			"numTransferThreads"   : 32,
+			"workerBufferSize"     : 134217728,
 			"flightlog"            : "/var/log/bbserver@USERSUFFIX@",
 			"sslcertif"            : "/etc/ibm/cert.pem",
 			"sslpriv"              : "/etc/ibm/key.pem",
 			"SSDReadGovernor"      : 0,
 			"SSDWriteGovernor"     : 0,
+			"usedirectio"          : false,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,
@@ -44,7 +45,7 @@
 		{
 			"servercfg"                   : "bb.server0",
 			"volumegroup"                 : "bb",
-			"numRequestThreads"           : 24,
+			"numRequestThreads"           : 64,
 			"flightlog"                   : "/var/log/bbproxy@USERSUFFIX@",
 			"ssdusagepollrate"            : 60,
 			"use_export_layout"	          : true,
