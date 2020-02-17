@@ -77,7 +77,6 @@ class BBTagInfo
     void calcStopped(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     void dump(const char* pSev);
     void expectContribToSS(stringstream& pSS) const;
-    uint64_t get_xbbServerHandle(const BBJob& pJob, const uint64_t pTag);
     BBSTATUS getStatus(const int pStageOutStarted);
     int inExpectContrib(const uint32_t pContribId);
     int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* l_OrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
