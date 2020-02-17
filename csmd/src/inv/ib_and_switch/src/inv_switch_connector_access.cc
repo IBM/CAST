@@ -351,8 +351,23 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		output_file.close();
 
 		// checking for errors
-		if (error != boost::asio::error::eof)
+		if (error == boost::asio::error::eof)
 		{
+			//Fautso says ignore.
+			//Why?
+			//Nick doesn't know.	
+		}else if(error.value() == 335544539){
+			//asio.ssl:335544539
+			//short read
+
+			//This error occured because of an improper close to the SSL connection.
+			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
+			std::cout << "checkpoint EE " << std::endl;
+			std::cout << "error: " << error << std::endl;
+			//We ignore this error for now because we know we connected in an uncool way.
+			//If we correct the connection process, then this error will go away.
+		}else{
+			//Non expected. Non special case error code.
 			throw boost::system::system_error(error);
 		}
 
