@@ -183,6 +183,8 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 {
 	try
 	{	
+		//OLD FAUTSO
+		/*
 		// Get a list of endpoints corresponding to the server name.
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
@@ -193,6 +195,36 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		tcp::socket socket(io_service);
 		boost::asio::connect(socket, endpoint_iterator);
 		
+		
+		*/
+
+		//====NEW WAY========
+
+		// Create a context that uses the default paths for
+		// finding CA certificates.
+		ssl::context ctx(ssl::context::sslv23);
+		ctx.set_default_verify_paths();
+
+		// Open a socket and connect it to the remote host.
+		boost::asio::io_service io_service;
+		ssl_socket socket(io_service, ctx);
+		tcp::resolver resolver(io_service);
+		tcp::resolver::query query(rest_address.c_str(), "https");
+		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
+		socket.lowest_layer().set_option(tcp::no_delay(true));
+
+		// Perform SSL handshake and verify the remote host's
+		// certificate.
+		//example says
+		//socket.set_verify_mode(ssl::verify_peer);
+		//Nate said -k in curl is fine. We know the server and trust it. So maybe its fine here too. 
+		socket.set_verify_mode(ssl::verify_none);
+		socket.set_verify_callback(ssl::rfc2818_verification(rest_address.c_str()));
+		socket.handshake(ssl_socket::client);
+		//==END NEW===================
+
+		
+
 		// Form the request. We specify the "Connection: close" header so that the
 		// server will close the socket after transmitting the response. This will
 		// allow us to treat all data up until the EOF as the content.
