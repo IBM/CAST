@@ -35,6 +35,7 @@
 //#include "../../include/inv_ib_guid.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 
 class INV_SWITCH_CONNECTOR_ACCESS
 {
