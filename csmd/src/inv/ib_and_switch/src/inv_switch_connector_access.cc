@@ -223,7 +223,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		socket.handshake(ssl_socket::client);
 		//==END NEW===================
 
-		
+
 
 		// Form the request. We specify the "Connection: close" header so that the
 		// server will close the socket after transmitting the response. This will
@@ -235,6 +235,24 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		request_stream << "Authorization: Basic " << authentication_string_for_the_http_request << " \r\n";
 		request_stream << "Host: " << rest_address << " \r\n";
 		request_stream << "Connection: close\r\n\r\n";
+
+
+
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
+
+		//nick printing debug info
+		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
+		//IDK
+		std::cout << "#=# The requestCOPY_TEST: " << std::endl;
+		// This is a pointer
+		std::cout << requestCOPY_TEST.c_str() << std::endl;
+		std::cout << " #=# END requestCOPY_TEST #=# " << std::endl;
+
+
+
+
+
 		
 		// Send the request.
 		boost::asio::write(socket, request);
@@ -246,6 +264,17 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		boost::asio::read_until(socket, response, "\r\n");
 		boost::asio::streambuf::const_buffers_type buf_1 = response.data();
 		std::string response_copy_1(boost::asio::buffers_begin(buf_1), boost::asio::buffers_begin(buf_1) + response.size());
+
+
+		//IDK
+		std::cout << "#=# The response_copy_1: " << std::endl;
+		// This is a pointer
+		std::cout << response_copy_1.c_str() << std::endl;
+		std::cout << " #=# END response_copy_1 #=# " << std::endl;
+
+
+
+
 
 		// Check that response is OK.
 		std::istream response_stream(&response);
@@ -268,6 +297,16 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		boost::asio::read_until(socket, response, "\r\n\r\n");
 		boost::asio::streambuf::const_buffers_type buf_2 = response.data();
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
+
+		//nick printing debug info
+		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
+		//IDK
+		std::cout << "#=# The responseCOPY_TEST: " << std::endl;
+		// This is a pointer
+		std::cout << responseCOPY_TEST.c_str() << std::endl;
+		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
+
+		
 
 		// Process the response headers.
 		std::string header;
