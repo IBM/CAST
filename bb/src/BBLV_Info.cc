@@ -465,9 +465,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                 l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
 
                 {
-                    // NOTE: Currently set to send info to console after 15 seconds of not being able to clear, and every 30 seconds thereafter...
+                    // NOTE: Currently set to send info to console after 30 seconds of not being able to clear, and every 60 seconds thereafter...
                     // NOTE: Retrieve transfers can cause this delay...
-                    if ((i++ % 120) == 60)
+                    if ((i++ % 240) == 120)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
                                  pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);

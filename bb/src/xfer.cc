@@ -1116,8 +1116,8 @@ int contribIdStopped(const std::string& pConnectionName, const LVKey* pLVKey, BB
                     // extents to be processed for the transfer definition.
                     // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
                     //       \todo - What to do???  @DLH
-                    // NOTE: Currently set to log after 5 seconds of not being able to clear, and every 15 seconds thereafter...
-                    if (((l_OriginalDeclareServerDeadCount - l_Continue) % 15) == 5)
+                    // NOTE: Currently set to log after 15 seconds of not being able to clear, and every 30 seconds thereafter...
+                    if (((l_OriginalDeclareServerDeadCount - l_Continue) % 30) == 15)
                     {
                         FL_Write6(FLDelay, RestartWaitForStop2, "Attempting to restart a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the original bbServer to act before an unconditional stop is performed.",
                                   (uint64_t)pJobId, (uint64_t)pJobStepId, (uint64_t)pHandle, (uint64_t)pContribId, (uint64_t)l_Continue, 0);
