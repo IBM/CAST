@@ -299,6 +299,9 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		boost::asio::streambuf::const_buffers_type buf_2 = response.data();
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
 
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
+
 		//nick printing debug info
 		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
 		//IDK
@@ -307,7 +310,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::cout << responseCOPY_TEST.c_str() << std::endl;
 		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
 
-		
+
 
 		// Process the response headers.
 		std::string header;
