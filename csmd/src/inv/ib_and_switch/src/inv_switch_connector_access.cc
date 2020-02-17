@@ -16,8 +16,9 @@
 #include "../include/inv_switch_connector_access.h"
 #include "logging.h"
 
-#include <boost/asio.hpp>
 using boost::asio::ip::tcp;
+namespace ssl = boost::asio::ssl;
+typedef ssl::stream<tcp::socket> ssl_socket;
 
 INV_SWITCH_CONNECTOR_ACCESS *INV_SWITCH_CONNECTOR_ACCESS::_Instance = nullptr;
 
