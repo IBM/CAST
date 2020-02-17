@@ -943,9 +943,6 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
 //    LVKey* l_LVKey = &l_LVKeyStg;
 //    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
 
-    uint64_t l_LengthOfTransferKeys = 0;
-    uint64_t l_TransferKeyBufferSize = 15;
-    char l_TransferKeyBuffer[16] = {'\0'};
 //    bool l_LockHeld = false;
 
     try
@@ -982,9 +979,6 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
                             errorText << "Number of expected contributors, " << l_NumContrib << ", does not match the number of elements found in the expectContrib array, " << l_NumOfContribsInArray;
                             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
-
-                        // NOTE: No need to check the return code... The required size (without the training null terminator) is always returned...
-                        HandleFile::getTransferKeys(l_JobId, l_Handle, l_LengthOfTransferKeys, l_TransferKeyBufferSize, l_TransferKeyBuffer);
                     }
                     else
                     {
@@ -1037,7 +1031,7 @@ void msgin_gettransferinfo(txp::Id id, const std::string& pConnectionName, txp::
         response->addAttribute(txp::contrib, (const char*)l_ContribArray, sizeof(uint32_t) * l_NumContrib);
         l_OverallStatus = (BBSTATUS)l_HandleFile->status;
         response->addAttribute(txp::numreportingcontribs, l_NumberOfReportingContribs);
-        response->addAttribute(txp::totalTransferKeyLength, l_LengthOfTransferKeys);
+        response->addAttribute(txp::totalTransferKeyLength, (l_HandleFile->transferKeys).length());
         response->addAttribute(txp::totalTransferSize, l_HandleFile->totalTransferSize);
         if (l_ContribIdFile) {
             l_LocalStatus = l_HandleFile->getLocalStatus(l_NumberOfReportingContribs, l_ContribIdFile);
