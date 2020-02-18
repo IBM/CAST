@@ -569,7 +569,7 @@ void* diskstatsMonitorThread(void* ptr)
                         {
                             LOG(bb,always) << "IBSTAT:  " << line;
                         }
-                        
+
                         diskStatCache[tokens[0]] = tokens[1];
                     }
                 }
@@ -624,10 +624,13 @@ void* asyncRemoveJobInfo(void* ptr)
                             {
                                 try
                                 {
+                                    LOG(bb,info) << "asyncRemoveJobInfo(): START: Removal of cross-bbServer metadata at " << l_PathJobIds[i];
                                     bfs::remove_all(job);
+                                    LOG(bb,info) << "asyncRemoveJobInfo():   END: Successful removal of cross-bbServer metadata at " << l_PathJobIds[i];
                                 }
                                 catch (std::exception& e1)
                                 {
+                                    LOG(bb,info) << "asyncRemoveJobInfo():   END: Unsuccessful removal of cross-bbServer metadata at " << l_PathJobIds[i];
                                     continue;
                                 }
                             }
