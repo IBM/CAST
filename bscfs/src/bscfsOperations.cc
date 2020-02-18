@@ -2902,64 +2902,96 @@ int bscfs_check_local_transfer(void *data)
 
     pthread_mutex_lock(&(sf->lock));
 
-    if ((sf->state == BSCFS_FLUSHING) || (sf->state == BSCFS_PREFETCHING)) {
-	BBTransferInfo_t info;
-	int res = BB_GetTransferInfo(sf->transfer_handle, &info);
-	if (res != 0) {
-	    log_bb_error(res, "BB_GetTransferInfo");
-	    request->return_code = res;
-	} else if ((info.status == BBNOTSTARTED) ||
-		       (info.status == BBINPROGRESS)) {
-	    request->return_code = EAGAIN;
-	} else if (info.status == BBFULLSUCCESS) {
-	    if (sf->state == BSCFS_FLUSHING) {
-		free(sf->map_file_name);
-		sf->map_file_name = NULL;
-		free(sf->cleanup_file_name);
-		sf->cleanup_file_name = NULL;
-		sf->state = BSCFS_FLUSH_COMPLETED;
-		FL_sf_state(sf);
-		request->return_code = 0;
-	    }
-	    else { // (sf->state == BSCFS_PREFETCHING)
-		res = activate_for_reading(sf, 0);
-		if (res == 0) {
-		    res = ingest_internal_files(sf);
+	if ((sf->state == BSCFS_FLUSHING) || (sf->state == BSCFS_PREFETCHING))
+	{
+		int res;
+#if 1
+		uint64_t filecount = 0;
+		res = BB_GetTransferCount(sf->transfer_handle, &filecount);
+		if (res != 0)
+		{
+			log_bb_error(res, "BB_GetTransferCount");
+			request->return_code = res;
+			goto done;
 		}
-		if (res == 0) {
-		    sf->state = BSCFS_STABLE;
-		    FL_sf_state(sf);
-		    request->return_code = 0;
-		} else {
-		    LOG(bscfsagent,info)
-			<< "bscfs_check_local_transfer: "
-			<< "activation failed for file "
-			<< sf->file_name
-			<< " after prefetch";
-		    request->return_code = -res;
+		else if(filecount > 0)
+		{
+			request->return_code = EAGAIN;
+			goto done;
 		}
-	    }
-	} else {
-	    LOG(bscfsagent,info)
-		<< "bscfs_check_local_transfer: transfer failed"
-		<< " (status " << info.status << ")";
-	    request->return_code = EIO;
+#endif
+		BBTransferInfo_t info;
+		res = BB_GetTransferInfo(sf->transfer_handle, &info);
+		if (res != 0)
+		{
+			log_bb_error(res, "BB_GetTransferInfo");
+			request->return_code = res;
+		}
+		else if ((info.status == BBNOTSTARTED) ||
+				 (info.status == BBINPROGRESS))
+		{
+			request->return_code = EAGAIN;
+		}
+		else if (info.status == BBFULLSUCCESS)
+		{
+			if (sf->state == BSCFS_FLUSHING)
+			{
+				free(sf->map_file_name);
+				sf->map_file_name = NULL;
+				free(sf->cleanup_file_name);
+				sf->cleanup_file_name = NULL;
+				sf->state = BSCFS_FLUSH_COMPLETED;
+				FL_sf_state(sf);
+				request->return_code = 0;
+			}
+			else
+			{ // (sf->state == BSCFS_PREFETCHING)
+				res = activate_for_reading(sf, 0);
+				if (res == 0)
+				{
+					res = ingest_internal_files(sf);
+				}
+				if (res == 0)
+				{
+					sf->state = BSCFS_STABLE;
+					FL_sf_state(sf);
+					request->return_code = 0;
+				}
+				else
+				{
+					LOG(bscfsagent, info)
+						<< "bscfs_check_local_transfer: "
+						<< "activation failed for file "
+						<< sf->file_name
+						<< " after prefetch";
+					request->return_code = -res;
+				}
+			}
+		}
+		else
+		{
+			LOG(bscfsagent, info)
+				<< "bscfs_check_local_transfer: transfer failed"
+				<< " (status " << info.status << ")";
+			request->return_code = EIO;
+		}
 	}
-    }
-    else if ((sf->state == BSCFS_FLUSH_COMPLETED) ||
-	     (sf->state == BSCFS_STABLE))
-    {
-	// transfer already completed
-	request->return_code = 0;
-    } else {
-	// state == INACTIVE, MODIFIED, FLUSH_PENDING, or CONTROL
-	LOG(bscfsagent,info)
-	    << "bscfs_check_local_transfer: file " << sf->file_name
-	    << " in disallowed state " << sf->state;
-	request->return_code = EPERM;
-    }
-
-    pthread_mutex_unlock(&(sf->lock));
+	else if ((sf->state == BSCFS_FLUSH_COMPLETED) ||
+			 (sf->state == BSCFS_STABLE))
+	{
+		// transfer already completed
+		request->return_code = 0;
+	}
+	else
+	{
+		// state == INACTIVE, MODIFIED, FLUSH_PENDING, or CONTROL
+		LOG(bscfsagent, info)
+			<< "bscfs_check_local_transfer: file " << sf->file_name
+			<< " in disallowed state " << sf->state;
+		request->return_code = EPERM;
+	}
+done:
+	pthread_mutex_unlock(&(sf->lock));
     pthread_mutex_unlock(&(bscfs_data.shared_files_lock));
 
     return 0;
