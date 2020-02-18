@@ -36,6 +36,7 @@ uint64_t ChkpntCount = 1;
 int64_t ChkpntStart = 1;
 uint64_t PrimaryInterval = 1;
 int KeepAll = 0;
+int FillBuffers = 1;
 char *ChkpntDir = "";
 uint64_t ChkpntSize = 1 * (1024ul * 1024ul * 1024ul);
 uint64_t StripeSize = -1ul;
@@ -237,7 +238,8 @@ void chkpnt_init(int argc, char **argv)
 	OPT_STRIPE_SIZE,
 	OPT_HEADER_SIZE,
 	OPT_CHUNK_SIZE,
-	OPT_COMPUTE_TIME
+	OPT_COMPUTE_TIME,
+	OPT_NOFILL_BUFFERS
     };
 
     static struct option options[] = {
@@ -252,6 +254,7 @@ void chkpnt_init(int argc, char **argv)
 	{"header_size",      1, NULL, OPT_HEADER_SIZE},
 	{"chunk_size",       1, NULL, OPT_CHUNK_SIZE},
 	{"compute_time",     1, NULL, OPT_COMPUTE_TIME},
+	{"nofill",           0, NULL, OPT_NOFILL_BUFFERS},
 	{0, 0, 0, 0}
     };
 
@@ -271,6 +274,10 @@ void chkpnt_init(int argc, char **argv)
 	case OPT_KEEP_ALL:
 	    KeepAll = 1;
 	    break;
+
+	case OPT_NOFILL_BUFFERS:
+		FillBuffers = 0;
+		break;
 
 	case OPT_PRIMARY_INTERVAL:
 	    PrimaryInterval = strtoul(optarg, &p, 0);
