@@ -56,28 +56,31 @@ int main(int argc, char **argv)
 
         Print(&timer, "syncing MPI ranks\n", 0);
         MPI_Barrier(MPI_COMM_WORLD);
-        Print(&timer, "filling memory buffers\n", 0);
-        // fill memory stripes as part of the computation
-        for (i = 0; i < stripe_count; i++) 
+        if(FillBuffers)
         {
-            mem_start = memory + (i * StripeSize);
-            file_start = HeaderSize + (((i * RankCount) + Rank) * StripeSize);
-            stripe_size = Min(StripeSize, mem_size - ((uint64_t) mem_start));
-            for (offset = 0; offset < stripe_size; offset += 8) {
-            // each word contains its own file offset and the chkpnt number
-            *((uint64_t *) (mem_start + offset)) =
-                (((uint64_t) n) << 56) | (file_start + offset);
+            Print(&timer, "Filling memory buffers\n", 0);
+            // fill memory stripes as part of the computation
+            for (i = 0; i < stripe_count; i++) 
+            {
+                mem_start = memory + (i * StripeSize);
+                file_start = HeaderSize + (((i * RankCount) + Rank) * StripeSize);
+                stripe_size = Min(StripeSize, mem_size - ((uint64_t) mem_start));
+                for (offset = 0; offset < stripe_size; offset += 8) {
+                // each word contains its own file offset and the chkpnt number
+                *((uint64_t *) (mem_start + offset)) =
+                    (((uint64_t) n) << 56) | (file_start + offset);
+                }
             }
-        }
-        // fill the header if rank 0
-        if ((Rank == 0) && (HeaderSize > 0)) {
-            ((uint64_t *) header)[0] = n;
-            for (offset = 8; offset < HeaderSize; offset += 8) {
-            *((uint64_t *) (header + offset)) = -1ul;
+            // fill the header if rank 0
+            if ((Rank == 0) && (HeaderSize > 0)) {
+                ((uint64_t *) header)[0] = n;
+                for (offset = 8; offset < HeaderSize; offset += 8) {
+                *((uint64_t *) (header + offset)) = -1ul;
+                }
             }
+            MPI_Barrier(MPI_COMM_WORLD);
         }
 
-        MPI_Barrier(MPI_COMM_WORLD);
         Print(&timer, "Writing checkpoint %d.\n", n);
         struct timespec bw_timer = timer;
 
