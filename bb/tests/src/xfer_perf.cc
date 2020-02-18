@@ -317,6 +317,7 @@ int main(int argc, char** argv)
         {
             uint64_t count = 0;
             rc = BB_GetTransferCount(thandle, &count);
+            check(rc);
             if(count > 0)
             {
                 usleep(poll_intvl * 1000000.0);
