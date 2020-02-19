@@ -132,9 +132,14 @@ int HandleFile::get_xbbServerGetCurrentJobIds(vector<string>& pJobIds, const RET
                 {
                     if (!bfs::is_directory(job)) continue;
                     if (!accessDir(job.path().string())) continue;
-                    if ((pReturnRemovedJobIds == ONLY_RETURN_VALID_JOBIDS && job.path().filename().string().at(0) == '.') ||
-                        (pReturnRemovedJobIds == ONLY_RETURN_REMOVED_JOBIDS && job.path().filename().string().at(0) != '.')) continue;
-                    pJobIds.push_back(job.path().string());
+                    if (job.path().filename().string().at(1) != '.')
+                    {
+                        if ((pReturnRemovedJobIds == ONLY_RETURN_VALID_JOBIDS && job.path().filename().string().at(0) != '.') ||
+                            (pReturnRemovedJobIds == ONLY_RETURN_REMOVED_JOBIDS && job.path().filename().string().at(0) == '.'))
+                        {
+                            pJobIds.push_back(job.path().string());
+                        }
+                    }
                 }
             }
             catch(exception& e)
