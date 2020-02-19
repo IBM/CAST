@@ -118,9 +118,9 @@ int main(int argc, char** argv)
     uint32_t contriblist = rank;
 
     printf("Obtaining transfer handle\n");
-    MPI_Barrier(MPI_COMM_WORLD);
     rc = BB_GetTransferHandle(rank, 1, &contriblist, &thandle);
     check(rc);
+    MPI_Barrier(MPI_COMM_WORLD);
     start = MPI_Wtime();
     for(x=0; x<maxiterations; x++)
     {
