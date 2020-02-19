@@ -4107,6 +4107,76 @@ void msgin_transfer_progress(txp::Id id, const string& pConnectionName, txp::Msg
 }
 
 
+//*****************************************************************************
+//  bbapi -> bbProxy - >bbServer get/set config value
+//*****************************************************************************
+
+void msgin_pass2bbserver(txp::Id id, const string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    updateEnv(pConnectionName);
+    int rc=0;
+    stringstream errorText;
+    FL_Write(FLProxy, Pass2BBserver, " id=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
+    
+    txp::Msg* msgserver = NULL;
+
+try{
+        // Switch to the uid/gid of requester.
+        switchIds();
+        // Check permissions
+        checkForSuperUserPermission();
+        
+        txp::Msg::buildMsg(msg->getMsgId(), msgserver);
+        string key = (const char*)msg->retrieveAttrs()->at(txp::keys)->getDataPtr();
+        msgserver->addAttribute(txp::keys, key.c_str(), key.length()+1);
+
+        string l_value;
+        if (msg->retrieveAttrs()->find(txp::values) != msg->retrieveAttrs()->end() )
+        {
+           l_value = (const char*)msg->retrieveAttrs()->at(txp::values)->getDataPtr();
+        }
+        msgserver->addAttribute(txp::values, l_value.c_str(), l_value.length()+1);
+        ResponseDescriptor reply;
+        rc = sendMessage(DEFAULT_SERVER_ALIAS, msgserver, reply);
+        delete msgserver;
+        msgserver=NULL;
+
+        if (rc)
+        {
+            errorText << "sendMessage to server failed";
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
+        }
+
+        // Wait for the response
+        rc = waitReply(reply, msgserver);
+        if (rc)
+        {
+            errorText << "waitReply failure on bbserver connection ";
+            LOG_ERROR_TEXT_RC_RAS_AND_BAIL(errorText, rc, bb.admin.failure);
+        }
+
+        rc = bberror.merge(msgserver);
+    }
+    catch(ExceptionBailout& e) 
+    { 
+        LOG(bb,always)<<"msgin_pass2bbserver: ExceptionBailout caught";
+        rc=-1;
+    }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
+    addReply(msg, response);
+
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
+
 
 //*****************************************************************************
 //  bbapi -> bbProxy - >bbServer requests (Server specific related operations)
@@ -4735,6 +4805,8 @@ int registerHandlers()
     registerMessageHandler(txp::CORAL_GETVAR, msgin_getvar);
     registerMessageHandler(txp::CORAL_SETVAR, msgin_setvar);
     registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
+    registerMessageHandler(txp::BB_GETSERVERCFGVALUE, msgin_pass2bbserver);
+    registerMessageHandler(txp::BB_SETSERVERCFGVALUE, msgin_pass2bbserver);
 
 
 
