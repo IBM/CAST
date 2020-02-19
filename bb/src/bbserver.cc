@@ -3208,6 +3208,7 @@ int bb_main(std::string who)
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
+            LOG(bb,info) << "Async Remove Interval=" << g_AsyncRemoveJobInfoInterval;
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
         LOG(bb,info) << "PFS Direct I/O=" << g_UseDirectIO;
