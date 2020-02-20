@@ -102,6 +102,12 @@ bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
 double g_AsyncRemoveJobInfoInterval = DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE;
 
+// Diskstats rate (interval in seconds)
+int g_DiskStatsRate = DEFAULT_DISKSTATS_RATE;
+
+// IB Stats Low Activity
+int64_t g_IBStatsLowActivityClipValue = (int64_t)((DEFAULT_IBSTATS_LOW_ACTIVITY_RATE*(1024 * 1024 * 1024)) / (32/8) * g_DiskStatsRate);
+
 // Use DirectI/O
 bool g_UseDirectIO = DEFAULT_USE_DIRECT_IO_VALUE;
 
@@ -3216,10 +3222,17 @@ int bb_main(std::string who)
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
-            LOG(bb,info) << "Async Remove Interval=" << g_AsyncRemoveJobInfoInterval;
+            LOG(bb,always) << "Async Remove Interval=" << g_AsyncRemoveJobInfoInterval;
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
-        LOG(bb,info) << "PFS Direct I/O=" << g_UseDirectIO;
+        LOG(bb,always) << "PFS Direct I/O=" << g_UseDirectIO;
+        g_DiskStatsRate = config.get(process_whoami+".iostatrate", DEFAULT_DISKSTATS_RATE);
+        double l_IBStatsLowActivityRate = config.get(process_whoami+".IBStatsLowActivityRate", DEFAULT_IBSTATS_LOW_ACTIVITY_RATE);
+        g_IBStatsLowActivityClipValue = (int64_t)((l_IBStatsLowActivityRate*(1024 * 1024 * 1024)) / (32/8) * g_DiskStatsRate);
+                                                                // NOTE: This value represents the number of 32-bit words
+                                                                //       in an g_DiskStatsRate interval given the
+                                                                //       specified transfer rate in GB/sec
+        LOG(bb,always) << "IBStatsLowActivityRate=" << l_IBStatsLowActivityRate << ", giving an IBStats Low Activity Clip Value=" << g_IBStatsLowActivityClipValue;
         g_DumpTransferMetadataAfterQueue = config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE);
         g_DumpStatsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpStatsBeforeAddingToAllExtents"), DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
         g_DumpExtentsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeAddingToAllExtents"), DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
@@ -3243,8 +3256,8 @@ int bb_main(std::string who)
         uint64_t bbserverFileIOwarnSeconds = config.get("bb.bbserverFileIOwarnSeconds", 300);
         uint64_t bbserverFileIOStuckSeconds = config.get("bb.bbserverFileIOStuckSeconds", 600);
         setThresholdTimes4Syscall(bbserverFileIOwarnSeconds,  bbserverFileIOStuckSeconds);
-        LOG(bb,info) << "bbserverFileIOwarnSeconds="<<bbserverFileIOwarnSeconds;
-        LOG(bb,info) << "bbserverFileIOStuckSeconds="<<bbserverFileIOStuckSeconds;
+        LOG(bb,always) << "bbserverFileIOwarnSeconds="<<bbserverFileIOwarnSeconds;
+        LOG(bb,always) << "bbserverFileIOStuckSeconds="<<bbserverFileIOStuckSeconds;
         pthread_t tid;
         pthread_attr_t attr;
         pthread_attr_init(&attr);
@@ -3258,7 +3271,7 @@ int bb_main(std::string who)
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
-        LOG(bb,info) << "SSD Write Direct=" << ssdwritedirect;
+        LOG(bb,always) << "SSD Write Direct=" << ssdwritedirect;
         setSsdWriteDirect(ssdwritedirect);
 
         // Handlefile bucket size
@@ -3266,7 +3279,7 @@ int bb_main(std::string who)
 
         // Initialize SSD governors
         uint32_t l_SSD_Read_Governor_Value = config.get(process_whoami + ".SSDReadGovernor", DEFAULT_SSD_READ_GOVERNOR);
-        LOG(bb,info) << "SSD Read Governor=" << l_SSD_Read_Governor_Value;
+        LOG(bb,always) << "SSD Read Governor=" << l_SSD_Read_Governor_Value;
         if (l_SSD_Read_Governor_Value)
         {
             sem_init(&l_SSD_Read_Governor, 0, l_SSD_Read_Governor_Value);
@@ -3274,7 +3287,7 @@ int bb_main(std::string who)
         }
 
         uint32_t l_SSD_Write_Governor_Value = config.get(process_whoami + ".SSDWriteGovernor", DEFAULT_SSD_WRITE_GOVERNOR);
-        LOG(bb,info) << "SSD Write Governor=" << l_SSD_Write_Governor_Value;
+        LOG(bb,always) << "SSD Write Governor=" << l_SSD_Write_Governor_Value;
         if (l_SSD_Write_Governor_Value)
         {
             sem_init(&l_SSD_Write_Governor, 0, l_SSD_Write_Governor_Value);

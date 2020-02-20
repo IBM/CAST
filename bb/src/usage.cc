@@ -60,7 +60,6 @@ map<string, BBUsage_t>  monitorlist;
 pthread_mutex_t                     rwUsageLock    = PTHREAD_MUTEX_INITIALIZER;
 map<dev_t, class BBUsageExtended>   bbxfer_usage;
 
-static int g_DiskStats_Rate = 0;
 static atomic<int64_t> g_Last_Port_Rcv_Data_Delta(-1);
 static atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
 static string g_IB_Adapter = "mlx5_0";
@@ -180,17 +179,18 @@ static int getDevice(const char* mountpoint, dev_t& devinfo)
     return 0;
 }
 
+#if BBSERVER
 int highIB_Activity()
 {
     int rc = 0;
 
     if (g_Last_Port_Rcv_Data_Delta > 0)
     {
-        if (g_Last_Port_Rcv_Data_Delta < DEFAULT_DISKSTATS_LOW_ACTIVITY_CLIP_VALUE)
+        if (g_Last_Port_Rcv_Data_Delta < g_IBStatsLowActivityClipValue)
         {
             if (g_Last_Port_Xmit_Data_Delta > 0)
             {
-                if (g_Last_Port_Xmit_Data_Delta >= DEFAULT_DISKSTATS_LOW_ACTIVITY_CLIP_VALUE)
+                if (g_Last_Port_Xmit_Data_Delta >= g_IBStatsLowActivityClipValue)
                 {
                     rc = 1;
                 }
@@ -215,6 +215,7 @@ int highIB_Activity()
 
     return rc;
 }
+#endif
 
 int   proxy_regLV4Usage(const char* mountpoint)
 {
@@ -573,15 +574,15 @@ void* mountMonitorThread(void* ptr)
     return NULL;
 }
 
+#if BBSERVER
 void* diskstatsMonitorThread(void* ptr)
 {
-    g_DiskStats_Rate = config.get(process_whoami+".iostatrate", DEFAULT_DISKSTATS_RATE);
     string l_Port_Rcv_Data = "port_rcv_data";
     string l_Port_Xmit_Data = "port_xmit_data";
 
     time_t start, end;
     map<string,string> diskStatCache;
-    string cmd = string("/usr/bin/timeout ") + to_string(g_DiskStats_Rate+2) + string(" /usr/bin/iostat -xym -p ALL ") + to_string(g_DiskStats_Rate);
+    string cmd = string("/usr/bin/timeout ") + to_string(g_DiskStatsRate+2) + string(" /usr/bin/iostat -xym -p ALL ") + to_string(g_DiskStatsRate);
     while(1)
     {
         start = time(NULL);
@@ -642,15 +643,14 @@ void* diskstatsMonitorThread(void* ptr)
         }
 
         end = time(NULL);  // safety incase timeout call fails
-        if(end-start < g_DiskStats_Rate)
+        if(end-start < g_DiskStatsRate)
         {
-            sleep(g_DiskStats_Rate - (end-start));
+            sleep(g_DiskStatsRate - (end-start));
         }
     }
     return NULL;
 }
 
-#if BBSERVER
 #define SLEEP 60
 void* asyncRemoveJobInfo(void* ptr)
 {
@@ -734,9 +734,9 @@ void* asyncRemoveJobInfo(void* ptr)
                                                                 LOG(bb,info) << "asyncRemoveJobInfo(): IB activity too high to do prune at " << l_HandleDir \
                                                                              << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
                                                                              << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
-                                                                             << ", current diskstats I/O clip value " << DEFAULT_DISKSTATS_LOW_ACTIVITY_CLIP_VALUE \
-                                                                             << ". Delaying " << g_DiskStats_Rate << " seconds...";
-                                                                sleep(g_DiskStats_Rate);
+                                                                             << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \
+                                                                             << ". Delaying " << g_DiskStatsRate << " seconds...";
+                                                                sleep(g_DiskStatsRate);
                                                             }
                                                         }
                                                     }
@@ -765,9 +765,9 @@ void* asyncRemoveJobInfo(void* ptr)
                                                     LOG(bb,info) << "asyncRemoveJobInfo(): IB activity too high to do final removal at " << l_PathJobIds[i] \
                                                                  << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
                                                                  << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
-                                                                 << ", current diskstats I/O clip value " << DEFAULT_DISKSTATS_LOW_ACTIVITY_CLIP_VALUE \
-                                                                 << ". Delaying " << g_DiskStats_Rate << " seconds...";
-                                                    sleep(g_DiskStats_Rate);
+                                                                 << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \
+                                                                 << ". Delaying " << g_DiskStatsRate << " seconds...";
+                                                    sleep(g_DiskStatsRate);
                                                 }
                                             }
                                         }
