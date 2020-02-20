@@ -249,8 +249,11 @@ int getservercfgvalue(const std::string& keyname)
     else if (keyname=="usedirectio"){
         string boolvalue="false";
         if (g_UseDirectIO) boolvalue="true";
-        string tmp = "out."+process_whoami+".usedirectio";
-        bberror<<err(tmp.c_str(),boolvalue.c_str() );
+        bberror<<err("out.usedirectio",boolvalue.c_str() );
+    }
+     else if (keyname=="devzerosize"){
+        uint64_t tmp=filehandle::get_devzerosize();
+        bberror<<err("out.devzerosize",tmp);
     }
     else {
         rc=-1;
@@ -277,6 +280,11 @@ int setservercfgvalue(const std::string& keyname, std::string& value)
         if (g_UseDirectIO) boolvalue="true";
         string tmp = "out."+process_whoami+".usedirectio";
         bberror<<err(tmp.c_str(),boolvalue.c_str() );
+    }
+    else if (keyname=="devzerosize"){
+        uint64_t tmp= boost::lexical_cast<uint64_t>(value);
+        filehandle::set_devzerosize(tmp);
+        bberror<<err("in.devzerosize",tmp);
     }
     else {
         rc=-1;
