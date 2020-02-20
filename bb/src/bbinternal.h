@@ -82,11 +82,13 @@ extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
 extern bool g_UseDirectIO;
+extern int g_DiskStatsRate;
 extern int g_DumpTransferMetadataAfterQueue;
 extern int g_DumpStatsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeSort;
 extern int g_DumpExtentsAfterSort;
+extern int64_t g_IBStatsLowActivityClipValue;
 extern uint64_t g_ForceSSDReadError;
 extern uint64_t g_ForceSSDWriteError;
 extern uint64_t g_ForcePFSReadError;
@@ -128,6 +130,8 @@ const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    
 const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
 const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1;                       // in seconds
+const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
+                                                                                //       rate in GB/sec
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
                                                                                 // NOTE: The default declareServerDeadCount value
                                                                                 //       is 2 * heartbeat time interval, which by
@@ -174,8 +178,6 @@ const int DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE = 0;
 const int DEFAULT_DISKSTATS_RATE = 60;
-const int DEFAULT_DISKSTATS_LOW_ACTIVITY_CLIP_VALUE = (1024 * 1024 * 1024) / (32/8);
-                            // NOTE: Represents the count of 32-bit words transmitted for 1GB of data
 
 const uint32_t NO_CONTRIBID = 999999998;
 const uint32_t CONTRIBID_AS_INITIALIZED = NO_CONTRIBID;
