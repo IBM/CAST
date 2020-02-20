@@ -3090,7 +3090,7 @@ int bb_main(std::string who)
                                                                 // NOTE: This value represents the number of 32-bit words
                                                                 //       in an g_DiskStatsRate interval given the
                                                                 //       specified transfer rate in GB/sec
-        LOG(bb,always) << "IBStatsLowActivityRate=" << l_IBStatsLowActivityRate << ", giving an IBStats Low Activity Clip Value=" << g_IBStatsLowActivityClipValue;
+        LOG(bb,always) << "IBStatsLowActivityRate=" << l_IBStatsLowActivityRate << " GB/sec, giving an IBStats Low Activity Clip Value=" << g_IBStatsLowActivityClipValue;
         g_DumpTransferMetadataAfterQueue = config.get(resolveServerConfigKey("bringup.dumpTransferMetadataAfterQueue"), DEFAULT_TRANSFER_METADATA_AFTER_QUEUE_VALUE);
         g_DumpStatsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpStatsBeforeAddingToAllExtents"), DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
         g_DumpExtentsBeforeAddingToAllExtents = config.get(resolveServerConfigKey("bringup.dumpExtentsBeforeAddingToAllExtents"), DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE);
