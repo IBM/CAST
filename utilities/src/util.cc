@@ -379,7 +379,7 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
     else
     {
         LOG(bb,always) << "Executing: " << cmd;
-        f = popen(cmd.c_str(), "r");
+        f = popen(cmd.c_str(), "re");
     }
 
     if (f)
