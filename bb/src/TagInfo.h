@@ -152,7 +152,7 @@ public:
      * Static methods
      */
     static int addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pExpectContrib, uint64_t& pHandle, const uint32_t pBumpCount);
-    static int incrBumpCountFile(const string& pFilePath);
+    static int incrBumpCountFile(const bfs::path& pJobStepPath);
     static int createLockFile(const string& pFilePath);
     static int load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName);
     static int lock(const bfs::path& pJobStepPath);
