@@ -635,10 +635,18 @@ void* diskstatsMonitorThread(void* ptr)
         }
         catch(ExceptionBailout& e)
         {
+            // NOTE:  Set the two static xmit/rcv values to -1 so we DO NOT
+            //        attempt any additional async job prunes/removals of branches/trees.
+            g_Last_Port_Rcv_Data_Delta = -1;
+            g_Last_Port_Xmit_Data_Delta = -1;
             LOG(bb,error) << "IOSTAT: exception while executing iostat";
         }
         catch(std::exception& e)
         {
+            // NOTE:  Set the two static xmit/rcv values to -1 so we DO NOT
+            //        attempt any additional async job prunes/removals of branches/trees.
+            g_Last_Port_Rcv_Data_Delta = -1;
+            g_Last_Port_Xmit_Data_Delta = -1;
             LOG(bb,error) << "IOSTAT: std::exception while executing.  e.what=" << e.what();
         }
 
