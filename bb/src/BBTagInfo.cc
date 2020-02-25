@@ -136,6 +136,9 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     stringstream errorText;
     bool l_Continue = true;
 
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataLocked = 0;
+    int l_TagInfoLocked = 0;
     uint64_t l_Handle = UNDEFINED_HANDLE;
 
     // First ensure that the jobstepid directory exists for the xbbServer metadata
@@ -160,90 +163,121 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
             }
 
-            // This lock serializes amongst bbServers...
-            int rc2 = TagInfo::lock(l_JobStepPath);
-            if (!rc2)
+            try
             {
-                rc2 = TagInfo::readBumpCountFile(l_JobStepPath.string(), l_BumpCount);
-                TagInfo::unlock();
-            }
-
-            if (!rc2)
-            {
-                // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
-                int rc3 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle, l_BumpCount);
-
-                // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
-                switch (rc3)
+                // Serialize threads within this server to read the bump count file
+                l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
+                l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
+                // Perform the necessary locking across bbServers to read the bump count file
+                rc = TagInfo::lock(l_JobStepPath);
+                if (!rc)
                 {
-                    case 0:
+                    l_TagInfoLocked = 1;
+                    rc = TagInfo::readBumpCountFile(l_JobStepPath.string(), l_BumpCount);
+                    if (!rc)
                     {
-                        // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
-                        // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
-                    }
-                    break;
-
-                    case 1:
-                    {
-                        // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
-                        // Use the returned handle value passed back in l_Handle.
-                    }
-                    break;
-
-                    case 2:
-                    {
-                        // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
-                        // Assign a new handle value and try to process the new handle value again.
-                        do
+                        l_TagInfoLocked = 0;
+                        TagInfo::unlock();
+                        if (l_LocalMetadataLocked)
                         {
-                            bumpTransferHandle(l_Handle);
-                        } while(l_Handle == 0);
-                        if (!TagInfo::incrBumpCountFile(l_JobStepPath.string()))
-                        {
-                            l_Continue = true;
+                            l_LocalMetadataLocked = 0;
+                            unlockLocalMetadata(pLVKey, "BBTagInfo::getTransferHandle");
                         }
-                        else
+                        if (l_TransferQueueWasUnlocked)
                         {
-                            // Error from incrBumpCount()
-                            rc = -1;
-                            errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            l_TransferQueueWasUnlocked = 0;
+                            lockTransferQueue(pLVKey, "BBTagInfo::getTransferHandle");
+                        }
+
+                        // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
+                        int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle, l_BumpCount);
+
+                        // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
+                        switch (rc2)
+                        {
+                            case 0:
+                            {
+                                // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
+                                // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
+                            }
+                            break;
+
+                            case 1:
+                            {
+                                // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
+                                // Use the returned handle value passed back in l_Handle.
+                            }
+                            break;
+
+                            case 2:
+                            {
+                                // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
+                                // Assign a new handle value and try to process the new handle value again.
+                                do
+                                {
+                                    bumpTransferHandle(l_Handle);
+                                } while(l_Handle == 0);
+                                if (!TagInfo::incrBumpCountFile(l_JobStepPath))
+                                {
+                                    l_Continue = true;
+                                }
+                                else
+                                {
+                                    // Error from incrBumpCount()
+                                    rc = -1;
+                                    errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
+                                    LOG_ERROR_TEXT_RC(errorText, rc);
+                                }
+                            }
+                            break;
+
+                            case -2:
+                            {
+                                // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
+                                rc = -1;
+                                errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                          << " but for a different contrib vector. Another tag value must be specified.";
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                            }
+                            break;
+
+                            case -3:
+                            {
+                                // Bump count did not match...  Just start over...
+                                l_Continue = true;
+                            }
+                            break;
+
+                            default:
+                            {
+                                // Some other error
+                                rc = -1;
+                                errorText << "Unexpected error occurred during the generation of a handle value";
+                                LOG_ERROR_TEXT_RC(errorText, rc);
+                            }
                         }
                     }
-                    break;
-
-                    case -2:
+                    else
                     {
-                        // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
+                        // Error from reading the bump count file
                         rc = -1;
-                        errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                  << " but for a different contrib vector. Another tag value must be specified.";
-                        LOG_ERROR_TEXT_RC(errorText, rc);
-                    }
-                    break;
-
-                    case -3:
-                    {
-                        // Bump count did not match...  Just start over...
-                        l_Continue = true;
-                    }
-                    break;
-
-                    default:
-                    {
-                        // Some other error
-                        rc = -1;
-                        errorText << "Unexpected error occurred during the generation of a handle value.";
+                        errorText << "Unexpected error occurred during the generation of a handle value.  Could not retrieve/read the bump count file/value at " << l_JobStepPath.string();
                         LOG_ERROR_TEXT_RC(errorText, rc);
                     }
                 }
+                else
+                {
+                    // Error locking taginfo file
+                    rc = -1;
+                    errorText << "Unexpected error occurred during the generation of a handle value.  Could not lock the TagInfo file at " << l_JobStepPath.string();
+                    LOG_ERROR_TEXT_RC(errorText, rc);
+                }
             }
-            else
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
             {
-                // Error from readBumpCountFile()
                 rc = -1;
-                errorText << "Unexpected error occurred during the generation of a handle value.  Could not lock the TagInfo file or could not retrieve the bump count file/value.";
-                LOG_ERROR_TEXT_RC(errorText, rc);
+                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
             }
         }
 
@@ -258,6 +292,22 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
         rc = -1;
         errorText << "Unexpected error occurred when attempting during the generation of a handle value.";
         LOG_ERROR_TEXT_RC(errorText, rc);
+    }
+
+    if (l_TagInfoLocked)
+    {
+        l_TagInfoLocked = 0;
+        TagInfo::unlock();
+    }
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(pLVKey, "BBTagInfo::getTransferHandle on exit");
+    }
+    if (l_TransferQueueWasUnlocked)
+    {
+        l_TransferQueueWasUnlocked = 0;
+        lockTransferQueue(pLVKey, "BBTagInfo::getTransferHandle on exit");
     }
 
     return rc;
