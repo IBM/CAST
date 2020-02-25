@@ -671,6 +671,7 @@ sub clearNVMf
 sub startServer
 {
     setprefix("Starting bbServer: ");
+    cmd("echo 1 > /proc/sys/vm/overcommit_memory");
     cmd("service bbserver restart");
 }
 
