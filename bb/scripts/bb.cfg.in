@@ -10,7 +10,7 @@
 		"keepaliveidle"                : 60,
 		"keepalivecount"               : 12,
 		"keepaliveinterval"            : 5,
-		"numHandlefileBuckets"         : 1024,
+		"numHandlefileBuckets"         : 4096,
 		"bbserverAsyncRemoveJobInfoInterval" : 28800,
 
 		"scripts" :
