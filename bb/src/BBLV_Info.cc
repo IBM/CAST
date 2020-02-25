@@ -879,9 +879,6 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::synctime, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second);
     l_Complete->addAttribute(txp::timeBaseScale, g_TimeBaseScale);
 
-    unlockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
-    unlockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
-
     // Send the message and wait for reply
     try
     {
@@ -896,9 +893,6 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
             endOnError();
         }
     }
-
-    lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
-    lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
 
     if (rc)
     {
@@ -1126,9 +1120,17 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     // Check/update the status for the transfer definition
     int l_NewStatus = 0;
     int l_ExtentsRemainForSourceIndex = 1;
+    int l_LocalMetadataLocked = 0;
     bool l_SetFileClosedIndicator = false;
 
-    int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Info::updateAllTransferStatus");
+    if (!localMetadataIsLocked())
+    {
+        unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus");
+        lockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus");
+        l_LocalMetadataLocked = 1;
+        lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus");
+        LOG(bb,debug) << "updateAllTransferStatus: Metadata mutex not held on entry";
+    }
 
     if (pJobExists == XBBSERVER_JOB_EXISTS)
     {
@@ -1141,6 +1143,9 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
     if (!l_ExtentsRemainForSourceIndex)
     {
+        unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+        unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+
         // Send message to bbproxy indicating the transfer for the source index file is complete.
         sendTransferCompleteForFileMsg(pConnectionName, pLVKey, pExtentInfo, l_TransferDef);
 
@@ -1162,6 +1167,9 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
             LOG(bb,error) << "updateAllTransferStatus: Could not retrieve the BBIO object for extent " << *l_Extent;
         }
         l_SetFileClosedIndicator = true;
+
+        lockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
+        lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
     }
 
     // NOTE: The transfer queue lock is released and re-acquired as part of the send message
@@ -1200,12 +1208,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     {
         if (!l_TransferDef->stopped())
         {
-            if (l_LocalMetadataLocked)
-            {
-                unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForContribIdMsg");
-            }
             sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef);
-            l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForContribIdMsg");
         }
 
         // Status changed for transfer definition...
@@ -1233,7 +1236,10 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
     if (l_LocalMetadataLocked)
     {
-        unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus");
+        unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus on exit");
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus on exit");
+        lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus on exit");
     }
 
     return rc;
