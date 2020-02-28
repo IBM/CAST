@@ -226,7 +226,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		while (std::getline(response_stream, header) && header != "\r")
 		{
 			// ???
-			std::cout << "Header: " << header << std::endl;
+			// I'mnot sure what is going on here. 
+			// It seems similar to the response back from the server. but not exact match.
+			// std::cout << "Header: " << header << std::endl;
 		}
 	
 		// Write whatever content we already have to output.
