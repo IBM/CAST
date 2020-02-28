@@ -106,9 +106,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// Perform SSL handshake and verify the remote host's
 		// certificate.
 		//example says
-		socket.set_verify_mode(ssl::verify_peer);
+		//socket.set_verify_mode(ssl::verify_peer);
 		//Nate said -k in curl is fine. We know the server and trust it. So maybe its fine here too. 
-		//socket.set_verify_mode(ssl::verify_none);
+		socket.set_verify_mode(ssl::verify_none);
 		socket.set_verify_callback(ssl::rfc2818_verification(rest_address.c_str()));
 		socket.handshake(ssl_socket::client);
 	
