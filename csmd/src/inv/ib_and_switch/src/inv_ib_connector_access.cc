@@ -78,14 +78,17 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 {
 	try
 	{
-		// example from stack overflow
-		// Does the thing.
-/*	    io_service svc;
-	    ssl::context ctx(svc, ssl::context::method::sslv23_client);
-	    ssl::stream<ip::tcp::socket> ssock(svc, ctx);
-	    ssock.lowest_layer().connect({ {}, 443 }); // http://localhost:8087 for test
-	    ssock.handshake(ssl::stream_base::handshake_type::client);*/
+		// I believe this is the boost C++ library trying to connect to the ufm daemon on the server.
+		// Connecting to the ufm daemon is via the protocol configured in ufm's config file.
+		// The config file is called "gv.cfg"
+		// it should be found in the ufm directory on the server running ufmd
+		// the specfic field in the config file for the connection is "ws_protocol"
 
+		// if "ws_protocol = https" then csm will need to connect through boost via https.
+		// if "ws_protocol = http" then csm will need to connect through boost via http.
+
+		// We don't know how its configured, so we try one first, then the other.
+		// ufm has changed its default to https. so we try that one first.
 
 		// Create a context that uses the default paths for
 		// finding CA certificates.
@@ -108,36 +111,15 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		socket.set_verify_mode(ssl::verify_none);
 		socket.set_verify_callback(ssl::rfc2818_verification(rest_address.c_str()));
 		socket.handshake(ssl_socket::client);
-
-
-		//=========
-		//Begin old fautso
-		// Get a list of endpoints corresponding to the server name.
-		/*boost::asio::io_service io_service;
-		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(),"https");
-		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);*/
-		//end old fautso
-		//tcp::resolver::iterator end; // End marker.
-
-		// while (endpoint_iterator != end)
-		// {
-		//     tcp::endpoint endpoint = *endpoint_iterator++;
-		//     std::cout << endpoint << std::endl;
-		// }
-
-		// Nick trying to print out some extra stuff.
-		// tcp::endpoint endpoint = *endpoint_iterator;
-		// std::cout << endpoint << std::endl;
-	
-		// Try each endpoint until we successfully establish a connection.
-		// tcp::socket socket(io_service);
-		// boost::asio::connect(socket, endpoint_iterator);
 	
 		// Form the request. We specify the "Connection: close" header so that the
 		// server will close the socket after transmitting the response. This will
 		// allow us to treat all data up until the EOF as the content.
-		
+
+		// Even though CSM is connecting to the server through boost using http above. 
+		// the rest api and request stream stays with HTTP in the string.
+		// i don't know why.
+
 		boost::asio::streambuf request;
 		std::ostream request_stream(&request);
 		request_stream << "GET /ufmRest/resources/links?cable_info=true HTTP/1.1\r\n";
@@ -146,33 +128,34 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		request_stream << "Connection: close\r\n\r\n";
 
 
+		// I this is a print out of what we will be sending to the server as a request...
+		// If developers are having a trouble situation, then you can comment this section and see the data you send
+		// Could help put you on the right path to debug the situation
+		// It should match the data above. 
 
-
-
-
-
-
+		/*
 		//copy the buffer to the request data
-		boost::asio::streambuf::const_buffers_type nickTEST = request.data();
+		boost::asio::streambuf::const_buffers_type requestDebugPrint = request.data();
+		//grab the data/string from the buffer?
+		std::string requestDebug_TEST(boost::asio::buffers_begin(requestDebugPrint), boost::asio::buffers_begin(requestDebugPrint) + request.size());
+		//printing debug info
+		std::cout << "#=# BEGIN requestDebug_TEST: " << std::endl;
+		std::cout << requestDebug_TEST.c_str() << std::endl;
+		std::cout << "#=# END requestDebug_TEST " << std::endl;
+		*/
 
-		//nick printing debug info
-		std::string requestCOPY_TEST(boost::asio::buffers_begin(nickTEST), boost::asio::buffers_begin(nickTEST) + request.size());
-		//IDK
-		std::cout << "#=# The requestCOPY_TEST: " << std::endl;
-		// This is a pointer
-		std::cout << requestCOPY_TEST.c_str() << std::endl;
-		std::cout << " #=# END requestCOPY_TEST #=# " << std::endl;
-
-
-
-
-
-
-
-
-
-		// Send the request.
+		// Use the boost libarary to send our request to the server.
 		boost::asio::write(socket, request);
+
+		// We have now sent off our request to the server.
+
+		// END REQUEST PART OF THE CODE. 
+		// ==============================
+		// BEGIN RESPOSE PART OF THE CODE.
+
+
+		// Below is our response back from the server to our request. 
+
 		
 		// Read the response status line. The response streambuf will automatically
 		// grow to accommodate the entire line. The growth may be limited by passing
@@ -208,6 +191,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		
 		if (status_code != 200){
 			std::cerr << "Response returned with status code " << status_code << "\n";
+
+			std::cout << "we did bad: " << std::endl;
+
 			return 1;
 		}
 	
