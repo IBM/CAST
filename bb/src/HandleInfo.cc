@@ -11,6 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include <unistd.h>
+
 #include "bbserver_flightlog.h"
 #include "HandleInfo.h"
 #include "TagInfo.h"
@@ -49,6 +51,7 @@ int HandleInfo::createLockFile(const string& pFilePath)
 int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
 {
     int rc = 0;
+    stringstream errorText;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, HI_Load, "loadHandleInfo, counter=%ld", l_FL_Counter, 0, 0, 0);
@@ -56,7 +59,7 @@ int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
     pHandleInfo = NULL;
     HandleInfo* l_HandleInfo = new HandleInfo(pHandleInfoName.string());
 
-    if(pathExists(pHandleInfoName, "HandleInfo::load"))
+    if (!access(pHandleInfoName.c_str(), F_OK))
     {
         struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
         bool l_AllDone = false;
@@ -146,7 +149,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
     int fd = -1;
     stringstream errorText;
 
-    if (!pathExists(pHandleBucketPath, "HandleInfo::lockHandleBucket"))
+    if (access(pHandleBucketPath.c_str(), F_OK))
     {
         // Create the handle bucket directory
         bfs::create_directories(pHandleBucketPath);

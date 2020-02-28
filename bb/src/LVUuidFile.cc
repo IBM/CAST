@@ -10,6 +10,7 @@
  |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
+#include <unistd.h>
 
 #include "bbserver_flightlog.h"
 #include "HandleFile.h"
@@ -30,7 +31,7 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
 
     bfs::path job(g_BBServer_Metadata_Path);
     job /= bfs::path(to_string(pJobId));
-    if(!pathExists(job, "LVUuidFile::update_xbbServerLVUuidFile")) return -2;
+    if (access(job.c_str(), F_OK)) return -2;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, LF_UpdateFile, "update LVUuid file, counter=%ld, job=%ld", l_FL_Counter, pJobId, 0, 0);

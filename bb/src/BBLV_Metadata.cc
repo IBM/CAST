@@ -10,11 +10,11 @@
  |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
+#include <identity.h>
+#include <unistd.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range.hpp>
-
-#include <identity.h>
 
 #include "bberror.h"
 #include "bbinternal.h"
@@ -58,7 +58,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
             bfs::path job(g_BBServer_Metadata_Path);
             job /= bfs::path(to_string(pJobId));
 
-            if(pathExists(job, "BBLV_Metadata::update_xbbServerAddData"))
+            if (!access(job.c_str(), F_OK))
             {
                 // NOTE: This is the normal case for the restart of a transfer definition...
                 unsigned count = 0;
@@ -80,8 +80,8 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 bfs::create_directories(job);
 
                 // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
-                int rc = chown(job.string().c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
-                                (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
+                int rc = chown(job.c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                               (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
                 if (rc)
                 {
                     int l_Errno = errno;
@@ -133,29 +133,20 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
         bfs::path job(g_BBServer_Metadata_Path);
         job /= bfs::path(to_string(pJobId));
 
-        if(pathExists(job, "BBLV_Metadata::update_xbbServerRemoveData"))
+        if (!g_AsyncRemoveJobInfo)
         {
-            if (!g_AsyncRemoveJobInfo)
-            {
-                unlockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
-                bfs::remove_all(job);
-                lockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
-            }
-            else
-            {
-                bfs::path hidejob(g_BBServer_Metadata_Path);
-                string hidejobname = "." + to_string(pJobId);
-                hidejob /= bfs::path(hidejobname);
-                bfs::rename(job, hidejob);
-            }
-            LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
+            unlockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
+            bfs::remove_all(job);
+            lockLocalMetadata((LVKey*)0, "update_xbbServerRemoveData - bfs::remove_all(job)");
         }
         else
         {
-            rc = -2;
-            errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
-            LOG_INFO_TEXT_RC(errorText, rc);
+            bfs::path hidejob(g_BBServer_Metadata_Path);
+            string hidejobname = "." + to_string(pJobId);
+            hidejob /= bfs::path(hidejobname);
+            bfs::rename(job, hidejob);
         }
+        LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -349,7 +340,7 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
                         if (l_LVUuidFile.hostname == pCN_HostName)
                         {
                             // CN of interest
-                            LVKey l_LVKey = std::pair<string, Uuid>(l_LVUuidFile.connectionName, Uuid(l_LVUuid.path().filename().string().c_str()));
+                            LVKey l_LVKey = std::pair<string, Uuid>(l_LVUuidFile.connectionName, Uuid(l_LVUuid.path().filename().c_str()));
                             if (l_ContribIdFile)
                             {
                                 delete l_ContribIdFile;

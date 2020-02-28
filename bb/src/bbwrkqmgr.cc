@@ -2803,14 +2803,13 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                     default:
                         break;
                 }
-                pSeqNbr = l_SeqNbr;
-           }
-           catch(ExceptionBailout& e) { }
-           catch(exception& e)
-           {
-               rc = -1;
-               LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-           }
+            }
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
+            {
+                rc = -1;
+                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+            }
         }
 
         LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
@@ -2823,6 +2822,10 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             delete [] pAsyncRequestFileName;
             pAsyncRequestFileName = 0;
         }
+    }
+    else
+    {
+        pSeqNbr = l_SeqNbr;
     }
 
     return rc;

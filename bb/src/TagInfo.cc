@@ -44,12 +44,6 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
         l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
         l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
-        if(!pathExists(l_JobStepPath, "TagInfo::addTagHandle"))
-        {
-            rc = -1;
-            errorText << "BBTagInfo::addTagHandle(): Attempt to load taginfo file failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-        }
 
         uint64_t l_BucketNumber = pHandle % g_Number_Handlefile_Buckets;
 
@@ -176,6 +170,10 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
     catch(exception& e)
     {
         rc = -1;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        errorText << "Error when attempting to add the tag information to the cross bbserver metadata for jobid " << pJob.getJobId() \
+                  << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle << ", errno=" << errno << ":" << strerror(errno);
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
@@ -278,10 +276,10 @@ int TagInfo::incrBumpCountFile(const bfs::path& l_JobStepPath)
     return rc;
 }
 
-// NOTE: TagInfo lock MUST be held when invoking this method
 int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
 {
     int rc = 0;
+    stringstream errorText;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, TF_Load, "loadTagInfo, counter=%ld", l_FL_Counter, 0, 0, 0);
@@ -289,7 +287,7 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
     pTagInfo = NULL;
     TagInfo* l_TagInfo = new TagInfo(pTagInfoName.string());
 
-    if(pathExists(pTagInfoName, "TagInfo::load"))
+    if (!access(pTagInfoName.c_str(), F_OK))
     {
         struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
         bool l_AllDone = false;

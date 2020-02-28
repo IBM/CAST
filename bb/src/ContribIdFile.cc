@@ -27,6 +27,7 @@
 int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle, const BBTagID& pTagId, const uint32_t pContribId)
 {
     int rc = 1;   // Success, all extents transferred...
+    stringstream errorText;
 
     bfs::path handle(g_BBServer_Metadata_Path);
     handle /= bfs::path(to_string(pTagId.getJobId()));
@@ -38,7 +39,7 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_AllExtentsXfered, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId);
 
-    if (pathExists(handle, "ContribIdFile::allExtentsTransferredButThisContribId"))
+    try
     {
         for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
         {
@@ -72,10 +73,16 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
             }
         }
     }
-    else
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
-        rc = -1;  //  Error case...
-        LOG(bb,error) << "Handle file for jobid " << pTagId.getJobId() << ", jobstepid " << pTagId.getJobStepId() << ", handle " << pHandle << ", from file " << handle.string() << " does not exist.";
+        rc = -1;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        errorText << "Error when attempting to determine the number of outstanding extents for contribs under the handle " << pHandle \
+                  << ", handle file path " << handle.string() << ", contribid " << pContribId \
+                  << ", errno=" << errno << ":" << strerror(errno);
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     if (l_ContribFile)
@@ -177,6 +184,8 @@ string ContribIdFile::isServicedBy(const BBJob pJob, const uint64_t pHandle, con
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::path& pHandleFilePath, const uint32_t pContribId, Uuid* pUuid)
 {
     int rc = 0;
+    stringstream errorText;
+
     ContribFile* l_ContribFile = 0;
     bool l_ContribIdFound = false;
 
@@ -184,13 +193,13 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
     FL_Write(FLMetaData, CIF_Load1, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     pContribIdFile = 0;
-    if(pathExists(pHandleFilePath, "ContribIdFile::loadContribIdFile"))
+    try
     {
         for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
         {
             if (!pathIsDirectory(lvuuid)) continue;
             bfs::path contribs_file = lvuuid.path() / CONTRIBS_FILENAME;
-            rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.string().c_str());
+            rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
             if (!rc)
             {
                 for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); (!l_ContribIdFound) && ce != l_ContribFile->contribs.end(); ce++)
@@ -200,7 +209,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
                         pContribIdFile = new ContribIdFile(ce->second);
                         if (pUuid)
                         {
-                            (*pUuid).copyFrom(lvuuid.path().filename().string().c_str());
+                            (*pUuid).copyFrom(lvuuid.path().filename().c_str());
                         }
                         l_ContribIdFound = true;
                         rc = 1;
@@ -236,13 +245,15 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
             pContribIdFile = 0;
         }
     }
-    else
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
-        // rc is already 0, which indicates that the contribid file was not loaded.
-        // NOTE:  Since this is most likely because the job/LVUuid has been deleted,
-        //        we don't differentiate this case from any other 'normal' case where
-        //        the contribid file was not loaded.
-        LOG(bb,warning) << "Path to the handle file does not exist " << pHandleFilePath.string();
+        rc = -1;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        errorText << "Error when attempting to load the contrib file, handle file path " << pHandleFilePath << ", contribid " << pContribId \
+                  << ", errno=" << errno << ":" << strerror(errno);
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     FL_Write(FLMetaData, CIF_Load1_End, "loadContribIdFile1, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
@@ -253,8 +264,9 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
 int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId)
 {
     int rc = 0;
-    bool l_ContribIdFound = false;
+    stringstream errorText;
 
+    bool l_ContribIdFound = false;
     pContribIdFile = 0;
 
     ContribFile* l_ContribFile = 0;
@@ -266,7 +278,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_Load2, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
-    if(pathExists(l_ContribFilePath, "ContribIdFile::loadContribIdFile"))
+    try
     {
         rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
         if (!rc)
@@ -302,10 +314,15 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
             pContribIdFile = 0;
         }
     }
-    else
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
         rc = -1;
-        LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        errorText << "Error when attempting to load the contrib file from " << l_ContribFilePath.string() << ", contribid " << pContribId \
+                  << ", errno=" << errno << ":" << strerror(errno);
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     FL_Write(FLMetaData, CIF_Load2_End, "loadContribIdFile, counter=%ld, contribid=%ld, rc=%ld", l_FL_Counter, pContribId, rc, 0);
@@ -381,6 +398,7 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
 int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey* pLVKey, const bfs::path& pHandleFilePath, const uint32_t pContribId)
 {
     int rc = 0;
+    stringstream errorText;
 
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
@@ -390,7 +408,7 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_Save, "saveContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
-    if(pathExists(l_ContribFilePath, "ContribIdFile::saveContribIdFile"))
+    try
     {
         ContribFile* l_ContribFile = 0;
         rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
@@ -418,9 +436,15 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
             l_ContribFile=NULL;
         }
     }
-    else
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
-        LOG(bb,error) << "Could not load the contrib file from file " << l_ContribFilePath.string() << " because it does not exist";
+        rc = -1;
+        LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
+        errorText << "Error when attempting to save the contrib file to " << l_ContribFilePath.string() << ", contribid " << pContribId \
+                  << ", errno=" << errno << ":" << strerror(errno);
+        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     if (pContribIdFile)
