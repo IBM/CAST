@@ -113,7 +113,13 @@ class filehandle
     filehandleData*     privateData;
     int openErrno;
 
+  static uint64_t devzerosize;
+  static bool     did_set_devzerosize;
+  
   public:
+    static void     set_devzerosize(const uint64_t pdevzerosize);
+    static uint64_t      get_devzerosize();
+
     filehandle() :
         fd(-1),
         filename("")

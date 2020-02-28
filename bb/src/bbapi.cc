@@ -2734,3 +2734,86 @@ int BB_RestartTransfers(const char* pHostName, const uint64_t pHandle, uint32_t*
 
     return rc;
 }
+
+int BB_GetServerKey(const char * key){
+    int rc=0;
+    stringstream errorText;
+    bberror.clear();
+    ResponseDescriptor reply;
+    txp::Msg* msg = 0;
+
+
+    try{
+        if ( (!key) || (!key[0]) )
+        {
+            rc = EFAULT;
+            errorText << "Invalid null parameter key or zero length string passed for key";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
+
+        txp::Msg::buildMsg(txp::BB_GETSERVERCFGVALUE, msg);
+
+        msg->addAttribute(txp::keys,key,  strlen(key) + 1);
+        rc = sendMessage(ProcessId, msg, reply);
+        delete msg;
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = waitReply(reply, msg);
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = bberror.merge(msg);
+        delete msg;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    return rc;
+}
+int BB_SetServerKey(const char * key,const char * value){
+    int rc=0;
+    stringstream errorText;
+    bberror.clear();
+    ResponseDescriptor reply;
+    txp::Msg* msg = 0;
+
+
+    try{
+        if ( (!key) || (!key[0]) )
+        {
+            rc = EFAULT;
+            errorText << "Invalid null parameter key or zero length string passed for key";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
+        if ( (!value) || (!value[0]) )
+        {
+            rc = EFAULT;
+            errorText << "Invalid null parameter value or zero length string passed for value";
+            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+        }
+
+        txp::Msg::buildMsg(txp::BB_SETSERVERCFGVALUE, msg);
+        msg->addAttribute(txp::keys,key,  strlen(key) + 1);
+        msg->addAttribute(txp::values,value,  strlen(value) + 1);
+        rc = sendMessage(ProcessId, msg, reply);
+        delete msg;
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = waitReply(reply, msg);
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = bberror.merge(msg);
+        delete msg;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    return rc;
+}

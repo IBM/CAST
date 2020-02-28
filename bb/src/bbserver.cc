@@ -237,10 +237,150 @@ void switchIds(txp::Msg* pMsg)
     return;
 }
 
+int getservercfgvalue(const std::string& keyname)
+{
+    int rc=0;
+    
+    bberror<<err("in.process_whoami",process_whoami);
+    stringstream errorText;
+    if (keyname=="config"){
+        std::ostringstream result_stream;
+        result_stream << "{\"out\":";
+        result_stream << "{\"config\":";
+        boost::property_tree::write_json(result_stream, config, false);
+        result_stream << "}}";
+        LOG(bb,info)<<"result_stream.str()"<<result_stream.str();
+        bberror.merge(result_stream.str()); 
+    }  
+    else if (keyname=="usedirectio"){
+        string boolvalue="false";
+        if (g_UseDirectIO) boolvalue="true";
+        bberror<<err("out.usedirectio",boolvalue.c_str() );
+    }
+     else if (keyname=="devzerosize"){
+        uint64_t tmp=filehandle::get_devzerosize();
+        bberror<<err("out.devzerosize",tmp);
+    }
+    else {
+        rc=-1;
+        errorText<<"key not gettable:  "<<keyname;
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+    return rc;
+}
+
+int setservercfgvalue(const std::string& keyname, std::string& value)
+{
+    int rc=0;
+    stringstream errorText;
+    bberror<<err("in.process_whoami",process_whoami);
+    if (keyname=="usedirectio"){
+        if (value=="true") g_UseDirectIO = true;
+        else if (value=="false") g_UseDirectIO = false;
+        else {
+            rc=-1;
+            errorText<<"usedirectio was not false or true";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+        }
+        string boolvalue="false";
+        if (g_UseDirectIO) boolvalue="true";
+        string tmp = "out."+process_whoami+".usedirectio";
+        bberror<<err(tmp.c_str(),boolvalue.c_str() );
+    }
+    else if (keyname=="devzerosize"){
+        uint64_t tmp= boost::lexical_cast<uint64_t>(value);
+        filehandle::set_devzerosize(tmp);
+        bberror<<err("in.devzerosize",tmp);
+    }
+    else {
+        rc=-1;
+        errorText<<"key not settable:  "<<keyname;
+        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+    }
+    return rc;
+}
 
 //*****************************************************************************
 //  Requests from bbproxy
 //*****************************************************************************
+void msgin_getservercfgvalue(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+    string keyname;
+    string keyvalue;
+    // might need locking of the tree ?????
+    try{
+
+        keyname = (const char*)msg->retrieveAttrs()->at(txp::keys)->getDataPtr();
+        rc = getservercfgvalue(keyname);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+    // Build the response message
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+    if (!rc)
+    {
+        response->addAttribute(txp::keys, keyname.c_str(), keyname.length() + 1 );
+    }
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName, response);
+    delete response;
+}    
+void msgin_setservercfgvalue(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear(pConnectionName);
+    string keyname;
+    string keyvalue;
+    string prev_keyvalue;
+    // might need locking of the tree ?????
+    try
+    {
+       keyname = (const char*)msg->retrieveAttrs()->at(txp::keys)->getDataPtr();
+       keyvalue = (const char*)msg->retrieveAttrs()->at(txp::values)->getDataPtr();
+       bberror<<err("out.server",process_whoami);
+       rc = setservercfgvalue(keyname,keyvalue);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+    // Build the response message
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+    if (!rc)
+    {
+        response->addAttribute(txp::keys, keyname.c_str(), keyname.length() + 1 );
+    }
+
+    addBBErrorToMsg(response);
+
+    // Send the response
+    sendMessage(pConnectionName, response);
+    delete response;
+}     
+
 
 #define DELAY_SECONDS 120
 void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::Msg* msg)
@@ -3006,6 +3146,8 @@ int registerHandlers()
     registerMessageHandler(txp::BB_STOP_TRANSFERS, msgin_stoptransfers);
     registerMessageHandler(txp::CORAL_HELLO, msgin_hello);
     registerMessageHandler(txp::CORAL_STAGEOUT_START, msgin_stageout_start);
+    registerMessageHandler(txp::BB_GETSERVERCFGVALUE, msgin_getservercfgvalue);
+    registerMessageHandler(txp::BB_SETSERVERCFGVALUE, msgin_setservercfgvalue);
 
     return 0;
 }

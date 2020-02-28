@@ -82,6 +82,8 @@ extern int coral_cmd_stageout_start(po::variables_map& vm);
 extern int bbcmd_getserver(po::variables_map& vm);
 extern int bbcmd_setserver(po::variables_map& vm);
 extern int bbcmd_adminfailover(po::variables_map& vm);
+extern int bbcmd_getserverkey(po::variables_map& vm);
+extern int bbcmd_setserverkey(po::variables_map& vm);
 
 
 map<string, CommandData_t> bbcmd_map =
@@ -108,6 +110,8 @@ map<string, CommandData_t> bbcmd_map =
     { "sleep",              { bbcmd_sleep,                  list<string>    {"delay"},                                                   0 }},
     { "getserver",          { bbcmd_getserver,              list<string>    {"connected","waitforreplycount"},                           0 }},
     { "setserver",          { bbcmd_setserver,              list<string>    {"close","open","activate","offline"},                       0 }},
+    { "getserverkey",       { bbcmd_getserverkey,           list<string>    {"key"},                                                     0 }},
+    { "setserverkey",       { bbcmd_setserverkey,           list<string>    {"key","value"},                                             0 }},
     { "suspend",            { bbcmd_suspend,                list<string>    {"hostname"},                                                0 }},
     { "resume",             { bbcmd_resume,                 list<string>    {"hostname"},                                                0 }},
     { "adminfailover",      { bbcmd_adminfailover,          list<string>    {"hostname", "resume" },                                     0 }},
@@ -559,6 +563,49 @@ int bbcmd_setserver(po::variables_map& vm)
     if ( countParams) return 0;
     bberror.errdirect("out.errormsg", (char *)"Need to specify one of --open, --activate, --offline, --close");
     return EINVAL;
+}
+
+
+int bbcmd_getserverkey(po::variables_map& vm)
+{
+    int rc=0;
+    if (vm.count("key")){
+        std::string l_key = vm["key"].as<string>() ;
+        rc=BB_GetServerKey(l_key.c_str());
+    }
+    else {
+        bberror.clear();
+        rc=-1;
+        bberror.errdirect("out.errormsg", (char *)"Need to specify --key <value>");
+    }
+ 
+    return rc;
+}
+
+int bbcmd_setserverkey(po::variables_map& vm)
+{
+    int rc=0;
+    string l_value;
+    if (vm.count("key")){
+        std::string l_key = vm["key"].as<string>();
+        if (vm.count("value")){
+            l_value=vm["value"].as<string>();
+            rc=BB_SetServerKey(l_key.c_str(), l_value.c_str() );
+        }
+        else {
+           bberror.clear();
+            rc=-1;
+            bberror.errdirect("out.errormsg", (char *)"Need to specify --value <value>");
+        } 
+        
+    }
+    else {
+        bberror.clear();
+        rc=-1;
+        bberror.errdirect("out.errormsg", (char *)"Need to specify --key <value>");
+    }
+
+    return rc;
 }
 
 int bbcmd_getstatus(po::variables_map& vm)
@@ -1042,8 +1089,15 @@ int main(int orig_argc, const char** orig_argv)
             OPTEND;
         OPTION("offline")              ("offline",              po::value<string>(),                          "change bbproxy to not actively use bbserver name in JSON format bb.<server name> such as bb.server0")
             OPTEND;
-        OPTION("waitforreplycount")                ("waitforreplycount",                po::value<string>(),                          "get bbproxy wait-for-reply count for bbserver name in JSON format bb.<server name> such as bb.server0")
+        OPTION("waitforreplycount")    ("waitforreplycount",    po::value<string>(),                          "get bbproxy wait-for-reply count for bbserver name in JSON format bb.<server name> such as bb.server0")
         OPTEND;
+        OPTION("key")                  ("key",                  po::value<string>(),                          "the key to process on bbserver")
+        OPTEND;
+        OPTION("value")                ("value",                po::value<string>(),                          "the value to set for a key on bbserver")
+        OPTEND;
+        OPTION("server")               ("server",               po::value<string>(),                          "the name of the bbserver (optional)")
+        OPTEND;
+
     #undef OPTEND
     #undef OPTION
 

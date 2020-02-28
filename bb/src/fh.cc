@@ -62,6 +62,19 @@ pthread_mutex_t FileHandleRegistryMutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 //*****************************************************************************
+//  Static data members
+//*****************************************************************************
+uint64_t filehandle::devzerosize=0;
+bool     filehandle::did_set_devzerosize=false;
+void     filehandle::set_devzerosize(const uint64_t pdevzerosize){
+    devzerosize = pdevzerosize;
+    did_set_devzerosize=true;
+}
+uint64_t      filehandle::get_devzerosize(){
+    if (!did_set_devzerosize) set_devzerosize(config.get(process_whoami+".devzerosize", 0ULL) );
+    return devzerosize;
+}
+//*****************************************************************************
 //  Static methods
 //*****************************************************************************
 
@@ -455,7 +468,7 @@ int filehandle::getstats(struct stat& statbuf)
         {
             if(isdevzero)
             {
-                statinfo.st_size = config.get(process_whoami+".devzerosize", 0ULL);
+                statinfo.st_size = get_devzerosize();
                 LOG(bb,info) << "getstats(): Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
             LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;

@@ -455,6 +455,10 @@ extern int BB_RestartTransfers(const char* pHostName, const uint64_t pHandle, ui
 
     extern int BB_CloseServer(const char* name);
 
+    
+    extern int BB_GetServerKey(const char * key);
+    extern int BB_SetServerKey(const char * key,const char * value);
+
 
 #ifdef __cplusplus
 }
