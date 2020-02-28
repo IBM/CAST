@@ -90,6 +90,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// We don't know how its configured, so we try one first, then the other.
 		// ufm has changed its default to https. so we try that one first.
 
+		// Well, that's what I thought at first. But now it seems that https works for both configs.
+		// so lets leave it at that for now and do less work.
+
 		// Create a context that uses the default paths for
 		// finding CA certificates.
 		ssl::context ctx(ssl::context::sslv23);
@@ -99,7 +102,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::io_service io_service;
 		ssl_socket socket(io_service, ctx);
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(), "http");
+		tcp::resolver::query query(rest_address.c_str(), "https");
 		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
 		socket.lowest_layer().set_option(tcp::no_delay(true));
 
