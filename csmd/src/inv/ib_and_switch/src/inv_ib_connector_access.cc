@@ -238,18 +238,12 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		
 		// opening output file
 
-		std::cout << "checkpoint A " << std::endl;
-
         //TEMP 
         // ToDo: replace this buffer push to a config file update like error paths below. 
         std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.json";
 
-        std::cout << "checkpoint B " << std::endl;
-
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
-
-		std::cout << "checkpoint C " << std::endl;
 
 		// checking if output file is open
 		if ( ! output_file.is_open() )
@@ -258,8 +252,6 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			std::cout << "Output file " << output_file_name << " not open, return"  << std::endl;
 			return 1;
 		} 
-
-		std::cout << "checkpoint D " << std::endl;
 
 		boost::system::error_code error;
 		//while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
@@ -271,8 +263,6 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 		// closing the output file
 		output_file.close();
-
-		std::cout << "checkpoint E " << std::endl;
 
 		// checking for errors
 		if (error == boost::asio::error::eof)
@@ -286,17 +276,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 
 			//This error occured because of an improper close to the SSL connection.
 			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
-			std::cout << "checkpoint EE " << std::endl;
-			std::cout << "error: " << error << std::endl;
+			//std::cout << "error: " << error << std::endl;
 			//We ignore this error for now because we know we connected in an uncool way.
 			//If we correct the connection process, then this error will go away.
 		}else{
 			//Non expected. Non special case error code.
 			throw boost::system::system_error(error);
 		}
-
-
-		std::cout << "checkpoint F " << std::endl;
 	
 		// vectors with the fields
 		std::size_t position_delimiter;
@@ -306,8 +292,6 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// opening input file
 		std::string input_file_name = output_file_name;
 		std::ifstream input_file(input_file_name.c_str(),std::ios::in);
-
-		std::cout << "checkpoint G " << std::endl;
 		
 		// checking if input file is open
 		if ( ! input_file.is_open() ){
