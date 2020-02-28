@@ -45,7 +45,7 @@ const uint32_t ARCHIVE_HANDLE_VERSION_1 = 1;
 const uint32_t ARCHIVE_HANDLE_VERSION_2 = 2;
 const uint32_t ARCHIVE_HANDLE_VERSION_3 = 3;
 
-const char LOCK_HANDLE_FILENAME[] = "lockfile";
+const char LOCK_HANDLE_FILENAME[] = "^lockfile";
 const int MAXIMUM_HANDLEFILE_LOADTIME = 10;     // In seconds
 
 

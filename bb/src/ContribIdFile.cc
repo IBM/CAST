@@ -38,12 +38,12 @@ int ContribIdFile::allExtentsTransferredButThisContribId(const uint64_t pHandle,
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_AllExtentsXfered, "ContribIdFile all extents transferred but this contribid, counter=%ld, jobid=%ld, handle=%ld, contribid=%ld", l_FL_Counter, pTagId.getJobId(), pHandle, pContribId);
 
-    if (bfs::exists(handle))
+    if (pathExists(handle, "ContribIdFile::allExtentsTransferredButThisContribId"))
     {
         for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
         {
-            if ((rc != 1) || (!bfs::is_directory(lvuuid))) continue;
-            bfs::path contribs_file = lvuuid.path() / "contribs";
+            if ((rc != 1) || (!pathIsDirectory(lvuuid))) continue;
+            bfs::path contribs_file = lvuuid.path() / CONTRIBS_FILENAME;
             int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
             if (!rc2)
             {
@@ -184,12 +184,12 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const bfs::
     FL_Write(FLMetaData, CIF_Load1, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
     pContribIdFile = 0;
-    if(bfs::exists(pHandleFilePath))
+    if(pathExists(pHandleFilePath, "ContribIdFile::loadContribIdFile"))
     {
         for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
         {
-            if (!bfs::is_directory(lvuuid)) continue;
-            bfs::path contribs_file = lvuuid.path() / "contribs";
+            if (!pathIsDirectory(lvuuid)) continue;
+            bfs::path contribs_file = lvuuid.path() / CONTRIBS_FILENAME;
             rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.string().c_str());
             if (!rc)
             {
@@ -261,12 +261,12 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
-    bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
+    bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path(CONTRIBS_FILENAME);
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_Load2, "loadContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
-    if(bfs::exists(l_ContribFilePath))
+    if(pathExists(l_ContribFilePath, "ContribIdFile::loadContribIdFile"))
     {
         rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
         if (!rc)
@@ -327,8 +327,8 @@ int ContribIdFile::loadContribIdFile(ContribIdFile* &pContribIdFile, uint64_t& p
     ContribFile* l_ContribFile = 0;
     for (auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(pHandleFilePath), {}))
     {
-        if(!bfs::is_directory(lvuuid)) continue;
-        bfs::path contribs_file = lvuuid.path() / bfs::path("contribs");
+        if(!pathIsDirectory(lvuuid)) continue;
+        bfs::path contribs_file = lvuuid.path() / bfs::path(CONTRIBS_FILENAME);
         int rc2 = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
         if (!rc2)
         {
@@ -385,12 +385,12 @@ int ContribIdFile::saveContribIdFile(ContribIdFile* &pContribIdFile, const LVKey
     Uuid lv_uuid = pLVKey->second;
     char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
     lv_uuid.copyTo(lv_uuid_str);
-    bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path("contribs");
+    bfs::path l_ContribFilePath = pHandleFilePath / bfs::path(lv_uuid_str) / bfs::path(CONTRIBS_FILENAME);
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, CIF_Save, "saveContribIdFile, counter=%ld, contribid=%ld", l_FL_Counter, pContribId, 0, 0);
 
-    if(bfs::exists(l_ContribFilePath))
+    if(pathExists(l_ContribFilePath, "ContribIdFile::saveContribIdFile"))
     {
         ContribFile* l_ContribFile = 0;
         rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);

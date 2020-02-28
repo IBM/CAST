@@ -93,7 +93,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
             LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for jobid " << l_JobId.path().filename().string();
             try
             {
-                if (!bfs::is_directory(l_JobId)) continue;
+                if (!pathIsDirectory(l_JobId)) continue;
                 if (l_JobId.path().filename().string().at(0) == '.') continue;
                 if ((pTransferDefs.jobid == UNDEFINED_JOBID) || (l_JobId.path().filename().string() == to_string(pTransferDefs.jobid)))
                 {
@@ -105,10 +105,10 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                             // Iterate through the handles...
                             for (auto& l_TlHandle : boost::make_iterator_range(bfs::directory_iterator(l_JobStepId.path()), {}))
                             {
-                                if ((!bfs::is_directory(l_TlHandle)) || (!HandleFile::isToplevelHandleDirectory(l_TlHandle.path().filename().string()))) continue;
+                                if ((!pathIsDirectory(l_TlHandle)) || (!HandleFile::isToplevelHandleDirectory(l_TlHandle.path().filename().string()))) continue;
                                 for (auto& l_Handle : boost::make_iterator_range(bfs::directory_iterator(l_TlHandle.path()), {}))
                                 {
-                                    if (!bfs::is_directory(l_Handle)) continue;
+                                    if (!pathIsDirectory(l_Handle)) continue;
                                     if ((pTransferDefs.handle == UNDEFINED_HANDLE) || (l_Handle.path().filename().string() == to_string(pTransferDefs.handle)))
                                     {
                                         // Handle of interest...
@@ -118,7 +118,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                             l_HandleFile = 0;
                                         }
                                         LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for handle " << l_Handle.path().filename().string();
-                                        bfs::path handlefile = l_Handle.path() / bfs::path(l_Handle.path().filename());
+                                        bfs::path handlefile = l_Handle.path() / bfs::path("^" + l_Handle.path().filename().string());
                                         rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
                                         if (!rc)
                                         {
@@ -132,9 +132,9 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                 bool l_Continue = true;
                                                 for (auto& l_LVUuid : boost::make_iterator_range(bfs::directory_iterator(l_Handle.path()), {}))
                                                 {
-                                                    if (!bfs::is_directory(l_LVUuid)) continue;
+                                                    if (!pathIsDirectory(l_LVUuid)) continue;
                                                     l_Continue = true;
-                                                    bfs::path lvuuidfile = l_LVUuid.path() / l_LVUuid.path().filename();
+                                                    bfs::path lvuuidfile = l_LVUuid.path() / bfs::path("^" + l_LVUuid.path().filename().string());
                                                     LVUuidFile l_LVUuidFile;
                                                     rc = l_LVUuidFile.load(lvuuidfile.string());
                                                     if (!rc)
@@ -161,7 +161,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                                                     delete l_ContribFile;
                                                                     l_ContribFile = 0;
                                                                 }
-                                                                bfs::path contribs_file = l_LVUuid.path() / "contribs";
+                                                                bfs::path contribs_file = l_LVUuid.path() / CONTRIBS_FILENAME;
                                                                 rc = ContribFile::loadContribFile(l_ContribFile, contribs_file.c_str());
                                                                 if (!rc)
                                                                 {

@@ -687,14 +687,14 @@ void* asyncRemoveJobInfo(void* ptr)
                             for (size_t i=0; i<l_PathJobIds.size(); i++)
                             {
                                 bfs::path job = bfs::path(l_PathJobIds[i]);
-                                if (bfs::exists(job))
+                                if (pathExists(job, "asyncRemoveJobInfo"))
                                 {
                                     bfs::path l_PathToRemove = job.parent_path().string() + "/." + job.filename().string();
                                     LOG(bb,debug) << "asyncRemoveJobInfo(): " << job.string() << " being renamed to " << l_PathToRemove.string();
                                     try
                                     {
                                         bfs::rename(job, l_PathToRemove);
-                                        if (!bfs::exists(l_PathToRemove))
+                                        if (!pathExists(l_PathToRemove, "asyncRemoveJobInfo"))
                                         {
                                             rc = -1;
                                         }
@@ -711,13 +711,13 @@ void* asyncRemoveJobInfo(void* ptr)
                                             LOG(bb,info) << "asyncRemoveJobInfo(): START: Removal of cross-bbServer metadata at " << l_PathJobIds[i];
                                             for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(l_PathToRemove), {}))
                                             {
-                                                if (!bfs::is_directory(jobstep)) continue;
+                                                if (!pathIsDirectory(jobstep)) continue;
                                                 for (auto& handlebucket : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
                                                 {
-                                                    if (!bfs::is_directory(handlebucket)) continue;
+                                                    if (!pathIsDirectory(handlebucket)) continue;
                                                     for (auto& handledir : boost::make_iterator_range(bfs::directory_iterator(handlebucket), {}))
                                                     {
-                                                        if (!bfs::is_directory(handledir)) continue;
+                                                        if (!pathIsDirectory(handledir)) continue;
                                                         string l_HandleDir = handledir.path().string();
                                                         bool l_AllDone = false;
                                                         while (!l_AllDone)

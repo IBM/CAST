@@ -98,9 +98,15 @@ extern void lockTransferQueue(const LVKey* pLVKey, const char* pMethod);
 // be obtained and was obtained.
 extern int lockTransferQueueIfNeeded(const LVKey* pLVKey, const char* pMethod);
 
-extern int transferQueueIsLocked();
-
 extern void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_Info* pLV_Info, uint64_t pHandle, uint32_t pContribId, uint32_t* pSourceIndex);
+
+extern int pathExists(const bfs::directory_entry& pDirectoryEntry, const string& pMethod);
+
+extern int pathExists(const bfs::path& pPath, const string& pMethod);
+
+extern int pathIsDirectory(const bfs::directory_entry& pDirectoryEntry);
+
+extern int pathIsDirectory(const bfs::path& pPath);
 
 extern int prepareForRestartOriginalServerDead(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pHandle, BBJob pJob, const int32_t pContribId);
 
@@ -121,6 +127,8 @@ extern int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey
 extern void startTransferThreads();
 
 extern void switchIdsToMountPoint(txp::Msg* pMsg);
+
+extern int transferQueueIsLocked();
 
 extern void unlockLocalMetadata(const LVKey* pLVKey, const char* pMethod);
 

@@ -14,6 +14,7 @@
 #include "bbserver_flightlog.h"
 #include "TagInfo.h"
 #include "tracksyscall.h"
+#include "xfer.h"
 
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
@@ -43,7 +44,7 @@ int TagInfo::addTagHandle(const LVKey* pLVKey, const BBJob pJob, const uint64_t 
         bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
         l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
         l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
-        if(!bfs::is_directory(l_JobStepPath))
+        if(!pathExists(l_JobStepPath, "TagInfo::addTagHandle"))
         {
             rc = -1;
             errorText << "BBTagInfo::addTagHandle(): Attempt to load taginfo file failed because the jobstep directory " << l_JobStepPath.string() << " could not be found";
@@ -288,7 +289,7 @@ int TagInfo::load(TagInfo* &pTagInfo, const bfs::path& pTagInfoName)
     pTagInfo = NULL;
     TagInfo* l_TagInfo = new TagInfo(pTagInfoName.string());
 
-    if(bfs::exists(pTagInfoName))
+    if(pathExists(pTagInfoName, "TagInfo::load"))
     {
         struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
         bool l_AllDone = false;

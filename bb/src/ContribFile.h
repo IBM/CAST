@@ -41,6 +41,7 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_CONTRIB_VERSION = 1;
 const int MAXIMUM_CONTRIBFILE_LOADTIME = 10;    // In seconds
+const char CONTRIBS_FILENAME[] = "^contribs";
 
 
 /*******************************************************************************

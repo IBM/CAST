@@ -45,9 +45,9 @@ namespace bfs = boost::filesystem;
  *******************************************************************************/
 const uint32_t ARCHIVE_TAG_VERSION_1 = 1;
 
-const char BUMP_COUNT_FILENAME[] = "bump_count";
-const char LOCK_TAG_FILENAME[] = "lockfile";
-const char TAGINFONAME[] = "taginfo_";
+const char BUMP_COUNT_FILENAME[] = "^bump_count";
+const char LOCK_TAG_FILENAME[] = "^lockfile";
+const char TAGINFONAME[] = "^taginfo_";
 const int MAXIMUM_TAGINFO_LOADTIME = 10;     // In seconds
 
 
