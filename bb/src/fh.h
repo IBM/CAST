@@ -180,6 +180,7 @@ class filehandle
     int             release(BBFILESTATUS completion_status);
     int             setsize(size_t newsize);
     void            updateStats(struct stat* stats);
+    uint32_t        getNumExtents() const;
 
     const std::string& getfn() const { return filename; };
 };
@@ -188,6 +189,7 @@ extern int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32
 extern int numActiveFileTransfers(uint64_t jobid, uint64_t handle, uint64_t& count);
 extern void dumpFileHandleMap(const char* pSev, const char* pPrefix);
 extern int fileHandleCount();
+extern int getActiveFileTransfers();
 extern void FileHandleRegistryLock();
 extern void FileHandleRegistryUnlock();
 extern int findFilehandle(filehandle* &fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index);

@@ -84,6 +84,7 @@ extern int bbcmd_setserver(po::variables_map& vm);
 extern int bbcmd_adminfailover(po::variables_map& vm);
 extern int bbcmd_getserverkey(po::variables_map& vm);
 extern int bbcmd_setserverkey(po::variables_map& vm);
+extern int bbcmd_getfileinfo(po::variables_map& vm);
 
 
 map<string, CommandData_t> bbcmd_map =
@@ -108,6 +109,7 @@ map<string, CommandData_t> bbcmd_map =
     { "resize",             { bbcmd_resize,                 list<string>    {"mount", "roptions", "size"},                               0 }},
     { "rmdir",              { bbcmd_rmdir,                  list<string>    {"path"},                                                    0 }},
     { "sleep",              { bbcmd_sleep,                  list<string>    {"delay"},                                                   0 }},
+    { "getfileinfo",        { bbcmd_getfileinfo,            list<string>    { },                                                         0 }},
     { "getserver",          { bbcmd_getserver,              list<string>    {"connected","waitforreplycount"},                           0 }},
     { "setserver",          { bbcmd_setserver,              list<string>    {"close","open","activate","offline"},                       0 }},
     { "getserverkey",       { bbcmd_getserverkey,           list<string>    {"key"},                                                     0 }},
@@ -261,6 +263,11 @@ int bbcmd_sleep(po::variables_map& vm)
     sleep(delay);
 
     return rc;
+}
+
+int bbcmd_getfileinfo(po::variables_map& vm)
+{
+    return BB_GetFileInfo();
 }
 
 int bbcmd_chown(po::variables_map& vm)

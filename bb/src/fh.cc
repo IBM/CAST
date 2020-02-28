@@ -202,6 +202,52 @@ int numActiveFileTransfers(uint64_t jobid, uint64_t handle, uint64_t& count)
     return 0;
 }
 
+uint32_t filehandle::getNumExtents() const 
+{ 
+    unsigned count = 0;
+    if(extlookup) 
+    { 
+        extlookup->size(count);
+        return count;
+    } 
+    return 0; 
+}
+
+int getActiveFileTransfers()
+{
+    string prefix;
+    struct stat statbuf;
+
+    char mtime[256];
+
+    FileHandleRegistryLock();
+    int index = 0;
+    for (const auto& fhentry : fhregistry)
+    {        
+        prefix  = string("out.file");
+        prefix += string(".") + to_string(index) + string(".");
+
+#define MKDATA(suffix, value) bberror << err( (prefix + string(suffix)).c_str(), value);
+        fhentry.second->getstats(statbuf);
+        strftime(mtime, sizeof(mtime), "%FT%TZ", gmtime(&statbuf.st_mtime));
+
+        MKDATA("name",      fhentry.second->getfn());
+        MKDATA("size",      fhentry.second->getsize());
+        MKDATA("fd",        fhentry.second->getfd());
+        MKDATA("numextents",fhentry.second->getNumExtents());
+        MKDATA("job",       fhentry.first.jobid);
+        MKDATA("contrib",   fhentry.first.contrib);
+        MKDATA("handle",    fhentry.first.handle);
+        MKDATA("mtime",     mtime);
+
+#undef MKDATA
+        index++;
+    }
+    bberror << err("out.file.count", index);
+    FileHandleRegistryUnlock();
+    return 0;
+}
+
 void dumpFileHandleMap(const char* pSev, const char* pPrefix)
 {
     FileHandleRegistryLock();
