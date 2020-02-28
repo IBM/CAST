@@ -460,6 +460,20 @@ extern int BB_RestartTransfers(const char* pHostName, const uint64_t pHandle, ui
     extern int BB_SetServerKey(const char * key,const char * value);
 
 
+    /**
+     * \brief Return information on open files in bbProxy
+     * \par Description
+     *  
+     * 
+     * \param[in] name The name of the bbserver
+     *  \return Error code
+     *  \retval 0 Success
+     *  \retval -1 Failure
+     *  \retval errno Positive non-zero values correspond with errno.  strerror() can be used to interpret.
+     **/
+    extern int BB_GetFileInfo();
+
+
 #ifdef __cplusplus
 }
 #endif
