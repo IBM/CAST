@@ -196,7 +196,7 @@ Example:
     WARNING: 2 Switches found with 'N/A' serial numbers and have been removed from CSM inventory collection data.
     These records copied into 'bad_switch_records.txt' located at '/var/log/ibm/csm/inv'
 
-This is usually caused by switches not correctly reporting :ref:`_CSM_Network_Inventory_Switch_Module`. If the system module is not found, then CSM can not collect the serial number.
+This is usually caused by switches not correctly reporting :ref:`CSM_Network_Inventory_Switch_Module`. If the system module is not found, then CSM can not collect the serial number.
 
 Below is an example of JSON data returned from UFM. The first is one missing modules, the second is what we expect in a good case. 
 
@@ -537,7 +537,7 @@ Good case - as you can see the module array is populated. :
         }
     ]
 
-Modules will sometimes not be reported via UFM. One of the most common causes of this is a communication issue with the ufm daemon, ``ufmd``. If :ref:`_CSM_standalone_inventory_collection` reports an error connecting to the ``ufmd`` or an error in the 400s range, then it may be a communication issue. CSM tries to anticipate the multiple forms of communication, but sometimes a system admin will need to tweak the configuration file for ufm and restart the ``ufmd``. 
+Modules will sometimes not be reported via UFM. One of the most common causes of this is a communication issue with the ufm daemon, ``ufmd``. If :ref:`CSM_standalone_inventory_collection` reports an error connecting to the ``ufmd`` or an error in the 400s range, then it may be a communication issue. CSM tries to anticipate the multiple forms of communication, but sometimes a system admin will need to tweak the configuration file for ufm and restart the ``ufmd``. 
 
 On the server running ``ufmd`` the system administrator should look to find the ufm config file, ``gv.cfg``. It should be located at ``/opt/ufm/conf``. In that file the system administrator may need to configure a few fields. 
 
