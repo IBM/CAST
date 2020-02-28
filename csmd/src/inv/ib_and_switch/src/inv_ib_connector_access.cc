@@ -168,21 +168,19 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::streambuf::const_buffers_type buf_1 = response.data();
 		std::string response_copy_1(boost::asio::buffers_begin(buf_1), boost::asio::buffers_begin(buf_1) + response.size());
 
-		//IDK
+
+		// I this is a print out of what we recieve back from the server as a response...
+		// If developers are having a trouble situation, then you can comment this section and see the data you recieve
+		// Could help put you on the right path to debug the situation
+		/*
 		std::cout << "#=# The response_copy_1: " << std::endl;
-		// This is a pointer
 		std::cout << response_copy_1.c_str() << std::endl;
 		std::cout << " #=# END response_copy_1 #=# " << std::endl;
+		*/
 	
 		// Check that response is OK.
 		std::istream response_stream(&response);
 		std::string http_version;
-
-
-
-
-
-
 
 		response_stream >> http_version;
 		unsigned int status_code;
@@ -193,10 +191,14 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 		
 		if (status_code != 200){
+			// When we tried to connect to the server with http but the gv.cfg was configured
+			// to look for https, then we got some error codes in the 400s which placed
+			// the code in this block here.
+			//
+			// but now it seems when we connect to the server via https that we no longer
+			// get the error. regardless of the ws_protocol in the config file
+
 			std::cerr << "Response returned with status code " << status_code << "\n";
-
-			std::cout << "we did bad: " << std::endl;
-
 			return 1;
 		}
 	
@@ -206,9 +208,10 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
 
 
+		// I'm not sure why. but fautso had 2 response sections? 
+		/*
 		//copy the buffer to the request data
 		boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
-
 		//nick printing debug info
 		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
 		//IDK
@@ -216,6 +219,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		// This is a pointer
 		std::cout << responseCOPY_TEST.c_str() << std::endl;
 		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
+		*/
 		
 		// Process the response headers.
 		std::string header;
