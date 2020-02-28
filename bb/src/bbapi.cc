@@ -1464,6 +1464,56 @@ int BB_GetTransferCount(BBTransferHandle_t pHandle, uint64_t* count)
     return rc;
 }
 
+int BB_GetFileInfo()
+{
+#ifdef PROF_TIMING
+    chrono::high_resolution_clock::time_point time_start = chrono::high_resolution_clock::now();
+#endif
+
+    int rc = 0;
+    stringstream errorText;
+
+    bberror.clear();
+
+    ResponseDescriptor reply;
+    txp::Msg* msg = 0;
+    vector<txp::CharArray> freelist;  ///< Deallocates any marshalled CharArrays when function exits
+
+    try
+    {
+        // Verify initialization
+        rc = ENODEV;
+        verifyInit(true);
+        rc = 0;
+
+        // Build the message to be sent to bbproxy
+        txp::Msg::buildMsg(txp::BB_GETFILEINFO, msg);
+
+        rc = sendMessage(ProcessId, msg, reply);
+        delete msg;
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = waitReply(reply, msg);
+        if (rc) SET_RC_AND_BAIL(rc);
+
+        rc = bberror.merge(msg);
+        delete msg;
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+#ifdef PROF_TIMING
+    chrono::high_resolution_clock::time_point time_stop = chrono::high_resolution_clock::now();
+    std::chrono::duration<double,std::micro> elapsed_microseconds = time_stop - time_start;
+    LOG(bb,trace) << __FILE__ <<":"<< __LINE__ << " " << __FUNCTION__ << "() completed after: " << elapsed_microseconds.count() << " microseconds";
+#endif
+    return rc;
+}
+
 
 /*******************************************************************************
  | Operations for SSD setup

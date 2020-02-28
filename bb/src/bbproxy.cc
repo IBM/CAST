@@ -1847,6 +1847,35 @@ void msgin_gettransfercount(txp::Id id, const string& pConnectionName, txp::Msg*
     return;
 }
 
+void msgin_getfileinfo(txp::Id id, const string& pConnectionName, txp::Msg* msg)
+{
+    ENTRY(__FILE__,__FUNCTION__);
+    updateEnv(pConnectionName);
+
+    int rc = -1;
+    FL_Write(FLProxy, Msg_Fileinfo, "GetFileInfo id=%ld, number=%ld, request=%ld, len=%ld",msg->getMsgId(), msg->getMsgNumber(), msg->getRequestMsgNumber(),msg->getSerializedLen());
+    bberror << err("in.apicall", "BB_GetFileInfo");
+    try
+    {
+        // Check permissions
+        checkForSuperUserPermission();
+        
+        rc = getActiveFileTransfers();
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION_AND_RAS(__FILE__, __FUNCTION__, __LINE__, e, rc, bb.admin.failure);
+    }
+
+    txp::Msg* response;
+    msg->buildResponseMsg(response);
+
+    addReply(msg, response);
+    RESPONSE_AND_EXIT(__FILE__,__FUNCTION__);
+    return;
+}
 
 void msgin_gettransferkeys(txp::Id id, const string& pConnectionName, txp::Msg* msg)
 {
@@ -4778,6 +4807,7 @@ int registerHandlers()
     registerMessageHandler(txp::BB_GETTRANSFERHANDLE, msgin_gettransferhandle);
     registerMessageHandler(txp::BB_GETTRANSFERINFO, msgin_gettransferinfo);
     registerMessageHandler(txp::BB_GETTRANSFERCOUNT, msgin_gettransfercount);
+    registerMessageHandler(txp::BB_GETFILEINFO, msgin_getfileinfo);
     registerMessageHandler(txp::BB_GETTRANSFERKEYS, msgin_gettransferkeys);
     registerMessageHandler(txp::BB_GETTRANSFERLIST, msgin_gettransferlist);
     registerMessageHandler(txp::BB_GETUSAGE, msgin_getusage);
