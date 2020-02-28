@@ -179,11 +179,13 @@ Output
 
 All output information for this tool is printed to the console. The ``-d, --details`` flag can be used to turn on extra information. If there are bad or incomplete records for hardware inventory they will not be copied into the :ref:`CSM_Database` and instead placed into the `bad_records` files specified in the ``csm_master.cfg`` file.
 
+.. _CSM_standalone_inventory_collection_FAQ:
+
 FAQ - Frequently Asked Questions
 ********************************
 
-'N/A' Serial Numbers
-^^^^^^^^^^^^^^^^^^^^
+Why 'bad record' and N/A' Serial Numbers?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Sometimes CSM can detect a switch in your system that is incomplete. It is missing a serial number, which CSM will consider invalid data, and therefor not insert it into the :ref:`CSM_Database`.
 
@@ -537,7 +539,30 @@ Good case - as you can see the module array is populated. :
         }
     ]
 
-Modules will sometimes not be reported via UFM. One of the most common causes of this is a communication issue with the ufm daemon, ``ufmd``. If :ref:`CSM_standalone_inventory_collection` reports an error connecting to the ``ufmd`` or an error in the 400s range, then it may be a communication issue. CSM tries to anticipate the multiple forms of communication, but sometimes a system admin will need to tweak the configuration file for ufm and restart the ``ufmd``. 
+Modules will sometimes not be reported via UFM. One of the most common causes of this is a communication issue with the ufm daemon, ``ufmd``. See :ref:`CSM_standalone_inventory_collection_FAQ_CONNECTOR_ACCESS_fail` for more information.
+
+.. _CSM_standalone_inventory_collection_FAQ_CONNECTOR_ACCESS_fail:
+
+What is a `CONNECTOR_ACCESS fail`?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If :ref:`CSM_standalone_inventory_collection` reports a ``connector_access fail`` then it probably failed to connect to the ``ufmd``. 
+
+For example, a system administrator may see:
+
+.. code-block:: none
+
+    Response returned with status code 403
+    INV_IB_CONNECTOR_ACCESS failed
+
+or 
+
+.. code-block:: none
+
+    Response returned with status code 400
+    INV_SWITCH_CONNECTOR_ACCESS failed
+
+If :ref:`CSM_standalone_inventory_collection` reports an error connecting to the ``ufmd`` or an error in the 400s range, then it may be a communication issue. CSM tries to anticipate the multiple forms of communication, but sometimes a system admin will need to tweak the configuration file for ufm and restart the ``ufmd``. 
 
 On the server running ``ufmd`` the system administrator should look to find the ufm config file, ``gv.cfg``. It should be located at ``/opt/ufm/conf``. In that file the system administrator may need to configure a few fields. 
 
