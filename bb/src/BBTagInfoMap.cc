@@ -10,6 +10,7 @@
  |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
+#include <unistd.h>
 
 #include "BBTagInfoMap.h"
 #include <boost/filesystem.hpp>
@@ -443,10 +444,10 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         bfs::path handle = l_ToplevelHandleDirectoryPath / bfs::path(to_string(l_Handle));
 
         // Note if the jobstepid directory exists...
-        bool l_JobStepDirectoryExists = pathExists(jobstepid, "BBTagInfoMap::update_xbbServerAddData") ? true : false;
+        bool l_JobStepDirectoryExists = access(jobstepid.c_str(), F_OK) ? false : true;
 
         // Note if the toplevel handle directory exists...
-        bool l_ToplevelHandleDirectoryExists = pathExists(l_ToplevelHandleDirectoryPath, "BBTagInfoMap::update_xbbServerAddData") ? true : false;
+        bool l_ToplevelHandleDirectoryExists = access(l_ToplevelHandleDirectoryPath.c_str(), F_OK) ? false : true;
 
         // NOTE:  There is a window between creating the job directory and
         //        performing the chmod to the correct uid:gid.  Therefore, if
@@ -457,7 +458,7 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         int l_Attempts = 120;
         while ((!l_AllDone) && l_Attempts-- > 0)
         {
-            if(!pathExists(handle, "BBTagInfoMap::update_xbbServerAddData"))
+            if (access(handle.c_str(), F_OK))
             {
                 // On first attempt, log the creation of the handle directory...
                 if (l_Attempts == 119)

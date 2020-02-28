@@ -343,41 +343,40 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                         l_JobId = stoull(job.filename().string());
                         for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
                         {
-                            if(!accessDir(jobstep.path().string())) continue;
+                            if (!accessDir(jobstep.path().string())) continue;
                             l_JobStepId = stoull(jobstep.path().filename().string());
                             bfs::path handledir = jobstep / l_HandleBucketName / l_HandleStr;
                             bfs::path handlefile = handledir / ("^" + l_HandleStr);
-                            if (bfs::exists(handlefile))
+                            // NOTE: Continue if the handle file does not exist for this jobstep
+                            if (access(handlefile.c_str(), F_OK)) continue;
+                            rc = loadHandleFile(pHandleFile, handlefile.c_str());
+//                            rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
+                            if (!rc)
                             {
-                                rc = loadHandleFile(pHandleFile, handlefile.string().c_str());
-//                                rc = loadHandleFile(pHandleFile, l_HandleFileName, l_JobId, l_JobStepId, pHandle, TEST_FOR_HANDLEFILE_LOCK);
-                                if (!rc)
-                                {
-                                    // Store the jobid and jobstepid values in the return variables...
-                                    pJobId = l_JobId;
-                                    pJobStepId = l_JobStepId;
+                                // Store the jobid and jobstepid values in the return variables...
+                                pJobId = l_JobId;
+                                pJobStepId = l_JobStepId;
 
-                                    uint64_t l_NumberOfLVUuidReportingContribs = 0;
-                                    rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handledir, pContribId);
-                                    switch (rc)
+                                uint64_t l_NumberOfLVUuidReportingContribs = 0;
+                                rc = ContribIdFile::loadContribIdFile(pContribIdFile, pNumberOfReportingContribs, l_NumberOfLVUuidReportingContribs, handledir, pContribId);
+                                switch (rc)
+                                {
+                                    case 0:
+                                    case 1:
                                     {
-                                        case 0:
-                                        case 1:
-                                        {
-                                            l_HandleFound = true;
-                                            rc = 0;
-                                            break;
-                                        }
-                                        default:
-                                        {
-                                            LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handledir.string();
-                                        }
+                                        l_HandleFound = true;
+                                        rc = 0;
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        LOG(bb,warning) << "Could not load the contribid file for jobid " << pJobId << ", jobstepid " << pJobStepId << ", handle " << pHandle << ", contribid " << pContribId << ", using handle path " << handledir.string();
                                     }
                                 }
-                                else
-                                {
-                                    LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handledir.string();
-                                }
+                            }
+                            else
+                            {
+                                LOG(bb,warning) << "Could not load the handle file for jobid " << l_JobId << ", jobstepid " << l_JobStepId << ", handle " << pHandle << ", using handle path " << handledir.string();
                             }
                         }
                     }
@@ -416,7 +415,7 @@ int HandleFile::get_xbbServerHandleInfo(uint64_t& pJobId, uint64_t& pJobStepId, 
                         }
                         else //RAS
                         {
-                            rc=-1;
+                            rc = -1;
                             LOG(bb,error) << "Exception caught " << __func__ << "@" << __FILE__ << ":" << __LINE__ << " what=" << e.what();
                             errorText << "get_xbbServerHandleInfo(): exception in looking for handle " << pHandle << ", contribid " << pContribId;
                             LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, errno, bb.internal.handleinfo);
@@ -485,10 +484,10 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
         {
             bfs::path job(g_BBServer_Metadata_Path);
             job /= bfs::path(to_string(pJob.getJobId()));
-            if(!pathExists(job, "HandleFile::get_xbbServerHandleList")) BAIL;
+            if (access(job.c_str(), F_OK)) BAIL;
             for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
             {
-                rc = processTransferHandleForJobStep(pHandles, jobstep.path().string().c_str(), pMatchStatus);
+                rc = processTransferHandleForJobStep(pHandles, jobstep.path().c_str(), pMatchStatus);
                 if (rc)
                 {
                     break;
@@ -500,8 +499,7 @@ int HandleFile::get_xbbServerHandleList(std::vector<uint64_t>& pHandles, const B
             bfs::path jobstep(g_BBServer_Metadata_Path);
             jobstep /= bfs::path(to_string(pJob.getJobId()));
             jobstep /= bfs::path(to_string(l_JobStepId));
-            if(!pathExists(jobstep, "HandleFile::get_xbbServerHandleList")) BAIL;
-            rc = processTransferHandleForJobStep(pHandles, jobstep.string().c_str(), pMatchStatus);
+            rc = processTransferHandleForJobStep(pHandles, jobstep.c_str(), pMatchStatus);
         }
 
         if (rc)
@@ -591,7 +589,7 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
             bfs::path handledir = jobstep / l_HandleBucketName / l_HandleStr;
             bfs::path handlefile = handledir / ("^" + l_HandleStr);
             HandleFile* l_HandleFile = 0;
-            rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+            rc = loadHandleFile(l_HandleFile, handlefile.c_str());
             if (!rc)
             {
                 // The string is terminated with a line feed...  Don't copy the last character...
@@ -1019,7 +1017,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
     FL_Write(FLMetaData, HF_GetHandleForJobStep, "process handle for jobstep, counter=%ld, status=%ld", l_FL_Counter, pMatchStatus, 0, 0);
 
     bfs::path jobstep(pDataStoreName);
-    if(!pathExists(jobstep, "HandleFile::processTransferHandleForJobStep")) return rc;
+    if (access(jobstep.c_str(), F_OK)) return rc;
     for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
     {
         if ((!pathIsDirectory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
@@ -1027,7 +1025,7 @@ int HandleFile::processTransferHandleForJobStep(std::vector<uint64_t>& pHandles,
         {
             if (!pathIsDirectory(handle)) continue;
             bfs::path handlefile = handle.path() / bfs::path("^" + handle.path().filename().string());
-            int rc = loadHandleFile(l_HandleFile, handlefile.string().c_str());
+            int rc = loadHandleFile(l_HandleFile, handlefile.c_str());
             if ((!rc) && l_HandleFile)
             {
                 if (BBSTATUS_AND(pMatchStatus, l_HandleFile->status) != BBNONE)

@@ -501,14 +501,14 @@ int isBB_Metadata_FileName(const bfs::path& pPath)
 
 int pathExists(const bfs::directory_entry& pDirectoryEntry, const string& pMethod)
 {
-    LOG(bb,info) << "BFS_EXISTS DIRENTRY - " << pMethod << ": " << pDirectoryEntry.path().string();
+    LOG(bb,debug) << "BFS_EXISTS DIRENTRY - " << pMethod << ": " << pDirectoryEntry.path().string();
 
     return bfs::exists(pDirectoryEntry);
 }
 
 int pathExists(const bfs::path& pPath, const string& pMethod)
 {
-    LOG(bb,info) << "BFS_EXISTS PATH - " << pMethod << ": " << pPath.string();
+    LOG(bb,debug) << "BFS_EXISTS PATH - " << pMethod << ": " << pPath.string();
 
     return bfs::exists(pPath);
 }
