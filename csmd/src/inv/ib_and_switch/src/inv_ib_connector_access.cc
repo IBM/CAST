@@ -99,7 +99,7 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::io_service io_service;
 		ssl_socket socket(io_service, ctx);
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(), "https");
+		tcp::resolver::query query(rest_address.c_str(), "http");
 		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
 		socket.lowest_layer().set_option(tcp::no_delay(true));
 
