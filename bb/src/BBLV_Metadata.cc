@@ -58,7 +58,7 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
             bfs::path job(g_BBServer_Metadata_Path);
             job /= bfs::path(to_string(pJobId));
 
-            if(bfs::exists(job))
+            if(pathExists(job, "BBLV_Metadata::update_xbbServerAddData"))
             {
                 // NOTE: This is the normal case for the restart of a transfer definition...
                 unsigned count = 0;
@@ -133,7 +133,7 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
         bfs::path job(g_BBServer_Metadata_Path);
         job /= bfs::path(to_string(pJobId));
 
-        if(bfs::exists(job))
+        if(pathExists(job, "BBLV_Metadata::update_xbbServerRemoveData"))
         {
             if (!g_AsyncRemoveJobInfo)
             {
@@ -340,8 +340,8 @@ int BBLV_Metadata::attemptToUnconditionallyStopThisTransferDefinition(const stri
             {
                 try
                 {
-                    if (!bfs::is_directory(l_LVUuid)) continue;
-                    bfs::path lvuuidfile = l_LVUuid.path() / l_LVUuid.path().filename();
+                    if (!pathIsDirectory(l_LVUuid)) continue;
+                    bfs::path lvuuidfile = l_LVUuid.path() / bfs::path("^" + l_LVUuid.path().filename().string());
                     LVUuidFile l_LVUuidFile;
                     rc = l_LVUuidFile.load(lvuuidfile.string());
                     if (!rc)

@@ -15,6 +15,7 @@
 #include "HandleInfo.h"
 #include "TagInfo.h"
 #include "tracksyscall.h"
+#include "xfer.h"
 
 using namespace boost::archive;
 namespace bfs = boost::filesystem;
@@ -55,7 +56,7 @@ int HandleInfo::load(HandleInfo* &pHandleInfo, const bfs::path& pHandleInfoName)
     pHandleInfo = NULL;
     HandleInfo* l_HandleInfo = new HandleInfo(pHandleInfoName.string());
 
-    if(bfs::exists(pHandleInfoName))
+    if(pathExists(pHandleInfoName, "HandleInfo::load"))
     {
         struct timeval l_StartTime = timeval {.tv_sec=0, .tv_usec=0}, l_StopTime = timeval {.tv_sec=0, .tv_usec=0};
         bool l_AllDone = false;
@@ -145,7 +146,7 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
     int fd = -1;
     stringstream errorText;
 
-    if (!bfs::exists(pHandleBucketPath))
+    if (!pathExists(pHandleBucketPath, "HandleInfo::lockHandleBucket"))
     {
         // Create the handle bucket directory
         bfs::create_directories(pHandleBucketPath);

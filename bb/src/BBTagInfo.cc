@@ -328,7 +328,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
         bfs::path jobstepid(g_BBServer_Metadata_Path);
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
 
-        if(!bfs::exists(jobstepid))
+        if(!pathExists(jobstepid, "BBTagInfo::update_xbbServerAddData"))
         {
             // Job step directory does not exist
             // NOTE:  There is a window between creating the job directory and
@@ -990,7 +990,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         //       window by always searching the 'contribs' in the restart case.
         bool l_ContribFileFoundForLVUuid = false;
         bool l_ContribIdAlreadyExists = (bool)(pHandleFile->contribHasReported(pContribId));
-        if (bfs::exists(handle))
+        if (pathExists(handle, "BBTagInfo::update_xbbServerAddData"))
         {
             for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
             {
@@ -1006,12 +1006,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         break;
                     }
                 }
-                if (l_ContribIdFile || (!bfs::is_directory(lvuuid))) continue;
+                if (l_ContribIdFile || (!pathIsDirectory(lvuuid))) continue;
                 if (l_ContribIdAlreadyExists || pTransferDef->builtViaRetrieveTransferDefinition())
                 {
                     // We know this contributor had previously reported -or- this is a restart scenario.
                     // Search under this LVUuid for the contributor...
-                    bfs::path l_ContribFilePath = lvuuid.path() / "contribs";
+                    bfs::path l_ContribFilePath = lvuuid.path() / CONTRIBS_FILENAME;
                     rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
                     if (!rc)
                     {
@@ -1094,10 +1094,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
-                    int l_JobStepDirectoryExists = bfs::exists(l_JobStepPath) ? 1 : 0;
+                    int l_JobStepDirectoryExists = pathExists(l_JobStepPath, "BBTagInfo::update_xbbServerAddData") ? 1 : 0;
 
                     bfs::path l_ToplevelHandleDirectoryPath = l_JobStepPath / bfs::path(HandleFile::getToplevelHandleName(pHandle));
-                    int l_ToplevelHandleDirectoryExists = bfs::exists(l_ToplevelHandleDirectoryPath) ? 1 : 0;
+                    int l_ToplevelHandleDirectoryExists = pathExists(l_ToplevelHandleDirectoryPath, "BBTagInfo::update_xbbServerAddData") ? 1 : 0;
 
                     LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
                                  << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
@@ -1148,12 +1148,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     }
 
                     LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());
-                    bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path(lv_uuid_str);
+                    bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path("^" + string(lv_uuid_str));
                     rc = l_LVUuidFile.save(l_LVUuidFilePathName.string());
                     if (rc) BAIL;
 
                     ContribFile l_ContribFileStg;
-                    bfs::path l_ContribFilePath = l_LVUuidPath / "contribs";
+                    bfs::path l_ContribFilePath = l_LVUuidPath / CONTRIBS_FILENAME;
                     rc = l_ContribFileStg.save(l_ContribFilePath.string());
                     if (rc) BAIL;
                 }
@@ -1275,5 +1275,5 @@ int BBTagInfo::xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle
     handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     handle /= bfs::path(to_string(pHandle));
 
-    return (!bfs::exists(handle));
+    return (!pathExists(handle, "BBTagInfo::xbbServerIsHandleUnique"));
 }

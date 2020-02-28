@@ -478,6 +478,55 @@ int transferQueueIsLocked()
     return rc;
 }
 
+int isBB_Metadata_FileName(const bfs::path& pPath)
+{
+    int rc = 0;
+    // NOTE: This routine only checks to see if the input pPath
+    //       is a burst buffer metadata filename.  If an empty
+    //       path is passed, a rc of 0 is still returned indicating
+    //       not a file, but it isn't necessarily a directory entry
+    //       either.  However, an empty path should never be passed.
+
+    string l_Path = pPath.string();
+    size_t l_PathSize = l_Path.length();
+
+    if (l_PathSize && l_Path.rfind("/") != l_PathSize-1)
+    {
+        string l_FileName = pPath.filename().string();
+        rc = (((l_FileName[0] == '^') || (l_FileName.find(XBBSERVER_ASYNC_REQUEST_BASE_FILENAME, 0) == 0)) ? 1 : 0);
+    }
+
+    return rc;
+}
+
+int pathExists(const bfs::directory_entry& pDirectoryEntry, const string& pMethod)
+{
+    LOG(bb,info) << "BFS_EXISTS DIRENTRY - " << pMethod << ": " << pDirectoryEntry.path().string();
+
+    return bfs::exists(pDirectoryEntry);
+}
+
+int pathExists(const bfs::path& pPath, const string& pMethod)
+{
+    LOG(bb,info) << "BFS_EXISTS PATH - " << pMethod << ": " << pPath.string();
+
+    return bfs::exists(pPath);
+}
+
+int pathIsDirectory(const bfs::directory_entry& pDirectoryEntry)
+{
+    int rc = isBB_Metadata_FileName(pDirectoryEntry.path());
+
+    return !rc;
+}
+
+int pathIsDirectory(const bfs::path& pPath)
+{
+    int rc = isBB_Metadata_FileName(pPath);
+
+    return !rc;
+}
+
 void setWorkItemCriticalSection(const int pValue)
 {
     ENTRY(__FILE__,__FUNCTION__);

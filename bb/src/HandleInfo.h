@@ -40,8 +40,8 @@ namespace bfs = boost::filesystem;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const char LOCK_HANDLE_BUCKET_FILENAME[] = "lockfile";
-const char HANDLEINFONAME[] = "handleinfo_";
+const char LOCK_HANDLE_BUCKET_FILENAME[] = "^lockfile";
+const char HANDLEINFONAME[] = "^handleinfo_";
 const int MAXIMUM_HANDLEINFO_LOADTIME = 10;     // In seconds
 
 
