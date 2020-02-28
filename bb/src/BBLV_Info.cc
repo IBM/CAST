@@ -751,6 +751,9 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
 {
     int rc = 0;
 
+    int l_TransferQueueUnlocked = 0;
+    int l_LocalMetadataUnlocked = 0;
+
     // NOTE: If this extent is a dummy extent indicating a local copy for BBI_TargetSSDSSD,
     //       a failed or canceled status for that local copy DOES NOT currently effect the
     //       overall status for the transfer definition and/or handle.
@@ -809,7 +812,8 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     }
 
     char l_TransferStatusStr[64] = {'\0'};
-    switch (l_FileStatus) {
+    switch (l_FileStatus)
+    {
         case BBFILE_NONE:
         {
             strCpy(l_TransferStatusStr, "has an unknown status", sizeof(l_TransferStatusStr));
@@ -879,6 +883,10 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     l_Complete->addAttribute(txp::synctime, pTransferDef->syncOperations[pExtentInfo.getTargetIndex()].second);
     l_Complete->addAttribute(txp::timeBaseScale, g_TimeBaseScale);
 
+
+    l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
+    l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "sendTransferCompleteForFileMsg");
+
     // Send the message and wait for reply
     try
     {
@@ -892,6 +900,18 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
         {
             endOnError();
         }
+    }
+
+    if (l_LocalMetadataUnlocked)
+    {
+        l_LocalMetadataUnlocked = 0;
+        lockLocalMetadata(pLVKey, "sendTransferCompleteForFileMsg");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "sendTransferCompleteForFileMsg");
     }
 
     if (rc)
@@ -1121,6 +1141,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     int l_NewStatus = 0;
     int l_ExtentsRemainForSourceIndex = 1;
     int l_LocalMetadataLocked = 0;
+    int l_LocalMetadataUnlocked = 0;
     bool l_SetFileClosedIndicator = false;
 
     if (!localMetadataIsLocked())
@@ -1143,8 +1164,13 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
     if (!l_ExtentsRemainForSourceIndex)
     {
-        unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
-        unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+        if (!pExtentInfo.getExtent()->isBSCFS_Extent())
+        {
+            unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+            unlockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+            l_LocalMetadataUnlocked = 1;
+            lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - before sendTransferCompleteForFileMsg");
+        }
 
         // Send message to bbproxy indicating the transfer for the source index file is complete.
         sendTransferCompleteForFileMsg(pConnectionName, pLVKey, pExtentInfo, l_TransferDef);
@@ -1168,8 +1194,13 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
         }
         l_SetFileClosedIndicator = true;
 
-        lockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
-        lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
+        if (l_LocalMetadataUnlocked)
+        {
+            unlockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
+            l_LocalMetadataUnlocked = 0;
+            lockLocalMetadata(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
+            lockTransferQueue(pLVKey, "BBLV_Info::updateAllTransferStatus - after sendTransferCompleteForFileMsg");
+        }
     }
 
     // NOTE: The transfer queue lock is released and re-acquired as part of the send message
