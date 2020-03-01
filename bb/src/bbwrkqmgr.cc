@@ -448,7 +448,7 @@ void WRKQMGR::checkThrottleTimer()
 {
     HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
 
-    if (Throttle_Timer.popped(Throttle_TimeInterval))
+    if (Throttle_Timer.popped())
     {
         LOG(bb,off) << "WRKQMGR::checkThrottleTimer(): Popped";
 

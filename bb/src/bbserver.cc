@@ -3369,6 +3369,8 @@ int bb_main(std::string who)
             }
         }
 
+        // Initialize the throttle timer and force it to pop immediately
+        Throttle_Timer.init(Throttle_TimeInterval);
         Throttle_Timer.forcePop();
 
         // NOTE: Transfer threads are started here so that async requests
