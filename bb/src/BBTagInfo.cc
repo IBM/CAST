@@ -11,6 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include <unistd.h>
+
 #include <boost/range/iterator_range.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -328,7 +330,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
         bfs::path jobstepid(g_BBServer_Metadata_Path);
         jobstepid = jobstepid / bfs::path(to_string(pJob.getJobId())) / bfs::path(to_string(pJob.getJobStepId()));
 
-        if(!bfs::exists(jobstepid))
+        if (access(jobstepid.c_str(), F_OK))
         {
             // Job step directory does not exist
             // NOTE:  There is a window between creating the job directory and
@@ -990,73 +992,64 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         //       window by always searching the 'contribs' in the restart case.
         bool l_ContribFileFoundForLVUuid = false;
         bool l_ContribIdAlreadyExists = (bool)(pHandleFile->contribHasReported(pContribId));
-        if (bfs::exists(handle))
+        for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
         {
-            for (auto& lvuuid: boost::make_iterator_range(bfs::directory_iterator(handle), {}))
+            if (string(lv_uuid_str) == lvuuid.path().filename().string())
             {
-                if (string(lv_uuid_str) == lvuuid.path().filename().string())
+                // NOTE:  If the lvuuid directory exists, the 'contribs' file should also exist.
+                //        We rely on this fact for the early exit in this 'normal' start transfer path
+                //        for multiple contributors for a given CN (lvuuid).
+                l_ContribFileFoundForLVUuid = true;
+                if ((!l_ContribIdAlreadyExists) && (!pTransferDef->builtViaRetrieveTransferDefinition()))
                 {
-                    // NOTE:  If the lvuuid directory exists, the 'contribs' file should also exist.
-                    //        We rely on this fact for the early exit in this 'normal' start transfer path
-                    //        for multiple contributors for a given CN (lvuuid).
-                    l_ContribFileFoundForLVUuid = true;
-                    if ((!l_ContribIdAlreadyExists) && (!pTransferDef->builtViaRetrieveTransferDefinition()))
-                    {
-                        // Non-restart for new reporting contributor.  Found the matching LVUuid.  Exit now...
-                        break;
-                    }
+                    // Non-restart for new reporting contributor.  Found the matching LVUuid.  Exit now...
+                    break;
                 }
-                if (l_ContribIdFile || (!bfs::is_directory(lvuuid))) continue;
-                if (l_ContribIdAlreadyExists || pTransferDef->builtViaRetrieveTransferDefinition())
+            }
+            if (l_ContribIdFile || (!pathIsDirectory(lvuuid))) continue;
+            if (l_ContribIdAlreadyExists || pTransferDef->builtViaRetrieveTransferDefinition())
+            {
+                // We know this contributor had previously reported -or- this is a restart scenario.
+                // Search under this LVUuid for the contributor...
+                bfs::path l_ContribFilePath = lvuuid.path() / CONTRIBS_FILENAME;
+                rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
+                if (!rc)
                 {
-                    // We know this contributor had previously reported -or- this is a restart scenario.
-                    // Search under this LVUuid for the contributor...
-                    bfs::path l_ContribFilePath = lvuuid.path() / "contribs";
-                    rc = ContribFile::loadContribFile(l_ContribFile, l_ContribFilePath);
-                    if (!rc)
+                    for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
                     {
-                        for (map<uint32_t,ContribIdFile>::iterator ce = l_ContribFile->contribs.begin(); ce != l_ContribFile->contribs.end(); ce++)
+                        if (ce->first == pContribId)
                         {
-                            if (ce->first == pContribId)
+                            if (string(lv_uuid_str) == lvuuid.path().filename().string())
                             {
-                                if (string(lv_uuid_str) == lvuuid.path().filename().string())
-                                {
-                                    l_ContribIdFile = new ContribIdFile(ce->second);
-                                    LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is already registered and currently has " << l_ContribFile->numberOfContribs() << " non-stopped contributor(s)";
-                                    break;
-                                }
-                                else
-                                {
-                                    // Even for restart, the lvuuid for the already registered contribid must match the lvuuid for the transfer definition being added
-                                    rc = -1;
-                                    errorText << "Contribid " << pContribId << " is already registered under lvuuid " << lvuuid.path().filename().string() << " for job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                                }
+                                l_ContribIdFile = new ContribIdFile(ce->second);
+                                LOG(bb,info) << "xbbServer: Logical volume with a uuid of " << lv_uuid_str << " is already registered and currently has " << l_ContribFile->numberOfContribs() << " non-stopped contributor(s)";
+                                break;
+                            }
+                            else
+                            {
+                                // Even for restart, the lvuuid for the already registered contribid must match the lvuuid for the transfer definition being added
+                                rc = -1;
+                                errorText << "Contribid " << pContribId << " is already registered under lvuuid " << lvuuid.path().filename().string() << " for job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                         }
                     }
-                    else
-                    {
-                        // ContribFile could not be loaded
-                        rc = -1;
-                        errorText << "For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
-                                  << ", could not load the contribfile associated with " << lvuuid.path().filename().string() << " when processing contribid " << pContribId;
-                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                    }
+                }
+                else
+                {
+                    // ContribFile could not be loaded
+                    rc = -1;
+                    errorText << "For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
+                              << ", could not load the contribfile associated with " << lvuuid.path().filename().string() << " when processing contribid " << pContribId;
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
 
-                    if (l_ContribFile)
-                    {
-                        delete l_ContribFile;
-                        l_ContribFile = 0;
-                    }
+                if (l_ContribFile)
+                {
+                    delete l_ContribFile;
+                    l_ContribFile = 0;
                 }
             }
-        }
-        else
-        {
-            rc = -1;
-            errorText << "Handle file directory " << handle.string() << " does not exist for " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle;
-            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
         if (!l_ContribIdFile)
@@ -1094,10 +1087,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     bfs::path l_JobStepPath(g_BBServer_Metadata_Path);
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobId()));
                     l_JobStepPath /= bfs::path(to_string(pJob.getJobStepId()));
-                    int l_JobStepDirectoryExists = bfs::exists(l_JobStepPath) ? 1 : 0;
+                    int l_JobStepDirectoryExists = access(l_JobStepPath.c_str(), F_OK) ? 0 : 1;
 
                     bfs::path l_ToplevelHandleDirectoryPath = l_JobStepPath / bfs::path(HandleFile::getToplevelHandleName(pHandle));
-                    int l_ToplevelHandleDirectoryExists = bfs::exists(l_ToplevelHandleDirectoryPath) ? 1 : 0;
+                    int l_ToplevelHandleDirectoryExists = access(l_ToplevelHandleDirectoryPath.c_str(), F_OK) ? 0 : 1;
 
                     LOG(bb,info) << "xbbServer: For job " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() << ", handle " << pHandle \
                                  << ", a logical volume with a uuid of " << lv_uuid_str << " is not currently registered.  It will be added.";
@@ -1148,12 +1141,12 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                     }
 
                     LVUuidFile l_LVUuidFile((*pLVKey).first, pLV_Info->getHostName());
-                    bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path(lv_uuid_str);
+                    bfs::path l_LVUuidFilePathName = l_LVUuidPath / bfs::path("^" + string(lv_uuid_str));
                     rc = l_LVUuidFile.save(l_LVUuidFilePathName.string());
                     if (rc) BAIL;
 
                     ContribFile l_ContribFileStg;
-                    bfs::path l_ContribFilePath = l_LVUuidPath / "contribs";
+                    bfs::path l_ContribFilePath = l_LVUuidPath / CONTRIBS_FILENAME;
                     rc = l_ContribFileStg.save(l_ContribFilePath.string());
                     if (rc) BAIL;
                 }
@@ -1275,5 +1268,5 @@ int BBTagInfo::xbbServerIsHandleUnique(const BBJob& pJob, const uint64_t pHandle
     handle /= bfs::path(HandleFile::getToplevelHandleName(pHandle));
     handle /= bfs::path(to_string(pHandle));
 
-    return (!bfs::exists(handle));
+    return (access(handle.c_str(), F_OK) ? 1 : 0);
 }

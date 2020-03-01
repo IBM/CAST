@@ -10,6 +10,7 @@
  |    U.S. Government Users Restricted Rights:  Use, duplication or disclosure
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
+#include <unistd.h>
 
 #include "bbserver_flightlog.h"
 #include "HandleFile.h"
@@ -30,26 +31,26 @@ int LVUuidFile::update_xbbServerLVUuidFile(const LVKey* pLVKey, const uint64_t p
 
     bfs::path job(g_BBServer_Metadata_Path);
     job /= bfs::path(to_string(pJobId));
-    if(!bfs::is_directory(job)) return -2;
+    if (access(job.c_str(), F_OK)) return -2;
 
     uint64_t l_FL_Counter = metadataCounter.getNext();
     FL_Write(FLMetaData, LF_UpdateFile, "update LVUuid file, counter=%ld, job=%ld", l_FL_Counter, pJobId, 0, 0);
 
     for(auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(job), {}))
     {
-        if(!bfs::is_directory(jobstep)) continue;
+        if(!pathIsDirectory(jobstep)) continue;
         for(auto& tlhandle : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
         {
-            if ((!bfs::is_directory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
+            if ((!pathIsDirectory(tlhandle)) || (!HandleFile::isToplevelHandleDirectory(tlhandle.path().filename().string()))) continue;
             for(auto& handle : boost::make_iterator_range(bfs::directory_iterator(tlhandle), {}))
             {
-                if (!bfs::is_directory(handle)) continue;
+                if (!pathIsDirectory(handle)) continue;
                 for(auto& lvuuid : boost::make_iterator_range(bfs::directory_iterator(handle), {}))
                 {
                     if(lvuuid.path().filename() == lv_uuid_str)
                     {
                         bfs::path metafile = lvuuid.path();
-                        metafile /= bfs::path(lv_uuid_str);
+                        metafile /= bfs::path("^" + string(lv_uuid_str));
 
                         LVUuidFile l_LVUuidFile;
                         int rc2 = l_LVUuidFile.load(metafile.string());
