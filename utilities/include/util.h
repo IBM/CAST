@@ -14,7 +14,6 @@
 #ifndef COMMON_UTIL_H
 #define COMMON_UTIL_H
 
-#include <chrono>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -30,9 +29,72 @@ namespace pt = boost::property_tree;
 class Timer
 {
 public:
+
+#ifdef __powerpc64__
+#define  SPRN_TBRO                (0x10C)          // Time Base 64-bit, User Read-only
+#endif
+
+    inline void getTime(uint64_t& pTime)
+    {
+
+#ifdef __powerpc64__
+        asm volatile("mfspr %0,%1;"
+                     : "=&r" (pTime) : "i" (SPRN_TBRO) : "memory");
+#elif __x86_64__
+        unsigned hi, lo;
+        __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+        pTime = ((uint64_t)hi << 32ull) | lo;
+#else
+#error not supported
+#endif
+
+        return;
+    }
+
+    uint64_t determineTimeBaseScale()
+    {
+    	uint64_t timebaseScale = 1;
+
+#ifdef __linux__
+    	FILE* f;
+    	char* ptr;
+    	char line[256];
+    	f = fopen("/proc/cpuinfo", "r");
+        assert(f != NULL);
+    	while(!feof(f))
+    	{
+    	    char* str = fgets(line, sizeof(line), f);
+    	    if(str == NULL)
+      	        break;
+
+    	    if((ptr = strstr(line, "cpu MHz")) != 0)  // x86
+    	    {
+    		    ptr = strchr(ptr, ':');
+    		    ptr += 2;
+    		    sscanf(ptr, "%ld", &timebaseScale);
+    		    timebaseScale *= 1000000;
+    	    }
+    	    if((ptr = strstr(line, "timebase")) != 0) // powerpc
+    	    {
+    		    ptr = strchr(ptr, ':');
+    		    ptr += 2;
+    		    sscanf(ptr, "%ld", &timebaseScale);
+    	    }
+    	}
+    	fclose(f);
+#endif
+
+        return timebaseScale;
+    }
+
+
     Timer()
     {
-        reset();
+        lastTimeRead = 0;
+        tickThreshold = 0;
+        timeBasedScale = determineTimeBaseScale();
+        forcePopNextTime = false;
+        snoozing = false;
     }
 
     inline void forcePop()
@@ -44,7 +106,34 @@ public:
 
     inline double getCurrentElapsedTimeInterval()
     {
-        return elapsedTime();
+        uint64_t l_EndTime;
+        getTime(l_EndTime);
+
+        return (double)((l_EndTime - lastTimeRead) / timeBasedScale);
+    }
+
+    // NOTE: init() should only be invoked once per timer instance.
+    inline void init(double pTimeInterval)
+    {
+        tickThreshold = (uint64_t)(pTimeInterval * double(timeBasedScale));
+        reset();
+
+        return;
+    }
+
+    inline int timerPopped()
+    {
+        int rc = 0;
+
+        uint64_t l_EndTime;
+        getTime(l_EndTime);
+        if ((l_EndTime - lastTimeRead) >= tickThreshold)
+        {
+            lastTimeRead = l_EndTime;
+            rc = 1;
+        }
+
+        return rc;
     }
 
     inline bool isSnoozing()
@@ -52,26 +141,31 @@ public:
         return snoozing;
     }
 
-    inline int popped(const double pTimeInterval)
+    inline int popped()
     {
-        int l_RC = 0;
+        int rc = 0;
 
-        double l_Temp = elapsedTime();
-        if (forcePopNextTime || l_Temp > pTimeInterval)
+        if (forcePopNextTime)
         {
             reset();
-            l_RC = 1;
+            rc = 1;
         }
-//        printf("Timer::popped(): TimeInterval = %f, ElapsedTime = %f, rc=%d\n", pTimeInterval, l_Temp, l_RC);
+        else
+        {
+            rc = timerPopped();
+        }
 
-        return l_RC;
+        return rc;
     }
 
     inline void reset()
     {
         forcePopNextTime = false;
         snoozing = false;
-        starttime = myclock::now();
+
+        uint64_t l_CurrentTime;
+        getTime(l_CurrentTime);
+        lastTimeRead = l_CurrentTime;
 
         return;
     }
@@ -83,17 +177,12 @@ public:
         return;
     }
 
-    double elapsedTime() const
-    {
-        return std::chrono::duration_cast<secs> (myclock::now() - starttime).count();
-    }
-
 private:
-    typedef std::chrono::high_resolution_clock myclock;
-    typedef std::chrono::duration<double, std::ratio<1> > secs;
+    volatile uint64_t lastTimeRead;
+    uint64_t tickThreshold;
+    double timeBasedScale;
     volatile bool forcePopNextTime;
     volatile bool snoozing;
-    std::chrono::time_point<myclock> starttime;
 };
 
 extern void copyStat2attr_out(const struct stat& s, struct fuse_attr* attr);
