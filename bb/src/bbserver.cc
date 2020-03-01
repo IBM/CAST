@@ -62,8 +62,8 @@ BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
 
 // Timer used to for resize SSD messages sent to bbproxy
-Timer ResizeSSD_Timer;
-double ResizeSSD_TimeInterval;
+// Timer ResizeSSD_Timer;
+// double ResizeSSD_TimeInterval;
 
 // Timer used for throttle intervals
 Timer Throttle_Timer;
@@ -240,7 +240,7 @@ void switchIds(txp::Msg* pMsg)
 int getservercfgvalue(const std::string& keyname)
 {
     int rc=0;
-    
+
     bberror<<err("in.process_whoami",process_whoami);
     stringstream errorText;
     if (keyname=="config"){
@@ -250,8 +250,8 @@ int getservercfgvalue(const std::string& keyname)
         boost::property_tree::write_json(result_stream, config, false);
         result_stream << "}}";
         LOG(bb,info)<<"result_stream.str()"<<result_stream.str();
-        bberror.merge(result_stream.str()); 
-    }  
+        bberror.merge(result_stream.str());
+    }
     else if (keyname=="usedirectio"){
         string boolvalue="false";
         if (g_UseDirectIO) boolvalue="true";
@@ -339,7 +339,7 @@ void msgin_getservercfgvalue(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName, response);
     delete response;
-}    
+}
 void msgin_setservercfgvalue(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -379,7 +379,7 @@ void msgin_setservercfgvalue(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName, response);
     delete response;
-}     
+}
 
 
 #define DELAY_SECONDS 120
@@ -3184,7 +3184,7 @@ int bb_main(std::string who)
 
         // Initialize values to be used by this bbServer instance
         wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
-        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
+//        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
         wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";

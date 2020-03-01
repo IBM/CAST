@@ -77,7 +77,7 @@ extern BBLV_Metadata metadata;
 #if BBSERVER
 extern WRKQMGR wrkqmgr;
 extern WRKQE* HPWrkQE;
-extern Timer ResizeSSD_Timer;
+// extern Timer ResizeSSD_Timer;
 extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
@@ -93,7 +93,7 @@ extern uint64_t g_ForceSSDReadError;
 extern uint64_t g_ForceSSDWriteError;
 extern uint64_t g_ForcePFSReadError;
 extern uint64_t g_ForcePFSWriteError;
-extern double ResizeSSD_TimeInterval;
+// extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern double g_AsyncRemoveJobInfoInterval;
 extern string g_BBServer_Metadata_Path;

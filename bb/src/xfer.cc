@@ -2132,7 +2132,7 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
             size_t l_NumberOfExtents = pLV_Info->getNumberOfExtents();
             if (pLV_Info->resizeLogicalVolumeDuringStageOut() &&
                 pLV_Info->stageOutStarted() &&
-                ((!l_NumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
+                (!l_NumberOfExtents)) // || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
             {
                 // NOTE:  getMinimumTrimExtent() returns a pointer to the extent with the LBA value that we can return to bbProxy.
                 //        Because it might be a pointer to an extent in the in-flight list, send the message here with the transfer queue
@@ -4151,7 +4151,7 @@ int stageoutStart(const std::string& pConnectionName, const LVKey* pLVKey)
                     //        BSCFS cannot be involved -and-
                     //        stageout has started
                     if (l_LV_Info->resizeLogicalVolumeDuringStageOut() &&
-                        ((!l_CurrentNumberOfExtents) || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
+                        (!l_CurrentNumberOfExtents)) // || ResizeSSD_Timer.popped(ResizeSSD_TimeInterval)))
                     {
                         if (sendTransferProgressMsg(pConnectionName, pLVKey, l_LV_Info->getJobId(), (uint32_t)l_CurrentNumberOfExtents, NULL))
                         {
