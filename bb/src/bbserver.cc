@@ -3240,6 +3240,9 @@ int bb_main(std::string who)
         g_DumpExtentsAfterSort = config.get(resolveServerConfigKey("bringup.dumpExtentsAfterSort"), DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE);
         g_BBServer_Metadata_Path = config.get("bb.bbserverMetadataPath", DEFAULT_BBSERVER_METADATAPATH);
 
+        serverIdentifier = config.get(resolveServerConfigKey("id"), 0);
+        LOG(bb,always) << "Server ID=" << serverIdentifier;
+        
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
         char* l_AsyncRequestFileNamePtr = 0;

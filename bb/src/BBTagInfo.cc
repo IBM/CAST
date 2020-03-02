@@ -33,6 +33,10 @@ using namespace boost::archive;
 namespace bfs = boost::filesystem;
 namespace bs = boost::system;
 
+uint32_t serverIdentifier = 0;
+static uint64_t uniqueBumpCount  = 0;
+static pthread_mutex_t uniqueBumpMutex = PTHREAD_MUTEX_INITIALIZER;
+
 //
 // BBTagInfo class
 //
@@ -78,7 +82,19 @@ int BBTagInfo::compareContrib(const uint64_t pNumContrib, const uint32_t pContri
     return rc;
 }
 
-void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib) {
+void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib, bool& guaranteeUnique) 
+{
+    if((pContrib.size() == 1) && (serverIdentifier != 0))  //  serverIdentifier=0 means disabled opt
+    {
+        // could use part of /proc/sys/kernel/random/boot_id in upper bits IF serverIdentifier is not unique
+        pthread_mutex_lock(&uniqueBumpMutex);
+        uniqueBumpCount++;
+        pHandle = (1ULL << 32) + (serverIdentifier & 0x7f) + (uniqueBumpCount << 7);
+        pthread_mutex_unlock(&uniqueBumpMutex);
+
+        guaranteeUnique = true;
+        return;
+    }
     // NOTE:  It is the invoker's responsibility to check for any collisions
     //        of the returned handle value with existing handles...
 
@@ -142,6 +158,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     int l_LocalMetadataLocked = 0;
     int l_TagInfoLocked = 0;
     uint64_t l_Handle = UNDEFINED_HANDLE;
+    bool guaranteeUnique = false;
 
     // First ensure that the jobstepid directory exists for the xbbServer metadata
     rc = BBTagInfo::update_xbbServerAddData(pLVKey, pJob);
@@ -162,7 +179,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 {
                     l_ExpectContrib.push_back(pContrib[i]);
                 }
-                genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib);
+                genTransferHandle(l_Handle, pJob, pTag, l_ExpectContrib, guaranteeUnique);
             }
 
             try
@@ -171,15 +188,26 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
                 l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
                 // Perform the necessary locking across bbServers to read the bump count file
-                rc = TagInfo::lock(l_JobStepPath);
-                if (!rc)
+                if(guaranteeUnique == false)
                 {
-                    l_TagInfoLocked = 1;
-                    rc = TagInfo::readBumpCountFile(l_JobStepPath.string(), l_BumpCount);
+                    // obtain accurate bumpCount value
+                    rc = TagInfo::lock(l_JobStepPath);
                     if (!rc)
                     {
-                        l_TagInfoLocked = 0;
-                        TagInfo::unlock();
+                        l_TagInfoLocked = 1;
+                        rc = TagInfo::readBumpCountFile(l_JobStepPath.string(), l_BumpCount);
+                        if (!rc)
+                        {
+                            l_TagInfoLocked = 0;
+                            TagInfo::unlock();
+                        }
+                    }
+                }
+
+                if (!rc)
+                {
+                    if(1)       // todo, remove this nested level.  
+                    {
                         if (l_LocalMetadataLocked)
                         {
                             l_LocalMetadataLocked = 0;

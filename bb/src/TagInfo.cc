@@ -614,17 +614,26 @@ int TagInfo::update(const LVKey* pLVKey, const bfs::path& pJobStepPath, const bf
         l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "TagInfo::update");
         l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "TagInfo::update");
         // This lock serializes amongst bbServers to read the bump count file
-        rc = TagInfo::lock(pJobStepPath);
-        if (!rc)
+        uint32_t l_BumpCount = 0;
+        if(pBumpCount > 0)  // todo.  need to pass guaranteeUnique value through
         {
-            l_TagInfoLocked = 1;
-
-            uint32_t l_BumpCount = 0;
-            rc = readBumpCountFile(pJobStepPath.string(), l_BumpCount);
+            rc = TagInfo::lock(pJobStepPath);
             if (!rc)
             {
-                l_TagInfoLocked = 0;
-                TagInfo::unlock();
+                l_TagInfoLocked = 1;
+
+                rc = readBumpCountFile(pJobStepPath.string(), l_BumpCount);
+                if (!rc)
+                {
+                    l_TagInfoLocked = 0;
+                    TagInfo::unlock();
+                }
+            }
+        }
+        if(!rc)
+        {
+            if(1)
+            {
                 if (l_LocalMetadataLocked)
                 {
                     l_LocalMetadataLocked = 0;
