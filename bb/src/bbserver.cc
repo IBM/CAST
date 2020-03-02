@@ -67,7 +67,10 @@ WRKQMGR wrkqmgr;
 
 // Timer used for throttle intervals
 Timer Throttle_Timer;
+
+// Time intervals for throttle and async reqeust reads (in seconds)
 double Throttle_TimeInterval;
+double AsyncRequestRead_TimeInterval;
 
 // High priority work queue variables
 LVKey HPWrkQE_LVKeyStg;
@@ -3187,7 +3190,10 @@ int bb_main(std::string who)
 //        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
         wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
+        AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
+        wrkqmgr.setAsyncRequestReadTimerPoppedCount(Throttle_TimeInterval);
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " to implement async request read intervals";
         wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
         wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
 
@@ -3206,7 +3212,7 @@ int bb_main(std::string who)
         wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
         if (wrkqmgr.getDumpTimerPoppedCount())
         {
-            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
+            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
         }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
@@ -3222,10 +3228,10 @@ int bb_main(std::string who)
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
-            LOG(bb,always) << "Async Remove Interval=" << g_AsyncRemoveJobInfoInterval;
+            LOG(bb,always) << "Async Remove JobInfo Interval=" << g_AsyncRemoveJobInfoInterval << " second(s)";
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
-        LOG(bb,always) << "PFS Direct I/O=" << g_UseDirectIO;
+        LOG(bb,always) << "PFS Direct I/O = " << g_UseDirectIO;
         g_DiskStatsRate = config.get(process_whoami+".iostatrate", DEFAULT_DISKSTATS_RATE);
         double l_IBStatsLowActivityRate = config.get(process_whoami+".IBStatsLowActivityRate", DEFAULT_IBSTATS_LOW_ACTIVITY_RATE);
         g_IBStatsLowActivityClipValue = (int64_t)((l_IBStatsLowActivityRate*(1024 * 1024 * 1024)) / (32/8) * g_DiskStatsRate);

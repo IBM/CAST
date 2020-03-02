@@ -452,8 +452,13 @@ void WRKQMGR::checkThrottleTimer()
     {
         LOG(bb,off) << "WRKQMGR::checkThrottleTimer(): Popped";
 
-        // Check/add new high priority work items from the cross bbserver metadata
-        checkForNewHPWorkItems();
+        // See if it is time to check/add new high priority
+        // work items from the cross bbserver metadata
+        if (asyncRequestReadTimerPoppedCount && (++asyncRequestReadTimerCount >= asyncRequestReadTimerPoppedCount))
+        {
+            checkForNewHPWorkItems();
+            asyncRequestReadTimerCount = 0;
+        }
 
         // See if it is time to dump the work manager
         if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
@@ -635,6 +640,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,debug) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
 //                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
@@ -671,6 +677,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+//                            LOG(bb,info) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
 //                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
@@ -2184,6 +2191,25 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     // NOTE: We just deleted the work queue, so no need to re-acquire the work queue lock
 
     return rc;
+}
+
+void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
+{
+    asyncRequestReadTimerPoppedCount = (int64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
+    if (((double)asyncRequestReadTimerPoppedCount)*pTimerInterval != AsyncRequestRead_TimeInterval)
+    {
+        if (asyncRequestReadTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly more than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly less than what is specified.";
+        }
+        ++asyncRequestReadTimerPoppedCount;
+    }
+
+    return;
 }
 
 void WRKQMGR::setDumpTimerPoppedCount(const double pTimerInterval)
