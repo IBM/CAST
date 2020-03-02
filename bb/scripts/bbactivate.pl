@@ -370,6 +370,36 @@ sub makeServerConfigFile
     {
         $json->{"bb"}{"server0"}{"devzerosize"} = 4294967296;
     }
+    return if(!$CFG{"bbServer"});
+
+    my $ipaddr;
+    $ipaddr = safe_cmd("ip addr show dev bond0 | grep \"inet \"", 1);
+    if($ipaddr eq "")
+    {
+        my $interfacename = $CFG{"interfacename"};
+        $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");    
+    }
+    ($myip) = $ipaddr =~ /inet\s+(\S+?)\//;
+
+    requireFile($CFG{"esslist"});
+    open(TMP, $CFG{"esslist"});
+    while($ess = <TMP>)
+    {
+        next if($ess =~ /^#/);
+        next if($ess !~ /\S/);
+        chomp($ess);
+        my @backup      = split(/\s+/, $ess);
+        push(@ESS, @backup);
+    }
+    for($x=0; $x<$#ESS+1; $x++)
+    {
+        if($ESS[$x] =~ /$myip/)
+        {
+            $json->{"bb"}{"server0"}{"id"} = $x+1;
+        }
+    }
+#    my @octet = split('\.', $myip);
+#    $json->{"bb"}{"server0"}{"id"} = $octet[2]*256 + $octet[3];
 }
 
 sub makeProxyConfigFile
