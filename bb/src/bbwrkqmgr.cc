@@ -409,7 +409,12 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
                 // NOTE:  Set the file seqnbr/offset to that of the request file we obtained above,
                 //        as we have now enqueued everything up to this point from that request file.
                 setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                processTurboFactorForFoundRequest();
                 LOG(bb,debug) << "checkForNewHPWorkItems(): Found " << l_NumberAdded << " new async requests";
+            }
+            else
+            {
+                processTurboFactorForNotFoundRequest();
             }
         }
         else
@@ -454,7 +459,7 @@ void WRKQMGR::checkThrottleTimer()
 
         // See if it is time to check/add new high priority
         // work items from the cross bbserver metadata
-        if (asyncRequestReadTimerPoppedCount && (++asyncRequestReadTimerCount >= asyncRequestReadTimerPoppedCount))
+        if (asyncRequestReadTimerPoppedCount && (++asyncRequestReadTimerCount >= getAsyncRequestReadTimerPoppedCount()))
         {
             checkForNewHPWorkItems();
             asyncRequestReadTimerCount = 0;
@@ -640,7 +645,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                            LOG(bb,debug) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            LOG(bb,debug) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            if (useAsyncRequestReadTurboMode)
+                            {
+                                LOG(bb,debug) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
+                            }
 //                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
@@ -677,7 +686,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-//                            LOG(bb,info) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            LOG(bb,info) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            if (useAsyncRequestReadTurboMode)
+                            {
+                                LOG(bb,info) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
+                            }
 //                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
@@ -1122,6 +1135,11 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
     return rc;
 }
+
+int WRKQMGR::getAsyncRequestReadTimerPoppedCount()
+{
+    return (int)((double)asyncRequestReadTimerPoppedCount * asyncRequestReadTurboFactor);
+};
 
 uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
 {
@@ -2070,6 +2088,51 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
         {
             pThreadDelay = pWrkQE->processBucket(pTagId, pExtentInfo);
             pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
+        }
+    }
+
+    return;
+}
+
+void WRKQMGR::processTurboFactorForFoundRequest()
+{
+    if (useAsyncRequestReadTurboMode)
+    {
+        if ((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR) >= 1)
+        {
+            LOG(bb,info) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
+            asyncRequestReadTurboFactor *= DEFAULT_TURBO_FACTOR;
+        }
+        else
+        {
+            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
+        }
+        asyncRequestReadConsecutiveNoNewRequests = 0;
+    }
+
+    return;
+}
+
+void WRKQMGR::processTurboFactorForNotFoundRequest()
+{
+    if (useAsyncRequestReadTurboMode)
+    {
+        if ((++asyncRequestReadConsecutiveNoNewRequests % DEFAULT_TURBO_CLIP_VALUE) == 0)
+        {
+            if ((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR) <= AsyncRequestRead_TimeInterval / Throttle_TimeInterval)
+            {
+                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
+                asyncRequestReadTurboFactor /= DEFAULT_TURBO_FACTOR;
+                asyncRequestReadConsecutiveNoNewRequests = 0;
+            }
+            else
+            {
+                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+            }
+        }
+        else
+        {
+            LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Clip value not reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
         }
     }
 
