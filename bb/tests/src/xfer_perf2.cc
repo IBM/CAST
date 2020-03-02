@@ -89,6 +89,19 @@ int check(int rc)
     return 0;
 }
 
+int getAggregateMinMax(double value, double& minvalue, double& maxvalue)
+{
+    int rc;
+    rc = MPI_Allreduce(&value, &maxvalue, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    check(rc);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    rc = MPI_Allreduce(&value, &minvalue, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    check(rc);
+    MPI_Barrier(MPI_COMM_WORLD);
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
     int rc;
@@ -109,6 +122,7 @@ int main(int argc, char** argv)
         ("subdir", po::bool_switch(), "Create sub-directory for each compute node on the PFS")
         ("noinfo", po::bool_switch(), "Skip final BB_GetTransferInfo query")
         ("noopt",  po::bool_switch(), "Skip BB_GetTransferCount query")
+        ("pregen", po::bool_switch(), "Always generate data before any transfer is started")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -131,9 +145,10 @@ int main(int argc, char** argv)
     size_t filesize    = vm["size"].as<unsigned long>();
     unsigned long gate = vm["gate"].as<unsigned long>();
     bool use_subdir    = vm["subdir"].as<bool>();
-    bool nooptrun      = vm["noopt"].as<bool>();;
-    double poll_intvl  = vm["poll"].as<double>();;
-    bool noinfo        = vm["noinfo"].as<bool>();;
+    bool nooptrun      = vm["noopt"].as<bool>();
+    double poll_intvl  = vm["poll"].as<double>();
+    bool noinfo        = vm["noinfo"].as<bool>();
+    bool pregen        = vm["pregen"].as<bool>();
 
     BBTransferInfo_t info;
     double beginning, ending;
@@ -256,7 +271,7 @@ int main(int argc, char** argv)
     addMetadata_fp("filesize", filesize);
     addMetadata_fp("ranks",    size);
 
-    if((dogenerate) && (dir))  // use randfile to create files on PFS
+    if((dogenerate) && (dir || pregen))
     {
         snprintf(cmd, sizeof(cmd), "/opt/ibm/bb/tools/randfile --file=%s --by 512 --size=%ld", sfn, filesize);
         if(mpirank == 0)
@@ -278,7 +293,7 @@ int main(int argc, char** argv)
         snprintf(cmd, sizeof(cmd), "/usr/bin/dd if=/dev/zero of=%s count=%ld bs=1048576 oflag=direct status=none", sfn, filesize/1048576);
         if(mpirank == 0)
         {
-            printf("Generate random file: %s\n", cmd);
+            printf("Generate file from /dev/zero: %s\n", cmd);
         }
         system(cmd);
     }
@@ -345,49 +360,15 @@ int main(int argc, char** argv)
     }
 
     // Performance Analysis
-    double myelapsed, totalelapsed, maxallstarted, minallstarted, minmystart, maxmystart, minmystarttransfer, maxmystarttransfer, minmygethandle, maxmygethandle;
-    myelapsed = allstarted - beginning;
+    double totalelapsed, mintotalelapsed, maxallstarted, minallstarted, minmystart, maxmystart;
+    double minmystarttransfer, maxmystarttransfer, minmygethandle, maxmygethandle;
 
-    rc = MPI_Allreduce(&myelapsed, &maxallstarted, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    rc = MPI_Allreduce(&myelapsed, &minallstarted, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    myelapsed = mystarttransfer - beginning;
-    rc = MPI_Allreduce(&myelapsed, &maxmystart, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    rc = MPI_Allreduce(&myelapsed, &minmystart, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-
-    myelapsed = mygethandle - beginning;
-    rc = MPI_Allreduce(&myelapsed, &maxmygethandle, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    rc = MPI_Allreduce(&myelapsed, &minmygethandle, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    myelapsed = mystarttransfer - mygethandle;
-    rc = MPI_Allreduce(&myelapsed, &maxmystarttransfer, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-    rc = MPI_Allreduce(&myelapsed, &minmystarttransfer, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    check(rc);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-
-
-    myelapsed = ending - beginning;
-    rc = MPI_Allreduce(&myelapsed, &totalelapsed, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    check(rc);
+    getAggregateMinMax(allstarted - beginning,          minallstarted,      maxallstarted);
+    getAggregateMinMax(mystarttransfer - beginning,     minmystart,         maxmystart);
+    getAggregateMinMax(mygethandle - beginning,         minmygethandle,     maxmygethandle);
+    getAggregateMinMax(mystarttransfer - mygethandle,   minmystarttransfer, maxmystarttransfer);
+    getAggregateMinMax(ending - beginning,              mintotalelapsed,    totalelapsed);
     
-    MPI_Barrier(MPI_COMM_WORLD);
-
     if(mpirank == 0)
     {
         printf("PERF(%d,%s,%ld x %d):  All transfers started in %g seconds\n", dir, pfspath.c_str(), filesize, size, maxallstarted);
