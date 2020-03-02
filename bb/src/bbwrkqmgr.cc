@@ -11,11 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#include <boost/filesystem.hpp>
-#include <sys/stat.h>
+#include <cmath>
 
 #include <stdio.h>
 #include <string.h>
+
+#include <boost/filesystem.hpp>
+#include <sys/stat.h>
 
 #include "bbinternal.h"
 #include "BBLV_Info.h"
@@ -2098,14 +2100,14 @@ void WRKQMGR::processTurboFactorForFoundRequest()
 {
     if (useAsyncRequestReadTurboMode)
     {
-        if ((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR) >= 1)
+        if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR)) >= 1)
         {
             LOG(bb,info) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
             asyncRequestReadTurboFactor *= DEFAULT_TURBO_FACTOR;
         }
         else
         {
-            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
+            LOG(bb,info) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
         }
         asyncRequestReadConsecutiveNoNewRequests = 0;
     }
@@ -2119,7 +2121,7 @@ void WRKQMGR::processTurboFactorForNotFoundRequest()
     {
         if ((++asyncRequestReadConsecutiveNoNewRequests % DEFAULT_TURBO_CLIP_VALUE) == 0)
         {
-            if ((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR) <= AsyncRequestRead_TimeInterval / Throttle_TimeInterval)
+            if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR)) <= round(AsyncRequestRead_TimeInterval / Throttle_TimeInterval))
             {
                 LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
                 asyncRequestReadTurboFactor /= DEFAULT_TURBO_FACTOR;
@@ -2127,7 +2129,7 @@ void WRKQMGR::processTurboFactorForNotFoundRequest()
             }
             else
             {
-                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
             }
         }
         else
