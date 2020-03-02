@@ -320,6 +320,11 @@ class WRKQMGR
         return delayMsgSent;
     }
 
+    inline int getAsyncRequestReadTimerPoppedCount()
+    {
+        return asyncRequestReadTimerPoppedCount;
+    };
+
     inline int getCheckForCanceledExtents()
     {
         return checkForCanceledExtents;
@@ -637,6 +642,7 @@ class WRKQMGR
     void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved);
     int rmvWrkQ(const LVKey* pLVKey);
+    void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);
     void setHeartbeatTimerPoppedCount(const double pTimerInterval);
@@ -658,6 +664,8 @@ class WRKQMGR
     int                 throttleMode;
     volatile int        throttleTimerCount;
     int                 throttleTimerPoppedCount;
+    volatile int        asyncRequestReadTimerCount;
+    int                 asyncRequestReadTimerPoppedCount;
     int                 allowDump;
     int                 dumpOnDelay;
     int                 dumpOnRemoveWorkItem;
