@@ -1814,6 +1814,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
                 l_FilePtr = ::fopen(l_AsyncRequestFileNamePtr, pOpenOption);
                 threadLocalTrackSyscallPtr->clearTrack();
+                setbuf(l_FilePtr, NULL);
                 if (pOpenOption[0] != 'a')
                 {
                     if (l_FilePtr != NULL)

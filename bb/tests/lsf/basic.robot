@@ -374,7 +374,7 @@ LSF get handle create performance multi node iterative scale
 LSF get handle spanner single node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  256
+	Using SSD  10
 	Set num computes  1
 	Set ppn  20
 	bsub&wait  ${jsrun} ${WORKDIR}/bb/tests/bin/test_spanner_perf 512
@@ -382,7 +382,7 @@ LSF get handle spanner single node
 LSF get handle spanner multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  256
+	Using SSD  10
 
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
@@ -392,7 +392,7 @@ LSF get handle spanner multi node
 LSF get handle create performance single node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  256
+	Using SSD  10
 	
 	Set num computes  1
 	Set ppn  1
@@ -417,7 +417,7 @@ LSF get handle create performance single node
 LSF get handle create performance multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  256
+	Using SSD  10
 	
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
@@ -443,7 +443,7 @@ LSF get handle create performance multi node
 LSF get transfer info performance multi node
 	[Tags]  lsf
 	[Timeout]  20 minutes
-	Using SSD  256
+	Using SSD  10
 	
 	${maxnodes} =  Run  /opt/ibm/csm/bin/csm_node_resources_query_all | grep IN_SERVICE | wc -l
 	Set num computes  ${maxnodes}
