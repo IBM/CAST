@@ -22,6 +22,7 @@
 #include <string.h>
 #include <grp.h>
 #include <sys/fsuid.h>
+#include "bbcounters.h"
 
 const char* hitname = "/var/log/";
 
@@ -48,6 +49,7 @@ extern "C" FILE* fopen64(const char* path, const char* mode)
     gid_t gid = 0;
     bool  switchuid = false;
     char  tmpmode[64];
+    BUMPCOUNTER(fopen64);
     if(strncmp(path, hitname, strlen(hitname)) == 0)
     {
         snprintf(tmpmode, sizeof(tmpmode), "e%s", mode);   // add O_CLOEXEC for console.log
@@ -81,6 +83,7 @@ extern "C" int rename(const char* oldname, const char* newname)
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
+    BUMPCOUNTER(rename);
     if(strncmp(oldname, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
@@ -113,6 +116,7 @@ extern "C" int unlink(const char* path)
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
+    BUMPCOUNTER(unlink);
     if(strncmp(path, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
@@ -144,6 +148,7 @@ extern "C" int __xstat (int vers, const char *file, struct stat *buf)
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
+    BUMPCOUNTER(xstat);
     if(strncmp(file, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
@@ -176,6 +181,7 @@ extern "C" int __xstat64 (int vers, const char *file, struct stat64 *buf)
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
+    BUMPCOUNTER(xstat64);
     if(strncmp(file, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
@@ -208,6 +214,7 @@ extern "C" int statvfs64(const char *path, struct statvfs64 *buf)
     uid_t uid = 0;
     gid_t gid = 0;
     bool  switchuid = false;
+    BUMPCOUNTER(statvfs64);
     if(strncmp(path, hitname, strlen(hitname)) == 0)
     {
         uid = setfsuid(~0);
