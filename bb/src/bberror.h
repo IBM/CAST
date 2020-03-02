@@ -528,17 +528,9 @@ class BBHandler : public TSHandler
         //  getCurrentTime is temporary...  Need to incorporate a more efficient timestamp...
         void getCurrentTime( char* pBuffer, const int32_t pSize )
         {
-        	char l_Buffer[20] = {'\0'};
-
             struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
             gettimeofday(&l_CurrentTime, NULL);
-            unsigned long l_Micro = l_CurrentTime.tv_usec;
-
-            //localtime is not thread safe
-//            strftime(l_Buffer, sizeof(l_Buffer), "%Y-%m-%d %H:%M:%S", localtime((const time_t*)&l_CurrentTime.tv_sec));
-            strftime(l_Buffer, sizeof(l_Buffer), "%d %H:%M:%S", localtime((const time_t*)&l_CurrentTime.tv_sec));
-            snprintf(pBuffer, pSize, "%s.%06lu", l_Buffer, l_Micro);
-
+            snprintf(pBuffer, pSize, "%ld.%06lu", l_CurrentTime.tv_sec, l_CurrentTime.tv_usec);
         	return;
         };
 
