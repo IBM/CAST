@@ -126,15 +126,15 @@ extern void writeVar(const char* pVariable, const char* pValue);
  *******************************************************************************/
 const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
 const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 120;                    // in seconds (2 minutes)
-const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 900;                    // in seconds (15 minutes)
+// const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
 const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1.00;                    // in seconds
-const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 2.50;          // in seconds
-const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 15.00;         // in seconds
+const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25.00;         // in seconds
+const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100.00;        // in seconds
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
                                                                                 // NOTE: The default declareServerDeadCount value
                                                                                 //       is 2 * heartbeat time interval, which by
@@ -180,6 +180,7 @@ const int DEFAULT_DUMP_STATS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 1;
 const int DEFAULT_DUMP_EXTENTS_BEFORE_ADDING_TO_ALLEXTENTS_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_BEFORE_SORT_VALUE = 0;
 const int DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE = 0;
+const int DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE = 1;
 const int DEFAULT_DISKSTATS_RATE = 60;
 
 const uint32_t NO_CONTRIBID = 999999998;

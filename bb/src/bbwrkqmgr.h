@@ -50,9 +50,11 @@ const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
 const int DEFAULT_RETRY_VALUE = 10;         // Default, retry value for fread, fwrite, fseek, and ftell
+const int DEFAULT_TURBO_CLIP_VALUE = 3;     // Downshift the async read request rate based upon this clip value
 const double DEFAULT_DUMP_MGR_TIME_INTERVAL = 30.0;    // In seconds, default is to dump wrkqmgr every 30 seconds
 const uint32_t DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS = 120;   // Default, if no activity, dump every hour
                                                                         // NOTE:  120*30 = 3600 seconds
+const double DEFAULT_TURBO_FACTOR = 0.1;    // Upshift or downshift the async request read rate by this factor
 
 const uint64_t DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL = 1000;
 const string XBBSERVER_ASYNC_REQUEST_BASE_FILENAME = "asyncRequests";
@@ -257,9 +259,14 @@ class WRKQMGR
         throttleMode(0),
         throttleTimerCount(0),
         throttleTimerPoppedCount(0),
+        asyncRequestReadTimerCount(0),
+        asyncRequestReadTimerPoppedCount(0),
+        asyncRequestReadTurboFactor(1.0),
+        asyncRequestReadConsecutiveNoNewRequests(0),
         allowDump(DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR),
         dumpOnDelay(DEFAULT_DUMP_MGR_ON_DELAY),
         dumpOnRemoveWorkItem(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM),
+        useAsyncRequestReadTurboMode(DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE),
         delayMsgSent(0),
         asyncRequestFileSeqNbr(0),
         numberOfAllowedSkippedDumpRequests(DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS),
@@ -319,11 +326,6 @@ class WRKQMGR
     {
         return delayMsgSent;
     }
-
-    inline int getAsyncRequestReadTimerPoppedCount()
-    {
-        return asyncRequestReadTimerPoppedCount;
-    };
 
     inline int getCheckForCanceledExtents()
     {
@@ -411,6 +413,11 @@ class WRKQMGR
     inline int getThrottleTimerPoppedCount()
     {
         return throttleTimerPoppedCount;
+    }
+
+    inline int getUseAsyncRequestReadTurboMode()
+    {
+        return useAsyncRequestReadTurboMode;
     }
 
     inline int highPriorityWorkQueueIsEmpty(const LVKey* pLVKey)
@@ -597,6 +604,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setUseAsyncRequestReadTurboMode(const int pValue)
+    {
+        useAsyncRequestReadTurboMode = pValue;
+
+        return;
+    }
+
     inline bool workQueueMgrIsLocked()
     {
         return (workQueueMgrLocked == pthread_self());
@@ -621,6 +635,7 @@ class WRKQMGR
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest);
+    int getAsyncRequestReadTimerPoppedCount();
     HeartbeatEntry* getHeartbeatEntry(const string& pHostName);
     uint64_t getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     size_t getNumberOfWorkQueues();
@@ -640,6 +655,8 @@ class WRKQMGR
     void post_multiple(const size_t pCount);
     void processAllOutstandingHP_Requests(const LVKey* pLVKey);
     void processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info, BBTagID& pTagId, ExtentInfo& pExtentInfo, Extent* pExtent, double& pThreadDelay, double& pTotalDelay);
+    void processTurboFactorForFoundRequest();
+    void processTurboFactorForNotFoundRequest();
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved);
     int rmvWrkQ(const LVKey* pLVKey);
     void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
@@ -666,9 +683,12 @@ class WRKQMGR
     int                 throttleTimerPoppedCount;
     volatile int        asyncRequestReadTimerCount;
     int                 asyncRequestReadTimerPoppedCount;
+    volatile double     asyncRequestReadTurboFactor;
+    volatile uint64_t   asyncRequestReadConsecutiveNoNewRequests;
     int                 allowDump;
     int                 dumpOnDelay;
     int                 dumpOnRemoveWorkItem;
+    int                 useAsyncRequestReadTurboMode;
     volatile int        delayMsgSent;
     volatile int        asyncRequestFileSeqNbr;
     uint32_t            numberOfAllowedSkippedDumpRequests;

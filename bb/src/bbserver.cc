@@ -3210,6 +3210,8 @@ int bb_main(std::string who)
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
         wrkqmgr.setDumpOnRemoveWorkItemInterval((uint64_t)(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItemInterval", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL)));
         wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
+        wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
+        LOG(bb,always) << "Use Async Request Turbo Mode=" << wrkqmgr.getUseAsyncRequestReadTurboMode();
         if (wrkqmgr.getDumpTimerPoppedCount())
         {
             LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
@@ -3231,7 +3233,7 @@ int bb_main(std::string who)
             LOG(bb,always) << "Async Remove JobInfo Interval=" << g_AsyncRemoveJobInfoInterval << " second(s)";
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
-        LOG(bb,always) << "PFS Direct I/O = " << g_UseDirectIO;
+        LOG(bb,always) << "PFS Direct I/O=" << g_UseDirectIO;
         g_DiskStatsRate = config.get(process_whoami+".iostatrate", DEFAULT_DISKSTATS_RATE);
         double l_IBStatsLowActivityRate = config.get(process_whoami+".IBStatsLowActivityRate", DEFAULT_IBSTATS_LOW_ACTIVITY_RATE);
         g_IBStatsLowActivityClipValue = (int64_t)((l_IBStatsLowActivityRate*(1024 * 1024 * 1024)) / (32/8) * g_DiskStatsRate);
