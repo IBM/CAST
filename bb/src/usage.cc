@@ -53,6 +53,7 @@ void checkForStuckSyscall();
 #include "logging.h"
 #include "Msg.h"
 #include "bberror.h"
+#include "bbcounters.h"
 
 pthread_mutex_t         monitorlock = PTHREAD_MUTEX_INITIALIZER;
 map<string, BBUsage_t>  monitorlist;
@@ -574,7 +575,11 @@ void* mountMonitorThread(void* ptr)
     return NULL;
 }
 
+unsigned long bbcounters[BB_COUNTER_MAX];
+
 #if BBSERVER
+static unsigned long bbcounters_shadow[BB_COUNTER_MAX];
+
 void* diskstatsMonitorThread(void* ptr)
 {
     string l_Port_Rcv_Data = "port_rcv_data";
@@ -632,6 +637,8 @@ void* diskstatsMonitorThread(void* ptr)
                     }
                 }
             }
+            #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters[BB_COUNTERS_##id] = bbcounters_shadow[BB_COUNTERS_##id]; }
+            #include "bbcounters.h"
         }
         catch(ExceptionBailout& e)
         {
