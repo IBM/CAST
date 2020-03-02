@@ -2200,11 +2200,11 @@ void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
     {
         if (asyncRequestReadTimerPoppedCount < 1)
         {
-            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly more than what is specified.";
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly less than what is specified.";
         }
         else
         {
-            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly less than what is specified.";
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly more than what is specified.";
         }
         ++asyncRequestReadTimerPoppedCount;
     }
@@ -2220,11 +2220,11 @@ void WRKQMGR::setDumpTimerPoppedCount(const double pTimerInterval)
     {
         if (dumpTimerPoppedCount < 1)
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly more than what is specified.";
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly less than what is specified.";
         }
         else
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly less than what is specified.";
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly more than what is specified.";
         }
         ++dumpTimerPoppedCount;
     }
@@ -2240,11 +2240,11 @@ void WRKQMGR::setHeartbeatDumpPoppedCount(const double pTimerInterval)
     {
         if (heartbeatDumpPoppedCount < 1)
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly more than what is specified.";
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
         }
         else
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly more than what is specified.";
         }
         ++heartbeatDumpPoppedCount;
     }
@@ -2260,11 +2260,11 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
     {
         if (heartbeatTimerPoppedCount < 1)
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly more than what is specified.";
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
         }
         else
         {
-            LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly more than what is specified.";
         }
         ++heartbeatTimerPoppedCount;
     }
@@ -2351,11 +2351,11 @@ void WRKQMGR::setThrottleTimerPoppedCount(const double pTimerInterval)
     {
         if (throttleTimerPoppedCount < 1)
         {
-            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly more than what is specified.";
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
         }
         else
         {
-            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly more than what is specified.";
         }
         ++throttleTimerPoppedCount;
     }

@@ -877,7 +877,7 @@ int ContribIdFile::update_xbbServerFileStatus(const LVKey* pLVKey, BBTransferDef
     LOG(bb,debug) << "ContribIdFile::update_xbbServerFileStatus(): Input " << *pLVKey << ", handle " << pHandle << ", contribid " << pContribId << ", sourceindex " << pExtent->sourceindex << ":" \
                   << " pFlags=0x" << hex << uppercase << pFlags << nouppercase << dec << ", pValue=" << pValue << ", pTransferDef->stopped()=" << pTransferDef->stopped();
 
-    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "ContribIdFile::update_xbbServerContribIdFile");
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "ContribIdFile::update_xbbServerFileStatus");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "ContribIdFile::update_xbbServerFileStatus");
 
     if (pTransferDef->stopped())
