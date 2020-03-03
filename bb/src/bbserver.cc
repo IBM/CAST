@@ -62,12 +62,15 @@ BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
 
 // Timer used to for resize SSD messages sent to bbproxy
-Timer ResizeSSD_Timer;
-double ResizeSSD_TimeInterval;
+// Timer ResizeSSD_Timer;
+// double ResizeSSD_TimeInterval;
 
 // Timer used for throttle intervals
 Timer Throttle_Timer;
+
+// Time intervals for throttle and async reqeust reads (in seconds)
 double Throttle_TimeInterval;
+double AsyncRequestRead_TimeInterval;
 
 // High priority work queue variables
 LVKey HPWrkQE_LVKeyStg;
@@ -240,7 +243,7 @@ void switchIds(txp::Msg* pMsg)
 int getservercfgvalue(const std::string& keyname)
 {
     int rc=0;
-    
+
     bberror<<err("in.process_whoami",process_whoami);
     stringstream errorText;
     if (keyname=="config"){
@@ -250,8 +253,8 @@ int getservercfgvalue(const std::string& keyname)
         boost::property_tree::write_json(result_stream, config, false);
         result_stream << "}}";
         LOG(bb,info)<<"result_stream.str()"<<result_stream.str();
-        bberror.merge(result_stream.str()); 
-    }  
+        bberror.merge(result_stream.str());
+    }
     else if (keyname=="usedirectio"){
         string boolvalue="false";
         if (g_UseDirectIO) boolvalue="true";
@@ -339,7 +342,7 @@ void msgin_getservercfgvalue(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName, response);
     delete response;
-}    
+}
 void msgin_setservercfgvalue(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -379,7 +382,7 @@ void msgin_setservercfgvalue(txp::Id id, const std::string& pConnectionName, txp
     // Send the response
     sendMessage(pConnectionName, response);
     delete response;
-}     
+}
 
 
 #define DELAY_SECONDS 120
@@ -3184,10 +3187,13 @@ int bb_main(std::string who)
 
         // Initialize values to be used by this bbServer instance
         wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
-        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
+//        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
         wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
+        AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
+        wrkqmgr.setAsyncRequestReadTimerPoppedCount(Throttle_TimeInterval);
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " to implement async request read intervals";
         wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
         wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
 
@@ -3204,9 +3210,11 @@ int bb_main(std::string who)
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
         wrkqmgr.setDumpOnRemoveWorkItemInterval((uint64_t)(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItemInterval", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL)));
         wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
+        wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
+        LOG(bb,always) << "Use Async Request Turbo Mode=" << wrkqmgr.getUseAsyncRequestReadTurboMode();
         if (wrkqmgr.getDumpTimerPoppedCount())
         {
-            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " seconds with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
+            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
         }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
@@ -3222,7 +3230,7 @@ int bb_main(std::string who)
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
-            LOG(bb,always) << "Async Remove Interval=" << g_AsyncRemoveJobInfoInterval;
+            LOG(bb,always) << "Async Remove JobInfo Interval=" << g_AsyncRemoveJobInfoInterval << " second(s)";
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
         LOG(bb,always) << "PFS Direct I/O=" << g_UseDirectIO;
@@ -3369,6 +3377,8 @@ int bb_main(std::string who)
             }
         }
 
+        // Initialize the throttle timer and force it to pop immediately
+        Throttle_Timer.init(Throttle_TimeInterval);
         Throttle_Timer.forcePop();
 
         // NOTE: Transfer threads are started here so that async requests

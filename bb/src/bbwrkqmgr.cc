@@ -11,11 +11,13 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-#include <boost/filesystem.hpp>
-#include <sys/stat.h>
+#include <cmath>
 
 #include <stdio.h>
 #include <string.h>
+
+#include <boost/filesystem.hpp>
+#include <sys/stat.h>
 
 #include "bbinternal.h"
 #include "BBLV_Info.h"
@@ -409,7 +411,12 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
                 // NOTE:  Set the file seqnbr/offset to that of the request file we obtained above,
                 //        as we have now enqueued everything up to this point from that request file.
                 setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                processTurboFactorForFoundRequest();
                 LOG(bb,debug) << "checkForNewHPWorkItems(): Found " << l_NumberAdded << " new async requests";
+            }
+            else
+            {
+                processTurboFactorForNotFoundRequest();
             }
         }
         else
@@ -448,12 +455,17 @@ void WRKQMGR::checkThrottleTimer()
 {
     HPWrkQE->lock((LVKey*)0, "checkThrottleTimer");
 
-    if (Throttle_Timer.popped(Throttle_TimeInterval))
+    if (Throttle_Timer.popped())
     {
         LOG(bb,off) << "WRKQMGR::checkThrottleTimer(): Popped";
 
-        // Check/add new high priority work items from the cross bbserver metadata
-        checkForNewHPWorkItems();
+        // See if it is time to check/add new high priority
+        // work items from the cross bbserver metadata
+        if (asyncRequestReadTimerPoppedCount && (++asyncRequestReadTimerCount >= getAsyncRequestReadTimerPoppedCount()))
+        {
+            checkForNewHPWorkItems();
+            asyncRequestReadTimerCount = 0;
+        }
 
         // See if it is time to dump the work manager
         if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
@@ -635,6 +647,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+                            LOG(bb,debug) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            if (useAsyncRequestReadTurboMode)
+                            {
+                                LOG(bb,debug) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
+                            }
 //                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
@@ -671,6 +688,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                                 LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
 //                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
+                            LOG(bb,info) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
+                            if (useAsyncRequestReadTurboMode)
+                            {
+                                LOG(bb,info) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
+                            }
 //                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
@@ -1115,6 +1137,11 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
 
     return rc;
 }
+
+int WRKQMGR::getAsyncRequestReadTimerPoppedCount()
+{
+    return (int)((double)asyncRequestReadTimerPoppedCount * asyncRequestReadTurboFactor);
+};
 
 uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
 {
@@ -2069,6 +2096,51 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
     return;
 }
 
+void WRKQMGR::processTurboFactorForFoundRequest()
+{
+    if (useAsyncRequestReadTurboMode)
+    {
+        if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR)) >= 1)
+        {
+            LOG(bb,info) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
+            asyncRequestReadTurboFactor *= DEFAULT_TURBO_FACTOR;
+        }
+        else
+        {
+            LOG(bb,info) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
+        }
+        asyncRequestReadConsecutiveNoNewRequests = 0;
+    }
+
+    return;
+}
+
+void WRKQMGR::processTurboFactorForNotFoundRequest()
+{
+    if (useAsyncRequestReadTurboMode)
+    {
+        if ((++asyncRequestReadConsecutiveNoNewRequests % DEFAULT_TURBO_CLIP_VALUE) == 0)
+        {
+            if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR)) <= round(AsyncRequestRead_TimeInterval / Throttle_TimeInterval))
+            {
+                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
+                asyncRequestReadTurboFactor /= DEFAULT_TURBO_FACTOR;
+                asyncRequestReadConsecutiveNoNewRequests = 0;
+            }
+            else
+            {
+                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+            }
+        }
+        else
+        {
+            LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Clip value not reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+        }
+    }
+
+    return;
+}
+
 void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved)
 {
     if (pWrkQE)
@@ -2186,14 +2258,40 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     return rc;
 }
 
+void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
+{
+    asyncRequestReadTimerPoppedCount = (int64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
+    if (((double)asyncRequestReadTimerPoppedCount)*pTimerInterval != AsyncRequestRead_TimeInterval)
+    {
+        if (asyncRequestReadTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly more than what is specified.";
+        }
+        ++asyncRequestReadTimerPoppedCount;
+    }
+
+    return;
+}
+
 void WRKQMGR::setDumpTimerPoppedCount(const double pTimerInterval)
 {
     double l_DumpTimeInterval = config.get("bb.bbserverDumpWorkQueueMgr_TimeInterval", DEFAULT_DUMP_MGR_TIME_INTERVAL);
     dumpTimerPoppedCount = (int64_t)(l_DumpTimeInterval/pTimerInterval);
     if (((double)dumpTimerPoppedCount)*pTimerInterval != (double)(l_DumpTimeInterval))
     {
+        if (dumpTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly more than what is specified.";
+        }
         ++dumpTimerPoppedCount;
-        LOG(bb,warning) << "Dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dumpping rates may be implemented as slightly less than what is specified.";
     }
 
     return;
@@ -2205,8 +2303,15 @@ void WRKQMGR::setHeartbeatDumpPoppedCount(const double pTimerInterval)
     heartbeatDumpPoppedCount = (int64_t)(l_HeartbeatDumpInterval/pTimerInterval);
     if (((double)heartbeatDumpPoppedCount)*pTimerInterval != (double)(l_HeartbeatDumpInterval))
     {
+        if (heartbeatDumpPoppedCount < 1)
+        {
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly more than what is specified.";
+        }
         ++heartbeatDumpPoppedCount;
-        LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
     }
 
     return;
@@ -2218,8 +2323,15 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
     heartbeatTimerPoppedCount = (int64_t)(l_HeartbeatTimeInterval/pTimerInterval);
     if (((double)heartbeatTimerPoppedCount)*pTimerInterval != (double)(l_HeartbeatTimeInterval))
     {
+        if (heartbeatTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly more than what is specified.";
+        }
         ++heartbeatTimerPoppedCount;
-        LOG(bb,warning) << "Dump timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
     }
 
     // Currently, for a restart transfer operation, we will wait a total
@@ -2302,8 +2414,15 @@ void WRKQMGR::setThrottleTimerPoppedCount(const double pTimerInterval)
     throttleTimerPoppedCount = (int)(1.0/pTimerInterval);
     if (((double)throttleTimerPoppedCount)*pTimerInterval != (double)1.0)
     {
+        if (throttleTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly more than what is specified.";
+        }
         ++throttleTimerPoppedCount;
-        LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
     }
 
     return;

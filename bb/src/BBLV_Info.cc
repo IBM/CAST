@@ -1278,6 +1278,7 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
 
 void BBLV_Info::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight)
 {
+    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBLV_Info::updateTransferStatus");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Info::updateTransferStatus");
 
     // NOTE:  The following method retrieves its information from the xbbServer metadata...
@@ -1302,7 +1303,14 @@ void BBLV_Info::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInf
 
     if (l_LocalMetadataLocked)
     {
+        l_LocalMetadataLocked = 0;
         unlockLocalMetadata(pLVKey, "BBLV_Info::updateTransferStatus");
+    }
+
+    if (l_TransferQueueUnlocked)
+    {
+        l_TransferQueueUnlocked = 0;
+        lockTransferQueue(pLVKey, "BBLV_Info::updateTransferStatus");
     }
 
     return;

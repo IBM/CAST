@@ -1,17 +1,19 @@
 {
 	"bb" :
 	{
-		"nvmecliPath"                  : "/usr/sbin/nvme",
-		"unixpath"                     : "/run/bb_socket@USERSUFFIX@",
-		"bbserverMetadataPath"         : "@METADATAPATH@",
-		"bbserverFileIOwarnSeconds"    : 20,
-		"bbserverFileIOStuckSeconds"   : 60,
-		"usekeepalive"                 : true,
-		"keepaliveidle"                : 60,
-		"keepalivecount"               : 12,
-		"keepaliveinterval"            : 5,
-		"numHandlefileBuckets"         : 4096,
-		"bbserverAsyncRemoveJobInfoInterval" : 28800,
+		"nvmecliPath"                          : "/usr/sbin/nvme",
+		"unixpath"                             : "/run/bb_socket@USERSUFFIX@",
+		"bbserverMetadataPath"                 : "@METADATAPATH@",
+		"bbserverFileIOwarnSeconds"            : 20,
+		"bbserverFileIOStuckSeconds"           : 60,
+		"usekeepalive"                         : true,
+		"keepaliveidle"                        : 60,
+		"keepalivecount"                       : 12,
+		"keepaliveinterval"                    : 5,
+		"numHandlefileBuckets"                 : 4096,
+		"bbserverThrottle_TimeInterval"        : 0.25,
+		"bbserverAsyncRequestRead_TimeInterval": 25.00,
+		"bbserverAsyncRemoveJobInfoInterval"   : 28800,
 
 		"scripts" :
 		{
@@ -21,17 +23,18 @@
 
 		"server0" :
 		{
-			"ssladdress"               : "0.0.0.0:@SSLPORT@",
-			"numRequestThreads"        : 64,
-			"numTransferThreads"       : 32,
-			"workerBufferSize"         : 134217728,
-			"flightlog"                : "/var/log/bbserver@USERSUFFIX@",
-			"sslcertif"                : "/etc/ibm/cert.pem",
-			"sslpriv"                  : "/etc/ibm/key.pem",
-			"SSDReadGovernor"          : 0,
-			"SSDWriteGovernor"         : 0,
-			"usedirectio"              : false,
-			"IBStatsLowActivityRate"   : 0.25,
+			"ssladdress"                   : "0.0.0.0:@SSLPORT@",
+			"numRequestThreads"            : 64,
+			"numTransferThreads"           : 32,
+			"workerBufferSize"             : 134217728,
+			"flightlog"                    : "/var/log/bbserver@USERSUFFIX@",
+			"sslcertif"                    : "/etc/ibm/cert.pem",
+			"sslpriv"                      : "/etc/ibm/key.pem",
+			"SSDReadGovernor"              : 0,
+			"SSDWriteGovernor"             : 0,
+			"usedirectio"                  : false,
+            "useAsyncRequestReadTurboMode" : 1,
+			"IBStatsLowActivityRate"       : 0.25,
 			"log" :
 			{
 				"consoleLog"   : @USECONSOLE@,

@@ -1110,7 +1110,7 @@ int BBLV_ExtentInfo::sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtent
             LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         }
 
-#if BBSERVER
+#if 0 && BBSERVER
         // Cause the ResizeSSD_Timer to pop on the first transfered extent.
         // NOTE:  We set it whether or not we are resizing the SSD during stageout.
         ResizeSSD_Timer.forcePop();
