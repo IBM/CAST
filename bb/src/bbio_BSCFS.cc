@@ -744,6 +744,8 @@ int BBIO_BSCFS::fsync(uint32_t pFileIndex)
     }
     else if (pFileIndex == sharedFileIndex)
     {
+	    FL_Write(FLBSCFS, BSCFS_FSYNC, "BSCFS %p.  fsync(%d)", (uint64_t) this, sharedFileHandle->getfd(), 0,0);
+
         threadLocalTrackSyscallPtr = getSysCallTracker();
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, sharedFileHandle->getfd(), __LINE__);
         (void) ::fsync(sharedFileHandle->getfd());
@@ -775,6 +777,8 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 	    ERROR("Arriving index too large");
 	    return -1;
 	}
+		FL_Write(FLBSCFS, BSCFS_Add2Index, "BSCFS %p.  Adding %ld bytes to BSCFS index", (uint64_t) this, pMaxBytesToWrite,0,0);
+
 	memcpy(((char*) index) + pOffset, pBuffer, pMaxBytesToWrite);
     }
     else if (pFileIndex == sharedFileIndex)
@@ -822,6 +826,8 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 		// as we can from the buffer to the shared file
 		chunk = end - offset;
 		if (chunk > remainder) chunk = remainder;
+
+	    FL_Write(FLBSCFS, BSCFS_SWrite, "BSCFS %p.  pwrite(fd=%d, size=%ld, offset=%lx)", (uint64_t) this, sharedFileHandle->getfd(), chunk, m->sf_offset + (offset - m->df_offset));
 
 		threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, sharedFileHandle->getfd(),__LINE__,chunk ,m->sf_offset + (offset - m->df_offset));
 		ssize_t rc = ::pwrite(sharedFileHandle->getfd(), buffer, chunk,
