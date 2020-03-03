@@ -963,6 +963,33 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
                 continue;
             }
 
+#define PFS_PAGE_SIZE  (16*1024*1024)
+            if((l_Start & (PFS_PAGE_SIZE - 1)) != 0)
+            {
+                FL_Write6(FLExtents, PFSUnaligned, "PFS unaligned extent.  File descriptor %ld extent #%ld:  0x%lx for 0x%lx bytes.  Start LBA=0x%lx   rc=%ld", fd, x, l_Start, l_Length, l_LBA_Start, rc);
+                
+                // not aligned on PFS boundary, fixup
+                Extent hiccup_extent = input;
+                hiccup_extent.lba.start = l_LBA_Start;
+                hiccup_extent.start = l_Start;
+                hiccup_extent.len = MIN(l_Length, PFS_PAGE_SIZE - (l_Start & (PFS_PAGE_SIZE - 1)));
+
+                l_LBA_Start += hiccup_extent.len;
+                l_Start     += hiccup_extent.len;
+                l_Length    -= hiccup_extent.len;
+                if ((hiccup_extent.flags & BBI_TargetPFS) != 0)
+                {
+                    bytesRead += hiccup_extent.len;
+                }
+                if ((hiccup_extent.flags & BBI_TargetSSD) != 0)
+                {
+                    bytesWritten += hiccup_extent.len;
+                }
+                lookup.translate(hiccup_extent, result);
+
+                FL_Write6(FLExtents, PFSAlignment, "New extent information:  File descriptor %ld extent #%ld:  0x%lx for 0x%lx bytes.  Start LBA=0x%lx   rc=%ld", fd, x, l_Start, l_Length, l_LBA_Start, rc);
+            }
+
             Extent tmp = input;
             tmp.lba.start = l_LBA_Start;
             tmp.start = l_Start;
