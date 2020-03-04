@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         rc = BSCFS_Forget(Chkpnt(n));
         Check(rc == 0, "BSCFS_Forget(%s) failed", Chkpnt(n), errno);
         
-        if (Rank == 0) 
+        if ((Rank == 0) && (KeepAll == 0))
         {
             // delete superseded checkpoint
             rc = unlink(ChkpntPFS(n));
