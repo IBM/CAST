@@ -44,11 +44,13 @@ using namespace std;
 #include "bbinternal.h"
 #include "BBTransferDef.h"
 #include "logging.h"
+#include "bbcounters.h"
 
 #define NAME "bbAPI"
 
 // External data
 string ProcessId = DEFAULT_PROXY_NAME;
+unsigned long bbcounters[BB_COUNTER_MAX];
 
 #ifdef TXP_DEVELOPMENT
 txp::Log bbapi_log(txp::Log::DEFAULT_LOG_DESTINATION, txp::Log::DEFAULT_OPEN_LOGSTATE, txp::Log::DEBUG_LOGLEVEL);
