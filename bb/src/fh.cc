@@ -202,15 +202,15 @@ int numActiveFileTransfers(uint64_t jobid, uint64_t handle, uint64_t& count)
     return 0;
 }
 
-uint32_t filehandle::getNumExtents() const 
-{ 
+uint32_t filehandle::getNumExtents() const
+{
     unsigned count = 0;
-    if(extlookup) 
-    { 
+    if(extlookup)
+    {
         extlookup->size(count);
         return count;
-    } 
-    return 0; 
+    }
+    return 0;
 }
 
 int getActiveFileTransfers()
@@ -223,7 +223,7 @@ int getActiveFileTransfers()
     FileHandleRegistryLock();
     int index = 0;
     for (const auto& fhentry : fhregistry)
-    {        
+    {
         prefix  = string("out.file");
         prefix += string(".") + to_string(index) + string(".");
 
@@ -410,21 +410,32 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
     restartInProgress = false;
     privateData = NULL;
     openErrno = 0;
+#if (BBSERVER || BBPROXY)
+    uint64_t l_Time = 0;
+#endif
 
     LOG(bb,debug) << "Opening file " << filename << " with flag=" << oflag << " and mode=0" << std::oct << mode << std::dec;
 
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
 #if (BBSERVER || BBPROXY)
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
+    BB_GetTime(l_Time);
 #endif
     fd = open(filename.c_str(), oflag | O_CLOEXEC, mode);
 #if (BBSERVER || BBPROXY)
+    BB_GetTimeDifference(l_Time);
     threadLocalTrackSyscallPtr->clearTrack();
 #endif
     if (fd >= 0)
     {
+#if (BBSERVER || BBPROXY)
+        LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=0" \
+                     << std::oct << mode << std::dec << ", time=" << (double)l_Time/(double)g_TimeBaseScale << " seconds";
+        FL_Write(FLProxy, OpenFile_OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld ticks=%ld",(uint64_t)fd,oflag,mode,l_Time);
+#else
         LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=0" << std::oct << mode << std::dec;
-        FL_Write(FLProxy, OpenFile_OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld",(uint64_t)fd,oflag,mode,0);
+        FL_Write(FLProxy, OpenFile__OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld",(uint64_t)fd,oflag,mode,0);
+#endif
         if(filename == "/dev/zero")
         {
             isdevzero = true;
@@ -451,12 +462,26 @@ filehandle::~filehandle()
 
 int filehandle::close()
 {
+#if (BBSERVER || BBPROXY)
+    uint64_t l_Time = 0;
+#endif
     if (fd >= 0)
     {
-        LOG(bb,info) << "Closing file " << filename << ", fd=" << fd;
-        FL_Write(FLProxy, CloseFile, "Close for filehandle %ld",(uint64_t)fd,0,0,0);
+#if (BBSERVER || BBPROXY)
+        BB_GetTime(l_Time);
+#endif
         ::close(fd);
+#if (BBSERVER || BBPROXY)
+        BB_GetTimeDifference(l_Time);
+#endif
         fd = -1;
+#if (BBSERVER || BBPROXY)
+        LOG(bb,info) << "Closed file " << filename << ", fd=" << fd << ", time=" << (double)l_Time/(double)g_TimeBaseScale << " seconds";
+        FL_Write(FLProxy, CloseFile, "Close for filehandle %ld, ticks %ld",(uint64_t)fd,l_Time,0,0);
+#else
+        LOG(bb,info) << "Closing file " << filename << ", fd=" << fd;
+        FL_Write(FLProxy, CloseFile_, "Close for filehandle %ld",(uint64_t)fd,0,0,0);
+#endif
     }
 
     return 0;
@@ -497,16 +522,22 @@ void filehandle::dump(const char* pSev, const char* pPrefix) {
 }
 
 int filehandle::getstats(struct stat& statbuf)
-{   int rc = 0;
+{
+    int rc = 0;
+#if (BBSERVER || BBPROXY)
+    uint64_t l_Time = 0;
+#endif
 
     if(fd >= 0)
     {
         FL_Write(FLXfer, BBIOR_FSTAT, "Calling fstat(%ld)",fd,0,0,0);
 #if (BBSERVER || BBPROXY)
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fstatsyscall, fd,__LINE__);
+        BB_GetTime(l_Time);
 #endif
         rc = fstat(fd, &statinfo);
 #if (BBSERVER || BBPROXY)
+        BB_GetTimeDifference(l_Time);
         threadLocalTrackSyscallPtr->clearTrack();
 #endif
         FL_Write6(FLXfer, BBIOR_FSTATCMP, "Called fstat(%ld) rc=%ld errno=%ld size=%ld", fd, rc, errno, statinfo.st_size,0,0);
@@ -517,7 +548,14 @@ int filehandle::getstats(struct stat& statbuf)
                 statinfo.st_size = get_devzerosize();
                 LOG(bb,info) << "getstats(): Size of /dev/zero artifically set to " << statinfo.st_size << "  " << process_whoami+".devzerosize";
             }
-            LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+#if (BBSERVER || BBPROXY)
+            LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" \
+                         << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size \
+                         << ", time=" << (double)l_Time/(double)g_TimeBaseScale << " seconds" << ", rc=" << rc << ", errno=" << errno;
+#else
+            LOG(bb,info) << "getstats(): fstat(" << fd << "), for " << filename << ", st_dev=" << statinfo.st_dev << ", st_mode=0" \
+                         << std::oct << statinfo.st_mode << std::dec << ", st_size=" << statinfo.st_size << ", rc=" << rc << ", errno=" << errno;
+#endif
             statbuf = statinfo;
         }
         else
@@ -967,7 +1005,7 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
             if((l_Start & (PFS_PAGE_SIZE - 1)) != 0)
             {
                 FL_Write6(FLExtents, PFSUnaligned, "PFS unaligned extent.  File descriptor %ld extent #%ld:  0x%lx for 0x%lx bytes.  Start LBA=0x%lx   rc=%ld", fd, x, l_Start, l_Length, l_LBA_Start, rc);
-                
+
                 // not aligned on PFS boundary, fixup
                 Extent hiccup_extent = input;
                 hiccup_extent.lba.start = l_LBA_Start;
