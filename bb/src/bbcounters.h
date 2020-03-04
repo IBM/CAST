@@ -25,6 +25,9 @@ MKBBCOUNTER(unlink)
 MKBBCOUNTER(xstat)
 MKBBCOUNTER(xstat64)
 MKBBCOUNTER(statvfs64)
+MKBBCOUNTER(inbound_message)
+MKBBCOUNTER(bbio_bscfs_write)
+MKBBCOUNTER(bbio_bscfs_write_bytes)
 
 #ifdef BBCOUNTERS_INIT
     BB_COUNTER_MAX
@@ -32,8 +35,10 @@ MKBBCOUNTER(statvfs64)
 extern unsigned long bbcounters[BB_COUNTER_MAX];
 #ifdef __powerpc64__
 #define BUMPCOUNTER(id) Fetch_and_Add(&bbcounters[BB_COUNTERS_##id], 1)
+#define BUMPCOUNTER_by(id,amount) Fetch_and_Add(&bbcounters[BB_COUNTERS_##id], amount)
 #else
 #define BUMPCOUNTER(id) 
+#define BUMPCOUNTER_by(id,amount) 
 #endif
 #endif
 #undef MKBBCOUNTER
