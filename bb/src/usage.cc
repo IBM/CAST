@@ -637,7 +637,7 @@ void* diskstatsMonitorThread(void* ptr)
                     }
                 }
             }
-            #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters[BB_COUNTERS_##id] = bbcounters_shadow[BB_COUNTERS_##id]; }
+            #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters_shadow[BB_COUNTERS_##id] = bbcounters[BB_COUNTERS_##id]; }
             #include "bbcounters.h"
         }
         catch(ExceptionBailout& e)

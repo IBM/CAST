@@ -20,6 +20,7 @@
 #include "bbserver_flightlog.h"
 #include "bscfs_mapfile.h"
 #include "tracksyscall.h"
+#include "bbcounters.h"
 
 #define ERROR(text) { \
     stringstream errorText; \
@@ -744,7 +745,7 @@ int BBIO_BSCFS::fsync(uint32_t pFileIndex)
     }
     else if (pFileIndex == sharedFileIndex)
     {
-	    FL_Write(FLBSCFS, BSCFS_FSYNC, "BSCFS %p.  fsync(%d)", (uint64_t) this, sharedFileHandle->getfd(), 0,0);
+	    FL_Write(FLBSCFS, BSCFS_FSYNC, "BSCFS %p (index=%d).  fsync(%d)", (uint64_t) this, pFileIndex, sharedFileHandle->getfd(), 0);
 
         threadLocalTrackSyscallPtr = getSysCallTracker();
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fsyncsyscall, sharedFileHandle->getfd(), __LINE__);
@@ -777,7 +778,7 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 	    ERROR("Arriving index too large");
 	    return -1;
 	}
-		FL_Write(FLBSCFS, BSCFS_Add2Index, "BSCFS %p.  Adding %ld bytes to BSCFS index", (uint64_t) this, pMaxBytesToWrite,0,0);
+		FL_Write(FLBSCFS, BSCFS_Add2Index, "BSCFS %p (index %d).  Adding %ld bytes to BSCFS index", (uint64_t) this, pFileIndex, pMaxBytesToWrite,0);
 
 	memcpy(((char*) index) + pOffset, pBuffer, pMaxBytesToWrite);
     }
@@ -828,6 +829,8 @@ ssize_t BBIO_BSCFS::pwrite(uint32_t pFileIndex, const char* pBuffer,
 		if (chunk > remainder) chunk = remainder;
 
 	    FL_Write(FLBSCFS, BSCFS_SWrite, "BSCFS %p.  pwrite(fd=%d, size=%ld, offset=%lx)", (uint64_t) this, sharedFileHandle->getfd(), chunk, m->sf_offset + (offset - m->df_offset));
+		BUMPCOUNTER(bbio_bscfs_write);
+		BUMPCOUNTER_by(bbio_bscfs_write_bytes, chunk);
 
 		threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::pwritesyscall, sharedFileHandle->getfd(),__LINE__,chunk ,m->sf_offset + (offset - m->df_offset));
 		ssize_t rc = ::pwrite(sharedFileHandle->getfd(), buffer, chunk,

@@ -48,6 +48,7 @@ namespace po = boost::program_options;
 
 #include "bbinternal.h"
 #include "logging.h"
+#include "bbcounters.h"
 
 thread_local BBHandler bberror;
 thread_local std::string bbconnectionName;
@@ -1842,6 +1843,7 @@ void* responseThread(void* ptr)
             {
                 if(pollinfo[idx].revents & POLLIN)
                 {
+                    BUMPCOUNTER(inbound_message);
                     FL_Write(FLConn, FL_POLLIN, "Data available on %ld (fd=%ld)  revents=%lx",
                              idx, pollinfo[idx].fd, pollinfo[idx].revents,0);
 
