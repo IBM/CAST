@@ -22,6 +22,9 @@
 #include "tracksyscall.h"
 #include "bbcounters.h"
 
+FL_SetName(FLBSCFS, "BSCFS Flightlog")
+FL_SetSize(FLBSCFS, 16384)
+
 #define ERROR(text) { \
     stringstream errorText; \
     errorText << text; \
