@@ -23,11 +23,12 @@ namespace bfs = boost::filesystem;
 namespace bs = boost::system;
 
 #include "bberror.h"
+#include "bbinternal.h"
 #include "BBLV_ExtentInfo.h"
 #include "BBTransferDef.h"
-#include "bbinternal.h"
-#include "TagInfo.h"
 #include "bbwrkqmgr.h"
+#include "TagInfo.h"
+#include "xfer.h"
 
 
 //
@@ -61,7 +62,7 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
     // It is possible to enter this section of code without the local metadata locked.
     // Inserting into a std::map is not thread safe, so we must acquire the lock around
     // the insert.
-    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::getTagInfo");
+    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::addTagInfo");
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::addTagInfo");
 
     tagInfoMap[pTagId] = *pTagInfo;
@@ -74,7 +75,7 @@ int BBTagInfoMap::addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagI
 
     if (l_TransferQueueWasUnlocked)
     {
-        lockTransferQueue((LVKey*)0, "BBTagInfoMap::getTagInfo");
+        lockTransferQueue(pLVKey, "BBTagInfoMap::addTagInfo");
     }
 
     if (pGeneratedHandle) {
@@ -88,18 +89,112 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
 {
     stringstream l_JobStr;
 
-    // For each TagId, cleanup each transfer definition...
-    auto it = tagInfoMap.begin();
-    while (it != tagInfoMap.end()) {
-        it->second.cleanUpAll(pLVKey, it->first);
-        if (!l_JobStr.str().size()) {
-            it->first.getJob().getStr(l_JobStr);
+    try
+    {
+        // For each TagId, cleanup each transfer definition...
+        auto it = tagInfoMap.begin();
+        while (it != tagInfoMap.end())
+        {
+            it->second.cleanUpAll(pLVKey, it->first);
+            if (!l_JobStr.str().size())
+            {
+                it->first.getJob().getStr(l_JobStr);
+            }
+            LOG(bb,debug) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
+                          << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
+                          << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
+                          << ") removed from " << *pLVKey;
+            it = tagInfoMap.erase(it);
         }
-        LOG(bb,debug) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
-                      << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
-                      << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
-                      << ") removed from " << *pLVKey;
-        it = tagInfoMap.erase(it);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
+    }
+
+    return;
+}
+
+void BBTagInfoMap::cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    stringstream l_JobStr;
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataWasLocked = 0;
+
+    try
+    {
+        if (!localMetadataIsLocked())
+        {
+            l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::cleanUpContribId");
+            lockLocalMetadata(pLVKey, "BBTagInfoMap::cleanUpContribId");
+            l_LocalMetadataWasLocked = 1;
+        }
+
+        BBTagInfo* l_TagInfo = getTagInfo(pTagId);
+        if (l_TagInfo)
+        {
+            l_TagInfo->cleanUpContribId(pLVKey, pTagId, pHandle, pContribId);
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
+    }
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::cleanUpContribId");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue(pLVKey, "BBTagInfoMap::cleanUpContribId");
+    }
+
+    return;
+}
+
+void BBTagInfoMap::cleanUpTagInfo(const LVKey* pLVKey, const BBTagID& pTagId)
+{
+    stringstream l_JobStr;
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataWasLocked = 0;
+
+    try
+    {
+        if (!localMetadataIsLocked())
+        {
+            l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded((LVKey*)0, "BBTagInfoMap::cleanUpTagInfo");
+            lockLocalMetadata(pLVKey, "BBTagInfoMap::cleanUpTagInfo");
+            l_LocalMetadataWasLocked = 1;
+        }
+
+        BBTagInfo* l_TagInfo = getTagInfo(pTagId);
+        l_TagInfo->cleanUpAll(pLVKey, pTagId);
+
+        pTagId.getJob().getStr(l_JobStr);
+        LOG(bb,info) << "taginfo: TagId(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
+                     << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->getTransferHandle() \
+                     << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->getTransferHandle() \
+                     << ") removed from " << *pLVKey;
+        tagInfoMap.erase(pTagId);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
+    }
+
+    if (l_LocalMetadataWasLocked)
+    {
+        unlockLocalMetadata(pLVKey, "BBTagInfoMap::cleanUpTagInfo");
+    }
+
+    if (l_TransferQueueWasUnlocked)
+    {
+        lockTransferQueue(pLVKey, "BBTagInfoMap::cleanUpTagInfo");
     }
 
     return;
@@ -331,14 +426,20 @@ int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentIn
     return rc;
 }
 
-void BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
+    int rc = 0;
+
     for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pLV_Info, it->first, pHandle, pAppendAsyncRequestFlag, pStatus);
+        // NOTE: If the message was sent for this BBTagInfo, restart the iterator,
+        //       as the current BBTagInfo was, or is in the process, of being removed
+        //       from the map.
+        int rc2 = it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pLV_Info, it->first, pHandle, pAppendAsyncRequestFlag, pStatus);
+        rc = (rc2 ? rc2 : rc);
     }
 
-    return;
+    return rc;
 }
 
 void BBTagInfoMap::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle)
@@ -363,30 +464,6 @@ int BBTagInfoMap::stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const s
     }
 
     return rc;
-}
-
-void BBTagInfoMap::updateAllContribsReported(const LVKey* pLVKey, int& pAllReported)
-{
-    pAllReported = 0;
-
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfoMap::updateAllContribsReported");
-
-    int l_AllReported = 1;
-    for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it) {
-        if (!(it->second.allContribsReported())) {
-            l_AllReported = 0;
-            break;
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
-    {
-        unlockLocalMetadata(pLVKey, "BBTagInfoMap::updateAllContribsReported");
-    }
-
-    pAllReported = l_AllReported;
-
-    return;
 }
 
 int BBTagInfoMap::updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight)

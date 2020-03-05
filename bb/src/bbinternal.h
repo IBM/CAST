@@ -327,6 +327,20 @@ enum XBBSERVER_JOB_EXISTS_OPTION
 };
 typedef enum XBBSERVER_JOB_EXISTS_OPTION XBBSERVER_JOB_EXISTS_OPTION;
 
+enum PERFORM_CONTRIBID_CLEANUP_OPTION
+{
+    DO_NOT_PERFORM_CONTRIBID_CLEANUP  = 0,
+    PERFORM_CONTRIBID_CLEANUP         = 1
+};
+typedef enum PERFORM_CONTRIBID_CLEANUP_OPTION PERFORM_CONTRIBID_CLEANUP_OPTION;
+
+enum PERFORM_TAGINFO_CLEANUP_OPTION
+{
+    DO_NOT_PERFORM_TAGINFO_CLEANUP  = 0,
+    PERFORM_TAGINFO_CLEANUP         = 1
+};
+typedef enum PERFORM_TAGINFO_CLEANUP_OPTION PERFORM_TAGINFO_CLEANUP_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/

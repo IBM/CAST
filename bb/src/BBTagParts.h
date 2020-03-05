@@ -43,6 +43,7 @@ class BBTagParts
     int addTransferDef(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTransferDef* &pTransferDef);
     int canceled(BBTagInfo* pTagInfo, const uint32_t pContribId);
     void cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId);
+    void cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId);
     void dump(const char* pSev);
     int failed(BBTagInfo* pTagInfo, const uint32_t pContribId);
     BBJob getJob(BBTagInfo* pTagInfo, const uint32_t pContribId);

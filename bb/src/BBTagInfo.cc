@@ -82,7 +82,7 @@ int BBTagInfo::compareContrib(const uint64_t pNumContrib, const uint32_t pContri
     return rc;
 }
 
-void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib, bool& guaranteeUnique) 
+void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib, bool& guaranteeUnique)
 {
     if((pContrib.size() == 1) && (serverIdentifier != 0))  //  serverIdentifier=0 means disabled opt
     {
@@ -206,7 +206,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
 
                 if (!rc)
                 {
-                    if(1)       // todo, remove this nested level.  
+                    if(1)       // todo, remove this nested level.
                     {
                         if (l_LocalMetadataLocked)
                         {
@@ -507,7 +507,7 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                     }
                     if (pTransferDef->allExtentsTransferred())
                     {
-                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
+                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pHandle, pContribId, pTransferDef);
 
                         int l_NewStatus = 0;
                         Extent l_Extent = Extent();
@@ -846,14 +846,16 @@ int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo*
     return rc;
 }
 
-void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
+    int rc = 0;
+
     if (pHandle == transferHandle)
     {
-        pLV_Info->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
+        rc = pLV_Info->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
-    return;
+    return rc;
 }
 
 void BBTagInfo::setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue)

@@ -84,7 +84,7 @@ class BBTagInfo
     int inExpectContrib(const uint32_t pContribId);
     int prepareForRestart(const std::string& pConnectionName, const LVKey* pLVKey, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* l_OrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus);
+    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus);
     void setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue=1);
     void setCanceledForHandle(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
@@ -115,6 +115,12 @@ class BBTagInfo
 
     inline void cleanUpAll(const LVKey* pLVKey, const BBTagID& pTagId) {
         parts.cleanUpAll(pLVKey, pTagId);
+
+        return;
+    }
+
+    inline void cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId) {
+        parts.cleanUpContribId(pLVKey, pTagId, pHandle, pContribId);
 
         return;
     }

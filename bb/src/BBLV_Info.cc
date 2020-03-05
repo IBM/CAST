@@ -427,13 +427,15 @@ int BBLV_Info::recalculateFlags(const string& pConnectionName, const LVKey* pLVK
     return rc;
 }
 
-void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists)
+void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists)
 {
     stringstream errorText;
 
     const uint32_t THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE = 1;
     uint64_t l_Time;
     bool l_UpdateTransferStatus = false;
+    PERFORM_CONTRIBID_CLEANUP_OPTION l_PerformContribIdCleanup = DO_NOT_PERFORM_CONTRIBID_CLEANUP;
+    PERFORM_TAGINFO_CLEANUP_OPTION l_PerformTagInfoCleanup = DO_NOT_PERFORM_TAGINFO_CLEANUP;
     int l_LocalMetadataLocked = 0;
     int l_LocalMetadataUnlocked = 0;
 
@@ -607,7 +609,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     if (l_UpdateTransferStatus)
     {
         // Update any/all transfer status
-        updateAllTransferStatus(pConnectionName, pLVKey, pExtentInfo, THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, pJobExists);
+        updateAllTransferStatus(pConnectionName, pLVKey, pTagId, pTagInfo, pExtentInfo, THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, pJobExists, l_PerformTagInfoCleanup, l_PerformContribIdCleanup);
 
         // NOTE: The handle status does not need to be updated here, as it is updated as part of updating the ContribIdFile
         //       when updateAllTransferStatus() is invoked above.
@@ -621,6 +623,17 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     //        during that time.
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
+
+    // NOTE: If TagInfo cleanup is performed, there is no need to perform ContribId cleanup.
+    //       TagInfo cleanup will have already cleaned up the contribids...
+    if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
+    {
+        tagInfoMap.cleanUpTagInfo(pLVKey, pTagId);
+    }
+    else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
+    {
+        tagInfoMap.cleanUpContribId(pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+    }
 
     // We have to return with the same lock states as when we entered this code
     if (l_LocalMetadataLocked)
@@ -662,7 +675,7 @@ int BBLV_Info::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef)
+void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_CONTRIBID, l_Complete);
@@ -926,8 +939,9 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     return;
 }
 
-void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
 {
+    int rc = 0;
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_HANDLE, l_Complete);
 
@@ -994,8 +1008,8 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
         l_Complete->addAttribute(txp::status, (int64_t)l_Status);
 
         // Send the message
-        int rc = sendMessage(pConnectionName,l_Complete);
-        if (rc) LOG(bb,info) << "sendMessage rc="<<rc<<" @ func="<<__func__<<":"<<__LINE__;
+        int rc2 = sendMessage(pConnectionName,l_Complete);
+        if (rc2) LOG(bb,info) << "sendMessage rc2=" << rc2 << " @ func=" << __func__ << ":" << __LINE__;
 
         // Determine if this status update for the handle should be appended to the async file
         // to be consumed by other bbServers
@@ -1011,7 +1025,7 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
                 {
                     // Communicate this handle status change to other bbServers by
                     // posting this request to the async request file.
-                    // NOTE: Regardless of the rc, post the async request...
+                    // NOTE: Regardless of the rc2, post the async request...
                     // NOTE: No need to catch the return code.  If the append doesn't work,
                     //       appendAsyncRequest() will log the failure...
                     char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
@@ -1030,11 +1044,12 @@ void BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const 
                 LOG(bb,debug) << "sendTransferCompleteForHandleMsg(): No need to append an async request as there is only a single contributor for handle " << pHandle;
             }
         }
+        rc = 1;
     }
 
     delete l_Complete;
 
-    return;
+    return rc;
 }
 
 void BBLV_Info::setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, ExtentInfo& pExtentInfo, const BBTagID pTagId, const int pValue)
@@ -1118,18 +1133,8 @@ int BBLV_Info::stopTransfer(const LVKey* pLVKey, const string& pHostName, const 
     return rc;
 }
 
-void BBLV_Info::updateAllContribsReported(const LVKey* pLVKey)
-{
-    int l_AllContribsReported = 0;
-    tagInfoMap.updateAllContribsReported(pLVKey, l_AllContribsReported);
-    if (l_AllContribsReported) {
-        setAllContribsReported(pLVKey);
-    }
-
-    return;
-}
-
-int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight, const XBBSERVER_JOB_EXISTS_OPTION pJobExists)
+int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight,
+                                       const XBBSERVER_JOB_EXISTS_OPTION pJobExists, PERFORM_TAGINFO_CLEANUP_OPTION& pPerformTagInfoCleanup, PERFORM_CONTRIBID_CLEANUP_OPTION& pPerformContribIdCleanup)
 {
     int rc = 0;
 
@@ -1239,7 +1244,11 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     {
         if (!l_TransferDef->stopped())
         {
-            sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef);
+            sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef);
+            if (pTagInfo->allContribsReported())
+            {
+                pPerformContribIdCleanup = PERFORM_CONTRIBID_CLEANUP;
+            }
         }
 
         // Status changed for transfer definition...
@@ -1256,7 +1265,10 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
                 // Send the transfer is complete for this handle message to bbProxy
                 string l_HostName;
                 activecontroller->gethostname(l_HostName);
-                metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle());
+                if (metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle()))
+                {
+                    pPerformTagInfoCleanup = PERFORM_TAGINFO_CLEANUP;
+                }
             }
 
             // Check/update the status for the LVKey

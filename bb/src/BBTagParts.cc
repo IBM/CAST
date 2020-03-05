@@ -11,6 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include <map>
+
 #include "bbinternal.h"
 #include "bbserver_flightlog.h"
 #include "BBLV_Info.h"
@@ -171,6 +173,36 @@ void BBTagParts::cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId)
         LOG(bb,debug) << "taginfo: Contrib(" << it->first << ") removed from TagId(" << l_JobStr.str() << "," << pTagId.getTag() \
                       << ") for " << *pLVKey;
         it = tagParts.erase(it);
+    }
+
+    return;
+}
+
+void BBTagParts::cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    try
+    {
+        map<uint32_t, BBTransferDef>::iterator it;
+        it = tagParts.find(pContribId);
+        if (it != tagParts.end())
+        {
+            it->second.cleanUp();
+
+            stringstream l_JobStr;
+            pTagId.getJob().getStr(l_JobStr);
+            LOG(bb,info) << "taginfo: ContribId " << pContribId << ", TagId(" << l_JobStr.str() \
+                         << "," << pTagId.getTag() << ") with handle 0x" \
+                         << hex << uppercase << setfill('0') << setw(16) << pHandle \
+                         << setfill(' ') << nouppercase << dec << " (" << pHandle \
+                         << ") removed from " << *pLVKey;
+
+            tagParts.erase(it);
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
     }
 
     return;

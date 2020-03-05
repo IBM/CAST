@@ -1035,15 +1035,17 @@ int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
+int BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
 {
+    int rc = 0;
     int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
 
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
+        int rc2 = it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
+        rc = (rc2 ? rc2 : rc);
     }
 
     if (l_LocalMetadataWasLocked)
@@ -1051,7 +1053,7 @@ void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, co
         unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
     }
 
-    return;
+    return rc;
 }
 
 void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)

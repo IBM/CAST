@@ -58,6 +58,8 @@ class BBTagInfoMap
     void accumulateTotalLocalContributorInfo(const uint64_t pHandle, size_t& pTotalContributors, size_t& pTotalLocalReportingContributors);
     int addTagInfo(const LVKey* pLVKey, const BBJob pJob, const BBTagID& pTagId, BBTagInfo* &pTagInfo, uint64_t& pGeneratedHandle);
     void cleanUpAll(const LVKey* pLVKey);
+    void cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId);
+    void cleanUpTagInfo(const LVKey* pLVKey, const BBTagID& pTagId);
     void dump(char* pSev, const char* pPrefix=0);
     size_t getNumberOfTransferDefs(const BBTagID& pTagId);
     BBTagParts* getParts(const BBTagID& pTagId);
@@ -70,10 +72,9 @@ class BBTagInfoMap
     int isUniqueHandle(uint64_t pHandle);
     void removeTargetFiles(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId);
     int retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo* pExtentInfo);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
+    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle);
     int stopTransfer(const LVKey* pLVKey, BBLV_Info* pLV_Info, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
-    void updateAllContribsReported(const LVKey* pLVKey, int& pAllReported);
     int updateAllTransferHandleStatus(const string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId, BBLV_ExtentInfo& pLVKey_ExtentInfo, uint32_t pNumberOfExpectedInFlight);
     int update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, BBTagInfo* &pTagInfo);
 

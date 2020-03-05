@@ -2107,7 +2107,7 @@ void transferExtent(BBLV_Info* pLV_Info, WorkID& pWorkItem, ExtentInfo& pExtentI
         try
         {
             // Remove this extent from the in-flight list...
-            pLV_Info->removeFromInFlight(l_ConnectionName, &l_Key, l_TagInfo, pExtentInfo, pJobExists);
+            pLV_Info->removeFromInFlight(l_ConnectionName, &l_Key, pWorkItem.getTagId(), l_TagInfo, pExtentInfo, pJobExists);
         }
         catch(ExceptionBailout& e) { }
         catch(exception& e)
