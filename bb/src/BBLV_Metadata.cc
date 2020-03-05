@@ -51,6 +51,8 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     int rc = 0;
     stringstream errorText;
 
+    int l_SwitchUsers = 0;
+
     try
     {
         if (pJobId != UNDEFINED_JOBID)
@@ -74,36 +76,38 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 // Switch to root:root
                 // NOTE:  Must do this so we can insert into the cross bbserver
                 //        metadata directory, which has permissions of 755.
+                l_SwitchUsers = 1;
                 becomeUser(0,0);
 
                 // Create the jobid directory
-                bfs::create_directories(job);
+                rc = mkdir(job.c_str(), (mode_t)0770);
 
-                // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
-                int rc = chown(job.c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
-                               (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
-                if (rc)
+                if (!rc)
                 {
-                    int l_Errno = errno;
-                    bfs::remove_all(job);
-                    errorText << "chown failed for the jobid directory";
-                    bberror << err("error.path", job.string());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, l_Errno);
+                    // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
+                    int rc = chown(job.c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                                   (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
+                    if (rc)
+                    {
+                        int l_Errno = errno;
+                        bfs::remove_all(job);
+                        errorText << "chown failed for the jobid directory at " << job.string();
+                        bberror << err("error.path", job.string());
+                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, l_Errno);
+                    }
+                }
+                else
+                {
+                    rc = -1;
+                    bberror << err("error.path", job.c_str());
+                    errorText << "mkdir failed for jobid directory at " << job.string();
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                    SET_RC_AND_BAIL(rc);
                 }
 
                 // Switch back to the correct uid:gid
                 switchIdsToMountPoint(pMsg);
-
-                // Unconditionally perform a chmod to 0770 for the jobid directory.
-                // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
-                rc = chmod(job.c_str(), 0770);
-                if (rc)
-                {
-                    errorText << "chmod failed for the jobid directory";
-                    bberror << err("error.path", job.c_str());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                }
-                LOG(bb,info) << "xbbServer: JobId " << pJobId << " is being registered";
+                l_SwitchUsers = 0;
             }
         }
         else
@@ -119,6 +123,11 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_SwitchUsers)
+    {
+        switchIdsToMountPoint(pMsg);
     }
 
     return rc;
@@ -144,7 +153,19 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
             bfs::path hidejob(g_BBServer_Metadata_Path);
             string hidejobname = "." + to_string(pJobId);
             hidejob /= bfs::path(hidejobname);
-            bfs::rename(job, hidejob);
+            rc = rename(job.c_str(), hidejob.c_str());
+            if (rc)
+            {
+                // NOTE: There is a window between checking for the job above and subsequently renaming/removing
+                //       the job directory.  This is the most likely exception...  Return -2...
+                //       Also, if a script sends a RemoveJobInfo command to each CN, it is a big race condition
+                //       as to which bbServer actually removes the job from the cross bbServer metadata and
+                //       which servers 'may' take an exception trying to concurrently remove the data.
+                //       Simply log this as an info...
+                rc = -2;
+                errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
+                LOG_INFO_TEXT_RC(errorText, rc);
+            }
         }
         LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
     }

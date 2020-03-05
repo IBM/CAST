@@ -360,52 +360,29 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
 
         if (access(jobstepid.c_str(), F_OK))
         {
-            // Job step directory does not exist
-            // NOTE:  There is a window between creating the job directory and
-            //        performing the chmod to the correct uid:gid.  Therefore, if
-            //        create_directories() returns EACCESS (permission denied), keep
-            //        attempting for 2 minutes.
-            bs::error_code l_ErrorCode;
-            int l_Attempts = 120;
-            while (l_Attempts-- > 0)
+            // Attempt to create the jobstepid directory
+            mkdir(jobstepid.c_str(), (mode_t)0770);
+
+            if (!rc)
             {
-                // Attempt to create the jobstepid directory
-                bfs::create_directories(jobstepid, l_ErrorCode);
-                if (l_ErrorCode.value() == EACCES)
+                // Create the lock file for the taginfo
+                rc = TagInfo::createLockFile(jobstepid.string());
+                if (rc)
                 {
-                    usleep((useconds_t)1000000);    // Delay 1 second
-                }
-                else
-                {
-                    // Jobstepid directory created
-                    l_Attempts = -1;
+                    rc = -1;
+                    bberror << err("error.path", jobstepid.c_str());
+                    errorText << "Creation of the lockfile failed at " << jobstepid.string();
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                 }
             }
-
-            if (l_Attempts == 0)
+            else
             {
-                // Error returned via create_directories...
-                // Attempt one more time, without the error code.
-                // On error, the appropriate boost exception will be thrown...
-                LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): l_Attempts " << l_Attempts << ", l_ErrorCode.value() " << l_ErrorCode.value();
-                bfs::create_directories(jobstepid);
-            }
-
-            // Perform a chmod to 0770 for the jobstepid directory.
-
-            // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
-            //        contained in this tree is controlled there.
-            rc = chmod(jobstepid.c_str(), 0770);
-            if (rc)
-            {
-                errorText << "chmod failed";
+                rc = -1;
                 bberror << err("error.path", jobstepid.c_str());
-                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                errorText << "mkdir failed for jobstepid directory at " << jobstepid.string();
+                LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                SET_RC_AND_BAIL(rc);
             }
-
-            // Create the lock file for the taginfo
-            rc = TagInfo::createLockFile(jobstepid.string());
-            if (rc) BAIL;
         }
     }
     catch(ExceptionBailout& e) { }

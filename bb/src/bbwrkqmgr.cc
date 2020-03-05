@@ -2878,8 +2878,17 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             if (asyncfile.path().filename().string() == XBBSERVER_ASYNC_REQUEST_BASE_FILENAME)
                             {
                                 // Old style....  Simply delete it...
-                                bfs::remove(asyncfile.path());
-                                LOG(bb,info) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() << " removed";
+                                rc = remove(asyncfile.path());
+                                if (!rc)
+                                {
+                                    LOG(bb,info) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() << " removed";
+                                }
+                                else
+                                {
+                                    LOG(bb,warning) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() \
+                                                    << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
+                                                    << ". Continuing...";
+                                }
                                 continue;
                             }
 
@@ -2899,8 +2908,17 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                         time_t l_CurrentTime = time(0);
                                         if (difftime(l_CurrentTime, l_Statinfo.st_atime) > ASYNC_REQUEST_FILE_PRUNE_TIME)
                                         {
-                                            bfs::remove(asyncfile.path());
-                                            LOG(bb,info) << "WRKQMGR: Async request file " << asyncfile.path() << " removed";
+                                            rc = remove(asyncfile.path());
+                                            if (!rc)
+                                            {
+                                                LOG(bb,info) << "WRKQMGR: Async request file " << asyncfile.path() << " removed";
+                                            }
+                                            else
+                                            {
+                                                LOG(bb,warning) << "WRKQMGR: Async request file " << asyncfile.path().c_str() \
+                                                                << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
+                                                                << ". Continuing...";
+                                            }
                                         }
                                     }
                                 }
