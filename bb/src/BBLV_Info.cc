@@ -1077,13 +1077,13 @@ void BBLV_Info::setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const ui
     return;
 }
 
-int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue)
+int BBLV_Info::setSuspended(const LVKey* pLVKey, const string& pHostName, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue)
 {
     int rc = 0;
 
     if (pHostName == UNDEFINED_HOSTNAME || pHostName == hostname)
     {
-        rc = extentInfo.setSuspended(pLVKey, hostname, jobid, pValue);
+        rc = extentInfo.setSuspended(pLVKey, hostname, jobid, pLocal_Metadata_Lock_Released, pValue);
     }
     else
     {

@@ -791,7 +791,8 @@ void processAsyncRequest(WorkID& pWorkItem)
                         else if (strstr(l_Cmd, "setsuspend"))
                         {
                             // NOTE: In this path l_JobId is the pValue
-                            rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, (int)l_JobId);
+                            LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
+                            rc = metadata.setSuspended(l_Request.getHostName(), l_Str1, l_Local_Metadata_Lock_Released, (int)l_JobId);
                             if (rc)
                             {
                                 LOG(bb,error) << "processAsyncRequest: Failure when attempting to propagate " << l_Request.getData() << " to this bbServer, rc=" << rc;

@@ -583,11 +583,11 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
             {
                 if (!l_JobStepDirectoryExists)
                 {
-                    // Perform a chmod to 0770 for the jobstepid directory.
+                    // Perform a chmod to 0750 for the jobstepid directory.
 
                     // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(jobstepid.c_str(), 0770);
+                    rc = chmod(jobstepid.c_str(), 0750);
                     if (rc)
                     {
                         errorText << "chmod failed";
@@ -602,10 +602,10 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
 
                 if (!l_ToplevelHandleDirectoryExists)
                 {
-                    // Unconditionally perform a chmod to 0770 for the toplevel handle directory.
+                    // Unconditionally perform a chmod to 0750 for the toplevel handle directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0770);
+                    rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0750);
                     if (rc)
                     {
                         errorText << "chmod failed";
@@ -614,10 +614,10 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
                     }
                 }
 
-                // Unconditionally perform a chmod to 0770 for the handle directory.
+                // Unconditionally perform a chmod to 0750 for the handle directory.
                 // NOTE:  This is done for completeness, as all access is via the grandparent directory (jobid) and access to the files
                 //        contained in this tree is controlled there.
-                rc = chmod(handle.c_str(), 0770);
+                rc = chmod(handle.c_str(), 0750);
                 if (rc)
                 {
                     errorText << "chmod failed";

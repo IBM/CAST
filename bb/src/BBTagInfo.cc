@@ -361,7 +361,8 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
         if (access(jobstepid.c_str(), F_OK))
         {
             // Attempt to create the jobstepid directory
-            mkdir(jobstepid.c_str(), (mode_t)0770);
+            // NOTE: umask of 0027 yields permissions of 0750 for jobstepid directory
+            mkdir(jobstepid.c_str(), (mode_t)0777);
 
             if (!rc)
             {
@@ -1106,10 +1107,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_JobStepDirectoryExists)
                     {
-                        // Unconditionally perform a chmod to 0770 for the jobstepid directory.
+                        // Unconditionally perform a chmod to 0750 for the jobstepid directory.
                         // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                         //        contained in this tree is controlled there.
-                        rc = chmod(l_JobStepPath.c_str(), 0770);
+                        rc = chmod(l_JobStepPath.c_str(), 0750);
                         if (rc)
                         {
                             errorText << "chmod failed";
@@ -1124,10 +1125,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_ToplevelHandleDirectoryExists)
                     {
-                        // Unconditionally perform a chmod to 0770 for the toplevel handle directory.
+                        // Unconditionally perform a chmod to 0750 for the toplevel handle directory.
                         // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                         //        contained in this tree is controlled there.
-                        rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0770);
+                        rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0750);
                         if (rc)
                         {
                             errorText << "chmod failed";
@@ -1136,10 +1137,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         }
                     }
 
-                    // Unconditionally perform a chmod to 0770 for the lvuuid directory.
+                    // Unconditionally perform a chmod to 0750 for the lvuuid directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(l_LVUuidPath.c_str(), 0770);
+                    rc = chmod(l_LVUuidPath.c_str(), 0750);
                     if (rc)
                     {
                         errorText << "chmod failed";

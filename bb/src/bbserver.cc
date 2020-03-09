@@ -1625,7 +1625,8 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         // Now perform this resume operation
         string l_HostName;
         activecontroller->gethostname(l_HostName);
-        rc = metadata.setSuspended(l_HostName, l_CN_HostName, RESUME);
+        LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, l_Local_Metadata_Lock_Released, RESUME);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -2993,7 +2994,8 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         // Now perform this suspend operation
         string l_HostName;
         activecontroller->gethostname(l_HostName);
-        rc = metadata.setSuspended(l_HostName, l_CN_HostName, SUSPEND);
+        LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, l_Local_Metadata_Lock_Released, SUSPEND);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -3250,7 +3252,7 @@ int bb_main(std::string who)
 
         serverIdentifier = config.get(resolveServerConfigKey("id"), 0);
         LOG(bb,always) << "Server ID=" << serverIdentifier;
-        
+
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
         char* l_AsyncRequestFileNamePtr = 0;

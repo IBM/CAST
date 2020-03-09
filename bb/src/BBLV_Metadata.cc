@@ -80,7 +80,8 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 becomeUser(0,0);
 
                 // Create the jobid directory
-                rc = mkdir(job.c_str(), (mode_t)0770);
+                // NOTE: umask of 0027 yields permissions of 0750 for jobid directory
+                rc = mkdir(job.c_str(), (mode_t)0777);
 
                 if (!rc)
                 {
@@ -288,7 +289,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
             //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
             int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
             rc = wrkqmgr.addWrkQ(pLVKey, l_LV_Info, pJobId, l_SuspendOption);
-            pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_SuspendOption);
+            LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
+            pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_Local_Metadata_Lock_Released, l_SuspendOption);
             if (!rc)
             {
                 // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
@@ -1104,7 +1106,7 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
     return;
 }
 
-int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostName, const int pValue)
+int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostName, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue)
 {
     int rc = 0;
     uint32_t l_NumberAlreadySet = 0;
@@ -1112,61 +1114,77 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
     uint32_t l_NumberOfQueuesNotFoundForLVKey = 0;
     uint32_t l_NumberSet = 0;
     uint32_t l_NumberFailed = 0;
+    bool l_AllDone = false;
+    vector<LVKey> l_LVKeysProcessed = vector<LVKey>();
+    vector<LVKey>::iterator it2;
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    while (!l_AllDone)
     {
-        rc = it->second.setSuspended(&(it->first), pCN_HostName, pValue);
-        switch (rc)
+        l_AllDone = true;
+        for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
-            case 2:
+            if (find(l_LVKeysProcessed.begin(), l_LVKeysProcessed.end(), it->first) == l_LVKeysProcessed.end())
             {
-                // Value was already set for this work queue.
-                // Continue to the next LVKey...
-                LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
-                             << " was already " << (pValue ? "inactive" : "active");
-                ++l_NumberAlreadySet;
+                rc = it->second.setSuspended(&(it->first), pCN_HostName, pLocal_Metadata_Lock_Released, pValue);
+                switch (rc)
+                {
+                    case 2:
+                    {
+                        // Value was already set for this work queue.
+                        // Continue to the next LVKey...
+                        LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
+                                     << " was already " << (pValue ? "inactive" : "active");
+                        ++l_NumberAlreadySet;
 
-                break;
-            }
+                        break;
+                    }
 
-            case 1:
-            {
-                // Hostname did not match...  Continue to the next LVKey...
-                LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
-                              << " did not match the host name criteria";
-                ++l_NumberOfQueuesNotMatchingHostNameCriteria;
+                    case 1:
+                    {
+                        // Hostname did not match...  Continue to the next LVKey...
+                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
+                                      << " did not match the host name criteria";
+                        ++l_NumberOfQueuesNotMatchingHostNameCriteria;
 
-                break;
-            }
+                        break;
+                    }
 
-            case 0:
-            {
-                // If the hostname matched, the suspended value was successfully set
-                // for the work queue.  Already logged...  Continue to the next LVKey...
-                ++l_NumberSet;
+                    case 0:
+                    {
+                        // If the hostname matched, the suspended value was successfully set
+                        // for the work queue.  Already logged...  Continue to the next LVKey...
+                        ++l_NumberSet;
 
-                break;
-            }
+                        break;
+                    }
 
-            case -2:
-            {
-                // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
-                LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << it->first \
-                              << " was not found";
-                ++l_NumberOfQueuesNotFoundForLVKey;
+                    case -2:
+                    {
+                        // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
+                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << it->first \
+                                      << " was not found";
+                        ++l_NumberOfQueuesNotFoundForLVKey;
 
-                break;
-            }
+                        break;
+                    }
 
-            default:
-            {
-                // Error occurred....  It was already logged...  Continue...
-                ++l_NumberFailed;
+                    default:
+                    {
+                        // Error occurred....  It was already logged...  Continue...
+                        ++l_NumberFailed;
 
-                break;
+                        break;
+                    }
+                }
+                l_LVKeysProcessed.push_back(it->first);
+                if (pLocal_Metadata_Lock_Released == LOCAL_METADATA_LOCK_RELEASED)
+                {
+                    l_AllDone = false;
+                    break;
+                }
+                rc = 0;
             }
         }
-        rc = 0;
     }
 
     if (l_NumberSet)

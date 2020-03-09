@@ -154,9 +154,9 @@ int HandleInfo::lockHandleBucket(const bfs::path& pHandleBucketPath, const uint6
         // Create the handle bucket directory
         bfs::create_directories(pHandleBucketPath);
 
-        // Unconditionally perform a chmod to 0770 for the handle bucket directory.
+        // Unconditionally perform a chmod to 0750 for the handle bucket directory.
         // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
-        rc2 = chmod(pHandleBucketPath.c_str(), 0770);
+        rc2 = chmod(pHandleBucketPath.c_str(), 0750);
         if (!rc2)
         {
             rc2 = createLockFile(pHandleBucketPath.string());

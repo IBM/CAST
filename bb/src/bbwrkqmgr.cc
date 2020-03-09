@@ -2344,13 +2344,14 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
     return;
 }
 
-int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
+int WRKQMGR::setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue)
 {
     int rc = 0;
 
+    int l_LocalMetadataUnlockedInd = 0;
+
     if (pLVKey)
     {
-        int l_LocalMetadataUnlockedInd = 0;
         lockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
 
         std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
@@ -2382,6 +2383,11 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
     else
     {
         rc = -2;
+    }
+
+    if (l_LocalMetadataUnlockedInd)
+    {
+        pLocal_Metadata_Lock_Released = LOCAL_METADATA_LOCK_RELEASED;
     }
 
     return rc;
@@ -2757,7 +2763,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
                             // NOTE:  root:root will insert jobid directories into this directory and then ownership
                             //        of those jobid directories will be changed to the uid:gid of the mountpoint.
-                            //        The mode of the jobid directories is also changed to be 0700.
+                            //        The mode of the jobid directories are also created to be 0750.
                             rc = chmod(l_DataStorePath.c_str(), 0755);
                             if (rc)
                             {

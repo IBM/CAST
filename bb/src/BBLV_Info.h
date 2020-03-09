@@ -89,7 +89,7 @@ class BBLV_Info
     int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, ExtentInfo& pExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption);
-    int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
     int updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight, const XBBSERVER_JOB_EXISTS_OPTION pJobExists,
                                 PERFORM_TAGINFO_CLEANUP_OPTION& pPerformTagInfoCleanup, PERFORM_CONTRIBID_CLEANUP_OPTION& pPerformContribIdCleanup);

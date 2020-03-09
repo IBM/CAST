@@ -663,7 +663,7 @@ class WRKQMGR
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);
     void setHeartbeatTimerPoppedCount(const double pTimerInterval);
-    int setSuspended(const LVKey* pLVKey, const int pValue);
+    int setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
     int startProcessingHP_Request(AsyncRequest& pRequest);

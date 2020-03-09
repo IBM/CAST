@@ -66,7 +66,7 @@ class BBLV_Metadata
     int retrieveTransfers(BBTransferDefs& pTransferDefs);
     int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus=BBNONE);
     void setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption);
-    int setSuspended(const string& pHostName, const string& pCN_HostName, const int pValue);
+    int setSuspended(const string& pHostName, const string& pCN_HostName, LOCAL_METADATA_RELEASED &l_Local_Metadata_Lock_Released, const int pValue);
     int stopTransfer(const string pHostName, const string pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
     int verifyJobIdExists(const std::string& pConnectionName, const LVKey* pLVKey, const uint64_t pJobId);
 
