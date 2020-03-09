@@ -1841,11 +1841,11 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
                 l_FilePtr = ::fopen(l_AsyncRequestFileNamePtr, pOpenOption);
                 threadLocalTrackSyscallPtr->clearTrack();
-                setbuf(l_FilePtr, NULL);
                 if (pOpenOption[0] != 'a')
                 {
                     if (l_FilePtr != NULL)
                     {
+                        setbuf(l_FilePtr, NULL);
                         FL_Write(FLAsyncRqst, OpenRead, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
                         // NOTE:  All closes for fds opened for read are done via the cached
                         //        fd that has been stashed in asyncRequestFile_Read.
@@ -1871,6 +1871,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 {
                     if (l_FilePtr != NULL)
                     {
+                        setbuf(l_FilePtr, NULL);
                         FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
                         // Append mode...  Check the file size...
                         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
