@@ -533,6 +533,8 @@ int BBTagInfoMap::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob,
         //        performing the chmod to the correct uid:gid.  Therefore, if
         //        create_directories() returns EACCESS (permission denied), keep
         //        attempting for 2 minutes.
+        // NOTE:  Not sure the above is an issue anymore, as we now use mkdir()
+        //        with a specified mode value.
         bs::error_code l_ErrorCode;
         bool l_AllDone = false;
         int l_Attempts = 120;

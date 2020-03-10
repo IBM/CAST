@@ -3623,13 +3623,14 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
     return rc;
 }
 
+#define ATTEMPTS 120
 int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t& pRate)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
     stringstream errorText;
-    int l_Continue = 120;
+    int l_Continue = ATTEMPTS;
 
     try
     {
@@ -3676,6 +3677,7 @@ int getThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t&
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+#undef ATTEMPTS
 
 int removeJobInfo(const string& pHostName, const uint64_t pJobId)
 {
@@ -3750,13 +3752,14 @@ int removeLogicalVolume(const std::string& pConnectionName, const LVKey* pLVKey)
     return rc;
 }
 
+#define ATTEMPTS 120
 int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t pRate)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
     int rc = 0;
     stringstream errorText;
-    int l_Continue = 120;
+    int l_Continue = ATTEMPTS;
 
     try
     {
@@ -3803,6 +3806,7 @@ int setThrottleRate(const std::string& pConnectionName, LVKey* pLVKey, uint64_t 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
 }
+#undef ATTEMPTS
 
 int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const FORCE_OPTION pForced)
 {

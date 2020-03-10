@@ -126,7 +126,7 @@ extern void writeVar(const char* pVariable, const char* pValue);
  *******************************************************************************/
 const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
 const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 900;                    // in seconds (15 minutes)
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 180;                    // in seconds (3 minutes)
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
@@ -135,12 +135,8 @@ const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1.00;                    // in seconds
 const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25.00;         // in seconds
 const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100.00;        // in seconds
-const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
-                                                                                // NOTE: The default declareServerDeadCount value
-                                                                                //       is 2 * heartbeat time interval, which by
-                                                                                //       default is 4 minutes.  The declareServerDeadCount
-                                                                                //       is then set to the max(default declareServerDeadCount,
-                                                                                //                              MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE)
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 240;                // in seconds (4 minutes)
+const uint64_t MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 600;                // in seconds (10 minutes)
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
 
 // NOTE: If the BB throttling rate is used to limit the amount of
