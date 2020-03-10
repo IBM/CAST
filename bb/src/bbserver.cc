@@ -882,7 +882,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     return;
 }
 
-#define DELAY_SECONDS 20
+#define DELAY_SECONDS 120
 void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -978,7 +978,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                     //
                     // Continue to wait...
 
-                    // Hang out for a bit (20 x 1 second each, 20 seconds total) and see if the necessary LVKey appears...
+                    // Hang out for a bit (120 x 1 second each, 120 seconds total) and see if the necessary LVKey appears...
                     int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
                     if ((l_SecondsWaiting % 8) == 1)
                     {
