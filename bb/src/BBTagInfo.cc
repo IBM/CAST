@@ -377,11 +377,19 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
             }
             else
             {
-                rc = -1;
-                bberror << err("error.path", jobstepid.c_str());
-                errorText << "mkdir failed for jobstepid directory at " << jobstepid.string();
-                LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                SET_RC_AND_BAIL(rc);
+                if (errno != EEXIST)
+                {
+                    rc = -1;
+                    bberror << err("error.path", jobstepid.c_str());
+                    errorText << "mkdir failed for jobstepid directory at " << jobstepid.string();
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                    SET_RC_AND_BAIL(rc);
+                }
+                else
+                {
+                    // Tolerate if the jobstepid directory already exists.  There exists a possible
+                    // race condition between CNs when requesting handles.
+                }
             }
         }
     }

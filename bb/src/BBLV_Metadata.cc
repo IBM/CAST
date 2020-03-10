@@ -102,12 +102,20 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 }
                 else
                 {
-                    rc = -1;
-                    bberror << err("error.path", job.c_str());
-                    errorText << "mkdir failed for jobid directory at " << job.string() \
-                              << ", errno " << errno << " (" << strerror(errno) << ")";
-                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                    SET_RC_AND_BAIL(rc);
+                    if (errno != EEXIST)
+                    {
+                        rc = -1;
+                        bberror << err("error.path", job.c_str());
+                        errorText << "mkdir failed for jobid directory at " << job.string() \
+                                  << ", errno " << errno << " (" << strerror(errno) << ")";
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        SET_RC_AND_BAIL(rc);
+                    }
+                    else
+                    {
+                        // Tolerate if the jobid directory already exists.  There exists a possible
+                        // race condition between CNs when registering their logical volumes.
+                    }
                 }
 
                 // Switch back to the correct uid:gid
