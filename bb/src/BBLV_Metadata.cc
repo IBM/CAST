@@ -90,18 +90,22 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                                    (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
                     if (rc)
                     {
+                        rc = -1;
                         int l_Errno = errno;
                         bfs::remove_all(job);
-                        errorText << "chown failed for the jobid directory at " << job.string();
                         bberror << err("error.path", job.string());
-                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, l_Errno);
+                        errorText << "chown failed for the jobid directory at " << job.string() \
+                                  << ", errno " << l_Errno << " (" << strerror(l_Errno) << ")";
+                        LOG_ERROR_TEXT_ERRNO(errorText, l_Errno);
+                        SET_RC_AND_BAIL(rc);
                     }
                 }
                 else
                 {
                     rc = -1;
                     bberror << err("error.path", job.c_str());
-                    errorText << "mkdir failed for jobid directory at " << job.string();
+                    errorText << "mkdir failed for jobid directory at " << job.string() \
+                              << ", errno " << errno << " (" << strerror(errno) << ")";
                     LOG_ERROR_TEXT_ERRNO(errorText, errno);
                     SET_RC_AND_BAIL(rc);
                 }
