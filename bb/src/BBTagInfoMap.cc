@@ -172,14 +172,17 @@ void BBTagInfoMap::cleanUpTagInfo(const LVKey* pLVKey, const BBTagID& pTagId)
         }
 
         BBTagInfo* l_TagInfo = getTagInfo(pTagId);
-        l_TagInfo->cleanUpAll(pLVKey, pTagId);
+        if (l_TagInfo)
+        {
+            l_TagInfo->cleanUpAll(pLVKey, pTagId);
 
-        pTagId.getJob().getStr(l_JobStr);
-        LOG(bb,info) << "taginfo: TagId(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
-                     << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->getTransferHandle() \
-                     << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->getTransferHandle() \
-                     << ") removed from " << *pLVKey;
-        tagInfoMap.erase(pTagId);
+            pTagId.getJob().getStr(l_JobStr);
+            LOG(bb,info) << "taginfo: TagId(" << l_JobStr.str() << "," << pTagId.getTag() << ") with handle 0x" \
+                         << hex << uppercase << setfill('0') << setw(16) << l_TagInfo->getTransferHandle() \
+                         << setfill(' ') << nouppercase << dec << " (" << l_TagInfo->getTransferHandle() \
+                         << ") removed from " << *pLVKey;
+            tagInfoMap.erase(pTagId);
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
