@@ -1516,11 +1516,6 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         lockLocalMetadata((LVKey*)0, "msgin_removejobinfo");
         l_LockHeld = true;
 
-        // NOTE:  Need to first process all outstanding async requests.  We must make sure
-        //        that all prior remove logical volume requests have first been processed
-        //        by this bbServer.
-        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
-
         rc = removeJobInfo(l_HostName, l_JobId);
         if (rc)
         {

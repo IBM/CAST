@@ -2235,11 +2235,15 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     }
     else
     {
+        // NOTE: This is possible with a concurrent remove logical volume and the opening up
+        //       of processing windows for the local metadata lock.  Simply, tolerate the condition...
+#if 0
         rc = -1;
         stringstream errorText;
         errorText << " Failure when attempting to remove workqueue for " << *pLVKey << ". Work queue was not found.";
         dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
         LOG_ERROR_TEXT_RC(errorText, rc);
+#endif
     }
 
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
