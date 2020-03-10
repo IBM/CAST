@@ -161,6 +161,39 @@ A system administrator can also configure this tool's output. CSM may detect som
 
         Relative to the ``csm_inv_log_dir``.
 
+.. note:: For CSM 1.7, this tool only supports an ``http`` connection to UFM. UFM's ``gv.cfg`` file must be configured for http connection. Specifically, ``ws_protocol = http``. And also the MLNX-OS section must be set to http. Specifically, ``protocol = http``, and ``port = 80``.
+
+Example:
+
+.. code-block:: none
+
+    ws_protocol = http
+
+and
+
+.. code-block:: none
+
+    # default MLNX-OS access point for all Mellanox switches
+    # important: this section parameters are used for ufm initialization only !!!
+    #            Please use ufm GUI/API for editing parameters values.
+    [MLNX_OS]
+    protocol = http
+    port = 80
+
+.. note:: For CSM 1.8, this tool supports http and https connection to the UFM daemon, but still requires the ufmd to communicate to a managed switch via http. Please ensure that the MLNX-OS section is set to http. Specifically, ``protocol = http``, and ``port = 80``.
+
+Example:
+
+.. code-block:: none
+
+    # default MLNX-OS access point for all Mellanox switches
+    # important: this section parameters are used for ufm initialization only !!!
+    #            Please use ufm GUI/API for editing parameters values.
+    [MLNX_OS]
+    protocol = http
+    port = 80
+
+
 Using the Tool
 **************
 
