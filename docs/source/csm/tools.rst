@@ -218,7 +218,7 @@ All output information for this tool is printed to the console. The ``-d, --deta
 FAQ - Frequently Asked Questions
 ********************************
 
-Why 'bad record' and N/A' Serial Numbers?
+Why 'bad record' and 'N/A' Serial Numbers?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Sometimes CSM can detect a switch in your system that is incomplete. It is missing a serial number, which CSM will consider invalid data, and therefor not insert it into the :ref:`CSM_Database`.
