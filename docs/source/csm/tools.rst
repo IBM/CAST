@@ -193,6 +193,7 @@ Example:
     protocol = http
     port = 80
 
+Improper communication settings could result in some of the issues presented in the :ref:`CSM_standalone_inventory_collection_FAQ`.
 
 Using the Tool
 **************
