@@ -193,11 +193,8 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		// if "ws_protocol = https" then csm will need to connect through boost via https.
 		// if "ws_protocol = http" then csm will need to connect through boost via http.
 
-		// We don't know how its configured, so we try one first, then the other.
-		// ufm has changed its default to https. so we try that one first.
-
-		// Well, that's what I thought at first. But now it seems that https works for both configs.
-		// so lets leave it at that for now and do less work.
+		// Well, that's what I thought at first. But it seems that a connection via boost below via https works for both configs.
+		// so lets leave it at that.
 
 		// Create a context that uses the default paths for
 		// finding CA certificates.
