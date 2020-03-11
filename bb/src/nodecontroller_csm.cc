@@ -16,9 +16,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
 #include <algorithm>
-#include "csm_api_burst_buffer.h"
-#include "csm_api_ras.h"
-#include "csm_api_common.h"
 #include "nodecontroller_csm.h"
 #include "util.h"
 #include "connections.h"
@@ -37,10 +34,86 @@
 using namespace std;
 using namespace boost::posix_time;
 
-NodeController_CSM::NodeController_CSM()
+static void handleSymError(const char * symbol){
+LOG(bb,error) << "dlsym failed for string="<<symbol;
+    char * tempstr=dlerror();
+    if (tempstr) LOG(bb,error) << "dlerror()="<<tempstr;
+    abort();
+}
+
+int NodeController_CSM::getcsmSymbols(const std::string& controllerPath){
+    void * _dlopen_csmi = dlopen(controllerPath.c_str(), RTLD_LAZY);
+    if (_dlopen_csmi){
+        dlerror(); //clear error
+        _csm_init_lib_vers_func = (csm_init_lib_vers_t)dlsym(_dlopen_csmi,"csm_init_lib_vers");
+        if(!_csm_init_lib_vers_func)handleSymError("csm_init_lib_vers");
+        dlerror();
+        _csm_term_lib_func = (csm_term_lib_t )dlsym(_dlopen_csmi,"csm_term_lib");
+        if(!_csm_term_lib_func)handleSymError("csm_term_lib");
+        dlerror();       
+        _csm_api_object_clear_func = (csm_api_object_clear_t)dlsym(_dlopen_csmi,"csm_api_object_clear");
+        if(!_csm_api_object_clear_func)handleSymError("csm_api_object_clear");
+        dlerror();
+        _csm_api_object_destroy_func = (csm_api_object_destroy_t)dlsym(_dlopen_csmi,"csm_api_object_destroy");
+        if(!_csm_api_object_destroy_func)handleSymError("csm_api_object_destroy");
+        dlerror();
+        _csm_bb_vg_create_func = (csm_bb_vg_create_t      )dlsym(_dlopen_csmi,"csm_bb_vg_create");
+        if(!_csm_bb_vg_create_func)handleSymError("csm_bb_vg_create");
+        dlerror();
+        _csm_bb_lv_create_func =  (csm_bb_lv_create_t       )dlsym(_dlopen_csmi,"csm_bb_lv_create");
+        if(!_csm_bb_lv_create_func)handleSymError("csm_bb_lv_create");
+        dlerror();
+        _csm_bb_lv_delete_func = (csm_bb_lv_delete_t       )dlsym(_dlopen_csmi,"csm_bb_lv_delete");
+        if(!_csm_bb_lv_delete_func)handleSymError("csm_bb_lv_delete");
+        dlerror();
+        _csm_bb_lv_update_func = (csm_bb_lv_update_t       )dlsym(_dlopen_csmi,"csm_bb_lv_update");
+        if(!_csm_bb_lv_update_func)handleSymError("csm_bb_lv_update");
+        dlerror();
+        _csm_bb_cmd_func = (csm_bb_cmd_t             )dlsym(_dlopen_csmi,"csm_bb_cmd");
+        if(!_csm_bb_cmd_func)handleSymError("csm_bb_cmd");
+        dlerror();
+        _csm_ras_event_create_func = (csm_ras_event_create_t   )dlsym(_dlopen_csmi,"csm_ras_event_create");
+        if(!_csm_ras_event_create_func)handleSymError("csm_ras_event_create");
+        dlerror();
+        _csm_allocation_query_func = (csm_allocation_query_t)dlsym(_dlopen_csmi,"csm_allocation_query");
+        if(!_csm_allocation_query_func)handleSymError("csm_allocation_query");
+        dlerror();
+        _csm_allocation_query_active_all_func = (csm_allocation_query_active_all_t)dlsym(_dlopen_csmi,"csm_allocation_query_active_all");
+        if(!_csm_allocation_query_active_all_func)handleSymError("csm_allocation_query_active_all");
+    }
+    else{
+        LOG(bb,error) << "dlopen failed for controller path="<<controllerPath;
+        abort();
+    }
+    return 0;
+
+}
+
+
+NodeController_CSM::NodeController_CSM():
+    _csm_init_lib_vers_func(NULL),       
+    _csm_term_lib_func(NULL),            
+    _csm_api_object_clear_func(NULL),    
+    _csm_api_object_destroy_func(NULL),  
+    _csm_bb_vg_create_func(NULL),        
+    _csm_bb_lv_create_func(NULL),        
+    _csm_bb_lv_delete_func(NULL),        
+    _csm_bb_lv_update_func(NULL),        
+    _csm_bb_cmd_func(NULL),              
+    _csm_ras_event_create_func(NULL), 
+    _csm_allocation_query_func(NULL),
+    _csm_allocation_query_active_all_func(NULL),
+    csmhandle(NULL)
 {
+    //csm_allocation_query_t   _csm_allocation_query_func;
+    //csm_allocation_query_active_all_t _csm_allocation_query_active_all_func;
+    //void *dlopen(const char *filename, RTLD_LAZY);
+    // filename /opt/ibm/csm/lib/libcsmi.so
     int rc;
-    csmhandle = NULL;
+    string controllerPath = config.get("bb.controllerpath", "/opt/ibm/csm/lib/libcsmi.so");
+    getcsmSymbols(controllerPath);
+    
+
     auto lines = runCommand("grep '^NODE=' /opt/xcat/xcatinfo");
     if(lines.size() != 1)
     {
@@ -56,7 +129,7 @@ NodeController_CSM::NodeController_CSM()
 
     if(FLCSM)
         FL_Write(FLCSM, CSMInit, "CSM: call csm_init_lib",0,0,0,0);
-    rc = csm_init_lib();
+    rc = _csm_init_lib_vers_func(CSM_VERSION_ID);
     if(FLCSM)
         FL_Write(FLCSM, CSMInitRC, "CSM: call csm_init_lib.  rc=%ld",rc,0,0,0);
 
@@ -88,7 +161,7 @@ NodeController_CSM::NodeController_CSM()
     vg.ssd_info[0]    = &ssdinfo;
 
     LOG(bb,info) << "Trying to create volume group:  ssd=" << nvmssd << "  vgfree=" << vgfree << "  vgtotal=" << vgtotal;
-    rc = csm_bb_vg_create(&csmhandle, &vg);
+    rc = _csm_bb_vg_create_func(&csmhandle, &vg);
     LOG(bb,info) << "csm_bb_vg_create() rc=" << rc;
 
     if(rc)
@@ -107,6 +180,7 @@ static bool hostnamecmp(const std::string& s1, const std::string& s2)
         return true;
     return false;
 }
+
 
 int NodeController_CSM::gethostlist(string& hostlist)
 {
@@ -131,7 +205,7 @@ int NodeController_CSM::gethostlist(string& hostlist)
     {
         output = NULL;
         FL_Write(FLCSM, CSMAllocQuery2, "CSM: call csm_allocation_query_active_all(limit=%ld, offset=%ld)", input.limit, input.offset, 0, 0);
-        rc = csm_allocation_query_active_all(&csmhandle, &input, &output);
+        rc = (_csm_allocation_query_active_all_func)(&csmhandle, &input, &output);
         FL_Write(FLCSM, CSMAllocQuery2RC, "CSM: call csm_allocation_query_active_all(limit=%ld, offset=%ld)  rc=%ld", input.limit, input.offset, rc, 0);
         if(rc != 0)
             break;
@@ -169,7 +243,7 @@ int NodeController_CSM::gethostlist(string& hostlist)
         }
         if(output->num_allocations != (uint32_t)input.limit)
             break;
-        csm_free_struct_ptr(csm_allocation_query_active_all_output_t, output);
+        //csm_free_struct_ptr(csm_allocation_query_active_all_output_t, output);
         input.offset += input.limit;
     }
     if(!found)
@@ -195,7 +269,7 @@ int NodeController_CSM::getAllocationInfo(csmi_allocation_t& alloc)
         input.secondary_job_id = job.second;
         csm_allocation_query_output_t *output;
 
-        rc = csm_allocation_query(&csmhandle, &input, &output);
+        rc = (_csm_allocation_query_func)(&csmhandle, &input, &output);
 
         FL_Write(FLCSM, CSMAllocQueryRC, "CSM: call csm_allocation_query(jobid=%ld)  rc=%ld",jobid,rc,0,0);
 
@@ -206,7 +280,7 @@ int NodeController_CSM::getAllocationInfo(csmi_allocation_t& alloc)
             tmp                    = output->allocation;
             output->allocation     = NULL;
             // Frees any allocations from csm_allocation_query.
-            csm_api_object_clear(csmhandle);
+            _csm_api_object_clear_func(csmhandle);
 
             job2allocationmap[job] = tmp;
 
@@ -233,11 +307,11 @@ NodeController_CSM::~NodeController_CSM()
     if(csmhandle)
     {
         FL_Write(FLCSM, CSMObjDest, "CSM: call csm_api_object_destroy",0,0,0,0);
-    	csm_api_object_destroy(csmhandle);
+    	_csm_api_object_destroy_func(csmhandle);
         FL_Write(FLCSM, CSMObjDestRC, "CSM: call csm_api_object_destroy (no rc)",0,0,0,0);
     }
     FL_Write(FLCSM, CSMTerm, "CSM: call csm_term_lib",0,0,0,0);
-    rc = csm_term_lib();
+    rc = _csm_term_lib_func();
     FL_Write(FLCSM, CSMTermRC, "CSM: call csm_term_lib.  rc=%ld",rc,0,0,0);
     if(rc)
     {
@@ -288,7 +362,7 @@ int NodeController_CSM::lvcreate(const string& lvname, enum LVState state, size_
     bbargs.file_system_mount   = (char*)mountpath.c_str();
     bbargs.file_system_type    = (char*)fstype.c_str();
     FL_Write(FLCSM, CSMLVCreate, "CSM: call csm_bb_lv_create.  AllocID=%ld, Size=%ld",allocinfo.allocation_id, current_size,0,0);
-    rc = csm_bb_lv_create(&csmhandle, &bbargs);
+    rc = _csm_bb_lv_create_func(&csmhandle, &bbargs);
     FL_Write(FLCSM, CSMLVCreateRC, "CSM: call csm_bb_lv_create.  AllocID=%ld, Size=%ld.  rc=%ld",allocinfo.allocation_id, current_size,rc,0);
     if(rc)
     {
@@ -320,7 +394,7 @@ int NodeController_CSM::lvremove(const string& lvname, const BBUsage_t& usage)
     bbargs.num_reads           = usage.localReadCount;
 #endif
     FL_Write(FLCSM, CSMLVDelete, "CSM: call csm_bb_lv_delete.  AllocID=%ld",allocinfo.allocation_id, 0,0,0);
-    rc = csm_bb_lv_delete(&csmhandle, &bbargs);
+    rc = _csm_bb_lv_delete_func(&csmhandle, &bbargs);
     FL_Write(FLCSM, CSMLVDeleteRC, "CSM: call csm_bb_lv_delete.  AllocID=%ld.  rc=%ld",allocinfo.allocation_id,rc,0,0);
     if(rc)
     {
@@ -351,7 +425,7 @@ int NodeController_CSM::lvupdate(const string& lvname, enum LVState state, size_
     bbargs.node_name           = (char*)myhostname.c_str();
     bbargs.current_size        = current_size;
     FL_Write(FLCSM, CSMLVUpdate, "CSM: call csm_bb_lv_update.  AllocID=%ld, Size=%ld",allocinfo.allocation_id, current_size,0,0);
-    rc = csm_bb_lv_update(&csmhandle, &bbargs);
+    rc = _csm_bb_lv_update_func(&csmhandle, &bbargs);
     FL_Write(FLCSM, CSMLVUpdateRC, "CSM: call csm_bb_lv_update.  AllocID=%ld, Size=%ld.  rc=%ld",allocinfo.allocation_id, current_size,rc,0);
     if(rc)
     {
@@ -388,7 +462,7 @@ int NodeController_CSM::postRAS(const TSHandler& tsthis)
     LOG(bb,always) << "RAS: kvcsv    =" << csvparms;
 
     FL_Write(FLCSM, CSMPostRAS, "CSM: call csm_ras_event_create",0,0,0,0);
-    rc = csm_ras_event_create(&csmhandle,
+    rc = _csm_ras_event_create_func(&csmhandle,
                               pt.get("msgid", "bb.unknown").c_str(),
                               (to_iso_extended_string(current_time) + "Z").c_str(),
                               myhostname.c_str(),
@@ -513,7 +587,7 @@ int NodeController_CSM::bbcmd(std::vector<std::uint32_t> ranklist,
 
         GrabStderr grabstderr;
         FL_Write(FLCSM, CSMBBCMD, "CSM: call csm_bb_cmd to %ld compute nodes",in.node_names_count,0,0,0);
-        rc = csm_bb_cmd(&csmhandle, &in, &out);
+        rc = _csm_bb_cmd_func(&csmhandle, &in, &out);
         FL_Write(FLCSM, CSMBBCMDRC, "CSM: call csm_bb_cmd.  rc=%ld",rc,0,0,0);
         
         LOG(bb,info) << "csm_bb_cmd return code=" << rc;
