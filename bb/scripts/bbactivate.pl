@@ -393,7 +393,7 @@ sub makeServerConfigFile
     }
     for($x=0; $x<$#ESS+1; $x++)
     {
-        if($ESS[$x] =~ /$myip/)
+        if($ESS[$x] =~ /$myip\:/)
         {
             $json->{"bb"}{"server0"}{"id"} = $x+1;
         }
