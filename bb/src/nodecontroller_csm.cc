@@ -244,6 +244,7 @@ int NodeController_CSM::gethostlist(string& hostlist)
         if(output->num_allocations != (uint32_t)input.limit)
             break;
         //csm_free_struct_ptr(csm_allocation_query_active_all_output_t, output);
+        free(output);
         input.offset += input.limit;
     }
     if(!found)
