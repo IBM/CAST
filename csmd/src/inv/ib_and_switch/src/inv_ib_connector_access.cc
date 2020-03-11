@@ -16,8 +16,9 @@
 #include "../include/inv_ib_connector_access.h"
 #include "logging.h"
 
-#include <boost/asio.hpp>
 using boost::asio::ip::tcp;
+namespace ssl = boost::asio::ssl;
+typedef ssl::stream<tcp::socket> ssl_socket;
 
 INV_IB_CONNECTOR_ACCESS *INV_IB_CONNECTOR_ACCESS::_Instance = nullptr;
 
@@ -77,20 +78,48 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 {
 	try
 	{
-		// Get a list of endpoints corresponding to the server name.
+		// I believe this is the boost C++ library trying to connect to the ufm daemon on the server.
+		// Connecting to the ufm daemon is via the protocol configured in ufm's config file.
+		// The config file is called "gv.cfg"
+		// it should be found in the ufm directory on the server running ufmd
+		// the specfic field in the config file for the connection is "ws_protocol"
+
+		// if "ws_protocol = https" then csm will need to connect through boost via https.
+		// if "ws_protocol = http" then csm will need to connect through boost via http.
+
+		// Well, that's what I thought at first. But it seems that a connection via boost below via https works for both configs.
+		// so lets leave it at that.
+
+		// Create a context that uses the default paths for
+		// finding CA certificates.
+		ssl::context ctx(ssl::context::sslv23);
+		ctx.set_default_verify_paths();
+
+		// Open a socket and connect it to the remote host.
 		boost::asio::io_service io_service;
+		ssl_socket socket(io_service, ctx);
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(rest_address.c_str(),"http");
-		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-	
-		// Try each endpoint until we successfully establish a connection.
-		tcp::socket socket(io_service);
-		boost::asio::connect(socket, endpoint_iterator);
+		tcp::resolver::query query(rest_address.c_str(), "https");
+		boost::asio::connect(socket.lowest_layer(), resolver.resolve(query));
+		socket.lowest_layer().set_option(tcp::no_delay(true));
+
+		// Perform SSL handshake and verify the remote host's
+		// certificate.
+		//example says
+		//socket.set_verify_mode(ssl::verify_peer);
+		//Nate said -k in curl is fine. We know the server and trust it. So maybe its fine here too. 
+		socket.set_verify_mode(ssl::verify_none);
+		socket.set_verify_callback(ssl::rfc2818_verification(rest_address.c_str()));
+		socket.handshake(ssl_socket::client);
 	
 		// Form the request. We specify the "Connection: close" header so that the
 		// server will close the socket after transmitting the response. This will
 		// allow us to treat all data up until the EOF as the content.
-		
+
+		// Even though CSM is connecting to the server through boost using http above. 
+		// the rest api and request stream stays with HTTP in the string.
+		// i don't know why.
+
 		boost::asio::streambuf request;
 		std::ostream request_stream(&request);
 		request_stream << "GET /ufmRest/resources/links?cable_info=true HTTP/1.1\r\n";
@@ -98,8 +127,35 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		request_stream << "Host: " << rest_address << " \r\n";
 		request_stream << "Connection: close\r\n\r\n";
 
-		// Send the request.
+
+		// I this is a print out of what we will be sending to the server as a request...
+		// If developers are having a trouble situation, then you can comment this section and see the data you send
+		// Could help put you on the right path to debug the situation
+		// It should match the data above. 
+
+		/*
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type requestDebugPrint = request.data();
+		//grab the data/string from the buffer?
+		std::string requestDebug_TEST(boost::asio::buffers_begin(requestDebugPrint), boost::asio::buffers_begin(requestDebugPrint) + request.size());
+		//printing debug info
+		std::cout << "#=# BEGIN requestDebug_TEST: " << std::endl;
+		std::cout << requestDebug_TEST.c_str() << std::endl;
+		std::cout << "#=# END requestDebug_TEST " << std::endl;
+		*/
+
+		// Use the boost libarary to send our request to the server.
 		boost::asio::write(socket, request);
+
+		// We have now sent off our request to the server.
+
+		// END REQUEST PART OF THE CODE. 
+		// ==============================
+		// BEGIN RESPOSE PART OF THE CODE.
+
+
+		// Below is our response back from the server to our request. 
+
 		
 		// Read the response status line. The response streambuf will automatically
 		// grow to accommodate the entire line. The growth may be limited by passing
@@ -108,10 +164,21 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::read_until(socket, response, "\r\n");
 		boost::asio::streambuf::const_buffers_type buf_1 = response.data();
 		std::string response_copy_1(boost::asio::buffers_begin(buf_1), boost::asio::buffers_begin(buf_1) + response.size());
+
+
+		// I this is a print out of what we recieve back from the server as a response...
+		// If developers are having a trouble situation, then you can comment this section and see the data you recieve
+		// Could help put you on the right path to debug the situation
+		/*
+		std::cout << "#=# The response_copy_1: " << std::endl;
+		std::cout << response_copy_1.c_str() << std::endl;
+		std::cout << " #=# END response_copy_1 #=# " << std::endl;
+		*/
 	
 		// Check that response is OK.
 		std::istream response_stream(&response);
 		std::string http_version;
+
 		response_stream >> http_version;
 		unsigned int status_code;
 		response_stream >> status_code;
@@ -121,6 +188,13 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		}
 		
 		if (status_code != 200){
+			// When we tried to connect to the server with http but the gv.cfg was configured
+			// to look for https, then we got some error codes in the 400s which placed
+			// the code in this block here.
+			//
+			// but now it seems when we connect to the server via https that we no longer
+			// get the error. regardless of the ws_protocol in the config file
+
 			std::cerr << "Response returned with status code " << status_code << "\n";
 			return 1;
 		}
@@ -129,12 +203,29 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		boost::asio::read_until(socket, response, "\r\n\r\n");
 		boost::asio::streambuf::const_buffers_type buf_2 = response.data();
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
+
+
+		// I'm not sure why. but fautso had 2 response sections? 
+		/*
+		//copy the buffer to the request data
+		boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
+		//nick printing debug info
+		std::string responseCOPY_TEST(boost::asio::buffers_begin(nickTEST2), boost::asio::buffers_begin(nickTEST2) + response.size());
+		//IDK
+		std::cout << "#=# The responseCOPY_TEST: " << std::endl;
+		// This is a pointer
+		std::cout << responseCOPY_TEST.c_str() << std::endl;
+		std::cout << " #=# END responseCOPY_TEST #=# " << std::endl;
+		*/
 		
 		// Process the response headers.
 		std::string header;
 		while (std::getline(response_stream, header) && header != "\r")
 		{
 			// ???
+			// I'mnot sure what is going on here. 
+			// It seems similar to the response back from the server. but not exact match.
+			// std::cout << "Header: " << header << std::endl;
 		}
 	
 		// Write whatever content we already have to output.
@@ -150,7 +241,6 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
         // ToDo: replace this buffer push to a config file update like error paths below. 
         std::string ufm_ib_cable_output_filename = "ufm_ib_cable_output_file.json";
 
-
 		std::string output_file_name = csm_inv_log_dir + "/" + ufm_ib_cable_output_filename;
 		std::ofstream output_file(output_file_name.c_str(),std::ios::out);
 
@@ -163,7 +253,9 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		} 
 
 		boost::system::error_code error;
-		while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+		//while (boost::asio::read(socket, response, boost::asio::transfer_at_least(1), error))
+
+		while (boost::asio::read(socket, response, boost::asio::transfer_all(), error))
 		{
 			output_file << &response;
 		}
@@ -172,8 +264,22 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 		output_file.close();
 
 		// checking for errors
-		if (error != boost::asio::error::eof)
+		if (error == boost::asio::error::eof)
 		{
+			//Fautso says ignore.
+			//Why?
+			//Nick doesn't know.	
+		}else if(error.value() == 335544539){
+			//asio.ssl:335544539
+			//short read
+
+			//This error occured because of an improper close to the SSL connection.
+			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
+			//std::cout << "error: " << error << std::endl;
+			//We ignore this error for now because we know we connected in an uncool way.
+			//If we correct the connection process, then this error will go away.
+		}else{
+			//Non expected. Non special case error code.
 			throw boost::system::system_error(error);
 		}
 	

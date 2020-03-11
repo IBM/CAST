@@ -26,6 +26,8 @@ Switches
 
 CSM can collect information about a physical switch and store it the the :ref:`CSM_Database` inside the :ref:`csm_switch_table` table.
 
+.. _CSM_Network_Inventory_Switch_Module:
+
 Switch Modules
 ^^^^^^^^^^^^^^
 
