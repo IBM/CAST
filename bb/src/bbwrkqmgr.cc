@@ -2639,6 +2639,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
     bfs::path datastore(l_DataStorePath);
     bool l_AllDone = false;
     bool l_DataStoreExists = true;
+    uint64_t l_AttemptsToCreateDataStore = 0;
     while (!l_AllDone)
     {
         try
@@ -2649,9 +2650,9 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 //       that causes an expensive xstat64 operation for every
                 //       timer interval.  Therefore, we just monitor for exceptions
                 //       in this segment of code.
-                for(auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+                for (auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
                 {
-                    if(pathIsDirectory(asyncfile)) continue;
+                    if (pathIsDirectory(asyncfile)) continue;
 
                     int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
                     // NOTE: If pSeqNbr is passed in, that is the file we want to open...
@@ -2665,6 +2666,10 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             }
             else
             {
+                if (l_AttemptsToCreateDataStore++)
+                {
+                    usleep(10000000);   // Already had one create of the datastore fail...  Delay 10 seconds...
+                }
                 bfs::create_directories(datastore);
                 l_DataStoreExists = true;
                 LOG(bb,info) << "WRKQMGR: Directory " << datastore << " created to house the cross bbServer metadata after exception trying access " << l_DataStorePath;
@@ -2687,22 +2692,22 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     if (!rc)
     {
-        if (!l_SeqNbr)
+        try
         {
-            l_SeqNbr = 1;
-            snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
-            rc = createAsyncRequestFile(pAsyncRequestFileName);
-            if (rc)
+            if (!l_SeqNbr)
             {
-                errorText << "Failure when attempting to create new cross bbserver async request file";
-                bberror << err("error.filename", pAsyncRequestFileName);
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                l_SeqNbr = 1;
+                snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
+                rc = createAsyncRequestFile(pAsyncRequestFileName);
+                if (rc)
+                {
+                    errorText << "Failure when attempting to create new cross bbserver async request file";
+                    bberror << err("error.filename", pAsyncRequestFileName);
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
             }
-        }
 
-        if (!rc)
-        {
-            try
+            if (!rc)
             {
                 switch (pMaintenanceOption)
                 {
@@ -2952,12 +2957,12 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         break;
                 }
             }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                rc = -1;
-                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            rc = -1;
+            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         }
 
         LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
