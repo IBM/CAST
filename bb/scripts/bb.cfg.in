@@ -13,7 +13,7 @@
 		"numHandlefileBuckets"                 : 4096,
 		"bbserverThrottle_TimeInterval"        : 0.25,
 		"bbserverAsyncRequestRead_TimeInterval": 25.00,
-		"bbserverAsyncRemoveJobInfoInterval"   : 30,
+		"bbserverAsyncRemoveJobInfoInterval"   : 3,
 
 		"scripts" :
 		{
