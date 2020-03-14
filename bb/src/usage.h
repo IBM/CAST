@@ -11,9 +11,11 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-
 #ifndef BB_USAGE_H_
 #define BB_USAGE_H_
+
+#include <atomic>
+#include <string>
 
 extern int   proxy_GetUsage(const char* mountpoint, BBUsage_t& usage);
 extern int   proxy_GetUsageLV(const char* lvuuid, BBUsage_t& usage);
@@ -26,6 +28,10 @@ extern void* mountMonitorThread(void* ptr);
 extern void* diskstatsMonitorThread(void* ptr);
 #if BBSERVER
 extern void* asyncRemoveJobInfo(void* ptr);
+extern int highIB_Activity();
+extern std::atomic<int64_t> g_Last_Port_Rcv_Data_Delta;
+extern std::atomic<int64_t> g_Last_Port_Xmit_Data_Delta;
+extern std::string g_IB_Adapter;
 #endif
 
 extern int   proxy_regLV4Usage(const char* mountpoint);

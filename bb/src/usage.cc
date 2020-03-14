@@ -61,9 +61,9 @@ map<string, BBUsage_t>  monitorlist;
 pthread_mutex_t                     rwUsageLock    = PTHREAD_MUTEX_INITIALIZER;
 map<dev_t, class BBUsageExtended>   bbxfer_usage;
 
-static atomic<int64_t> g_Last_Port_Rcv_Data_Delta(-1);
-static atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
-static string g_IB_Adapter = "mlx5_0";
+atomic<int64_t> g_Last_Port_Rcv_Data_Delta(-1);
+atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
+string g_IB_Adapter = "mlx5_0";
 
 
 #define sectorsize 512  /// \todo calculate sector size using fdisk -l (or /sys/block/<block>/queue/hw_sector_size
@@ -705,84 +705,8 @@ void* asyncRemoveJobInfo(void* ptr)
 
                             if (!rc)
                             {
-                                try
-                                {
-                                    LOG(bb,info) << "asyncRemoveJobInfo(): START: Removal of cross-bbServer metadata at " << l_PathJobIds[i];
-                                    for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(l_PathToRemove), {}))
-                                    {
-                                        if (!pathIsDirectory(jobstep)) continue;
-                                        for (auto& handlebucket : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
-                                        {
-                                            if (!pathIsDirectory(handlebucket)) continue;
-                                            for (auto& handledir : boost::make_iterator_range(bfs::directory_iterator(handlebucket), {}))
-                                            {
-                                                if (!pathIsDirectory(handledir)) continue;
-                                                string l_HandleDir = handledir.path().string();
-                                                bool l_AllDone = false;
-                                                while (!l_AllDone)
-                                                {
-                                                    l_AllDone = true;
-                                                    if (!highIB_Activity())
-                                                    {
-                                                        try
-                                                        {
-                                                            bfs::remove_all(handledir);
-                                                            LOG(bb,debug) << "asyncRemoveJobInfo():   END: Successful prune of cross-bbServer metadata at " << l_HandleDir;
-                                                        }
-                                                        catch (std::exception& e1)
-                                                        {
-                                                            LOG(bb,warning) << "asyncRemoveJobInfo():   END: Unsuccessful prune of cross-bbServer metadata at " << l_HandleDir << ". Processing will continue...";
-                                                        }
-
-                                                    }
-                                                    else
-                                                    {
-                                                        l_AllDone = false;
-                                                        LOG(bb,info) << "asyncRemoveJobInfo(): IB activity too high to do prune at " << l_HandleDir \
-                                                                     << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
-                                                                     << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
-                                                                     << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \
-                                                                     << ". Delaying " << g_DiskStatsRate << " seconds...";
-                                                        sleep(g_DiskStatsRate);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    bool l_AllDone = false;
-                                    while (!l_AllDone)
-                                    {
-                                        l_AllDone = true;
-                                        if (!highIB_Activity())
-                                        {
-                                            try
-                                            {
-                                                bfs::remove_all(l_PathToRemove);
-                                                LOG(bb,info) << "asyncRemoveJobInfo():   END: Successful removal of cross-bbServer metadata at " << l_PathJobIds[i];
-                                            }
-                                            catch (std::exception& e2)
-                                            {
-                                                LOG(bb,error) << "asyncRemoveJobInfo():   END: Unsuccessful removal of cross-bbServer metadata at " << l_PathJobIds[i] \
-                                                              << ". This cross-bbServer metadata must be manually removed.";
-                                            }
-                                        }
-                                        else
-                                        {
-                                            l_AllDone = false;
-                                            LOG(bb,info) << "asyncRemoveJobInfo(): IB activity too high to do final removal at " << l_PathJobIds[i] \
-                                                         << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
-                                                         << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
-                                                         << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \
-                                                         << ". Delaying " << g_DiskStatsRate << " seconds...";
-                                            sleep(g_DiskStatsRate);
-                                        }
-                                    }
-                                }
-                                catch (std::exception& e3)
-                                {
-                                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e3);
-                                    continue;
-                                }
+                                BBPruneMetadata* l_Request = new BBPruneMetadata(l_PathToRemove.string());
+                                g_LocalAsync.issueAsyncRequest(l_Request);
                             }
                             rc = 0;
                         }

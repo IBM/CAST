@@ -34,6 +34,7 @@ using namespace std;
 
 
 #include "bbinternal.h"
+#include "BBLocalAsync.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
@@ -60,6 +61,9 @@ FL_SetSize(FLMetaData, 65536)
 // Metadata that is kept on each bbserver...
 BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
+
+// Object to handle local async requests...
+BBLocalAsync g_LocalAsync;
 
 // Timer used to for resize SSD messages sent to bbproxy
 // Timer ResizeSSD_Timer;
@@ -131,6 +135,9 @@ int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
 
 // BBServer Metadata Path
 string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
+
+// Handlefile bucket size
+uint32_t g_NumberOfAsyncRequestsThreads = DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS;
 
 // Handlefile bucket size
 uint64_t g_Number_Handlefile_Buckets = DEFAULT_NUMBER_OF_HANDLEFILE_BUCKETS;
@@ -3206,6 +3213,8 @@ int bb_main(std::string who)
         //       efficient removal of canceled extents from the work queue(s).
         uint32_t l_NumberOfTransferThreads = (uint32_t)(config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS));
 
+        g_NumberOfAsyncRequestsThreads = (uint32_t)(config.get(resolveServerConfigKey("numAsyncRequestThreads"), DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS));
+
         wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 16 ? l_NumberOfTransferThreads/16 : 1);
         wrkqmgr.setNumberOfAllowedConcurrentHPRequests(l_NumberOfTransferThreads >= 2 ? l_NumberOfTransferThreads/2 : 1);
         wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
@@ -3334,10 +3343,19 @@ int bb_main(std::string who)
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
+        // Initialize the handle bucket mutexes
         HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
         for (uint64_t i=0; i<g_Number_Handlefile_Buckets; ++i)
         {
             HandleBucketMutex[i] = PTHREAD_MUTEX_INITIALIZER;
+        }
+
+        // Initialize the local async request object
+        if (g_LocalAsync.init())
+        {
+            rc = -1;
+	        errorText << "Error occurred when initializing the local async request object";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
         // Log which jobs are currently known by the system in the cross bbServer metadata.

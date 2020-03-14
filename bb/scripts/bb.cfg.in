@@ -26,6 +26,7 @@
 			"ssladdress"                   : "0.0.0.0:@SSLPORT@",
 			"numRequestThreads"            : 64,
 			"numTransferThreads"           : 24,
+			"numAsyncRequestThreads"       : 24,
 			"workerBufferSize"             : 268435456,
 			"flightlog"                    : "/var/log/bbserver@USERSUFFIX@",
 			"sslcertif"                    : "/etc/ibm/cert.pem",

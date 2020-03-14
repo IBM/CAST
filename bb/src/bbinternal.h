@@ -28,6 +28,7 @@ using namespace std;
 #include "bbapiAdmin.h"
 #include "bbdefaults.h"
 #include "bberror.h"
+#include "BBLocalAsync.h"
 #include "Connex.h"
 #include "Msg.h"
 #include "nodecontroller.h"
@@ -75,6 +76,7 @@ extern thread_local std::string bbconnectionName;
 extern BBLV_Metadata metadata;
 
 #if BBSERVER
+extern BBLocalAsync g_LocalAsync;
 extern WRKQMGR wrkqmgr;
 extern WRKQE* HPWrkQE;
 // extern Timer ResizeSSD_Timer;
@@ -88,6 +90,7 @@ extern int g_DumpStatsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeSort;
 extern int g_DumpExtentsAfterSort;
+extern uint32_t g_NumberOfAsyncRequestsThreads;
 extern int64_t g_IBStatsLowActivityClipValue;
 extern uint64_t g_ForceSSDReadError;
 extern uint64_t g_ForceSSDWriteError;
@@ -137,6 +140,7 @@ const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25.00;         
 const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100.00;        // in seconds
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 240;                // in seconds (4 minutes)
 const uint64_t MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 600;                // in seconds (10 minutes)
+const unsigned int DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS = 24;
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 24;
 
 // NOTE: If the BB throttling rate is used to limit the amount of
