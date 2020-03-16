@@ -12,8 +12,8 @@
  *******************************************************************************/
 
 #include "bberror.h"
-#include "bbinternal.h"
 #include "bbio.h"
+#include "BBLocalAsync.h"
 #include "BBLV_ExtentInfo.h"
 #include "BBLV_Info.h"
 #include "bbserver_flightlog.h"
@@ -628,7 +628,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     //       TagInfo cleanup will have already cleaned up the contribids...
     if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
     {
-        tagInfoMap.cleanUpTagInfo(pLVKey, pTagId);
+        BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(&tagInfoMap, *pLVKey, pTagId);
+        g_LocalAsync.issueAsyncRequest(l_Request);
     }
     else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
     {

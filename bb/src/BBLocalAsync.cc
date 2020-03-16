@@ -13,6 +13,7 @@
 
 #include "bbinternal.h"
 #include "BBLocalAsync.h"
+#include "BBTagInfoMap.h"
 #include "usage.h"
 #include "xfer.h"
 
@@ -555,6 +556,34 @@ void BBPruneMetadataBranch::doit()
     return;
 }
 
+void BBCleanUpTagInfo::doit()
+{
+    int l_LocalMetadataLocked = 0;
+
+    try
+    {
+        lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+        l_LocalMetadataLocked = 1;
+        if (taginfomap)
+        {
+            taginfomap->cleanUpTagInfo(&lvkey, tagid);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+        l_LocalMetadataLocked = 0;
+    }
+
+    return;
+}
+
 
 /*
  * dump() methods
@@ -612,6 +641,23 @@ void BBPruneMetadataBranch::dump(const char* pPrefix)
     }
     dumpRequest(dumpData);
     dumpData << ", branch path " << path;
+    LOG(bb,info) << dumpData.str();
+
+    return;
+}
+
+void BBCleanUpTagInfo::dump(const char* pPrefix)
+{
+    stringstream dumpData;
+
+    if (strlen(pPrefix))
+    {
+        dumpData << pPrefix;
+    }
+    dumpRequest(dumpData);
+    dumpData << lvkey << ", jobid " << tagid.getJobId() \
+             << ", jobstepid " << tagid.getJobStepId() \
+             << ", tag "<< tagid.getTag();
     LOG(bb,info) << dumpData.str();
 
     return;

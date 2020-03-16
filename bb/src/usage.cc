@@ -33,6 +33,8 @@
 #include "bbinternal.h"
 #include "connections.h"
 #include "HandleFile.h"
+#include "BBLocalAsync.h"
+
 
 using namespace std;
 using namespace boost;

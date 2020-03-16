@@ -28,7 +28,6 @@ using namespace std;
 #include "bbapiAdmin.h"
 #include "bbdefaults.h"
 #include "bberror.h"
-#include "BBLocalAsync.h"
 #include "Connex.h"
 #include "Msg.h"
 #include "nodecontroller.h"
@@ -36,6 +35,7 @@ using namespace std;
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
+class BBLocalAsync;
 class BBLV_Metadata;
 class WRKQMGR;
 class WRKQE;

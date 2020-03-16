@@ -20,13 +20,15 @@
 
 #include <semaphore.h>
 
-#include "usage.h"
+#include "BBTagID.h"
+#include "LVKey.h"
 
 
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
 class BBLocalRequest;
+class BBTagInfoMap;
 
 
 /*******************************************************************************
@@ -201,6 +203,39 @@ class BBLogIt : public BBLocalRequest
 
     // Data members
     std::string data;
+};
+
+class BBCleanUpTagInfo : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBCleanUpTagInfo(BBTagInfoMap* pTagInfoMap, LVKey pLVKey, BBTagID pTagId) :
+        BBLocalRequest("BBCleanUpTagInfo", HIGH),
+        taginfomap(pTagInfoMap),
+        lvkey(pLVKey),
+        tagid(pTagId) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBCleanUpTagInfo() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+    virtual void dump(const char* pPrefix="");
+
+    // Data members
+    BBTagInfoMap*   taginfomap;
+    LVKey           lvkey;
+    BBTagID         tagid;
 };
 
 class BBPruneMetadata : public BBLocalRequest
