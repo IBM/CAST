@@ -3241,7 +3241,7 @@ int bb_main(std::string who)
         g_AsyncRemoveJobInfoInterval = 0;
         if (g_AsyncRemoveJobInfo)
         {
-            g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
+            g_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
             LOG(bb,always) << "Async Remove JobInfo Interval=" << g_AsyncRemoveJobInfoInterval << " second(s)";
         }
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);

@@ -24,11 +24,22 @@
 #include "LVKey.h"
 
 
+/*
+ * NOTE:  When adding a new request type, which represents the
+ *        priority grouping of a set of BBLocalRequests together
+ *        for scheduling purposes, update these three elements:
+ *        1) enum LOCAL_ASYNC_REQUEST_PRIORITY in BBLocalAsync.h
+ *        2) static class BBLocalAsync in BBLocalAsync.h
+ *        3) method getLocalAsyncPriorityStr() in BBLocalAsync.cc
+ */
+
+
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
 class BBLocalRequest;
 class BBTagInfoMap;
+class BBTagInfo;
 
 
 /*******************************************************************************
@@ -41,19 +52,46 @@ class BBTagInfoMap;
  *******************************************************************************/
 enum LOCAL_ASYNC_REQUEST_PRIORITY
 {
-    NONE   = 0,
-    HIGH   = 10,
-    MEDIUM = 50,
-    LOW    = 90
+    NONE           = 0,
+    HIGH           = 8,
+    MEDIUM_HIGH    = 10,
+    MEDIUM         = 50,
+    LOW            = 90
 };
 typedef enum LOCAL_ASYNC_REQUEST_PRIORITY LOCAL_ASYNC_REQUEST_PRIORITY;
 
-enum LOCAL_ASYNC_REQUEST_LOG_RESULT
+
+//
+// BBAsyncRequestType class
+//
+class BBAsyncRequestType
 {
-    DO_NOT_LOG_RESULT   = 0,
-    LOG_RESULT          = 1
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBAsyncRequestType(std::string pName, LOCAL_ASYNC_REQUEST_PRIORITY pPriority, double pPercentageOfThreads) :
+        name(pName),
+        priority(pPriority),
+        percentage_of_threads(pPercentageOfThreads) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBAsyncRequestType() {};
+
+    // Inlined non-static methods
+
+    // Static methods
+
+    // Non-static methods
+
+    // Data members
+    std::string                     name;
+    LOCAL_ASYNC_REQUEST_PRIORITY    priority;
+    double                          percentage_of_threads;
 };
-typedef enum LOCAL_ASYNC_REQUEST_LOG_RESULT LOCAL_ASYNC_REQUEST_LOG_RESULT;
 
 
 //
@@ -205,6 +243,43 @@ class BBLogIt : public BBLocalRequest
     std::string data;
 };
 
+class BBCleanUpContribId : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBCleanUpContribId(BBTagInfo* pTagInfo, LVKey pLVKey, BBTagID pTagId, uint64_t pHandle, uint32_t pContribId) :
+        BBLocalRequest("BBCleanUpContribId", HIGH),
+        taginfo(pTagInfo),
+        lvkey(pLVKey),
+        tagid(pTagId),
+        handle(pHandle),
+        contribid(pContribId) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBCleanUpContribId() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+    virtual void dump(const char* pPrefix="");
+
+    // Data members
+    BBTagInfo*      taginfo;
+    LVKey           lvkey;
+    BBTagID         tagid;
+    uint64_t        handle;
+    uint32_t        contribid;
+};
+
 class BBCleanUpTagInfo : public BBLocalRequest
 {
   public:
@@ -212,7 +287,7 @@ class BBCleanUpTagInfo : public BBLocalRequest
      * \brief Constructor
      */
     BBCleanUpTagInfo(BBTagInfoMap* pTagInfoMap, LVKey pLVKey, BBTagID pTagId) :
-        BBLocalRequest("BBCleanUpTagInfo", HIGH),
+        BBLocalRequest("BBCleanUpTagInfo", MEDIUM_HIGH),
         taginfomap(pTagInfoMap),
         lvkey(pLVKey),
         tagid(pTagId) {
@@ -316,11 +391,16 @@ class BBLocalAsync
     virtual ~BBLocalAsync() {};
 
     // Static data
+    vector<BBAsyncRequestType> requestType = {
+        BBAsyncRequestType(string("HIGH") , HIGH, (double)0),
+        BBAsyncRequestType(string("MEDIUM_HIGH") , MEDIUM_HIGH, (double)1/(double)2),
+        BBAsyncRequestType(string("MEDIUM") , MEDIUM, (double)3/(double)16),
+        BBAsyncRequestType(string("LOW") , LOW, (double)1/(double)16)
+    };
 
     // Inlined static methods
 
     // Inlined non-static methods
-  private:
     inline void lock()
     {
         pthread_mutex_lock(&mutex);

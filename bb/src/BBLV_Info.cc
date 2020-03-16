@@ -633,7 +633,8 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     }
     else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
     {
-        tagInfoMap.cleanUpContribId(pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        BBCleanUpContribId* l_Request = new BBCleanUpContribId(pTagInfo, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+        g_LocalAsync.issueAsyncRequest(l_Request);
     }
 
     // We have to return with the same lock states as when we entered this code

@@ -14,6 +14,7 @@
 #include "bbinternal.h"
 #include "BBLocalAsync.h"
 #include "BBTagInfoMap.h"
+#include "BBTagInfo.h"
 #include "usage.h"
 #include "xfer.h"
 
@@ -38,6 +39,10 @@ std::string getLocalAsyncPriorityStr(LOCAL_ASYNC_REQUEST_PRIORITY pPriority)
 
         case HIGH:
             l_Priority = "HIGH";
+            break;
+
+        case MEDIUM_HIGH:
+            l_Priority = "MEDIUM_HIGH";
             break;
 
         case MEDIUM:
@@ -232,18 +237,32 @@ int BBLocalAsync::dispatchFromThisQueue(LOCAL_ASYNC_REQUEST_PRIORITY pPriority)
     int rc = 0;
 
     int64_t l_NumberOfNonDispatchedRequests = requestData[pPriority]->numberOfNonDispatchedRequests();
+    int64_t l_MaximumConcurrentRunning = 0;
+    int64_t l_NumberOfInFlightRequests = 0;
+
     if (l_NumberOfNonDispatchedRequests)
     {
-        int64_t l_NumberOfInFlightRequests = (int64_t)requestData[pPriority]->getNumberOfInFlightRequests();
-        int64_t l_MaximumConcurrentRunning = (int64_t)requestData[pPriority]->getMaximumConcurrentRunning();
-        if (l_NumberOfInFlightRequests < l_MaximumConcurrentRunning)
+        l_MaximumConcurrentRunning = (int64_t)requestData[pPriority]->getMaximumConcurrentRunning();
+        if (l_MaximumConcurrentRunning)
+        {
+            l_NumberOfInFlightRequests = (int64_t)requestData[pPriority]->getNumberOfInFlightRequests();
+            if (l_NumberOfInFlightRequests < l_MaximumConcurrentRunning)
+            {
+                rc = 1;
+            }
+        }
+        else
         {
             rc = 1;
-            LOG(bb,debug) << "BBLocalAsync::dispatchFromThisQueue(): Scheduling async request having priority " << getLocalAsyncPriorityStr(pPriority) \
-                          << ", NumberOfNonDispatchedRequests " << l_NumberOfNonDispatchedRequests \
-                          << ", NumberOfInFlightRequests " << l_NumberOfInFlightRequests \
-                          << ", MaximumConcurrentRunning " << l_MaximumConcurrentRunning;
         }
+    }
+
+    if (rc == 1)
+    {
+        LOG(bb,debug) << "BBLocalAsync::dispatchFromThisQueue(): Scheduling async request having priority " << getLocalAsyncPriorityStr(pPriority) \
+              << ", NumberOfNonDispatchedRequests " << l_NumberOfNonDispatchedRequests \
+              << ", NumberOfInFlightRequests " << l_NumberOfInFlightRequests \
+              << ", MaximumConcurrentRunning " << l_MaximumConcurrentRunning;
     }
 
     return rc;
@@ -265,33 +284,19 @@ int64_t BBLocalAsync::getNextRequest(BBLocalRequest* &pRequest)
 {
     int64_t rc = -1;
 
-    size_t l_NumberOfHighPriorityRequestsInFlight = 0;
-    size_t l_NumberOfMediumPriorityRequestsInFlight = 0;
-    size_t l_NumberOfLowPriorityRequestsInFlight = 0;
-
     sem_wait(&work);
 
     lock();
     try
     {
-        l_NumberOfHighPriorityRequestsInFlight = requestData[HIGH]->getNumberOfInFlightRequests();
-        l_NumberOfMediumPriorityRequestsInFlight = requestData[MEDIUM]->getNumberOfInFlightRequests();
-        l_NumberOfLowPriorityRequestsInFlight = requestData[LOW]->getNumberOfInFlightRequests();
-        LOG(bb,debug) << "BBLocalAsync::getNextRequest(): Inflight HIGH " << l_NumberOfHighPriorityRequestsInFlight \
-                      << ", MEDIUM " << l_NumberOfMediumPriorityRequestsInFlight \
-                      << ", LOW " << l_NumberOfLowPriorityRequestsInFlight;
-
-        LOCAL_ASYNC_REQUEST_PRIORITY l_Priority = HIGH;
-        if (!dispatchFromThisQueue(l_Priority))
+        LOCAL_ASYNC_REQUEST_PRIORITY l_Priority = NONE;
+        vector<BBAsyncRequestType>::iterator it;
+        for (it = requestType.begin(); it != requestType.end(); ++it)
         {
-            l_Priority = MEDIUM;
-            if (!dispatchFromThisQueue(l_Priority))
+            if (dispatchFromThisQueue(it->priority))
             {
-                l_Priority = LOW;
-                if (!dispatchFromThisQueue(l_Priority))
-                {
-                    l_Priority = NONE;
-                }
+                l_Priority = it->priority;
+                break;
             }
         }
 
@@ -347,10 +352,11 @@ int BBLocalAsync::init()
         }
 
         // Setup the request data for each supported priority...
-        // NOTE: Would be nice to make this more self-defining...
-        requestData[HIGH] = new BBAsyncRequestData(HIGH, 0);
-        requestData[MEDIUM] = new BBAsyncRequestData(MEDIUM, g_NumberOfAsyncRequestsThreads/3);
-        requestData[LOW] = new BBAsyncRequestData(LOW, g_NumberOfAsyncRequestsThreads/6);
+        vector<BBAsyncRequestType>::iterator it;
+        for (it = requestType.begin(); it != requestType.end(); ++it)
+        {
+            requestData[it->priority] = new BBAsyncRequestData(it->priority, round(g_NumberOfAsyncRequestsThreads*(it->percentage_of_threads)));
+        }
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -556,6 +562,34 @@ void BBPruneMetadataBranch::doit()
     return;
 }
 
+void BBCleanUpContribId::doit()
+{
+    int l_LocalMetadataLocked = 0;
+
+    try
+    {
+        lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+        l_LocalMetadataLocked = 1;
+        if (taginfo)
+        {
+            taginfo->cleanUpContribId(&lvkey, tagid, handle, contribid);
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_LocalMetadataLocked)
+    {
+        unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+        l_LocalMetadataLocked = 0;
+    }
+
+    return;
+}
+
 void BBCleanUpTagInfo::doit()
 {
     int l_LocalMetadataLocked = 0;
@@ -646,6 +680,24 @@ void BBPruneMetadataBranch::dump(const char* pPrefix)
     return;
 }
 
+void BBCleanUpContribId::dump(const char* pPrefix)
+{
+    stringstream dumpData;
+
+    if (strlen(pPrefix))
+    {
+        dumpData << pPrefix;
+    }
+    dumpRequest(dumpData);
+    dumpData << ", " << lvkey << ", jobid " << tagid.getJobId() \
+             << ", jobstepid " << tagid.getJobStepId() \
+             << ", tag "<< tagid.getTag() << ", handle "<< handle \
+             << ", contribid "<< contribid;
+    LOG(bb,info) << dumpData.str();
+
+    return;
+}
+
 void BBCleanUpTagInfo::dump(const char* pPrefix)
 {
     stringstream dumpData;
@@ -655,7 +707,7 @@ void BBCleanUpTagInfo::dump(const char* pPrefix)
         dumpData << pPrefix;
     }
     dumpRequest(dumpData);
-    dumpData << lvkey << ", jobid " << tagid.getJobId() \
+    dumpData << ", " << lvkey << ", jobid " << tagid.getJobId() \
              << ", jobstepid " << tagid.getJobStepId() \
              << ", tag "<< tagid.getTag();
     LOG(bb,info) << dumpData.str();
