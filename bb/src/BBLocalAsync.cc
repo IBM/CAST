@@ -14,8 +14,9 @@
 #include "bbcounters.h"
 #include "bbinternal.h"
 #include "BBLocalAsync.h"
+#include "BBLV_Info.h"
+#include "BBLV_Metadata.h"
 #include "BBTagInfoMap.h"
-#include "BBTagInfo.h"
 #include "usage.h"
 #include "xfer.h"
 
@@ -131,7 +132,10 @@ int64_t BBAsyncRequestData::addRequest(BBLocalRequest* pRequest)
     {
         requests.push(pRequest);
         rc = increment(lastRequestNumberIssued);
-        pRequest->dump("BBLocalAsync::addRequest(): Enqueuing: ");
+        if (pRequest->dumpOnAdd())
+        {
+            pRequest->dump("BBLocalAsync::addRequest(): Enqueuing: ");
+        }
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -229,7 +233,10 @@ int64_t BBAsyncRequestData::removeNextRequest(BBLocalRequest* &pRequest)
         pRequest = requests.front();
         requests.pop();
         rc = increment(lastRequestNumberDispatched);
-        pRequest->dump("BBLocalAsync::removeNextRequest(): Dequeuing: ");
+        if (pRequest->dumpOnRemove())
+        {
+            pRequest->dump("BBLocalAsync::removeNextRequest(): Dequeuing: ");
+        }
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -531,47 +538,25 @@ void BBAsyncRemoveJobInfo::doit()
     return;
 }
 
-void BBCleanUpContribId::doit()
-{
-    int l_LocalMetadataLocked = 0;
-
-    try
-    {
-        lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
-        l_LocalMetadataLocked = 1;
-        if (taginfo)
-        {
-            taginfo->cleanUpContribId(&lvkey, tagid, handle, contribid);
-        }
-    }
-    catch (ExceptionBailout& e) { }
-    catch (std::exception& e)
-    {
-        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
-    }
-
-    if (l_LocalMetadataLocked)
-    {
-        l_LocalMetadataLocked = 0;
-        unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
-    }
-
-    return;
-}
-
 void BBCleanUpTagInfo::doit()
 {
     int l_LocalMetadataLocked = 0;
 
     try
     {
+        uint64_t l_JobId = tagid.getJobId();
+
         lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
         l_LocalMetadataLocked = 1;
-        if (taginfomap)
+
+        for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
         {
-            taginfomap->cleanUpTagInfo(&lvkey, tagid);
+            if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
+            {
+                (it->second).getTagInfoMap()->cleanUpTagInfo(&lvkey, tagid);
+            }
         }
-    }
+   }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
     {
@@ -582,6 +567,42 @@ void BBCleanUpTagInfo::doit()
     {
         l_LocalMetadataLocked = 0;
         unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+    }
+
+    return;
+}
+
+void BBCounters::doit()
+{
+    try
+    {
+        #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters_shadow[BB_COUNTERS_##id] = bbcounters[BB_COUNTERS_##id]; }
+        #include "bbcounters.h"
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    int l_WorkQueueMgrLocked = 0;
+    try
+    {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
+        l_WorkQueueMgrLocked = 1;
+        wrkqmgr.setDumpCountersTimerFired(0);
+        wrkqmgr.setDumpCountersTimerCount(0);
+    }
+    catch(ExceptionBailout& e) { }
+    catch(std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
     }
 
     return;
@@ -626,8 +647,6 @@ void BBIB_Stats::doit()
                 }
             }
         }
-        #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters_shadow[BB_COUNTERS_##id] = bbcounters[BB_COUNTERS_##id]; }
-        #include "bbcounters.h"
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -878,24 +897,6 @@ void BBLocalRequest::dump(const char* pPrefix)
     return;
 }
 
-void BBCleanUpContribId::dump(const char* pPrefix)
-{
-    stringstream dumpData;
-
-    if (strlen(pPrefix))
-    {
-        dumpData << pPrefix;
-    }
-    dumpRequest(dumpData);
-    dumpData << ", " << lvkey << ", jobid " << tagid.getJobId() \
-             << ", jobstepid " << tagid.getJobStepId() \
-             << ", tag "<< tagid.getTag() << ", handle "<< handle \
-             << ", contribid "<< contribid;
-    LOG(bb,info) << dumpData.str();
-
-    return;
-}
-
 void BBCleanUpTagInfo::dump(const char* pPrefix)
 {
     stringstream dumpData;
@@ -905,7 +906,8 @@ void BBCleanUpTagInfo::dump(const char* pPrefix)
         dumpData << pPrefix;
     }
     dumpRequest(dumpData);
-    dumpData << ", " << lvkey << ", jobid " << tagid.getJobId() \
+    dumpData << "Connection " << connection_name << ", " << lvkey \
+             << ", jobid " << tagid.getJobId() \
              << ", jobstepid " << tagid.getJobStepId() \
              << ", tag "<< tagid.getTag();
     LOG(bb,info) << dumpData.str();

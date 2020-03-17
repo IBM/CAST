@@ -3211,6 +3211,9 @@ int bb_main(std::string who)
         wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getHeartbeatDumpPoppedCount() << " to implement a heartbeat dump rate with " \
                        << Throttle_TimeInterval*wrkqmgr.getHeartbeatDumpPoppedCount() << " second intervals.";
+        wrkqmgr.setDumpCountersTimerPoppedCount(Throttle_TimeInterval);
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpCountersTimerPoppedCount() << " to implement a counter dump rate with " \
+                       << Throttle_TimeInterval*wrkqmgr.getDumpCountersTimerPoppedCount() << " second intervals.";
         wrkqmgr.setIBStatsTimerPoppedCount(Throttle_TimeInterval);
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getIBStatsTimerPoppedCount() << " to implement an IB stats dump rate with " \
                        << Throttle_TimeInterval*wrkqmgr.getIBStatsTimerPoppedCount() << " second intervals.";

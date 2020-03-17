@@ -484,6 +484,14 @@ void WRKQMGR::checkThrottleTimer()
             setIOStatsTimerFired(1);
         }
 
+        // See if it is time to dump counters
+        if ((!getDumpCountersTimerAlreadyFired()) && dumpCountersTimerPoppedCount && (++dumpCountersTimerCount >= dumpCountersTimerPoppedCount))
+        {
+            BBCounters* l_Request = new BBCounters();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            setDumpCountersTimerFired(1);
+        }
+
         // See if it is time to asynchronously remove job information from the cross-bbServer metadata
         if (g_AsyncRemoveJobInfo)
         {
@@ -2331,6 +2339,26 @@ void WRKQMGR::setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval)
             LOG(bb,warning) << "Async rmvjobinfo timer interval of " << to_string(l_AsyncRemoveJobInfoInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async rmvjobinfo rates may be implemented as slightly more than what is specified.";
         }
         ++asyncRmvJobInfoTimerPoppedCount;
+    }
+
+    return;
+}
+
+void WRKQMGR::setDumpCountersTimerPoppedCount(const double pTimerInterval)
+{
+    double l_DumpCountersTimeInterval = DEFAULT_BBSERVER_DUMP_COUNTERS_TIME_INTERVAL;
+    dumpCountersTimerPoppedCount = (int64_t)(l_DumpCountersTimeInterval/pTimerInterval);
+    if (((double)dumpCountersTimerPoppedCount)*pTimerInterval != (double)(l_DumpCountersTimeInterval))
+    {
+        if (dumpCountersTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpCountersTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dump counter rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpCountersTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dump counter rates may be implemented as slightly more than what is specified.";
+        }
+        ++dumpCountersTimerPoppedCount;
     }
 
     return;

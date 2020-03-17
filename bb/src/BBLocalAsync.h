@@ -39,13 +39,13 @@
  | Forward declarations
  *******************************************************************************/
 class BBLocalRequest;
-class BBTagInfoMap;
-class BBTagInfo;
+class BBLV_Metadata;
 
 
 /*******************************************************************************
  | External data
  *******************************************************************************/
+extern BBLV_Metadata metadata;
 extern int64_t g_IBStatsLowActivityClipValue;
 
 
@@ -205,6 +205,8 @@ class BBLocalRequest
 
     // Inlined virtual methods
     inline virtual void doit() { return; };
+    inline virtual int dumpOnAdd() { return 0; };
+    inline virtual int dumpOnRemove() { return 0; };
 
     // Static methods
     static std::string getPriorityStr(LOCAL_ASYNC_REQUEST_PRIORITY pPriority);
@@ -249,52 +251,15 @@ class BBAsyncRemoveJobInfo : public BBLocalRequest
     // Data members
 };
 
-class BBCleanUpContribId : public BBLocalRequest
-{
-  public:
-    /**
-     * \brief Constructor
-     */
-    BBCleanUpContribId(BBTagInfo* pTagInfo, LVKey pLVKey, BBTagID pTagId, uint64_t pHandle, uint32_t pContribId) :
-        BBLocalRequest("BBCleanUpContribId", HIGH),
-        taginfo(pTagInfo),
-        lvkey(pLVKey),
-        tagid(pTagId),
-        handle(pHandle),
-        contribid(pContribId) {
-    };
-
-    /**
-     * \brief Destructor
-     */
-    virtual ~BBCleanUpContribId() { };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
-
-    // Inlined methods
-
-    // Virtual methods
-    virtual void doit();
-    virtual void dump(const char* pPrefix="");
-
-    // Data members
-    BBTagInfo*      taginfo;
-    LVKey           lvkey;
-    BBTagID         tagid;
-    uint64_t        handle;
-    uint32_t        contribid;
-};
-
 class BBCleanUpTagInfo : public BBLocalRequest
 {
   public:
     /**
      * \brief Constructor
      */
-    BBCleanUpTagInfo(BBTagInfoMap* pTagInfoMap, LVKey pLVKey, BBTagID pTagId) :
+    BBCleanUpTagInfo(std::string pConnectionName, LVKey pLVKey, BBTagID pTagId) :
         BBLocalRequest("BBCleanUpTagInfo", MEDIUM_HIGH),
-        taginfomap(pTagInfoMap),
+        connection_name(pConnectionName),
         lvkey(pLVKey),
         tagid(pTagId) {
     };
@@ -314,9 +279,39 @@ class BBCleanUpTagInfo : public BBLocalRequest
     virtual void dump(const char* pPrefix="");
 
     // Data members
-    BBTagInfoMap*   taginfomap;
+    std::string     connection_name;
     LVKey           lvkey;
     BBTagID         tagid;
+};
+
+class BBCounters : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBCounters() :
+        BBLocalRequest("BBCounters", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBCounters() { };
+
+    // Inlined virtual methods
+    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
 };
 
 class BBIB_Stats : public BBLocalRequest
@@ -333,6 +328,10 @@ class BBIB_Stats : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBIB_Stats() { };
+
+    // Inlined virtual methods
+    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -359,6 +358,10 @@ class BBIO_Stats : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBIO_Stats() { };
+
+    // Inlined virtual methods
+    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -479,12 +482,12 @@ class BBLocalAsync
 
     // Static data
     vector<BBAsyncRequestType> requestType = {
-        BBAsyncRequestType(string("HIGH"), HIGH, (double)0),
-        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)1/(double)4),
-        BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)1/(double)32),
-        BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)1/(double)8),
-        BBAsyncRequestType(string("LOW"), LOW, (double)1/(double)16),
-        BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)1/(double)32)
+        BBAsyncRequestType(string("HIGH"), HIGH, (double)0),    // With 48 async threads, leaves 2 threads
+        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)22/(double)48),
+        BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)4/(double)48),
+        BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)16/(double)48),
+        BBAsyncRequestType(string("LOW"), LOW, (double)2/(double)48),
+        BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)2/(double)48)
     };
 
     // Inlined static methods

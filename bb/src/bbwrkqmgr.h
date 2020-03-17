@@ -276,12 +276,14 @@ class WRKQMGR
         numberOfAllowedConcurrentHPRequests(0),
         numberOfConcurrentHPRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
+        dumpCountersTimerCount(0),
         dumpTimerCount(0),
         heartbeatDumpCount(0),
         heartbeatTimerCount(0),
         ibStatsTimerCount(0),
         ioStatsTimerCount(0),
         asyncRmvJobInfoTimerCount(0),
+        dumpCountersTimerPoppedCount(0),
         dumpTimerPoppedCount(0),
         heartbeatDumpPoppedCount(0),
         heartbeatTimerPoppedCount(0),
@@ -289,6 +291,7 @@ class WRKQMGR
         ioStatsTimerPoppedCount(0),
         asyncRmvJobInfoTimerPoppedCount(0),
         declareServerDeadCount(0),
+        dumpCountersTimerFired(0),
         ibStatsTimerFired(0),
         ioStatsTimerFired(0),
         asyncRmvJobInfoTimerFired(0),
@@ -369,6 +372,16 @@ class WRKQMGR
     inline int getAsyncRmvJobInfoTimerPoppedCount()
     {
         return asyncRmvJobInfoTimerPoppedCount;
+    }
+
+    inline uint64_t getDumpCountersTimerAlreadyFired()
+    {
+        return dumpCountersTimerFired;
+    }
+
+    inline int getDumpCountersTimerPoppedCount()
+    {
+        return dumpCountersTimerPoppedCount;
     }
 
     inline int getDumpTimerCount()
@@ -547,6 +560,20 @@ class WRKQMGR
 
         return;
     }
+
+    inline void setDumpCountersTimerCount(const int pValue)
+    {
+        dumpCountersTimerCount = pValue;
+
+        return;
+    };
+
+    inline void setDumpCountersTimerFired(const int pValue)
+    {
+        dumpCountersTimerFired = pValue;
+
+        return;
+    };
 
     inline void setDumpOnDelay(const int pValue)
     {
@@ -752,6 +779,7 @@ class WRKQMGR
     int rmvWrkQ(const LVKey* pLVKey);
     void setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval);
     void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
+    void setDumpCountersTimerPoppedCount(const double pTimerInterval);
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);
     void setHeartbeatTimerPoppedCount(const double pTimerInterval);
@@ -794,8 +822,10 @@ class WRKQMGR
     volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
+    volatile int64_t    dumpCountersTimerCount;                 // Access is serialized with the
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;
+                                                                // HPWrkQE transfer queue lock
     volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     volatile int64_t    ibStatsTimerCount;                      // Access is serialized with the
@@ -804,6 +834,7 @@ class WRKQMGR
                                                                 // HPWrkQE transfer queue lock
     volatile int64_t    asyncRmvJobInfoTimerCount;              // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
+    int64_t             dumpCountersTimerPoppedCount;
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
@@ -811,9 +842,14 @@ class WRKQMGR
     int64_t             ioStatsTimerPoppedCount;
     int64_t             asyncRmvJobInfoTimerPoppedCount;
     int64_t             declareServerDeadCount;                 // In seconds
-    volatile int        ibStatsTimerFired;
-    volatile int        ioStatsTimerFired;
-    volatile int        asyncRmvJobInfoTimerFired;
+    volatile int        dumpCountersTimerFired;                 // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int        ibStatsTimerFired;                      // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int        ioStatsTimerFired;                      // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int        asyncRmvJobInfoTimerFired;              // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the

@@ -624,10 +624,16 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
 
+    // NOTE: If TagInfo cleanup is performed, there is no need to perform ContribId cleanup.
+    //       TagInfo cleanup will have already cleaned up the contribids...
     if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
     {
-        BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(&tagInfoMap, *pLVKey, pTagId);
+        BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(pConnectionName, *pLVKey, pTagId);
         g_LocalAsync.issueAsyncRequest(l_Request);
+    }
+    else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
+    {
+        tagInfoMap.cleanUpContribId(pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
     }
 
     // We have to return with the same lock states as when we entered this code
@@ -1269,12 +1275,6 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
             // Check/update the status for the LVKey
             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
             updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
-        }
-
-        if (pPerformContribIdCleanup)
-        {
-            BBCleanUpContribId* l_Request = new BBCleanUpContribId(pTagInfo, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
-            g_LocalAsync.issueAsyncRequest(l_Request);
         }
     }
 
