@@ -624,16 +624,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
 
-    // NOTE: If TagInfo cleanup is performed, there is no need to perform ContribId cleanup.
-    //       TagInfo cleanup will have already cleaned up the contribids...
     if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
     {
         BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(&tagInfoMap, *pLVKey, pTagId);
-        g_LocalAsync.issueAsyncRequest(l_Request);
-    }
-    else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
-    {
-        BBCleanUpContribId* l_Request = new BBCleanUpContribId(pTagInfo, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
         g_LocalAsync.issueAsyncRequest(l_Request);
     }
 
@@ -1277,6 +1270,12 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message...
             updateTransferStatus(pConnectionName, pLVKey, pNumberOfExpectedInFlight);
         }
+
+        if (pPerformContribIdCleanup)
+        {
+            BBCleanUpContribId* l_Request = new BBCleanUpContribId(pTagInfo, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+            g_LocalAsync.issueAsyncRequest(l_Request);
+        }
     }
 
     if (l_LocalMetadataLocked)
@@ -1302,7 +1301,7 @@ void BBLV_Info::updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInf
         switch (rc)
         {
             case -1:
-                LOG(bb,error) << "updateAllTransferStatus: Error when attempting to determine if all extents have been transferred";
+                LOG(bb,error) << "updateTransferStatus: Error when attempting to determine if all extents have been transferred";
                 break;
             case 0:
                 break;

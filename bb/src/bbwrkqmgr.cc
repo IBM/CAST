@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 
 #include "bbinternal.h"
+#include "BBLocalAsync.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
@@ -467,6 +468,33 @@ void WRKQMGR::checkThrottleTimer()
             asyncRequestReadTimerCount = 0;
         }
 
+        // See if it is time to dump IB Stats
+        if ((!getIBStatsTimerAlreadyFired()) && ibStatsTimerPoppedCount && (++ibStatsTimerCount >= ibStatsTimerPoppedCount))
+        {
+            BBIB_Stats* l_Request = new BBIB_Stats();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            setIBStatsTimerFired(1);
+        }
+
+        // See if it is time to dump IO Stats
+        if ((!getIOStatsTimerAlreadyFired()) && ioStatsTimerPoppedCount && (++ioStatsTimerCount >= ioStatsTimerPoppedCount))
+        {
+            BBIO_Stats* l_Request = new BBIO_Stats();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            setIOStatsTimerFired(1);
+        }
+
+        // See if it is time to asynchronously remove job information from the cross-bbServer metadata
+        if (g_AsyncRemoveJobInfo)
+        {
+            if ((!getAsyncRmvJobInfoTimerAlreadyFired()) && asyncRmvJobInfoTimerPoppedCount && (++asyncRmvJobInfoTimerCount >= asyncRmvJobInfoTimerPoppedCount))
+            {
+                BBAsyncRemoveJobInfo* l_Request = new BBAsyncRemoveJobInfo();
+                g_LocalAsync.issueAsyncRequest(l_Request);
+                setAsyncRmvJobInfoTimerFired(1);
+            }
+        }
+
         // See if it is time to dump the work manager
         if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
         {
@@ -655,6 +683,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                            LOG(bb,debug) << "          IB Stats Timer Count: " << ibStatsTimerCount << "      IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
+//                            LOG(bb,debug) << "          IO Stats Timer Count: " << ioStatsTimerCount << "      IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
+//                            LOG(bb,debug) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "  Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
 //                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -696,6 +727,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
+//                            LOG(bb,info) << "          IB Stats Timer Count: " << ibStatsTimerCount << "      IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
+//                            LOG(bb,info) << "          IO Stats Timer Count: " << ioStatsTimerCount << "      IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
+//                            LOG(bb,info) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "  Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
 //                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -2282,6 +2316,26 @@ void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
     return;
 }
 
+void WRKQMGR::setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval)
+{
+    double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
+    asyncRmvJobInfoTimerPoppedCount = (int64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
+    if (((double)asyncRmvJobInfoTimerPoppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
+    {
+        if (asyncRmvJobInfoTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "Async rmvjobinfo timer interval of " << to_string(l_AsyncRemoveJobInfoInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async rmvjobinfo rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Async rmvjobinfo timer interval of " << to_string(l_AsyncRemoveJobInfoInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async rmvjobinfo rates may be implemented as slightly more than what is specified.";
+        }
+        ++asyncRmvJobInfoTimerPoppedCount;
+    }
+
+    return;
+}
+
 void WRKQMGR::setDumpTimerPoppedCount(const double pTimerInterval)
 {
     double l_DumpTimeInterval = config.get("bb.bbserverDumpWorkQueueMgr_TimeInterval", DEFAULT_DUMP_MGR_TIME_INTERVAL);
@@ -2343,6 +2397,23 @@ void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
     // min( max( twice the bbServer heartbeat interval, minimum declare server dead value ), maximum declare server dead value )
     // Value(s) stored in seconds.
     declareServerDeadCount = min( max( (uint64_t)(l_HeartbeatTimeInterval * 2), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ), MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE );
+
+    return;
+}
+
+void WRKQMGR::setIBStatsTimerPoppedCount(const double pTimerInterval)
+{
+    ibStatsTimerPoppedCount = (int64_t)(DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL/pTimerInterval);
+
+    // NOTE: Pop this 'event' immediately so we can determine the the rcv/xmit delta values quicker
+    ibStatsTimerCount = ibStatsTimerPoppedCount;
+
+    return;
+}
+
+void WRKQMGR::setIOStatsTimerPoppedCount(const double pTimerInterval)
+{
+    ioStatsTimerPoppedCount = (int64_t)(DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL/pTimerInterval);
 
     return;
 }

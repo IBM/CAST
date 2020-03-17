@@ -14,6 +14,7 @@
 #ifndef BB_BBLOCALASYNC_H_
 #define BB_BBLOCALASYNC_H_
 
+#include <atomic>
 #include <map>
 #include <queue>
 #include <string>
@@ -43,6 +44,12 @@ class BBTagInfo;
 
 
 /*******************************************************************************
+ | External data
+ *******************************************************************************/
+extern int64_t g_IBStatsLowActivityClipValue;
+
+
+/*******************************************************************************
  | Constants
  *******************************************************************************/
 
@@ -53,10 +60,12 @@ class BBTagInfo;
 enum LOCAL_ASYNC_REQUEST_PRIORITY
 {
     NONE           = 0,
-    HIGH           = 8,
-    MEDIUM_HIGH    = 10,
+    HIGH           = 10,
+    MEDIUM_HIGH    = 30,
     MEDIUM         = 50,
-    LOW            = 90
+    MEDIUM_LOW     = 70,
+    LOW            = 90,
+    VERY_LOW       = 91
 };
 typedef enum LOCAL_ASYNC_REQUEST_PRIORITY LOCAL_ASYNC_REQUEST_PRIORITY;
 
@@ -214,21 +223,20 @@ class BBLocalRequest
 //
 // Classes derived from BBLocalRequest
 //
-class BBLogIt : public BBLocalRequest
+class BBAsyncRemoveJobInfo : public BBLocalRequest
 {
   public:
     /**
      * \brief Constructor
      */
-    BBLogIt(std::string pData) :
-        BBLocalRequest("BBLogIt", HIGH),
-        data(pData) {
+    BBAsyncRemoveJobInfo() :
+        BBLocalRequest("BBAsyncRemoveJobInfo", VERY_LOW) {
     };
 
     /**
      * \brief Destructor
      */
-    virtual ~BBLogIt() { };
+    virtual ~BBAsyncRemoveJobInfo() { };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -237,10 +245,8 @@ class BBLogIt : public BBLocalRequest
 
     // Virtual methods
     virtual void doit();
-    virtual void dump(const char* pPrefix="");
 
     // Data members
-    std::string data;
 };
 
 class BBCleanUpContribId : public BBLocalRequest
@@ -313,6 +319,87 @@ class BBCleanUpTagInfo : public BBLocalRequest
     BBTagID         tagid;
 };
 
+class BBIB_Stats : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBIB_Stats() :
+        BBLocalRequest("BBIB_Stats", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBIB_Stats() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBIO_Stats : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBIO_Stats() :
+        BBLocalRequest("BBIO_Stats", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBIO_Stats() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBLogIt : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBLogIt(std::string pData) :
+        BBLocalRequest("BBLogIt", HIGH),
+        data(pData) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBLogIt() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+    virtual void dump(const char* pPrefix="");
+
+    // Data members
+    std::string data;
+};
+
 class BBPruneMetadata : public BBLocalRequest
 {
   public:
@@ -349,7 +436,7 @@ class BBPruneMetadataBranch : public BBLocalRequest
      * \brief Constructor
      */
     BBPruneMetadataBranch(std::string pPath) :
-        BBLocalRequest("BBPruneMetadataBranch", MEDIUM),
+        BBLocalRequest("BBPruneMetadataBranch", MEDIUM_LOW),
         path(pPath) {
     };
 
@@ -392,10 +479,12 @@ class BBLocalAsync
 
     // Static data
     vector<BBAsyncRequestType> requestType = {
-        BBAsyncRequestType(string("HIGH") , HIGH, (double)0),
-        BBAsyncRequestType(string("MEDIUM_HIGH") , MEDIUM_HIGH, (double)1/(double)2),
-        BBAsyncRequestType(string("MEDIUM") , MEDIUM, (double)3/(double)16),
-        BBAsyncRequestType(string("LOW") , LOW, (double)1/(double)16)
+        BBAsyncRequestType(string("HIGH"), HIGH, (double)0),
+        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)1/(double)4),
+        BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)1/(double)32),
+        BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)1/(double)8),
+        BBAsyncRequestType(string("LOW"), LOW, (double)1/(double)16),
+        BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)1/(double)32)
     };
 
     // Inlined static methods

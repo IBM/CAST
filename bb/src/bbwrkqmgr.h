@@ -279,10 +279,19 @@ class WRKQMGR
         dumpTimerCount(0),
         heartbeatDumpCount(0),
         heartbeatTimerCount(0),
+        ibStatsTimerCount(0),
+        ioStatsTimerCount(0),
+        asyncRmvJobInfoTimerCount(0),
         dumpTimerPoppedCount(0),
         heartbeatDumpPoppedCount(0),
         heartbeatTimerPoppedCount(0),
+        ibStatsTimerPoppedCount(0),
+        ioStatsTimerPoppedCount(0),
+        asyncRmvJobInfoTimerPoppedCount(0),
         declareServerDeadCount(0),
+        ibStatsTimerFired(0),
+        ioStatsTimerFired(0),
+        asyncRmvJobInfoTimerFired(0),
         numberOfWorkQueueItemsProcessed(0),
         lastDumpedNumberOfWorkQueueItemsProcessed(0),
         offsetToNextAsyncRequest(0),
@@ -352,6 +361,16 @@ class WRKQMGR
         return dumpOnRemoveWorkItemInterval;
     };
 
+    inline int getAsyncRmvJobInfoTimerAlreadyFired()
+    {
+        return asyncRmvJobInfoTimerFired;
+    }
+
+    inline int getAsyncRmvJobInfoTimerPoppedCount()
+    {
+        return asyncRmvJobInfoTimerPoppedCount;
+    }
+
     inline int getDumpTimerCount()
     {
         return dumpTimerCount;
@@ -360,6 +379,36 @@ class WRKQMGR
     inline int getDumpTimerPoppedCount()
     {
         return dumpTimerPoppedCount;
+    }
+
+    inline int getHeartbeatDumpPoppedCount()
+    {
+        return heartbeatDumpPoppedCount;
+    }
+
+    inline int getHeartbeatTimerPoppedCount()
+    {
+        return heartbeatTimerPoppedCount;
+    }
+
+    inline int getIBStatsTimerAlreadyFired()
+    {
+        return ibStatsTimerFired;
+    }
+
+    inline int getIOStatsTimerAlreadyFired()
+    {
+        return ioStatsTimerFired;
+    }
+
+    inline int getIBStatsTimerPoppedCount()
+    {
+        return ibStatsTimerPoppedCount;
+    }
+
+    inline int getIOStatsTimerPoppedCount()
+    {
+        return ioStatsTimerPoppedCount;
     }
 
     inline void getOffsetToNextAsyncRequest(int &pSeqNbr, uint64_t &pOffset)
@@ -471,6 +520,20 @@ class WRKQMGR
         return;
     }
 
+    inline void setAsyncRmvJobInfoTimerCount(const int pValue)
+    {
+        asyncRmvJobInfoTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setAsyncRmvJobInfoTimerFired(const int pValue)
+    {
+        asyncRmvJobInfoTimerFired = pValue;
+
+        return;
+    }
+
     inline void setCheckForCanceledExtents(const int pValue)
     {
         checkForCanceledExtents = pValue;
@@ -509,6 +572,34 @@ class WRKQMGR
     inline void setDumpTimerCount(const int pValue)
     {
         dumpTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setIBStatsTimerCount(const int pValue)
+    {
+        ibStatsTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setIOStatsTimerCount(const int pValue)
+    {
+        ioStatsTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setIBStatsTimerFired(const int pValue)
+    {
+        ibStatsTimerFired = pValue;
+
+        return;
+    }
+
+    inline void setIOStatsTimerFired(const int pValue)
+    {
+        ioStatsTimerFired = pValue;
 
         return;
     }
@@ -659,10 +750,13 @@ class WRKQMGR
     void processTurboFactorForNotFoundRequest();
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved);
     int rmvWrkQ(const LVKey* pLVKey);
+    void setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval);
     void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);
     void setHeartbeatTimerPoppedCount(const double pTimerInterval);
+    void setIBStatsTimerPoppedCount(const double pTimerInterval);
+    void setIOStatsTimerPoppedCount(const double pTimerInterval);
     int setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
     void setThrottleTimerPoppedCount(const double pTimerInterval);
@@ -704,10 +798,22 @@ class WRKQMGR
     volatile int64_t    heartbeatDumpCount;
     volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
+    volatile int64_t    ibStatsTimerCount;                      // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int64_t    ioStatsTimerCount;                      // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int64_t    asyncRmvJobInfoTimerCount;              // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
     int64_t             heartbeatTimerPoppedCount;
+    int64_t             ibStatsTimerPoppedCount;
+    int64_t             ioStatsTimerPoppedCount;
+    int64_t             asyncRmvJobInfoTimerPoppedCount;
     int64_t             declareServerDeadCount;                 // In seconds
+    volatile int        ibStatsTimerFired;
+    volatile int        ioStatsTimerFired;
+    volatile int        asyncRmvJobInfoTimerFired;
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the

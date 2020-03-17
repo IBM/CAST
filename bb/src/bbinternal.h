@@ -99,7 +99,6 @@ extern uint64_t g_ForcePFSWriteError;
 // extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern double AsyncRequestRead_TimeInterval;
-extern double g_AsyncRemoveJobInfoInterval;
 extern string g_BBServer_Metadata_Path;
 extern int l_SSD_Read_Governor_Active;
 extern int l_SSD_Write_Governor_Active;
@@ -131,6 +130,8 @@ const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 180;                  
 const double DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE = 60;           // in seconds (1 minute)
 const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
 const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 180;                    // in seconds (3 minutes)
+const double DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
+const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
