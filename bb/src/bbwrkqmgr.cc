@@ -504,10 +504,11 @@ void WRKQMGR::checkThrottleTimer()
         }
 
         // See if it is time to dump the work manager
-        if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
+        if ((!getDumpWrkQueueMgrTimerAlreadyFired()) && dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
         {
-            dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
-            dumpTimerCount = 0;
+            BBDumpWrkQMgr* l_Request = new BBDumpWrkQMgr();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            setDumpWrkQueueMgrTimerFired(1);
         }
 
         // See if it is time to reload the work queue throttle buckets

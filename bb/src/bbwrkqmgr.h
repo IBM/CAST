@@ -292,6 +292,7 @@ class WRKQMGR
         asyncRmvJobInfoTimerPoppedCount(0),
         declareServerDeadCount(0),
         dumpCountersTimerFired(0),
+        dumpWrkQueueMgrTimerFired(0),
         ibStatsTimerFired(0),
         ioStatsTimerFired(0),
         asyncRmvJobInfoTimerFired(0),
@@ -392,6 +393,11 @@ class WRKQMGR
     inline int getDumpTimerPoppedCount()
     {
         return dumpTimerPoppedCount;
+    }
+
+    inline int getDumpWrkQueueMgrTimerAlreadyFired()
+    {
+        return dumpWrkQueueMgrTimerFired;
     }
 
     inline int getHeartbeatDumpPoppedCount()
@@ -599,6 +605,13 @@ class WRKQMGR
     inline void setDumpTimerCount(const int pValue)
     {
         dumpTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setDumpWrkQueueMgrTimerFired(const int pValue)
+    {
+        dumpWrkQueueMgrTimerFired = pValue;
 
         return;
     }
@@ -843,6 +856,8 @@ class WRKQMGR
     int64_t             asyncRmvJobInfoTimerPoppedCount;
     int64_t             declareServerDeadCount;                 // In seconds
     volatile int        dumpCountersTimerFired;                 // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int        dumpWrkQueueMgrTimerFired;              // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     volatile int        ibStatsTimerFired;                      // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock

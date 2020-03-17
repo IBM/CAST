@@ -277,6 +277,10 @@ void* BBLocalAsync::asyncRequestWorker(void* ptr)
             {
                 l_Request->doit();
                 g_LocalAsync.recordRequestCompletion(l_RequestNumber, l_Request);
+                if (l_Request->dumpOnDelete())
+                {
+                    l_Request->dump("BBLocalAsync::asyncRequestWorker(): Deleting: ");
+                }
                 delete l_Request;
                 l_Request = 0;
             }
@@ -478,34 +482,53 @@ void BBLocalAsync::recordRequestCompletion(int64_t l_RequestNumber, BBLocalReque
  */
 void BBAsyncRemoveJobInfo::doit()
 {
+    const int l_JobsToSchedulePerPass = 4;
+    int l_JobsScheduled = 0;
+
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
 
+
     try
     {
-        int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds, ONLY_RETURN_REMOVED_JOBIDS);
-        if ((!rc) && l_PathJobIds.size() > 0)
+        bool l_AllDone = false;
+        while (!l_AllDone)
         {
-            for (size_t i=0; i<l_PathJobIds.size(); i++)
+            l_AllDone = true;
+            int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds, ONLY_RETURN_REMOVED_JOBIDS);
+            if ((!rc) && l_PathJobIds.size() > 0)
             {
-                bfs::path job = bfs::path(l_PathJobIds[i]);
-                bfs::path l_PathToRemove = job.parent_path().string() + "/." + job.filename().string();
-                LOG(bb,debug) << "asyncRemoveJobInfo(): " << job.string() << " being renamed to " << l_PathToRemove.string();
-                try
+                for (size_t i=0; i<l_PathJobIds.size() && l_JobsScheduled < l_JobsToSchedulePerPass; i++)
                 {
-                    bfs::rename(job, l_PathToRemove);
-                }
-                catch (std::exception& e1)
-                {
-                    rc = -1;
-                }
+                    bfs::path job = bfs::path(l_PathJobIds[i]);
+                    bfs::path l_PathToRemove = job.parent_path().string() + "/." + job.filename().string();
+                    LOG(bb,debug) << "asyncRemoveJobInfo(): " << job.string() << " being renamed to " << l_PathToRemove.string();
+                    try
+                    {
+                        bfs::rename(job, l_PathToRemove);
+                    }
+                    catch (std::exception& e1)
+                    {
+                        rc = -1;
+                    }
 
-                if (!rc)
-                {
-                    BBPruneMetadata* l_Request = new BBPruneMetadata(l_PathToRemove.string());
-                    g_LocalAsync.issueAsyncRequest(l_Request);
+                    if (!rc)
+                    {
+                        BBPruneMetadata* l_Request = new BBPruneMetadata(l_PathToRemove.string());
+                        g_LocalAsync.issueAsyncRequest(l_Request);
+                        ++l_JobsScheduled;
+                    }
+                    rc = 0;
                 }
-                rc = 0;
+                if (l_JobsScheduled >= l_JobsToSchedulePerPass)
+                {
+                    // In an attempt to let other servers jump in and schedule some pruning of the metadata...
+                    // NOTE: We may delay for 1 minute when there are no jobs left to schedule, but the
+                    //       timing here isn't that critical...
+                    usleep(60000000);    // Delay for 1 minute...
+                    l_JobsScheduled = 0;
+                    l_AllDone = false;
+                }
             }
         }
     }
@@ -520,8 +543,12 @@ void BBAsyncRemoveJobInfo::doit()
     {
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit()");
         l_WorkQueueMgrLocked = 1;
+
         wrkqmgr.setAsyncRmvJobInfoTimerFired(0);
         wrkqmgr.setAsyncRmvJobInfoTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit()");
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -556,6 +583,9 @@ void BBCleanUpTagInfo::doit()
                 (it->second).getTagInfoMap()->cleanUpTagInfo(&lvkey, tagid);
             }
         }
+
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
    }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -590,8 +620,12 @@ void BBCounters::doit()
     {
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
         l_WorkQueueMgrLocked = 1;
+
         wrkqmgr.setDumpCountersTimerFired(0);
         wrkqmgr.setDumpCountersTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -603,6 +637,37 @@ void BBCounters::doit()
     {
         l_WorkQueueMgrLocked = 0;
         wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
+    }
+
+    return;
+}
+
+void BBDumpWrkQMgr::doit()
+{
+    int l_WorkQueueMgrLocked = 0;
+
+    try
+    {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
+        l_WorkQueueMgrLocked = 1;
+
+        wrkqmgr.dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
+        wrkqmgr.setDumpWrkQueueMgrTimerFired(0);
+        wrkqmgr.setDumpTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
     }
 
     return;
@@ -663,8 +728,12 @@ void BBIB_Stats::doit()
     {
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit()");
         l_WorkQueueMgrLocked = 1;
+
         wrkqmgr.setIBStatsTimerFired(0);
         wrkqmgr.setIBStatsTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit()");
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -711,8 +780,12 @@ void BBIO_Stats::doit()
     {
         wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit()");
         l_WorkQueueMgrLocked = 1;
+
         wrkqmgr.setIOStatsTimerFired(0);
         wrkqmgr.setIOStatsTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit()");
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)

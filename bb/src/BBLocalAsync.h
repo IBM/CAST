@@ -206,6 +206,7 @@ class BBLocalRequest
     // Inlined virtual methods
     inline virtual void doit() { return; };
     inline virtual int dumpOnAdd() { return 0; };
+    inline virtual int dumpOnDelete() { return 0; };
     inline virtual int dumpOnRemove() { return 0; };
 
     // Static methods
@@ -240,6 +241,11 @@ class BBAsyncRemoveJobInfo : public BBLocalRequest
      */
     virtual ~BBAsyncRemoveJobInfo() { };
 
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
     // Static methods
     static int64_t getLastRequestNumberProcessed();
 
@@ -268,6 +274,11 @@ class BBCleanUpTagInfo : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBCleanUpTagInfo() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -301,6 +312,38 @@ class BBCounters : public BBLocalRequest
 
     // Inlined virtual methods
     inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBDumpWrkQMgr : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBDumpWrkQMgr() :
+        BBLocalRequest("BBDumpWrkQMgr", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBDumpWrkQMgr() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
@@ -331,6 +374,7 @@ class BBIB_Stats : public BBLocalRequest
 
     // Inlined virtual methods
     inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
@@ -361,6 +405,7 @@ class BBIO_Stats : public BBLocalRequest
 
     // Inlined virtual methods
     inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
@@ -389,6 +434,11 @@ class BBLogIt : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBLogIt() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -419,6 +469,11 @@ class BBPruneMetadata : public BBLocalRequest
      */
     virtual ~BBPruneMetadata() { };
 
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
     // Static methods
     static int64_t getLastRequestNumberProcessed();
 
@@ -447,6 +502,11 @@ class BBPruneMetadataBranch : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBPruneMetadataBranch() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
@@ -483,8 +543,8 @@ class BBLocalAsync
     // Static data
     vector<BBAsyncRequestType> requestType = {
         BBAsyncRequestType(string("HIGH"), HIGH, (double)0),    // With 48 async threads, leaves 2 threads
-        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)22/(double)48),
-        BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)4/(double)48),
+        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)18/(double)48),
+        BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)8/(double)48),
         BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)16/(double)48),
         BBAsyncRequestType(string("LOW"), LOW, (double)2/(double)48),
         BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)2/(double)48)
