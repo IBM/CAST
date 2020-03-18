@@ -257,6 +257,37 @@ class BBAsyncRemoveJobInfo : public BBLocalRequest
     // Data members
 };
 
+class BBCheckCycleActivities : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBCheckCycleActivities() :
+        BBLocalRequest("BBCheckCycleActivities", HIGH) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBCheckCycleActivities() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
 class BBCleanUpTagInfo : public BBLocalRequest
 {
   public:
@@ -309,6 +340,37 @@ class BBCounters : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBCounters() { };
+
+    // Inlined virtual methods
+    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBDumpHeartbeatData : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBDumpHeartbeatData() :
+        BBLocalRequest("BBDumpHeartbeatData", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBDumpHeartbeatData() { };
 
     // Inlined virtual methods
     inline virtual int dumpOnAdd() { return 1; };

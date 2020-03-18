@@ -468,49 +468,6 @@ void WRKQMGR::checkThrottleTimer()
             asyncRequestReadTimerCount = 0;
         }
 
-        // See if it is time to dump IB Stats
-        if ((!getIBStatsTimerAlreadyFired()) && ibStatsTimerPoppedCount && (++ibStatsTimerCount >= ibStatsTimerPoppedCount))
-        {
-            BBIB_Stats* l_Request = new BBIB_Stats();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            setIBStatsTimerFired(1);
-        }
-
-        // See if it is time to dump IO Stats
-        if ((!getIOStatsTimerAlreadyFired()) && ioStatsTimerPoppedCount && (++ioStatsTimerCount >= ioStatsTimerPoppedCount))
-        {
-            BBIO_Stats* l_Request = new BBIO_Stats();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            setIOStatsTimerFired(1);
-        }
-
-        // See if it is time to dump counters
-        if ((!getDumpCountersTimerAlreadyFired()) && dumpCountersTimerPoppedCount && (++dumpCountersTimerCount >= dumpCountersTimerPoppedCount))
-        {
-            BBCounters* l_Request = new BBCounters();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            setDumpCountersTimerFired(1);
-        }
-
-        // See if it is time to asynchronously remove job information from the cross-bbServer metadata
-        if (g_AsyncRemoveJobInfo)
-        {
-            if ((!getAsyncRmvJobInfoTimerAlreadyFired()) && asyncRmvJobInfoTimerPoppedCount && (++asyncRmvJobInfoTimerCount >= asyncRmvJobInfoTimerPoppedCount))
-            {
-                BBAsyncRemoveJobInfo* l_Request = new BBAsyncRemoveJobInfo();
-                g_LocalAsync.issueAsyncRequest(l_Request);
-                setAsyncRmvJobInfoTimerFired(1);
-            }
-        }
-
-        // See if it is time to dump the work manager
-        if ((!getDumpWrkQueueMgrTimerAlreadyFired()) && dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
-        {
-            BBDumpWrkQMgr* l_Request = new BBDumpWrkQMgr();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            setDumpWrkQueueMgrTimerFired(1);
-        }
-
         // See if it is time to reload the work queue throttle buckets
         if (++throttleTimerCount >= throttleTimerPoppedCount)
         {
@@ -523,21 +480,11 @@ void WRKQMGR::checkThrottleTimer()
             setDelayMessageSent(false);
         }
 
-        // See if it is time to have a heartbeat for this bbServer
-        if (++heartbeatTimerCount >= heartbeatTimerPoppedCount)
+        if (!getCycleActivitiesTimerAlreadyFired())
         {
-            // Tell the world this bbServer is still alive...
-            char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTimeStr();
-            snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
-            AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-            appendAsyncRequest(l_Request);
-        }
-
-        // See if it is time to dump the heartbeat information
-        if (heartbeatDumpPoppedCount && (++heartbeatDumpCount >= heartbeatDumpPoppedCount))
-        {
-            dumpHeartbeatData("info");
+            BBCheckCycleActivities* l_Request = new BBCheckCycleActivities();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            setCycleActivitiesTimerFired(1);
         }
     }
 
@@ -868,8 +815,6 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
             LOG(bb,info) << ">>>>>   No other reporting bbServers";
         }
     }
-
-    heartbeatDumpCount = 0;
 
     if (l_HP_TransferQueueLocked)
     {

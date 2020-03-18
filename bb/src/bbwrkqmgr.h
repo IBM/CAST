@@ -291,7 +291,9 @@ class WRKQMGR
         ioStatsTimerPoppedCount(0),
         asyncRmvJobInfoTimerPoppedCount(0),
         declareServerDeadCount(0),
+        cycleActivitiesTimerFired(0),
         dumpCountersTimerFired(0),
+        dumpHeartbeatDataTimerFired(0),
         dumpWrkQueueMgrTimerFired(0),
         ibStatsTimerFired(0),
         ioStatsTimerFired(0),
@@ -375,6 +377,11 @@ class WRKQMGR
         return asyncRmvJobInfoTimerPoppedCount;
     }
 
+    inline int getCycleActivitiesTimerAlreadyFired()
+    {
+        return cycleActivitiesTimerFired;
+    }
+
     inline uint64_t getDumpCountersTimerAlreadyFired()
     {
         return dumpCountersTimerFired;
@@ -383,6 +390,11 @@ class WRKQMGR
     inline int getDumpCountersTimerPoppedCount()
     {
         return dumpCountersTimerPoppedCount;
+    }
+
+    inline uint64_t getDumpHeartbeatDataTimerAlreadyFired()
+    {
+        return dumpHeartbeatDataTimerFired;
     }
 
     inline int getDumpTimerCount()
@@ -560,6 +572,13 @@ class WRKQMGR
         return;
     }
 
+    inline void setCycleActivitiesTimerFired(const int pValue)
+    {
+        cycleActivitiesTimerFired = pValue;
+
+        return;
+    }
+
     inline void setDelayMessageSent(const int pValue=1)
     {
         delayMsgSent = pValue;
@@ -577,6 +596,13 @@ class WRKQMGR
     inline void setDumpCountersTimerFired(const int pValue)
     {
         dumpCountersTimerFired = pValue;
+
+        return;
+    };
+
+    inline void setDumpHeartbeatDataTimerFired(const int pValue)
+    {
+        dumpHeartbeatDataTimerFired = pValue;
 
         return;
     };
@@ -612,6 +638,13 @@ class WRKQMGR
     inline void setDumpWrkQueueMgrTimerFired(const int pValue)
     {
         dumpWrkQueueMgrTimerFired = pValue;
+
+        return;
+    }
+
+    inline void setDumpHeartbeatDataTimerCount(const int pValue)
+    {
+        heartbeatDumpCount = pValue;
 
         return;
     }
@@ -742,6 +775,41 @@ class WRKQMGR
         return;
     }
 
+    inline int timeForServerHeartbeat()
+    {
+        return ++heartbeatTimerCount >= heartbeatTimerPoppedCount;
+    }
+
+    inline int timeToPerformAsyncJobInfoRemoval()
+    {
+        return (!getAsyncRmvJobInfoTimerAlreadyFired()) && asyncRmvJobInfoTimerPoppedCount && (++asyncRmvJobInfoTimerCount >= asyncRmvJobInfoTimerPoppedCount);
+    }
+
+    inline int timeToPerformCountersDump()
+    {
+        return (!getDumpCountersTimerAlreadyFired()) && dumpCountersTimerPoppedCount && (++dumpCountersTimerCount >= dumpCountersTimerPoppedCount);
+    }
+
+    inline int timeToPerformHeartbeatDump()
+    {
+        return (!getDumpHeartbeatDataTimerAlreadyFired()) && heartbeatDumpPoppedCount && (++heartbeatDumpCount >= heartbeatDumpPoppedCount);
+    }
+
+    inline int timeToPerformIBStatsDump()
+    {
+        return (!getIBStatsTimerAlreadyFired()) && ibStatsTimerPoppedCount && (++ibStatsTimerCount >= ibStatsTimerPoppedCount);
+    }
+
+    inline int timeToPerformIOStatsDump()
+    {
+        return (!getIOStatsTimerAlreadyFired()) && ioStatsTimerPoppedCount && (++ioStatsTimerCount >= ioStatsTimerPoppedCount);
+    }
+
+    inline int timeToPerformWrkQMgrDump()
+    {
+        return (!getDumpWrkQueueMgrTimerAlreadyFired()) && dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount);
+    }
+
     inline bool workQueueMgrIsLocked()
     {
         return (workQueueMgrLocked == pthread_self());
@@ -855,7 +923,11 @@ class WRKQMGR
     int64_t             ioStatsTimerPoppedCount;
     int64_t             asyncRmvJobInfoTimerPoppedCount;
     int64_t             declareServerDeadCount;                 // In seconds
+    volatile int        cycleActivitiesTimerFired;              // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
     volatile int        dumpCountersTimerFired;                 // Access is serialized with the
+                                                                // HPWrkQE transfer queue lock
+    volatile int        dumpHeartbeatDataTimerFired;            // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     volatile int        dumpWrkQueueMgrTimerFired;              // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock

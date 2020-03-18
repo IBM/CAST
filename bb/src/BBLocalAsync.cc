@@ -559,7 +559,97 @@ void BBAsyncRemoveJobInfo::doit()
     if (l_WorkQueueMgrLocked)
     {
         l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit()");
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit() - On exit");
+    }
+
+    return;
+}
+
+void BBCheckCycleActivities::doit()
+{
+    int l_WorkQueueMgrLocked = 0;
+    try
+    {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit()");
+        l_WorkQueueMgrLocked = 1;
+
+        // See if it is time to have a heartbeat for this bbServer
+        if (wrkqmgr.timeForServerHeartbeat())
+        {
+            // Tell the world this bbServer is still alive...
+            char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTimeStr();
+            snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
+            AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
+            wrkqmgr.appendAsyncRequest(l_Request);
+        }
+
+        // See if it is time to dump IB Stats
+        if (wrkqmgr.timeToPerformIBStatsDump())
+        {
+            BBIB_Stats* l_Request = new BBIB_Stats();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setIBStatsTimerFired(1);
+        }
+
+        // See if it is time to dump IO Stats
+        if (wrkqmgr.timeToPerformIOStatsDump())
+        {
+            BBIO_Stats* l_Request = new BBIO_Stats();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setIOStatsTimerFired(1);
+        }
+
+        // See if it is time to dump counters
+        if (wrkqmgr.timeToPerformCountersDump())
+        {
+            BBCounters* l_Request = new BBCounters();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setDumpCountersTimerFired(1);
+        }
+
+        // See if it is time to asynchronously remove job information from the cross-bbServer metadata
+        if (g_AsyncRemoveJobInfo)
+        {
+            if (wrkqmgr.timeToPerformAsyncJobInfoRemoval())
+            {
+                BBAsyncRemoveJobInfo* l_Request = new BBAsyncRemoveJobInfo();
+                g_LocalAsync.issueAsyncRequest(l_Request);
+                wrkqmgr.setAsyncRmvJobInfoTimerFired(1);
+            }
+        }
+
+        // See if it is time to dump the work manager
+        if (wrkqmgr.timeToPerformWrkQMgrDump())
+        {
+            BBDumpWrkQMgr* l_Request = new BBDumpWrkQMgr();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setDumpWrkQueueMgrTimerFired(1);
+        }
+
+        // See if it is time to dump the heartbeat information
+        if (wrkqmgr.timeToPerformHeartbeatDump())
+        {
+            BBDumpHeartbeatData* l_Request = new BBDumpHeartbeatData();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setDumpHeartbeatDataTimerFired(1);
+        }
+
+        wrkqmgr.setCycleActivitiesTimerFired(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit()");
+    }
+    catch(ExceptionBailout& e) { }
+    catch(std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit() - On exit");
     }
 
     return;
@@ -596,7 +686,7 @@ void BBCleanUpTagInfo::doit()
     if (l_LocalMetadataLocked)
     {
         l_LocalMetadataLocked = 0;
-        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit - On exit");
     }
 
     return;
@@ -636,7 +726,38 @@ void BBCounters::doit()
     if (l_WorkQueueMgrLocked)
     {
         l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit() - On exit");
+    }
+
+    return;
+}
+
+void BBDumpHeartbeatData::doit()
+{
+    int l_WorkQueueMgrLocked = 0;
+
+    try
+    {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
+        l_WorkQueueMgrLocked = 1;
+
+        wrkqmgr.dumpHeartbeatData("info");
+        wrkqmgr.setDumpHeartbeatDataTimerFired(0);
+        wrkqmgr.setDumpHeartbeatDataTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit() - On exit");
     }
 
     return;
@@ -667,7 +788,7 @@ void BBDumpWrkQMgr::doit()
     if (l_WorkQueueMgrLocked)
     {
         l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit() - On exit");
     }
 
     return;
@@ -744,7 +865,7 @@ void BBIB_Stats::doit()
     if (l_WorkQueueMgrLocked)
     {
         l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit()");
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit() - On exit");
     }
 
     return;
@@ -796,7 +917,7 @@ void BBIO_Stats::doit()
     if (l_WorkQueueMgrLocked)
     {
         l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit()");
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit() - On exit");
     }
 
     return;
