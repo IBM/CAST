@@ -1135,16 +1135,17 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
         l_AllDone = true;
         for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
-            if (find(l_LVKeysProcessed.begin(), l_LVKeysProcessed.end(), it->first) == l_LVKeysProcessed.end())
+            LVKey l_LVKey = it->first;
+            if (find(l_LVKeysProcessed.begin(), l_LVKeysProcessed.end(), l_LVKey) == l_LVKeysProcessed.end())
             {
-                rc = it->second.setSuspended(&(it->first), pCN_HostName, pLocal_Metadata_Lock_Released, pValue);
+                rc = it->second.setSuspended(&l_LVKey, pCN_HostName, pLocal_Metadata_Lock_Released, pValue);
                 switch (rc)
                 {
                     case 2:
                     {
                         // Value was already set for this work queue.
                         // Continue to the next LVKey...
-                        LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
+                        LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << l_LVKey \
                                      << " was already " << (pValue ? "inactive" : "active");
                         ++l_NumberAlreadySet;
 
@@ -1154,7 +1155,7 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
                     case 1:
                     {
                         // Hostname did not match...  Continue to the next LVKey...
-                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
+                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << l_LVKey \
                                       << " did not match the host name criteria";
                         ++l_NumberOfQueuesNotMatchingHostNameCriteria;
 
@@ -1173,7 +1174,7 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
                     case -2:
                     {
                         // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
-                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << it->first \
+                        LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << l_LVKey \
                                       << " was not found";
                         ++l_NumberOfQueuesNotFoundForLVKey;
 
@@ -1188,7 +1189,7 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
                         break;
                     }
                 }
-                l_LVKeysProcessed.push_back(it->first);
+                l_LVKeysProcessed.push_back(l_LVKey);
                 if (pLocal_Metadata_Lock_Released == LOCAL_METADATA_LOCK_RELEASED)
                 {
                     l_AllDone = false;
