@@ -1358,8 +1358,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                                             l_EarlyExit = true;
 //                                            LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, top of map";
                                         }
+                                        l_FoundFirstPositiveWorkQueueInMap = true;
                                     }
-                                    l_FoundFirstPositiveWorkQueueInMap = true;
                                 }
                             }
 
