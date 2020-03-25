@@ -80,6 +80,8 @@ int NodeController_CSM::getcsmSymbols(const std::string& controllerPath){
         dlerror();
         _csm_allocation_query_active_all_func = (csm_allocation_query_active_all_t)dlsym(_dlopen_csmi,"csm_allocation_query_active_all");
         if(!_csm_allocation_query_active_all_func)handleSymError("csm_allocation_query_active_all");
+        free_csm_allocation_query_active_all_output_t_func = (free_csm_allocation_query_active_all_output_t_t)dlsym(_dlopen_csmi,"free_csm_allocation_query_active_all_output_t");
+        if(!free_csm_allocation_query_active_all_output_t_func)handleSymError("free_csm_allocation_query_active_all_output_t");
     }
     else{
         LOG(bb,error) << "dlopen failed for controller path="<<controllerPath;
@@ -103,6 +105,7 @@ NodeController_CSM::NodeController_CSM():
     _csm_ras_event_create_func(NULL), 
     _csm_allocation_query_func(NULL),
     _csm_allocation_query_active_all_func(NULL),
+    free_csm_allocation_query_active_all_output_t_func(NULL),
     csmhandle(NULL)
 {
     //csm_allocation_query_t   _csm_allocation_query_func;
@@ -244,7 +247,7 @@ int NodeController_CSM::gethostlist(string& hostlist)
         if(output->num_allocations != (uint32_t)input.limit)
             break;
         //csm_free_struct_ptr(csm_allocation_query_active_all_output_t, output);
-        free(output);
+        csm_free_struct_ptr(csm_allocation_query_active_all_output_t_func,output);
         input.offset += input.limit;
     }
     if(!found)

@@ -52,6 +52,8 @@ typedef int (*csm_ras_event_create_t)(csm_api_object **csm_obj,
                          const char *raw_data,
                          const char *kvcsv);
 
+typedef void (*free_csm_allocation_query_active_all_output_t_t)( csm_allocation_query_active_all_output_t *target );                         
+
 class NodeController_CSM : public NodeController
 {
   private:
@@ -67,6 +69,7 @@ class NodeController_CSM : public NodeController
     csm_ras_event_create_t   _csm_ras_event_create_func;
     csm_allocation_query_t   _csm_allocation_query_func;
     csm_allocation_query_active_all_t _csm_allocation_query_active_all_func;
+    free_csm_allocation_query_active_all_output_t_t free_csm_allocation_query_active_all_output_t_func;
     csm_api_object* csmhandle;
     std::string myhostname;
     std::map< std::pair<uint64_t,uint32_t>, csmi_allocation_t* > job2allocationmap;
