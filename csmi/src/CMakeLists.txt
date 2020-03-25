@@ -131,6 +131,8 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     
     # The Boost Python Libraries:
     message("BOOST_LIBRARYDIR: ${BOOST_LIBRARYDIR}")
+    BOOST_LIBRARYDIR=test
+    message("BOOST_LIBRARYDIR: ${BOOST_LIBRARYDIR}")
     message("BOOST_INCLUDEDIR: ${BOOST_INCLUDEDIR}")
     message("Boost Root: ${BOOST_ROOT}")
     message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
