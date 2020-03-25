@@ -22,6 +22,7 @@
 #include "fh.h"
 #include <boost/filesystem.hpp>
 #include "tracksyscall.h"
+#include "bbcounters.h"
 
 namespace bfs = boost::filesystem;
 
@@ -275,8 +276,10 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::preadsyscall, fd,__LINE__, pMaxBytesToRead,pOffset);
         bytesRead = (!l_ForcePFSReadError) ? ::pread(fd, pBuffer, pMaxBytesToRead, pOffset) : -1;
         threadLocalTrackSyscallPtr->clearTrack();
+        BUMPCOUNTER(bbio_regular_read);
         if (bytesRead < 0)
         {
+            BUMPCOUNTER_by(bbio_regular_read_bytes, bytesRead);
             stringstream errorText;
             errorText << "BBIO_Regular::pread: Read from PFS file failed, file index " << pFileIndex << ", max bytes to read " << pMaxBytesToRead << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
@@ -309,8 +312,10 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
         bytesWritten = (!l_ForcePFSWriteError) ? ::pwrite(fd, pBuffer, pMaxBytesToWrite, pOffset) : -1;
         threadLocalTrackSyscallPtr->clearTrack();
 
+        BUMPCOUNTER(bbio_regular_write);
         if (bytesWritten < 0)
         {
+            BUMPCOUNTER_by(bbio_regular_write_bytes, bytesWritten);
             stringstream errorText;
             errorText << "BBIO_Regular::pwrite: Write to PFS file failed, file index " << pFileIndex << ", max bytes to write " << pMaxBytesToWrite << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
