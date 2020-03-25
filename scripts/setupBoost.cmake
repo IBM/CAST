@@ -5,8 +5,8 @@ set(BoostComponents system filesystem thread date_time program_options log log_s
 
 # set(Boost_DEBUG 1)
 # Might have to also change these lines? 
-set(BOOST_INCLUDEDIR $ENV{HOME}/coraltools/libboost/include)
-set(BOOST_LIBRARYDIR $ENV{HOME}/coraltools/libboost/lib)
+#set(BOOST_INCLUDEDIR $ENV{HOME}/coraltools/libboost/include)
+#set(BOOST_LIBRARYDIR $ENV{HOME}/coraltools/libboost/lib)
 #set(BOOST_ROOT /opt/ibm/boost)
 # Changing from the old custom CAST boost to try to point at official boost install dir
 set(BOOST_ROOT /usr/include/boost)
