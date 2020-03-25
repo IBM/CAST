@@ -274,17 +274,49 @@ sub bbwaitTransfersComplete
     $timeout = $json->{"bb"}{"scripts"}{"transfertimeout"} if(exists $json->{"bb"}{"scripts"}{"transfertimeout"});
 
     my $starttime  = time();
-    my $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
-    my $numpending = $result->{"0"}{"out"}{"numavailhandles"};
-    while ($numpending > 0)
+
+    if(0)  # gettransfers method
     {
-        bpost("BB: Waiting for $numpending transfer(s) to complete");
-        sleep(5);
-        $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
-        $numpending = $result->{"0"}{"out"}{"numavailhandles"};
-        my $curtime = time();
-        last if($curtime - $starttime > $timeout);
-        last if($result->{"rc"});
+        my $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+        my $numpending = $result->{"0"}{"out"}{"numavailhandles"};
+        while ($numpending > 0)
+        {
+            bpost("BB: Waiting for $numpending transfer(s) to complete");
+            sleep(5);
+            $result     = bbcmd("$::TARGET_QUERY gettransfers --numhandles=0 --match=BBINPROGRESS");
+            $numpending = $result->{"0"}{"out"}{"numavailhandles"};
+            my $curtime = time();
+            last if($curtime - $starttime > $timeout);
+            last if($result->{"rc"});
+        }
+    }
+    else  # getfileinfo method
+    {
+        my $result     = bbcmd("$::TARGET_ALL_NOBCAST getfileinfo");
+        return -1 if($result->{"rc"});
+
+        foreach $rank (keys %{$result})
+        {
+            next if($rank !~ /^\d+/);
+            if($result->{$rank}{"out"}{"file"}{"count"} ne "0")
+            {
+                while(1)
+                {
+                    my $nodedata = bbcmd("--target=$rank getfileinfo");
+                    last if($nodedata->{$rank}{"out"}{"file"}{"count"} eq "0");
+                    
+                    sleep(1);
+                    my $curtime = time();
+                    if($curtime - $starttime > $timeout)
+                    {
+                        bpost("BB: Waiting for transfer complete has timed out");
+                        $rc = 3;
+                        last;
+                    }
+                }
+            }
+            last if($rc == 3);
+        }
     }
     return $result;
 }
