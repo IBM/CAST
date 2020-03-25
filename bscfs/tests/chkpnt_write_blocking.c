@@ -16,6 +16,7 @@
 
 int main(int argc, char **argv)
 {
+    setbuf(stdout, NULL);
     chkpnt_init(argc, argv);
 
     if (Rank == 0) 
