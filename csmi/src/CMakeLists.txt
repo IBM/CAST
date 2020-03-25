@@ -134,6 +134,8 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("BOOST_INCLUDEDIR: ${BOOST_INCLUDEDIR}")
     message("Boost Root: ${BOOST_ROOT}")
     message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
+    message("boost Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+    message("boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
     find_package( Boost COMPONENTS python3 REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
