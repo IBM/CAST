@@ -28,6 +28,10 @@ MKBBCOUNTER(statvfs64)
 MKBBCOUNTER(inbound_message)
 MKBBCOUNTER(bbio_bscfs_write)
 MKBBCOUNTER(bbio_bscfs_write_bytes)
+MKBBCOUNTER(bbio_regular_write)
+MKBBCOUNTER(bbio_regular_write_bytes)
+MKBBCOUNTER(bbio_regular_read)
+MKBBCOUNTER(bbio_regular_read_bytes)
 
 #ifdef BBCOUNTERS_INIT
     BB_COUNTER_MAX

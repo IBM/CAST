@@ -126,22 +126,6 @@ sub phase4
     {
         bpost("BB: Remove directory $BBPATH failed with rc " . bbgetrc($result));
     }
-
-    # Check for failures before removing metadata
-    $result = bbcmd("$TARGET_QUERY gettransfers --numhandles=0 --match=BBPARTIALSUCCESS");
-    if(bbgetrc($result) != 0)
-    {
-        bpost("BB: Get Transfers failed with rc " . bbgetrc($result));
-    }
-    else
-    {
-        $numfailed = $result->{"0"}{"out"}{"numavailhandles"};
-        if($numfailed > 0)
-        {
-            bpost("BB: Transfer(s) marked in BBPARTIALSUCCESS (failed) state");
-            $exitstatus = 1;
-        }
-    }
     
     print "Removing job metadata\n";
     $result = bbcmd("$TARGET_NODE0 removejobinfo");
