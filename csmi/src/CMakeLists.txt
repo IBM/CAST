@@ -81,7 +81,7 @@ file(GLOB csmi_python_boot
 
 # python
 # The Python Libraries:
-find_package(PythonLibs 2.7 )
+find_package(PythonLibs 3.6 )
 message("Python Include: ${PYTHON_INCLUDE_DIRS}")
 if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("BUILDING PYTHON LIBRARIES")
