@@ -89,7 +89,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
     
     # The Boost Python Libraries:
-    find_package( Boost COMPONENTS python3 REQUIRED )
+    find_package( Boost COMPONENTS python36 REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
     # Link the library
