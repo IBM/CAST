@@ -123,7 +123,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
 
     ENABLE_TESTING()
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
-    LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so convenient!
+    #LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so convenient!
 
     # end
 
@@ -141,37 +141,37 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     
     # Link the library
     #add_library(_csm_py SHARED ${csmi_python})
-    #target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
+    #target_link_libraries( _csm_py ${Boost_LIBRARY_DIRS} csmi)
     #install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
     #install(FILES ${csmi_python_boot} PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
     
     add_library(_csm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES common/src/lib_csm_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_wm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_wm_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_wm_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_wm_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES wm/src/lib_csm_wm_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_bb_py SHARED ${csmi_python})
-    target_link_libraries( _csm_bb_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_bb_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_bb_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES bb/src/lib_csm_bb_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_diag_py SHARED ${csmi_python})
-    target_link_libraries( _csm_diag_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_diag_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_diag_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES diag/src/lib_csm_diag_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_inv_py SHARED ${csmi_python})
-    target_link_libraries( _csm_inv_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_inv_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_inv_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES inv/src/lib_csm_inv_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_ras_py SHARED ${csmi_python})
-    target_link_libraries( _csm_ras_py ${Boost_LIBRARIES} csmi)
+    target_link_libraries( _csm_ras_py ${Boost_LIBRARY_DIRS} csmi)
     install(TARGETS _csm_ras_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES ras/src/lib_csm_ras_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
 
