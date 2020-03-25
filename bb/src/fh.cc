@@ -1044,7 +1044,9 @@ int filehandle::protect(off_t start, size_t len, bool writing, Extent& input, ve
             }
 
             // Lookup location(s) in LVM
-            lookup.translate(tmp, result);
+            if (tmp.len) {
+              lookup.translate(tmp, result);
+            }
             LOG(bb,debug) << "lookup.translate returned for extent #" << x;
         }
     }
