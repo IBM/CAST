@@ -1,10 +1,15 @@
+# Not sure if this is min version or expected version?
+# may need to change to 1.66
 set(BoostVersion    1.54.0)
 set(BoostComponents system filesystem thread date_time program_options log log_setup regex chrono serialization iostreams)
 
 # set(Boost_DEBUG 1)
+# Might have to also change these lines? 
 set(BOOST_INCLUDEDIR $ENV{HOME}/coraltools/libboost/include)
 set(BOOST_LIBRARYDIR $ENV{HOME}/coraltools/libboost/lib)
-set(BOOST_ROOT /opt/ibm/boost)
+#set(BOOST_ROOT /opt/ibm/boost)
+# Changing from the old custom CAST boost to try to point at official boost install dir
+set(BOOST_ROOT /usr/include/boost)
 find_package(Boost ${BoostVersion} REQUIRED COMPONENTS ${BoostComponents})
 
 message("boost includes: ${Boost_INCLUDE_DIRS}")
