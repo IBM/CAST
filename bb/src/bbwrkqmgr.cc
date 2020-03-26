@@ -1236,9 +1236,16 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent(s) exist for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
-    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
+    int l_TransferQueueUnlocked = 0;
     int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+    int l_WorkQueueMgrLocked = 0;
+
+    if (!workQueueMgrIsLocked())
+    {
+        l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
+        lockWorkQueueMgr(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+        l_WorkQueueMgrLocked = 1;
+    }
 
     if (pLVKey == NULL || (pLVKey->second).is_null())
     {
@@ -1546,6 +1553,10 @@ void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 
 void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
 {
+    // NOTE: The work item object contains an BBLV_Info*.  However, if this is/was the
+    //       last item on the work queue, keep in mind that 'early' local metadata
+    //       cleanup may yield this pointer invalid.  When passed to this method,
+    //       only the HP work queue path can use the pWorkItem object.
     if (pWrkQE != HPWrkQE)
     {
         // Not the high priority work queue.

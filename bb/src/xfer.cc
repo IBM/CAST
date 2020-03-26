@@ -2470,6 +2470,11 @@ void* transferWorker(void* ptr)
                         //       to re-check to make sure that there have no added work items since.
                         //       If the work queue is still empty, add to the accumulative time
                         //       that is kept in the work queue entry.
+                        // NOTE: The work item object contains an BBLV_Info*.  However, if this is/was the
+                        //       last item on the work queue, keep in mind that 'early' local metadata
+                        //       cleanup may yield this pointer invalid.  When passed to
+                        //       incrementNumberOfWorkItemsProcessed() below, that object is only
+                        //       used for the HP work queue, which is still OK.
                         if (l_LastWorkItemRemoved && (!l_WrkQE->getWrkQ_Size()))
                         {
                             l_WrkQE->addToAccumulatedTime();

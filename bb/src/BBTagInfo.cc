@@ -1209,7 +1209,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         }
 
         bool l_UpdateHandleStatus = false;
-        if (!pTransferDef->hasFilesInRequest())
+        if (!pTransferDef->numberOfFilesInRequest())
         {
             // No files in the request
             l_UpdateHandleStatus = true;

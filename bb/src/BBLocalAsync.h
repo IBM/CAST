@@ -288,6 +288,43 @@ class BBCheckCycleActivities : public BBLocalRequest
     // Data members
 };
 
+class BBCleanUpContribId : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBCleanUpContribId(std::string pConnectionName, LVKey pLVKey, BBTagID pTagId, uint64_t pHandle, uint32_t pContribId) :
+        BBLocalRequest("BBCleanUpContribId", MEDIUM_HIGH),
+        connection_name(pConnectionName),
+        lvkey(pLVKey),
+        tagid(pTagId),
+        handle(pHandle),
+        contribid(pContribId) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBCleanUpContribId() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+    virtual void dump(const char* pPrefix="");
+
+    // Data members
+    std::string     connection_name;
+    LVKey           lvkey;
+    BBTagID         tagid;
+    uint64_t        handle;
+    uint32_t        contribid;
+};
+
 class BBCleanUpTagInfo : public BBLocalRequest
 {
   public:

@@ -529,10 +529,6 @@ class BBTransferDef
         RETURN_FLAG(BBTD_BSCFS_In_Request);
     }
 
-    inline int hasFilesInRequest() {
-        return files.size();
-    }
-
     inline void incrementReadTime(const uint64_t pSourceIndex, const uint64_t pTime) {
         readOperations[pSourceIndex].first += 1;
         readOperations[pSourceIndex].second += pTime;
@@ -560,6 +556,10 @@ class BBTransferDef
 
     inline int noStageinOrStageoutTransfersInDefinition() {
         RETURN_FLAG(BBTD_No_Stagein_Or_Stageout_Transfers);
+    }
+
+    inline size_t numberOfFilesInRequest() {
+        return files.size();
     }
 
     inline void preProcessRead(uint64_t& pTime) {

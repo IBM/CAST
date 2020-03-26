@@ -203,6 +203,14 @@ class BBLV_Info
         return extentInfo.mergeFlags(pFlags);
     }
 
+    inline int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE) {
+        return extentInfo.moreExtentsToTransfer(pHandle, pContrib, pNumberOfExpectedInFlight, pDumpQueuesOnValue);
+    }
+
+    inline int moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib, int pDumpQueuesOnValue) {
+        return extentInfo.moreInFlightExtentsForTransferDefinition(pHandle, pContrib, pDumpQueuesOnValue);
+    }
+
     inline void removeExtent(const Extent* pExtent) {
         return extentInfo.removeExtent(pExtent);
     }

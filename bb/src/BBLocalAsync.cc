@@ -39,6 +39,7 @@ atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
 string g_IB_Adapter = "mlx5_0";
 
 
+
 /*
  * Helper methods
  */
@@ -272,6 +273,8 @@ void* BBLocalAsync::asyncRequestWorker(void* ptr)
     {
         try
         {
+            verifyInitLockState();
+
             int64_t l_RequestNumber = g_LocalAsync.getNextRequest(l_Request);
             if (l_RequestNumber > 0 && l_Request)
             {
@@ -655,28 +658,183 @@ void BBCheckCycleActivities::doit()
     return;
 }
 
-void BBCleanUpTagInfo::doit()
+void BBCleanUpContribId::doit()
 {
-    int l_LocalMetadataLocked = 0;
+    WRKQE* l_WrkQE = 0;
 
+    int l_WorkQueueMgrLocked = 0;
+    int l_LocalMetadataLocked = 0;
+    int l_TransferQueueLocked = 0;
+
+    bool l_AllDone = false;
     try
     {
-        uint64_t l_JobId = tagid.getJobId();
-
-        lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
-        l_LocalMetadataLocked = 1;
-
-        for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
+        while (!l_AllDone)
         {
-            if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
+            l_AllDone = true;
+            uint64_t l_JobId = tagid.getJobId();
+            wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
+            l_WorkQueueMgrLocked = 1;
+
+            int rc = wrkqmgr.getWrkQE(&lvkey, l_WrkQE);
+            if (rc == 1 && l_WrkQE)
             {
-                (it->second).getTagInfoMap()->cleanUpTagInfo(&lvkey, tagid);
+                rc = 0;
+                CurrentWrkQE = l_WrkQE;
+                lockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
+                l_TransferQueueLocked = 1;
+                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
+                l_WorkQueueMgrLocked = 0;
+
+                size_t l_CurrentNumberOfInFlightExtents = 1;
+                {
+
+                    BBLV_Info* l_LV_Info = metadata.getLV_Info(&lvkey);
+                    if (l_LV_Info)
+                    {
+                        l_CurrentNumberOfInFlightExtents = l_LV_Info->moreExtentsToTransfer(handle, contribid, 0);
+                    }
+                    else
+                    {
+                        BAIL;
+                    }
+                }
+                l_TransferQueueLocked = 0;
+                unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
+
+                if (!l_CurrentNumberOfInFlightExtents)
+                {
+                    lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+                    l_LocalMetadataLocked = 1;
+                    for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
+                    {
+                        if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
+                        {
+                            (it->second).getTagInfoMap()->cleanUpContribId(&lvkey, tagid, handle, contribid);
+                        }
+                    }
+                    l_LocalMetadataLocked = 0;
+                    unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+                }
+                else
+                {
+                    l_AllDone = false;
+                }
+            }
+
+            if (!l_AllDone)
+            {
+                usleep((useconds_t)250000); // Still had extents not yet removed from
+                                            // the in-flight queue.  Delay 250 milliseconds.
             }
         }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
 
+    if (l_LocalMetadataLocked)
+    {
         l_LocalMetadataLocked = 0;
-        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
-   }
+        unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit - On exit");
+    }
+
+    if (l_TransferQueueLocked)
+    {
+        l_TransferQueueLocked = 0;
+        unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit - On exit");
+    }
+    CurrentWrkQE = (WRKQE*)0;
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit - On exit");
+    }
+
+    return;
+}
+
+void BBCleanUpTagInfo::doit()
+{
+    WRKQE* l_WrkQE = 0;
+
+    int l_WorkQueueMgrLocked = 0;
+    int l_LocalMetadataLocked = 0;
+    int l_TransferQueueLocked = 0;
+
+    bool l_AllDone = false;
+    try
+    {
+        while (!l_AllDone)
+        {
+            l_AllDone = true;
+            uint64_t l_JobId = tagid.getJobId();
+            wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
+            l_WorkQueueMgrLocked = 1;
+
+            int rc = wrkqmgr.getWrkQE(&lvkey, l_WrkQE);
+            if (rc == 1 && l_WrkQE)
+            {
+                rc = 0;
+                CurrentWrkQE = l_WrkQE;
+                lockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
+                l_TransferQueueLocked = 1;
+                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
+                l_WorkQueueMgrLocked = 0;
+
+                size_t l_CurrentNumberOfInFlightExtents = 1;
+                {
+                    BBLV_Info* l_LV_Info = metadata.getLV_Info(&lvkey);
+                    if (l_LV_Info)
+                    {
+                        BBTagInfo* l_TagInfo = l_LV_Info->getTagInfo(tagid);
+                        if (l_TagInfo)
+                        {
+                            l_CurrentNumberOfInFlightExtents = l_LV_Info->moreExtentsToTransfer(l_TagInfo->getTransferHandle(), UNDEFINED_CONTRIBID, 0);
+                        }
+                        else
+                        {
+                            BAIL;
+                        }
+                    }
+                    else
+                    {
+                        BAIL;
+                    }
+                }
+                l_TransferQueueLocked = 0;
+                unlockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
+
+                if (!l_CurrentNumberOfInFlightExtents)
+                {
+                    lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+                    l_LocalMetadataLocked = 1;
+                    for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
+                    {
+                        if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
+                        {
+                            (it->second).getTagInfoMap()->cleanUpTagInfo(&lvkey, tagid);
+                        }
+                    }
+                    l_LocalMetadataLocked = 0;
+                    unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+                }
+                else
+                {
+                    l_AllDone = false;
+                }
+            }
+
+            if (!l_AllDone)
+            {
+                usleep((useconds_t)250000); // Still had extents not yet removed from
+                                            // the in-flight queue.  Delay 250 milliseconds.
+            }
+        }
+    }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
     {
@@ -687,6 +845,19 @@ void BBCleanUpTagInfo::doit()
     {
         l_LocalMetadataLocked = 0;
         unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit - On exit");
+    }
+
+    if (l_TransferQueueLocked)
+    {
+        l_TransferQueueLocked = 0;
+        unlockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit - On exit");
+    }
+    CurrentWrkQE = (WRKQE*)0;
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit - On exit");
     }
 
     return;
@@ -1086,6 +1257,24 @@ void BBLocalRequest::dump(const char* pPrefix)
         dumpData << pPrefix;
     }
     dumpRequest(dumpData);
+    LOG(bb,info) << dumpData.str();
+
+    return;
+}
+
+void BBCleanUpContribId::dump(const char* pPrefix)
+{
+    stringstream dumpData;
+
+    if (strlen(pPrefix))
+    {
+        dumpData << pPrefix;
+    }
+    dumpRequest(dumpData);
+    dumpData << ", jobid " << tagid.getJobId() \
+             << ", jobstepid " << tagid.getJobStepId() \
+             << ", tag "<< tagid.getTag() << ", handle "<< handle \
+             << ", contribid "<< contribid;
     LOG(bb,info) << dumpData.str();
 
     return;
