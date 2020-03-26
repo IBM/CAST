@@ -81,9 +81,12 @@ file(GLOB csmi_python_boot
 
 # python
 # The Python Libraries:
-find_package(PythonLibs 3.6 )
-message("Python Include: ${PYTHON_INCLUDE_DIRS}")
-if (EXISTS ${PYTHON_INCLUDE_DIRS} )
+#find_package(PythonLibs 3.6 )
+#message("Python Include: ${PYTHON_INCLUDE_DIRS}")
+
+
+# if (EXISTS ${PYTHON_INCLUDE_DIRS} )
+if (EXISTS ${PYTHON_INCLUDE_DIRS_FAKEY} )
     message("BUILDING PYTHON LIBRARIES")
 
     # print some cmake debug about boost and python
@@ -153,7 +156,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
     message("boost Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
     message("boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
-    find_package(Boost COMPONENTS python REQUIRED)
+    find_package(Boost COMPONENTS python3 REQUIRED)
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
     # Link the library
