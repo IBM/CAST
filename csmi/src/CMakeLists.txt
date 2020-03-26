@@ -88,7 +88,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
 
     # print some cmake debug about boost and python
 
-    FIND_PACKAGE(PythonInterp)
+    #FIND_PACKAGE(PythonInterp)
 
     if (PYTHONINTERP_FOUND)
       if (UNIX AND NOT APPLE)
