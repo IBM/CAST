@@ -88,7 +88,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
 
     # print some cmake debug about boost and python
 
-    #FIND_PACKAGE(PythonInterp)
+    FIND_PACKAGE(PythonInterp)
 
     if (PYTHONINTERP_FOUND)
       if (UNIX AND NOT APPLE)
@@ -152,7 +152,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
     message("boost Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
     message("boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
-    find_package( Boost COMPONENTS python3 REQUIRED )
+    find_package(Boost COMPONENTS python3 REQUIRED)
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
     # Link the library
