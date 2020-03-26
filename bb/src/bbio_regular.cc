@@ -279,12 +279,15 @@ ssize_t BBIO_Regular::pread(uint32_t pFileIndex, char* pBuffer, size_t pMaxBytes
         BUMPCOUNTER(bbio_regular_read);
         if (bytesRead < 0)
         {
-            BUMPCOUNTER_by(bbio_regular_read_bytes, bytesRead);
             stringstream errorText;
             errorText << "BBIO_Regular::pread: Read from PFS file failed, file index " << pFileIndex << ", max bytes to read " << pMaxBytesToRead << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
             LOG_ERROR_TEXT_ERRNO(errorText, (!l_ForcePFSReadError) ? errno : 5);
             SET_RC_AND_RAS(bytesRead, bb.sc.pread.pfs);
+        }
+        else
+        {
+            BUMPCOUNTER_by(bbio_regular_read_bytes, bytesRead);
         }
     }
     else
@@ -315,12 +318,15 @@ ssize_t BBIO_Regular::pwrite(uint32_t pFileIndex, const char* pBuffer, size_t pM
         BUMPCOUNTER(bbio_regular_write);
         if (bytesWritten < 0)
         {
-            BUMPCOUNTER_by(bbio_regular_write_bytes, bytesWritten);
             stringstream errorText;
             errorText << "BBIO_Regular::pwrite: Write to PFS file failed, file index " << pFileIndex << ", max bytes to write " << pMaxBytesToWrite << ", offset " << pOffset;
             bberror << err("error.fileindex", pFileIndex);
             LOG_ERROR_TEXT_ERRNO(errorText, (!l_ForcePFSWriteError) ? errno : 5);
             SET_RC_AND_RAS(bytesWritten, bb.sc.pwrite.pfs);
+        }
+        else
+        {
+            BUMPCOUNTER_by(bbio_regular_write_bytes, bytesWritten);
         }
     }
     else
