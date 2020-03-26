@@ -9,9 +9,9 @@ set(BoostComponents system filesystem thread date_time program_options log log_s
 #set(BOOST_LIBRARYDIR $ENV{HOME}/coraltools/libboost/lib)
 #set(BOOST_ROOT /opt/ibm/boost)
 # Changing from the old custom CAST boost to try to point at official boost install dir
-set(BOOST_ROOT /usr/include/boost)
-set(BOOST_INCLUDEDIR /usr/include)
-set(BOOST_LIBRARYDIR /usr/lib64)
+set(BOOST_ROOT /usr/local/boost_1_66_0)
+set(BOOST_INCLUDEDIR /usr/local/boost_1_66_0)
+set(BOOST_LIBRARYDIR /usr/local/boost_1_66_0/libs)
 find_package(Boost ${BoostVersion} REQUIRED COMPONENTS ${BoostComponents})
 
 message("boost includes: ${Boost_INCLUDE_DIRS}")
