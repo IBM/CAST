@@ -117,6 +117,7 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
         endif()
       endif()
     else()
+         message("5")
         message("Python not found")
     endif()
 
