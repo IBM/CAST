@@ -269,7 +269,11 @@ csm::network::EndpointUnix::~EndpointUnix()
 
   csm::network::AddressUnix_sptr addr = std::dynamic_pointer_cast<csm::network::AddressUnix>( GetLocalAddr() );
   if( addr == nullptr )
-    throw csm::network::Exception("Wrong address type", EBADF );
+  {
+    // throw will always call terminate()
+    // google later
+    //throw csm::network::Exception("Wrong address type", EBADF );
+  }
   if( addr->_SockAddr.sun_path[0] != 0 )
     unlink( addr->_SockAddr.sun_path );
 }
