@@ -449,14 +449,21 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 if (l_Continue)
                                 {
                                     rc = 0;
-#ifndef __clang_analyzer__  // l_LockHeld is never read, but keep it for debug
                                     l_LockHeld = false;
-#endif
                                     unlockLocalMetadata((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
                                         int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                         if ((l_SecondsWaiting % 15) == 1)
                                         {
+                                            BBSTATUS l_Status;
+                                            HandleFile::get_xbbServerHandleStatus(l_Status, (LVKey*)0, l_FromJobId, l_FromJobStepId, l_Handle);
+                                            if (l_Status == BBFULLSUCCESS)
+                                            {
+                                                rc = -2;
+                                                errorText << "A cancel request was made for the transfer definition associated with handle " << l_Handle \
+                                                          << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getLVKey).";
+                                                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                            }
                                             // Display this message every 15 seconds...
                                             FL_Write6(FLDelay, CancelWaitForLVKey, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
                                                       l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
@@ -507,8 +514,18 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         l_LV_Info = metadata.getLV_Info(l_LVKey);
                         if (!l_LV_Info)
                         {
+                            l_LockHeld = false;
                             unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
                             {
+                                BBSTATUS l_Status;
+                                HandleFile::get_xbbServerHandleStatus(l_Status, l_LVKey, l_FromJobId, l_FromJobStepId, l_Handle);
+                                if (l_Status == BBFULLSUCCESS)
+                                {
+                                    rc = -2;
+                                    errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ",  handle " << l_Handle \
+                                              << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getLV_Info).";
+                                    LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
                                 {
@@ -522,6 +539,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBLV_Info to be registered");
+                            l_LockHeld = true;
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -549,11 +567,21 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     {
                         if (!l_LV_Info->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
                         {
+                            l_LockHeld = false;
                             unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
                                 {
+                                    BBSTATUS l_Status;
+                                    HandleFile::get_xbbServerHandleStatus(l_Status, l_LVKey, l_FromJobId, l_FromJobStepId, l_Handle);
+                                    if (l_Status == BBFULLSUCCESS)
+                                    {
+                                        rc = -2;
+                                        errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ",  handle " << l_Handle \
+                                                  << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getTagInfo).";
+                                        LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                    }
                                     // Display this message every 15 seconds...
                                     FL_Write6(FLDelay, CancelWaitForBBTagInfo, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the BBTagInfo.",
                                               l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
@@ -564,6 +592,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBTagInfo to be registered");
+                            l_LockHeld = true;
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, l_LV_Info, (BBTagInfo*)0, l_FromJobId, l_ContribId))
