@@ -664,7 +664,7 @@ inline csm::daemon::NetworkEvent* CreateRasEventMessage(const std::string &msg_i
     info = localtime( &rawtime );
 
     strftime(time_stamp, 80, "%Y-%m-%d %H:%M:%S", info);
-    snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp, now_tv.tv_usec);
+    snprintf(time_stamp_with_usec, 101, "%s.%06lu", time_stamp, now_tv.tv_usec);
     // ----------------------------------------------------------------------------
 
     // ----------------------------------------------------------------------------
