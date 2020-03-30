@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include <atomic>
 #include <condition_variable>
+#include <vector>
 
 #include "logging.h"
 #include "DBConnection.h"
