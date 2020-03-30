@@ -220,7 +220,7 @@ RasRc CSMIRasEventCreate::decodeRasEvent(csm::network::MessageAndAddress content
         info = localtime( &rawtime );
 
         strftime(time_stamp, 80, "%Y-%m-%d %H:%M:%S", info);    
-        snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp, now_tv.tv_usec);
+        snprintf(time_stamp_with_usec, 101, "%s.%06lu", time_stamp, now_tv.tv_usec);
     
         LOG(csmras, debug) << "Optional parameter time_stamp is not set, setting to:" << time_stamp_with_usec;
         rasEvent.setValue(CSM_RAS_FKEY_TIME_STAMP, time_stamp_with_usec);
