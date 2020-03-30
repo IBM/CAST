@@ -492,7 +492,7 @@ bool CSMIAllocationDelete_Master::CreateByteArray(
         {
             std::string end_time_str(tuples[0]->data[0]);
             //std::string state_str    = csm_get_string_from_enum(csmi_state_t, ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED );
-            smi_state_t state = ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED
+            csmi_state_t state = ctx->GetErrorCode() == CSMI_SUCCESS ? CSM_COMPLETE : CSM_FAILED
             std::string state_str    = csm_get_string_from_enum(csmi_state_t, state);
 
             std::string json = "";
