@@ -42,9 +42,9 @@ int client()
 
   csm_net_msg_t *msg;
   char *data = (char*)calloc(1024, sizeof(char));
-  strncpy( data, "Hello World", 10 );
+  strncpy( data, "Hello World", 11 );
 
-  msg = csm_net_msg_Init( CSM_CMD_ECHO, 1, CSM_PRIORITY_DEFAULT, 1243567, geteuid(), getegid(), data, 10, 0 );
+  msg = csm_net_msg_Init( CSM_CMD_ECHO, 1, CSM_PRIORITY_DEFAULT, 1243567, geteuid(), getegid(), data, 11, 0 );
 
   rc = csm_net_unix_Send( ep->_ep, msg );
   if( rc <= 0 )
