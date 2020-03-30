@@ -18,6 +18,7 @@
 #include <set>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 #include "csmnet/src/CPP/address.h"
 #include "include/csm_node_bitset.h"
@@ -192,7 +193,7 @@ int NodeMTCTest( const csm::daemon::NodeNameList_t &nodes,
       std::cout << "Coverage error: " << msgSingleCount << ":" << msgSetCount << std::endl;
   }
 
-  double optimal = ceil( (double)mtcSize / ((double)aggSets[0].GetEntries()/2) ) + 2;
+  double optimal = std::ceil( (double)mtcSize / ((double)aggSets[0].GetEntries()/2) ) + 2;
   std::cout << "Agg-Msgs for nodes= " << mtcSize
       << ":   Res_set=(" << SetMsg._avg/TEST_COUNT << ", "<< SetMsg._min << "-" << SetMsg._max
       << "; " << SetMsg._mic/TEST_COUNT <<"us/m;" << SetMsg._avg/TEST_COUNT / optimal * 100. << "%)"
@@ -516,8 +517,8 @@ int MTCPerformanceTest( const int listSize, const unsigned mtcSize )
 
   size_t overlappedOffset = listSize/2;
   size_t overlappedNodes = overlappedOffset * (AGG_COUNT-2);
-  double minimal = ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
-  double maximal = ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
+  double minimal = std::ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
+  double maximal = std::ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
 
 //  for( int i=0; i<TEST_COUNT; ++i )
   int i;
