@@ -231,7 +231,7 @@ bool GetNodeInventory(csm_node_inventory_t& node_inventory)
   struct timeval now_tv;
   time_t now_time_t;
   struct tm *now_tm;
-  char tm_buf[64], tm_usec_buf[64];
+  char tm_buf[64], tm_usec_buf[85];
 
   gettimeofday(&now_tv, NULL);
   now_time_t = now_tv.tv_sec;
