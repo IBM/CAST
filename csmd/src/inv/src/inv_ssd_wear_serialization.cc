@@ -58,7 +58,7 @@ uint32_t ssd_wear_unpack(const string& in_payload_str, csm_ssd_wear_t& out_ssd_w
   uint32_t offset(0);  
 
   // Clear the current structure
-  memset( &out_ssd_wear, 0, sizeof(out_ssd_wear) );
+  memset( static_cast<void*>(&out_ssd_wear), 0, sizeof(out_ssd_wear) );
 
   // Unpack the node name
   if ( in_payload_str.size() >= sizeof(out_ssd_wear.node_name) )
