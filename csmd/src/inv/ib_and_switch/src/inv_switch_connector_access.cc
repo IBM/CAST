@@ -308,7 +308,7 @@ int INV_SWITCH_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address,
 		std::string response_copy_2(boost::asio::buffers_begin(buf_2), boost::asio::buffers_begin(buf_2) + response.size());
 
 		//copy the buffer to the request data
-		boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
+		//boost::asio::streambuf::const_buffers_type nickTEST2 = response.data();
 
 		// I'm not sure why. but fautso had 2 response sections? 
 		/*
