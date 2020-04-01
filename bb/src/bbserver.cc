@@ -107,6 +107,7 @@ bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 
 // Async RemoveJobInfo
 bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
+uint64_t g_AsyncRemoveJobInfoNumberPerGroup = DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE;
 
 // Diskstats rate (interval in seconds)
 int g_DiskStatsRate = DEFAULT_DISKSTATS_RATE;
@@ -3282,11 +3283,12 @@ int bb_main(std::string who)
         g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
         if (g_AsyncRemoveJobInfo)
         {
+            g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
             wrkqmgr.setAsyncRmvJobInfoTimerPoppedCount(Throttle_TimeInterval);
             if (wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount())
             {
                 LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount() << " to implement async rmvjobinfo " \
-                               << Throttle_TimeInterval*wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount() << " second intervals.";
+                               << Throttle_TimeInterval*wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount() << " second intervals. Job information will be removed in groups of " << g_AsyncRemoveJobInfoNumberPerGroup << ".";
             }
         }
         else

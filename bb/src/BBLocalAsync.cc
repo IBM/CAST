@@ -485,13 +485,11 @@ void BBLocalAsync::recordRequestCompletion(int64_t l_RequestNumber, BBLocalReque
  */
 void BBAsyncRemoveJobInfo::doit()
 {
-    const int l_JobsToSchedulePerPass = 4;
-    int l_JobsScheduled = 0;
+    const uint64_t l_JobsToSchedulePerPass = g_AsyncRemoveJobInfoNumberPerGroup;
+    uint64_t l_JobsScheduled = 0;
 
     vector<string> l_PathJobIds;
     l_PathJobIds.reserve(100);
-
-
     try
     {
         bool l_AllDone = false;
@@ -501,7 +499,7 @@ void BBAsyncRemoveJobInfo::doit()
             int rc = HandleFile::get_xbbServerGetCurrentJobIds(l_PathJobIds, ONLY_RETURN_REMOVED_JOBIDS);
             if ((!rc) && l_PathJobIds.size() > 0)
             {
-                for (size_t i=0; i<l_PathJobIds.size() && l_JobsScheduled < l_JobsToSchedulePerPass; i++)
+                for (size_t i=0; i<l_PathJobIds.size() && (l_JobsToSchedulePerPass == 0 || l_JobsScheduled < l_JobsToSchedulePerPass); i++)
                 {
                     bfs::path job = bfs::path(l_PathJobIds[i]);
                     bfs::path l_PathToRemove = job.parent_path().string() + "/." + job.filename().string();
@@ -523,7 +521,7 @@ void BBAsyncRemoveJobInfo::doit()
                     }
                     rc = 0;
                 }
-                if (l_JobsScheduled >= l_JobsToSchedulePerPass)
+                if (l_JobsToSchedulePerPass > 0 && l_JobsScheduled >= l_JobsToSchedulePerPass)
                 {
                     // In an attempt to let other servers jump in and schedule some pruning of the metadata...
                     // NOTE: We may delay for 1 minute when there are no jobs left to schedule, but the

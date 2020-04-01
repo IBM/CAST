@@ -47,6 +47,7 @@ class BBLV_Metadata;
  *******************************************************************************/
 extern BBLV_Metadata metadata;
 extern int64_t g_IBStatsLowActivityClipValue;
+extern uint64_t g_AsyncRemoveJobInfoNumberPerGroup;
 
 
 /*******************************************************************************

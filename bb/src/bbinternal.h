@@ -150,6 +150,7 @@ const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 24;
 //       bandwidth BB consumes, the following default value should be
 //       changed to the default rate/sec value used for BB throttling.
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
+const uint64_t DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE = 4;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
 const uint64_t DEFAULT_FORCE_SSD_READ_ERROR = 0;
 const uint64_t DEFAULT_FORCE_SSD_WRITE_ERROR = 0;
