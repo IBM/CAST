@@ -2195,8 +2195,8 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
+    unlockTransferQueueIfNeeded((LVKey*)0, "rmvWrkQ");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "rmvWrkQ");
     int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);

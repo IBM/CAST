@@ -3889,13 +3889,9 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         }
                         l_TransferQueueLocked = 0;
                         unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataUnlocked = 1;
-                        unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         {
                             usleep((useconds_t)250000);
                         }
-                        lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                        l_LocalMetadataUnlocked = 0;
                         lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
                         l_TransferQueueLocked = 1;
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
