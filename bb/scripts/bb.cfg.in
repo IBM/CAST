@@ -1,19 +1,20 @@
 {
 	"bb" :
 	{
-		"nvmecliPath"                          : "/usr/sbin/nvme",
-		"unixpath"                             : "/run/bb_socket@USERSUFFIX@",
-		"bbserverMetadataPath"                 : "@METADATAPATH@",
-		"bbserverFileIOwarnSeconds"            : 20,
-		"bbserverFileIOStuckSeconds"           : 60,
-		"usekeepalive"                         : true,
-		"keepaliveidle"                        : 60,
-		"keepalivecount"                       : 12,
-		"keepaliveinterval"                    : 5,
-		"numHandlefileBuckets"                 : 4096,
-		"bbserverThrottle_TimeInterval"        : 0.25,
-		"bbserverAsyncRequestRead_TimeInterval": 25.00,
-		"bbserverAsyncRemoveJobInfoInterval"   : 180,
+		"nvmecliPath"                                       : "/usr/sbin/nvme",
+		"unixpath"                                          : "/run/bb_socket@USERSUFFIX@",
+		"bbserverMetadataPath"                              : "@METADATAPATH@",
+		"bbserverFileIOwarnSeconds"                         : 20,
+		"bbserverFileIOStuckSeconds"                        : 60,
+		"usekeepalive"                                      : true,
+		"keepaliveidle"                                     : 60,
+		"keepalivecount"                                    : 12,
+		"keepaliveinterval"                                 : 5,
+		"numHandlefileBuckets"                              : 4096,
+		"bbserverThrottle_TimeInterval"                     : 0.25,
+		"bbserverAsyncRequestRead_TimeInterval"             : 25.00,
+		"bbserverAsyncRemoveJobInfoInterval"                : 180,
+		"bbserverAsyncRemoveJobInfoNumberPerGroup"          : 4,
 
 		"scripts" :
 		{

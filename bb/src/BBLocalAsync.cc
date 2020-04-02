@@ -39,7 +39,6 @@ atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
 string g_IB_Adapter = "mlx5_0";
 
 
-
 /*
  * Helper methods
  */
@@ -147,6 +146,15 @@ int64_t BBAsyncRequestData::addRequest(BBLocalRequest* pRequest)
     unlock();
 
     return rc;
+}
+
+void BBAsyncRequestData::dump(const char* pPrefix)
+{
+    LOG(bb,info) << "  Priority " << setw(11) << getLocalAsyncPriorityStr(priority) << ": last issued " << lastRequestNumberIssued \
+                 << ", last dispatched " << lastRequestNumberDispatched << ", last processed " << lastRequestNumberProcessed \
+                 << ", max concurrent " << maximumConcurrentRunning<< ", # OutOfSeq " << size(outOfSequenceRequests);
+
+    return;
 }
 
 int64_t BBAsyncRequestData::getNumberOfInFlightRequests()
@@ -356,6 +364,30 @@ int BBLocalAsync::dispatchFromThisQueue(LOCAL_ASYNC_REQUEST_PRIORITY pPriority)
     }
 
     return rc;
+}
+
+void BBLocalAsync::dump(const char* pPrefix)
+{
+    lock();
+    try
+    {
+        LOG(bb,info) << ">>>>> Start: Local Async Mgr <<<<<";
+
+        for (map<LOCAL_ASYNC_REQUEST_PRIORITY, BBAsyncRequestData*>::iterator rd = requestData.begin(); rd != requestData.end(); ++rd)
+        {
+            rd->second->dump();
+        }
+
+        LOG(bb,info) << ">>>>>   End: Local Async Mgr <<<<<";
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+    unlock();
+
+    return;
 }
 
 int64_t BBLocalAsync::getLastRequestNumberProcessed(BBLocalRequest* pRequest)
@@ -603,6 +635,14 @@ void BBCheckCycleActivities::doit()
             snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
             AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
             wrkqmgr.appendAsyncRequest(l_Request);
+        }
+
+        // See if it is time to dump local async manager
+        if (wrkqmgr.timeToPerformLocalAsyncDump())
+        {
+            BBDumpLocalAsync* l_Request = new BBDumpLocalAsync();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            wrkqmgr.setDumpLocalAsyncTimerFired(1);
         }
 
         // See if it is time to dump IB Stats
@@ -947,6 +987,37 @@ void BBDumpHeartbeatData::doit()
     {
         l_WorkQueueMgrLocked = 0;
         wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit() - On exit");
+    }
+
+    return;
+}
+
+void BBDumpLocalAsync::doit()
+{
+    int l_WorkQueueMgrLocked = 0;
+
+    try
+    {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit()");
+        l_WorkQueueMgrLocked = 1;
+
+        g_LocalAsync.dump(" Local Async Mgr (Not an error - Timer Interval)");
+        wrkqmgr.setDumpLocalAsyncTimerFired(0);
+        wrkqmgr.setDumpLocalAsyncTimerCount(0);
+
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit()");
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    if (l_WorkQueueMgrLocked)
+    {
+        l_WorkQueueMgrLocked = 0;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit() - On exit");
     }
 
     return;

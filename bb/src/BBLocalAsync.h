@@ -158,6 +158,7 @@ class BBAsyncRequestData
   private:
     int64_t increment(int64_t& pNumber);
   public:
+    void dump(const char* pPrefix="");
     size_t numberOfNonDispatchedRequests();
     void recordRequestCompletion(int64_t pRequestNumber);
     int64_t addRequest(BBLocalRequest* pRequest);
@@ -426,6 +427,37 @@ class BBDumpHeartbeatData : public BBLocalRequest
     // Data members
 };
 
+class BBDumpLocalAsync : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBDumpLocalAsync() :
+        BBLocalRequest("BBDumpLocalAsync", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBDumpLocalAsync() { };
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
 class BBDumpWrkQMgr : public BBLocalRequest
 {
   public:
@@ -673,6 +705,7 @@ class BBLocalAsync
 
     // Non-static methods
     int dispatchFromThisQueue(LOCAL_ASYNC_REQUEST_PRIORITY pPriority);
+    void dump(const char* pPrefix="");
     int64_t getLastRequestNumberProcessed(BBLocalRequest* pRequest);
     int64_t getNextRequest(BBLocalRequest* &pRequest);
     int init();

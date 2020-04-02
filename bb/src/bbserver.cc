@@ -3235,6 +3235,9 @@ int bb_main(std::string who)
         wrkqmgr.setAsyncRequestReadTimerPoppedCount(Throttle_TimeInterval);
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " to implement an async request read rate with " \
                        << Throttle_TimeInterval*wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " second intervals.";
+        wrkqmgr.setDumpLocalAsyncTimerPoppedCount(Throttle_TimeInterval);
+        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpLocalAsyncTimerPoppedCount() << " to implement a local async request manager dump rate with " \
+                       << Throttle_TimeInterval*wrkqmgr.getDumpLocalAsyncTimerPoppedCount() << " second intervals.";
         wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
         LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getHeartbeatTimerPoppedCount() << " to implement a heartbeat rate with " \
                        << Throttle_TimeInterval*wrkqmgr.getHeartbeatTimerPoppedCount() << " second intervals.";

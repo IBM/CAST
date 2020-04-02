@@ -407,6 +407,16 @@ class WRKQMGR
         return dumpTimerPoppedCount;
     }
 
+    inline uint64_t getDumpLocalAsyncTimerAlreadyFired()
+    {
+        return dumpLocalAsyncTimerFired;
+    }
+
+    inline int getDumpLocalAsyncTimerPoppedCount()
+    {
+        return dumpLocalAsyncTimerPoppedCount;
+    }
+
     inline int getDumpWrkQueueMgrTimerAlreadyFired()
     {
         return dumpWrkQueueMgrTimerFired;
@@ -649,6 +659,20 @@ class WRKQMGR
         return;
     }
 
+    inline void setDumpLocalAsyncTimerCount(const int pValue)
+    {
+        dumpLocalAsyncTimerCount = pValue;
+
+        return;
+    }
+
+    inline void setDumpLocalAsyncTimerFired(const int pValue)
+    {
+        dumpLocalAsyncTimerFired = pValue;
+
+        return;
+    }
+
     inline void setIBStatsTimerCount(const int pValue)
     {
         ibStatsTimerCount = pValue;
@@ -805,6 +829,11 @@ class WRKQMGR
         return (!getIOStatsTimerAlreadyFired()) && ioStatsTimerPoppedCount && (++ioStatsTimerCount >= ioStatsTimerPoppedCount);
     }
 
+    inline int timeToPerformLocalAsyncDump()
+    {
+        return (!getDumpLocalAsyncTimerAlreadyFired()) && dumpLocalAsyncTimerPoppedCount && (++dumpLocalAsyncTimerCount >= dumpLocalAsyncTimerPoppedCount);
+    }
+
     inline int timeToPerformWrkQMgrDump()
     {
         return (!getDumpWrkQueueMgrTimerAlreadyFired()) && dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount);
@@ -861,6 +890,7 @@ class WRKQMGR
     void setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval);
     void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
     void setDumpCountersTimerPoppedCount(const double pTimerInterval);
+    void setDumpLocalAsyncTimerPoppedCount(const double pTimerInterval);
     void setDumpTimerPoppedCount(const double pTimerInterval);
     void setHeartbeatDumpPoppedCount(const double pTimerInterval);
     void setHeartbeatTimerPoppedCount(const double pTimerInterval);
@@ -903,18 +933,14 @@ class WRKQMGR
     volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
-    volatile int64_t    dumpCountersTimerCount;                 // Access is serialized with the
+    volatile int64_t    dumpCountersTimerCount;
     volatile int64_t    dumpTimerCount;
     volatile int64_t    heartbeatDumpCount;
-                                                                // HPWrkQE transfer queue lock
-    volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int64_t    ibStatsTimerCount;                      // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int64_t    ioStatsTimerCount;                      // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int64_t    asyncRmvJobInfoTimerCount;              // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
+    volatile int64_t    heartbeatTimerCount;
+    volatile int64_t    ibStatsTimerCount;
+    volatile int64_t    ioStatsTimerCount;
+    volatile int64_t    asyncRmvJobInfoTimerCount;
+    volatile int64_t    dumpLocalAsyncTimerCount;
     int64_t             dumpCountersTimerPoppedCount;
     int64_t             dumpTimerPoppedCount;
     int64_t             heartbeatDumpPoppedCount;
@@ -922,21 +948,16 @@ class WRKQMGR
     int64_t             ibStatsTimerPoppedCount;
     int64_t             ioStatsTimerPoppedCount;
     int64_t             asyncRmvJobInfoTimerPoppedCount;
+    int64_t             dumpLocalAsyncTimerPoppedCount;
     int64_t             declareServerDeadCount;                 // In seconds
-    volatile int        cycleActivitiesTimerFired;              // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        dumpCountersTimerFired;                 // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        dumpHeartbeatDataTimerFired;            // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        dumpWrkQueueMgrTimerFired;              // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        ibStatsTimerFired;                      // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        ioStatsTimerFired;                      // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    volatile int        asyncRmvJobInfoTimerFired;              // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
+    volatile int        cycleActivitiesTimerFired;
+    volatile int        dumpCountersTimerFired;
+    volatile int        dumpHeartbeatDataTimerFired;
+    volatile int        dumpWrkQueueMgrTimerFired;
+    volatile int        ibStatsTimerFired;
+    volatile int        ioStatsTimerFired;
+    volatile int        asyncRmvJobInfoTimerFired;
+    volatile int        dumpLocalAsyncTimerFired;
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the

@@ -136,11 +136,12 @@ const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 60;                       
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
-const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
+const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1;      // in seconds
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1.00;                    // in seconds
-const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25.00;         // in seconds
-const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100.00;        // in seconds
+const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25;            // in seconds
+const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100;           // in seconds
+const double DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL = 180;             // in seconds
 const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 240;                // in seconds (4 minutes)
 const uint64_t MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 600;                // in seconds (10 minutes)
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS = 48;

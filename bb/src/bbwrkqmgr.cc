@@ -638,10 +638,11 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             }
 //                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
-//                            LOG(bb,debug) << "          IB Stats Timer Count: " << ibStatsTimerCount << "      IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
-//                            LOG(bb,debug) << "          IO Stats Timer Count: " << ioStatsTimerCount << "      IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
-//                            LOG(bb,debug) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "  Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
+//                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "      Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
+//                            LOG(bb,debug) << "          IB Stats Timer Count: " << ibStatsTimerCount << "  IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
+//                            LOG(bb,debug) << "          IO Stats Timer Count: " << ioStatsTimerCount << "  IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
+//                            LOG(bb,debug) << "    Dump Local Async Mgr Count: " << dumpLocalAsyncCount << " Dump Local Async Mgr Timer Popped Count: " << dumpLocalAsyncTimerPoppedCount;
+//                            LOG(bb,debug) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "     Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
 //                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -683,9 +684,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 //                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
 //                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
-//                            LOG(bb,info) << "          IB Stats Timer Count: " << ibStatsTimerCount << "      IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
-//                            LOG(bb,info) << "          IO Stats Timer Count: " << ioStatsTimerCount << "      IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
-//                            LOG(bb,info) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "  Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
+//                            LOG(bb,info) << "          IB Stats Timer Count: " << ibStatsTimerCount << "  IB Stats Timer Popped Count: " << ibStatsTimerPoppedCount;
+//                            LOG(bb,info) << "          IO Stats Timer Count: " << ioStatsTimerCount << "  IO Stats Timer Popped Count: " << ioStatsTimerPoppedCount;
+//                            LOG(bb,info) << "    Dump Local Async Mgr Count: " << dumpLocalAsyncCount << " Dump Local Async Mgr Timer Popped Count: " << dumpLocalAsyncTimerPoppedCount;
+//                            LOG(bb,info) << "  Async RmvJobInfo Timer Count: " << asyncRemoveJobInfoTimerCount << "     Async RmvJobInfo Timer Popped Count: " << asyncRemoveJobInfoTimerCountTimerPoppedCount;
 //                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -2102,12 +2104,12 @@ void WRKQMGR::processTurboFactorForFoundRequest()
     {
         if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR)) >= 1)
         {
-            LOG(bb,info) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
+            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
             asyncRequestReadTurboFactor *= DEFAULT_TURBO_FACTOR;
         }
         else
         {
-            LOG(bb,info) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
+            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
         }
         asyncRequestReadConsecutiveNoNewRequests = 0;
     }
@@ -2123,13 +2125,13 @@ void WRKQMGR::processTurboFactorForNotFoundRequest()
         {
             if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR)) <= round(AsyncRequestRead_TimeInterval / Throttle_TimeInterval))
             {
-                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
+                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
                 asyncRequestReadTurboFactor /= DEFAULT_TURBO_FACTOR;
                 asyncRequestReadConsecutiveNoNewRequests = 0;
             }
             else
             {
-                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
             }
         }
         else
@@ -2283,8 +2285,8 @@ void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
 
 void WRKQMGR::setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval)
 {
-//    double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
-    double l_AsyncRemoveJobInfoInterval = 60;
+    double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
+//    double l_AsyncRemoveJobInfoInterval = 60;
     asyncRmvJobInfoTimerPoppedCount = (int64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
     if (((double)asyncRmvJobInfoTimerPoppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
     {
@@ -2317,6 +2319,26 @@ void WRKQMGR::setDumpCountersTimerPoppedCount(const double pTimerInterval)
             LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpCountersTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dump counter rates may be implemented as slightly more than what is specified.";
         }
         ++dumpCountersTimerPoppedCount;
+    }
+
+    return;
+}
+
+void WRKQMGR::setDumpLocalAsyncTimerPoppedCount(const double pTimerInterval)
+{
+    double l_DumpLocalAsyncTimeInterval = config.get("bb.bbserverDumpLocalAsyncMgrTimeInterval", DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL);
+    dumpLocalAsyncTimerPoppedCount = (int64_t)(l_DumpLocalAsyncTimeInterval/pTimerInterval);
+    if (((double)dumpLocalAsyncTimerPoppedCount)*pTimerInterval != (double)(l_DumpLocalAsyncTimeInterval))
+    {
+        if (dumpLocalAsyncTimerPoppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpLocalAsyncTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any LocalAsync manager dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpLocalAsyncTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any LocalAsync manager dump rates may be implemented as slightly more than what is specified.";
+        }
+        ++dumpLocalAsyncTimerPoppedCount;
     }
 
     return;
