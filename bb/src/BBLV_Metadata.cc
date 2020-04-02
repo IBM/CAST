@@ -180,7 +180,10 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
                 LOG_INFO_TEXT_RC(errorText, rc);
             }
         }
-        LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
+        if (!rc)
+        {
+            LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -526,6 +529,7 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
                 (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
                 if (l_LockWasReleased == LOCAL_METADATA_LOCK_NOT_RELEASED)
                 {
+                    LOG(bb,debug) << "taginfo: " << it->first << " removed from local metadata";
                     it = metaDataMap.erase(it);
                 }
 

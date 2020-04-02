@@ -202,7 +202,7 @@ void BBAsyncRequestData::recordRequestCompletion(int64_t pRequestNumber)
                         outOfSequenceRequests.erase(it);
                         l_AllDone = false;
                         LOG(bb,debug) << "BBLocalAsync::recordRequestCompletion(): Priority " << getLocalAsyncPriorityStr(priority) \
-                                      << ", removed request number " << pRequestNumber << " from outOfSequenceRequests";
+                                      << ", removed request number " << *it << " from outOfSequenceRequests";
                         break;
                     }
                 }
@@ -232,11 +232,14 @@ int64_t BBAsyncRequestData::removeNextRequest(BBLocalRequest* &pRequest)
     try
     {
         pRequest = requests.front();
-        requests.pop();
-        rc = increment(lastRequestNumberDispatched);
-        if (pRequest->dumpOnRemove())
+        if (pRequest)
         {
-            pRequest->dump("BBLocalAsync::removeNextRequest(): Dequeuing: ");
+            requests.pop();
+            rc = increment(lastRequestNumberDispatched);
+            if (pRequest->dumpOnRemove())
+            {
+                pRequest->dump("BBLocalAsync::removeNextRequest(): Dequeuing: ");
+            }
         }
     }
     catch (ExceptionBailout& e) { }
@@ -267,25 +270,21 @@ void BBLocalRequest::dumpRequest(stringstream& pStream)
  */
 void* BBLocalAsync::asyncRequestWorker(void* ptr)
 {
-    BBLocalRequest* l_Request = 0;
+    BBLocalRequest* l_Request;
 
     while (1)
     {
+        l_Request = 0;
+        int64_t l_RequestNumber = 0;
+
         try
         {
             verifyInitLockState();
 
-            int64_t l_RequestNumber = g_LocalAsync.getNextRequest(l_Request);
+            l_RequestNumber = g_LocalAsync.getNextRequest(l_Request);
             if (l_RequestNumber > 0 && l_Request)
             {
                 l_Request->doit();
-                g_LocalAsync.recordRequestCompletion(l_RequestNumber, l_Request);
-                if (l_Request->dumpOnDelete())
-                {
-                    l_Request->dump("BBLocalAsync::asyncRequestWorker(): Deleting: ");
-                }
-                delete l_Request;
-                l_Request = 0;
             }
         }
         catch (ExceptionBailout& e) { }
@@ -293,11 +292,31 @@ void* BBLocalAsync::asyncRequestWorker(void* ptr)
         {
             LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
         }
+
         if (l_Request)
         {
+            try
+            {
+                g_LocalAsync.recordRequestCompletion(l_RequestNumber, l_Request);
+            }
+            catch (std::exception& e)
+            {
+                // Tolerate everything
+            }
+            try
+            {
+                if (l_Request->dumpOnDelete())
+                {
+                    l_Request->dump("BBLocalAsync::asyncRequestWorker(): Deleting: ");
+                }
+            }
+            catch (std::exception& e)
+            {
+                // Tolerate everything
+            }
             delete l_Request;
+            l_Request = 0;
         }
-        l_Request = 0;
     }
 
     return NULL;
@@ -330,10 +349,10 @@ int BBLocalAsync::dispatchFromThisQueue(LOCAL_ASYNC_REQUEST_PRIORITY pPriority)
 
     if (rc == 1)
     {
-        LOG(bb,debug) << "BBLocalAsync::dispatchFromThisQueue(): Scheduling async request having priority " << getLocalAsyncPriorityStr(pPriority) \
-              << ", NumberOfNonDispatchedRequests " << l_NumberOfNonDispatchedRequests \
-              << ", NumberOfInFlightRequests " << l_NumberOfInFlightRequests \
-              << ", MaximumConcurrentRunning " << l_MaximumConcurrentRunning;
+        LOG(bb,debug) << "BBLocalAsync::dispatchFromThisQueue(): ==> Scheduling async request having priority " << getLocalAsyncPriorityStr(pPriority) \
+                      << ", NumberOfNonDispatchedRequests " << l_NumberOfNonDispatchedRequests \
+                      << ", NumberOfInFlightRequests " << l_NumberOfInFlightRequests \
+                      << ", MaximumConcurrentRunning " << l_MaximumConcurrentRunning;
     }
 
     return rc;
@@ -360,6 +379,7 @@ int64_t BBLocalAsync::getNextRequest(BBLocalRequest* &pRequest)
     lock();
     try
     {
+        pRequest = (BBLocalRequest*)0;
         LOCAL_ASYNC_REQUEST_PRIORITY l_Priority = NONE;
         vector<BBAsyncRequestType>::iterator it;
         for (it = requestType.begin(); it != requestType.end(); ++it)
@@ -470,7 +490,7 @@ int64_t BBLocalAsync::issueAsyncRequest(BBLocalRequest* pRequest)
 void BBLocalAsync::recordRequestCompletion(int64_t l_RequestNumber, BBLocalRequest* l_Request)
 {
     requestData[l_Request->getPriority()]->recordRequestCompletion(l_RequestNumber);
-    LOG(bb,debug) << "BBLocalAsync::recordRequestCompletion(): Completed request, scheduling async request having priority " \
+    LOG(bb,debug) << "BBLocalAsync::recordRequestCompletion(): Completed local async request having priority " \
                   << getLocalAsyncPriorityStr(l_Request->getPriority()) \
                   << ", NumberOfNonDispatchedRequests " << requestData[l_Request->getPriority()]->numberOfNonDispatchedRequests() \
                   << ", NumberOfInFlightRequests " << requestData[l_Request->getPriority()]->getNumberOfInFlightRequests() \
@@ -1114,76 +1134,84 @@ void BBPruneMetadata::doit()
     bfs::path l_PathToRemove = bfs::path(path);
     try
     {
-        try
+        vector<std::string> l_HandlesProcessed = vector<std::string>();
+        l_HandlesProcessed.reserve(4096);
+        bool l_AllDone = false;
+
+        LOG(bb,info) << "BBLocalAsync::BBPruneMetadata(): START: Removal of cross-bbServer metadata at " << path;
+        while (!l_AllDone)
         {
-            LOG(bb,info) << "BBLocalAsync::BBPruneMetadata(): START: Removal of cross-bbServer metadata at " << path;
-            for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(l_PathToRemove), {}))
+            try
             {
-                if (!pathIsDirectory(jobstep)) continue;
-                for (auto& handlebucket : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                l_AllDone = true;
+                if (!access(path.c_str(), F_OK))
                 {
-                    if (!pathIsDirectory(handlebucket)) continue;
-                    for (auto& handledir : boost::make_iterator_range(bfs::directory_iterator(handlebucket), {}))
+                    // Jobid directory path still exists
+                    for (auto& jobstep : boost::make_iterator_range(bfs::directory_iterator(l_PathToRemove), {}))
                     {
-                        if (!pathIsDirectory(handledir)) continue;
-                        BBPruneMetadataBranch* l_Request = new BBPruneMetadataBranch(handledir.path().string());
-                        l_RequestNumber = g_LocalAsync.issueAsyncRequest(l_Request);
+                        if (!pathIsDirectory(jobstep)) continue;
+                        for (auto& handlebucket : boost::make_iterator_range(bfs::directory_iterator(jobstep), {}))
+                        {
+                            if (!pathIsDirectory(handlebucket)) continue;
+                            for (auto& handledir : boost::make_iterator_range(bfs::directory_iterator(handlebucket), {}))
+                            {
+                                if (!pathIsDirectory(handledir)) continue;
+                                std::string l_Handle = handledir.path().string();
+                                if (find(l_HandlesProcessed.begin(), l_HandlesProcessed.end(), l_Handle) == l_HandlesProcessed.end())
+                                {
+                                    BBPruneMetadataBranch* l_Request = new BBPruneMetadataBranch(l_Handle);
+                                    l_RequestNumber = g_LocalAsync.issueAsyncRequest(l_Request);
+                                    l_HandlesProcessed.push_back(l_Handle);
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-        catch (std::exception& e2)
-        {
-            // Tolerate any exceptions when looping through the jobid directory...
-            if (!l_RequestNumber)
+            catch (std::exception& e2)
             {
-                l_RequestNumber = -1;
+                // Tolerate any exceptions when looping through the jobid directory...
+                l_AllDone = false;
             }
         }
 
-        if (l_RequestNumber >= 0)
+        // NOTE: Create a dummy request of the same type as above to test for when that
+        //       priority of the requests issued above are complete.  We cannot use the
+        //       last request allocated on the heap because once issued, the BBLocalAsync
+        //       object owns the existence of that request.  We cannot touch the request
+        //       after we issue it.  BBLocalAsync processing will delete the allocated
+        //       storage for the request object.
+        BBPruneMetadataBranch l_Dummy = BBPruneMetadataBranch("");
+        bool l_MsgSent = false;
+        while (l_RequestNumber && l_RequestNumber > g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy))
         {
-            // NOTE: Create a dummy request of the same type as above to test for when that
-            //       priority of the requests issued above are complete.  We cannot use the
-            //       last request allocated on the heap because once issued, the BBLocalAsync
-            //       object owns the existence of that request.  We cannot touch the request
-            //       after we issue it.  BBLocalAsync processing will delete the allocated
-            //       storage for the request object.
-            BBPruneMetadataBranch l_Dummy = BBPruneMetadataBranch("");
-            bool l_MsgSent = false;
-            if (l_RequestNumber)
-            {
-                while (l_RequestNumber > g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy))
-                {
-                    LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> DELAY <<<<< l_RequestNumber " << l_RequestNumber \
-                                  << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy) \
-                                  << ", delay 10 seconds and retry.";
-                    l_MsgSent = true;
-                    usleep(10000000);   // Delay 10 seconds
-                }
-                if (l_MsgSent)
-                {
-                    LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> RESUME <<<<< l_RequestNumber " << l_RequestNumber \
-                                  << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy);
-                }
+            LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> DELAY <<<<< l_RequestNumber " << l_RequestNumber \
+                          << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy) \
+                          << ", delay 10 seconds and retry.";
+            l_MsgSent = true;
+            usleep(10000000);   // Delay 10 seconds
+        }
+        if (l_MsgSent)
+        {
+            LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> RESUME <<<<< l_RequestNumber " << l_RequestNumber \
+                          << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy);
+        }
 
-                BBPruneMetadataBranch* l_Request = new BBPruneMetadataBranch(l_PathToRemove.string());
-                l_RequestNumber = g_LocalAsync.issueAsyncRequest(l_Request);
-                l_MsgSent = false;
-                while (l_RequestNumber > g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy))
-                {
-                    LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> DELAY <<<<< l_RequestNumber " << l_RequestNumber \
-                                  << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy) \
-                                  << ", delay 1 second and retry.";
-                    l_MsgSent = true;
-                    usleep(1000000);   // Delay 1 second
-                }
-                if (l_MsgSent)
-                {
-                    LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> RESUME <<<<< l_RequestNumber " << l_RequestNumber \
-                                  << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy);
-                }
-            }
+        BBPruneMetadataBranch* l_Request = new BBPruneMetadataBranch(l_PathToRemove.string());
+        l_RequestNumber = g_LocalAsync.issueAsyncRequest(l_Request);
+        l_MsgSent = false;
+        while (l_RequestNumber > g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy))
+        {
+            LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> DELAY <<<<< l_RequestNumber " << l_RequestNumber \
+                          << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy) \
+                          << ", delay 1 second and retry.";
+            l_MsgSent = true;
+            usleep(1000000);   // Delay 1 second
+        }
+        if (l_MsgSent)
+        {
+            LOG(bb,debug) << "BBLocalAsync::BBPruneMetadata(): >>>>> RESUME <<<<< l_RequestNumber " << l_RequestNumber \
+                          << ", g_LocalAsync.getLastRequestNumberProcessed() " << g_LocalAsync.getLastRequestNumberProcessed(&l_Dummy);
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1225,7 +1253,7 @@ void BBPruneMetadataBranch::doit()
             else
             {
                 l_AllDone = false;
-                LOG(bb,debug) << "BBLocalAsync::BBPruneMetadataBranch(): IB activity too high to do final removal at " << path.c_str() \
+                LOG(bb,debug) << "BBLocalAsync::BBPruneMetadataBranch(): IB activity too high to do removal at " << path.c_str() \
                               << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
                               << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
                               << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \

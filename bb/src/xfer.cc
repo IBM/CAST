@@ -3846,6 +3846,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
             // Stageout end not started
             try
             {
+                LOG(bb,debug) << "StageoutEnd: Start:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
                 if (!CurrentWrkQE)
                 {
                     wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
@@ -4067,7 +4068,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 }
 
                 l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
-                LOG(bb,debug) << "Stageout: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
+                LOG(bb,debug) << "StageoutEnd: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
             }
             catch (ExceptionBailout& e) { }
             catch (exception& e)

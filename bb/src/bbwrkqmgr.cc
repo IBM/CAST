@@ -2283,7 +2283,8 @@ void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
 
 void WRKQMGR::setAsyncRmvJobInfoTimerPoppedCount(const double pTimerInterval)
 {
-    double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
+//    double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
+    double l_AsyncRemoveJobInfoInterval = 60;
     asyncRmvJobInfoTimerPoppedCount = (int64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
     if (((double)asyncRmvJobInfoTimerPoppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
     {

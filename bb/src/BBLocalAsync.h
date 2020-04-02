@@ -380,7 +380,7 @@ class BBCounters : public BBLocalRequest
     virtual ~BBCounters() { };
 
     // Inlined virtual methods
-    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
@@ -411,7 +411,7 @@ class BBDumpHeartbeatData : public BBLocalRequest
     virtual ~BBDumpHeartbeatData() { };
 
     // Inlined virtual methods
-    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
@@ -473,7 +473,7 @@ class BBIB_Stats : public BBLocalRequest
     virtual ~BBIB_Stats() { };
 
     // Inlined virtual methods
-    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
@@ -504,7 +504,7 @@ class BBIO_Stats : public BBLocalRequest
     virtual ~BBIO_Stats() { };
 
     // Inlined virtual methods
-    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
