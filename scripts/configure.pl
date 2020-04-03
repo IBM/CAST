@@ -33,6 +33,7 @@ GetOptions(
     "clanganalyze!"        => \$CFG->{"USE_CLANGANALYZE"},
     "rpmbuild!"            => \$CFG->{"RPMBUILD"},
     "strict"               => \$CFG->{"STRICT_WARN"},
+    "skipcsm"              => \$CFG->{"SKIPCSM"},
     "xcode!"               => \$CFG->{"GENXCODE"},
     "verbose-compile"      => \$CFG->{"VERBOSE_COMPILE"},
     "remote=s"             => \$CFG->{"REMOTEIP"},
@@ -195,6 +196,7 @@ sub setDefaults
     $CFG->{"USE_CLANG"}        = 0;
     $CFG->{"USE_CLANGANALYZE"} = 0;
     $CFG->{"STRICT_WARN"}      = 0;
+    $CFG->{"SKIPCSM"}          = 0;
     $CFG->{"GENXCODE"}         = 0;
     $CFG->{"DCGM"}             = 1;
     $CFG->{"ALTINCLUDE"}       = "";
