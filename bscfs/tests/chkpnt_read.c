@@ -30,7 +30,8 @@ int main(int argc, char **argv)
     uint64_t mem_size = MemSize(Rank);
     uint64_t stripe_count = (mem_size + StripeSize - 1) / StripeSize;
 
-    void *memory, *header;
+    void* memory = NULL;
+	void* header = NULL;
     rc = posix_memalign(&memory, 0x10000, mem_size);
     Check(rc == 0, "posix_memalign(memory) failed", NULL, rc);
     header = NULL;

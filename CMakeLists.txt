@@ -58,16 +58,6 @@ else()
    set(GITCOMMITDATE ${tmp_COMMITDATE})
 endif()
 
-
-################################
-# Available toplevel directories
-# The DISABLE_TOPLEVELS variable will trim from this list.
-#
-set(ALL_TOPLEVELS extras flightlog utilities transport bb fshipmond fshipd fshipcld csmutil csmnet csmconf scripts csmi csmdb csmd csmrestd csm_big_data export_layout hcdiag bscfs)
-#set(ALL_TOPLEVELS flightlog utilities transport bb fshipmond fshipd fshipcld export_layout bscfs)
-set(DISABLE_TOPLEVELS "none" CACHE STRING "Disabled toplevels")
-message("Disabled toplevels: ${DISABLE_TOPLEVELS}")
-
 set(BASEDIR ${CMAKE_SOURCE_DIR} CACHE FILEPATH "Base directory of source repository")
 set(SETUPFILE "." CACHE FILEPATH "Path to the SETUP.sh environment setup script")
 set(GENXCODE OFF CACHE BOOL "Generate an Xcode project")
@@ -79,6 +69,21 @@ set(BUILD_PARALLEL OFF CACHE BOOL "Perform parallel build")
 set(MINCMAKE "" CACHE STRING "Minimum cmake version permitted")
 set(OPTLEVEL "-O0" CACHE STRING "Optimization level")
 set(DCGM OFF CACHE BOOL "Build CSM with support for Nvidia Data Center GPU Manager (DCGM)")
+set(SKIPCSM OFF CACHE BOOL "Skip CSM build")
+
+
+################################
+# Available toplevel directories
+# The DISABLE_TOPLEVELS variable will trim from this list.
+#
+if(${SKIPCSM})
+   set(ALL_TOPLEVELS flightlog utilities transport bb fshipmond fshipd fshipcld export_layout bscfs)
+else()
+   set(ALL_TOPLEVELS extras flightlog utilities transport bb fshipmond fshipd fshipcld csmutil csmnet csmconf scripts csmi csmdb csmd csmrestd csm_big_data export_layout hcdiag bscfs)
+endif()
+
+set(DISABLE_TOPLEVELS "none" CACHE STRING "Disabled toplevels")
+message("Disabled toplevels: ${DISABLE_TOPLEVELS}")
 
 message("Base source directory: ${CMAKE_SOURCE_DIR}")
 
@@ -94,6 +99,11 @@ list(REMOVE_ITEM TOPLEVELS ${DOUT})
 #
 set(CMAKE_C_FLAGS   "-g -Wall -Werror -m64 -fPIC")
 set(CMAKE_CXX_FLAGS "-g -Wall -Werror -m64 -fPIC -std=c++11")
+
+if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU"  AND  ${CMAKE_C_COMPILER_VERSION} VERSION_GREATER "7.0.0")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-truncation= -Wno-error=format-overflow= -Wno-error=stringop-truncation")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=format-truncation= -Wno-error=format-overflow= -Wno-error=stringop-truncation")
+endif()
 
 set(CMAKE_C_FLAGS_DEBUG   "")
 set(CMAKE_CXX_FLAGS_DEBUG "")
