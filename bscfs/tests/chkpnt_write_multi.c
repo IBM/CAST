@@ -42,7 +42,8 @@ char *MapfileStripe(int n, int s)
     // memory leak
 }
 
-void *memory, *header;
+void* memory = NULL;
+void* header = NULL;
 uint64_t mem_size;
 
 void *WriteStripe(void *arg)

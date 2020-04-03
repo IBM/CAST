@@ -23,7 +23,7 @@ find_file(FSHIPCLD_HEADER fshipcld.h PATHS ${BASEDIR}/fshipcld/include)
 
 add_library(txp_config txp_detect_header_change.cc)
 add_custom_command(TARGET txp_config PRE_BUILD
-				      COMMAND FSHIPCLD_HEADER=${FSHIPCLD_HEADER} FUSE_HEADER=${FUSE_HEADER} python txpParser.py ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}
+				      COMMAND FSHIPCLD_HEADER=${FSHIPCLD_HEADER} FUSE_HEADER=${FUSE_HEADER} python2 txpParser.py ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}
 				      WORKING_DIRECTORY ${BASEDIR}/transport/scripts)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -W -Wunused -Wcomment -Wparentheses -Wconversion -Wsign-compare -Wsign-conversion -Wundef")
