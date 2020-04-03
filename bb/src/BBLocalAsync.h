@@ -523,8 +523,6 @@ class BBLocalRequest
      */
     virtual ~BBLocalRequest() { };
 
-    // Static data
-
     // Inlined static methods
 
     // Inlined non-static methods
@@ -547,6 +545,8 @@ class BBLocalRequest
 
     // Non-virtual methods
     void dumpRequest(stringstream& pStream);
+    void end_logging();
+    void start_logging();
 
     // Data members
     std::string                  name;

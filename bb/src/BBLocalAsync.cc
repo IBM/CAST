@@ -52,6 +52,9 @@ Heartbeat_Controller g_Heartbeat_Controller = Heartbeat_Controller();
 RemoteAsyncRequest_Controller g_RemoteAsyncRequest_Controller = RemoteAsyncRequest_Controller();
 ThrottleBucket_Controller g_ThrottleBucket_Controller = ThrottleBucket_Controller();
 
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t log_mutex_locked = 0;
+
 
 /*
  * Helper methods
@@ -293,6 +296,25 @@ void BBLocalRequest::dumpRequest(stringstream& pStream)
 
     return;
 }
+
+void BBLocalRequest::end_logging()
+{
+    if (log_mutex_locked)
+    {
+        log_mutex_locked = 0;
+        pthread_mutex_unlock(&log_mutex);
+    }
+
+    return;
+};
+
+void BBLocalRequest::start_logging()
+{
+    pthread_mutex_lock(&log_mutex);
+    log_mutex_locked = pthread_self();
+
+    return;
+};
 
 
 /*
@@ -1257,6 +1279,7 @@ void BBCounters::doit()
 {
     try
     {
+        start_logging();
         #define MKBBCOUNTER(id) if(bbcounters[BB_COUNTERS_##id] != bbcounters_shadow[BB_COUNTERS_##id]) { LOG(bb,always) << "BB Counter '" #id "' = " << bbcounters[BB_COUNTERS_##id] << " (delta " << (bbcounters[BB_COUNTERS_##id] - bbcounters_shadow[BB_COUNTERS_##id]) << ")"; bbcounters_shadow[BB_COUNTERS_##id] = bbcounters[BB_COUNTERS_##id]; }
         #include "bbcounters.h"
     }
@@ -1265,6 +1288,7 @@ void BBCounters::doit()
     {
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_Dump_Counters_Controller.setTimerFired(0);
     g_Dump_Counters_Controller.setCount(0);
@@ -1276,6 +1300,7 @@ void BBDumpHeartbeatData::doit()
 {
     try
     {
+        start_logging();
         wrkqmgr.dumpHeartbeatData("info");
     }
     catch (ExceptionBailout& e) { }
@@ -1283,6 +1308,7 @@ void BBDumpHeartbeatData::doit()
     {
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_Dump_Heartbeat_Data_Controller.setTimerFired(0);
     g_Dump_Heartbeat_Data_Controller.setCount(0);
@@ -1294,6 +1320,7 @@ void BBDumpLocalAsync::doit()
 {
     try
     {
+        start_logging();
         g_LocalAsync.dump(" Local Async Mgr (Not an error - Timer Interval)");
     }
     catch (ExceptionBailout& e) { }
@@ -1301,6 +1328,7 @@ void BBDumpLocalAsync::doit()
     {
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_Dump_Local_Async_Controller.setTimerFired(0);
     g_Dump_Local_Async_Controller.setCount(0);
@@ -1312,6 +1340,7 @@ void BBDumpWrkQMgr::doit()
 {
     try
     {
+        start_logging();
         wrkqmgr.dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
     }
     catch (ExceptionBailout& e) { }
@@ -1319,6 +1348,7 @@ void BBDumpWrkQMgr::doit()
     {
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_Dump_WrkQMgr_Controller.setTimerFired(0);
     g_Dump_WrkQMgr_Controller.setCount(0);
@@ -1333,6 +1363,7 @@ void BBIB_Stats::doit()
         string l_Port_Rcv_Data = "port_rcv_data";
         string l_Port_Xmit_Data = "port_xmit_data";
 
+        start_logging();
         for(const auto& line : runCommand("grep '' /sys/class/infiniband/*/ports/*/*counters/*"))
         {
             auto tokens = buildTokens(line, ":");
@@ -1375,6 +1406,7 @@ void BBIB_Stats::doit()
         g_Last_Port_Xmit_Data_Delta = -1;
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_BBIB_Stats_Controller.setTimerFired(0);
     g_BBIB_Stats_Controller.setCount(0);
@@ -1388,7 +1420,9 @@ void BBIO_Stats::doit()
     {
         std::string cmd = string("/usr/bin/timeout ") + to_string(g_DiskStatsRate+2) + string(" /usr/bin/iostat -xym -p ALL ") + to_string(g_DiskStatsRate);
 
-        for(const auto& line : runCommand(cmd))
+        std::vector<std::string> l_Lines = runCommand(cmd);
+        start_logging();
+        for(const auto& line : l_Lines)
         {
             auto tokens = buildTokens(line, " ");
             if(tokens.size() > 10)
@@ -1406,6 +1440,7 @@ void BBIO_Stats::doit()
     {
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
+    end_logging();
 
     g_BBIO_Stats_Controller.setTimerFired(0);
     g_BBIO_Stats_Controller.setCount(0);
