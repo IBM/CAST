@@ -177,6 +177,334 @@ class BBAsyncRequestData
 };
 
 //
+// BBController class
+//
+class BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBController() :
+        count(0),
+        fired(0),
+        poppedCount(0) { };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBController() { };
+
+    // Static data
+
+    // Inlined methods
+
+    inline int alreadyFired()
+    {
+        return fired;
+    };
+
+    inline int getCount()
+    {
+        return count;
+    };
+
+    inline void lock()
+    {
+        pthread_mutex_lock(&mutex);
+
+        return;
+    };
+
+    inline void setCount(const int pValue)
+    {
+        lock();
+        count = pValue;
+        unlock();
+
+        return;
+    };
+
+    inline void setTimerFired(const int pValue)
+    {
+        lock();
+        fired = pValue;
+        unlock();
+
+        return;
+    };
+
+    inline int timeToFire()
+    {
+        return (!fired) && poppedCount && (++count >= poppedCount);
+    }
+
+    inline void unlock()
+    {
+        pthread_mutex_unlock(&mutex);
+
+        return;
+    };
+
+    // Inlined virtual methods
+    virtual inline int getTimerPoppedCount()
+    {
+        return poppedCount;
+    };
+
+    // Virtual methods
+    virtual void checkTimeToPerform() { return; };
+    virtual void init(const double pTimerInterval) { return; };
+
+    // Non-virtual methods
+
+    // Data members
+    pthread_mutex_t     mutex;
+    volatile int64_t    count;
+    volatile int        fired;
+    int64_t             poppedCount;
+};
+
+class AsyncRemoveJobInfo_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    AsyncRemoveJobInfo_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~AsyncRemoveJobInfo_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class BBIB_Stats_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBIB_Stats_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBIB_Stats_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class BBIO_Stats_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBIO_Stats_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBIO_Stats_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class CycleActivities_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    CycleActivities_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~CycleActivities_Controller() { };
+
+    // Virtual methods
+
+    // Data members
+};
+
+class Dump_Counters_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    Dump_Counters_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~Dump_Counters_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class Dump_Heartbeat_Data_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    Dump_Heartbeat_Data_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~Dump_Heartbeat_Data_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class Dump_Local_Async_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    Dump_Local_Async_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~Dump_Local_Async_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class Dump_WrkQMgr_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    Dump_WrkQMgr_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~Dump_WrkQMgr_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class Heartbeat_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    Heartbeat_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~Heartbeat_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class RemoteAsyncRequest_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    RemoteAsyncRequest_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~RemoteAsyncRequest_Controller() { };
+
+    // Virtual methods
+    virtual int getTimerPoppedCount();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class ThrottleBucket_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    ThrottleBucket_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~ThrottleBucket_Controller() { };
+
+    // Virtual methods
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+//
 // BBLocalRequest class
 //
 class BBLocalRequest
@@ -203,7 +531,7 @@ class BBLocalRequest
     inline LOCAL_ASYNC_REQUEST_PRIORITY getPriority()
     {
         return priority;
-    }
+    };
 
     // Inlined virtual methods
     inline virtual void doit() { return; };
@@ -690,14 +1018,14 @@ class BBLocalAsync
         pthread_mutex_lock(&mutex);
 
         return;
-    }
+    };
 
     inline void unlock()
     {
         pthread_mutex_unlock(&mutex);
 
         return;
-    }
+    };
 
   public:
     // Static methods

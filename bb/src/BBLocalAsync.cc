@@ -11,13 +11,15 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include "time.h"
+
 #include "bbcounters.h"
 #include "bbinternal.h"
-#include "BBLocalAsync.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "BBTagInfoMap.h"
 #include "usage.h"
+#include "util.h"
 #include "xfer.h"
 
 #include <boost/filesystem.hpp>
@@ -38,10 +40,30 @@ atomic<int64_t> g_Last_Port_Rcv_Data_Delta(-1);
 atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
 string g_IB_Adapter = "mlx5_0";
 
+AsyncRemoveJobInfo_Controller g_AsyncRemoveJobInfo_Controller = AsyncRemoveJobInfo_Controller();
+CycleActivities_Controller g_CycleActivities_Controller = CycleActivities_Controller();
+BBIB_Stats_Controller g_BBIB_Stats_Controller = BBIB_Stats_Controller();
+BBIO_Stats_Controller g_BBIO_Stats_Controller = BBIO_Stats_Controller();
+Dump_Counters_Controller g_Dump_Counters_Controller = Dump_Counters_Controller();
+Dump_Heartbeat_Data_Controller g_Dump_Heartbeat_Data_Controller = Dump_Heartbeat_Data_Controller();
+Dump_Local_Async_Controller g_Dump_Local_Async_Controller = Dump_Local_Async_Controller();
+Dump_WrkQMgr_Controller g_Dump_WrkQMgr_Controller = Dump_WrkQMgr_Controller();
+Heartbeat_Controller g_Heartbeat_Controller = Heartbeat_Controller();
+RemoteAsyncRequest_Controller g_RemoteAsyncRequest_Controller = RemoteAsyncRequest_Controller();
+ThrottleBucket_Controller g_ThrottleBucket_Controller = ThrottleBucket_Controller();
+
 
 /*
  * Helper methods
  */
+std::string getHeartbeatCurrentTimeStr()
+{
+    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
+    gettimeofday(&l_CurrentTime, NULL);
+
+    return timevalToStr(l_CurrentTime);
+}
+
 std::string getLocalAsyncPriorityStr(LOCAL_ASYNC_REQUEST_PRIORITY pPriority)
 {
     std::string l_Priority;
@@ -480,6 +502,27 @@ int BBLocalAsync::init()
         {
             requestData[it->priority] = new BBAsyncRequestData(it->priority, round(g_NumberOfAsyncRequestsThreads*(it->percentage_of_threads)));
         }
+
+        // Initialize the controller classes
+        // Basic check to perform other activities
+        g_CycleActivities_Controller.init(Throttle_TimeInterval);
+
+        // Remote async requests and heartbeats/heartbeat data dumps
+        g_RemoteAsyncRequest_Controller.init(Throttle_TimeInterval);
+        g_Heartbeat_Controller.init(Throttle_TimeInterval);
+        g_Dump_Heartbeat_Data_Controller.init(Throttle_TimeInterval);
+
+        // Local async request dumps and work queue manager dumps
+        g_Dump_Local_Async_Controller.init(Throttle_TimeInterval);
+        g_Dump_WrkQMgr_Controller.init(Throttle_TimeInterval);
+
+        // IBSTAT and IOSTAT dumps, counter dumps
+        g_BBIB_Stats_Controller.init(Throttle_TimeInterval);
+        g_BBIO_Stats_Controller.init(Throttle_TimeInterval);
+        g_Dump_Counters_Controller.init(Throttle_TimeInterval);
+
+        // Async remove job information
+        g_AsyncRemoveJobInfo_Controller.init(Throttle_TimeInterval);
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -533,7 +576,360 @@ void BBLocalAsync::recordRequestCompletion(int64_t l_RequestNumber, BBLocalReque
 
 
 /*
- * doit() methods
+ * Classes derived from BBController checkTimeToPerform methods
+ */
+void AsyncRemoveJobInfo_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBAsyncRemoveJobInfo* l_Request = new BBAsyncRemoveJobInfo();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void BBIB_Stats_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBIB_Stats* l_Request = new BBIB_Stats();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void BBIO_Stats_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBIO_Stats* l_Request = new BBIO_Stats();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void Dump_Counters_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBCounters* l_Request = new BBCounters();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void Dump_Heartbeat_Data_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBDumpHeartbeatData* l_Request = new BBDumpHeartbeatData();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void Dump_Local_Async_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBDumpLocalAsync* l_Request = new BBDumpLocalAsync();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void Dump_WrkQMgr_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        BBDumpWrkQMgr* l_Request = new BBDumpWrkQMgr();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
+    }
+
+    return;
+}
+
+void Heartbeat_Controller::checkTimeToPerform()
+{
+    if (timeToFire())
+    {
+        // Tell the world this bbServer is still alive...
+        char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+        string l_CurrentTime = getHeartbeatCurrentTimeStr();
+        snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
+        AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
+        wrkqmgr.appendAsyncRequest(l_Request);
+    }
+
+    return;
+}
+
+
+/*
+ * Classes derived from BBController getTimerCount methods
+ */
+int RemoteAsyncRequest_Controller::getTimerPoppedCount()
+{
+    return (int)((double)poppedCount * wrkqmgr.getAsyncRequestReadTurboFactor());
+};
+
+
+/*
+ * Classes derived from BBController init methods
+ */
+void AsyncRemoveJobInfo_Controller::init(const double pTimerInterval)
+{
+    if (g_AsyncRemoveJobInfo)
+    {
+        double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
+//        double l_AsyncRemoveJobInfoInterval = 60;
+        poppedCount = (int64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
+        if (((double)poppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
+        {
+            if (poppedCount < 1)
+            {
+                LOG(bb,warning) << "Async rmvjobinfo timer interval of " << to_string(l_AsyncRemoveJobInfoInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async rmvjobinfo rates may be implemented as slightly less than what is specified.";
+            }
+            else
+            {
+                LOG(bb,warning) << "Async rmvjobinfo timer interval of " << to_string(l_AsyncRemoveJobInfoInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async rmvjobinfo rates may be implemented as slightly more than what is specified.";
+            }
+            ++poppedCount;
+        }
+        LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement async rmvjobinfo " \
+                       << pTimerInterval*poppedCount << " second intervals. Job information will be removed in groups of " << g_AsyncRemoveJobInfoNumberPerGroup << ".";
+    }
+    else
+    {
+        LOG(bb,always) << "Removal of bbServer job information metadata will be done synchronous with the bbcmd_removejobinfo and/or BB_RemoveJobInfo() API.";
+    }
+
+    return;
+}
+
+void BBIB_Stats_Controller::init(const double pTimerInterval)
+{
+    double l_IB_StatsTimeInterval = DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL;
+    poppedCount = (int64_t)(l_IB_StatsTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_IB_StatsTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "IB stats interval of " << to_string(l_IB_StatsTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any IB stats dump counter rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "IB stats interval of " << to_string(l_IB_StatsTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any IB stats dump counter rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+
+    // NOTE: Pop this 'event' immediately so we can determine the the rcv/xmit delta values quicker
+    count = poppedCount;
+
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement an IB stats dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void BBIO_Stats_Controller::init(const double pTimerInterval)
+{
+    double l_IO_StatsTimeInterval = DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL;
+    poppedCount = (int64_t)(l_IO_StatsTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_IO_StatsTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "IO stats interval of " << to_string(l_IO_StatsTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any IO stats dump counter rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "IO stats interval of " << to_string(l_IO_StatsTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any IO stats dump counter rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement an IO stats dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void Dump_Counters_Controller::init(const double pTimerInterval)
+{
+    double l_DumpCountersTimeInterval = DEFAULT_BBSERVER_DUMP_COUNTERS_TIME_INTERVAL;
+    poppedCount = (int64_t)(l_DumpCountersTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_DumpCountersTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpCountersTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dump counter rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpCountersTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any dump counter rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a counter dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void Dump_Heartbeat_Data_Controller::init(const double pTimerInterval)
+{
+    double l_HeartbeatDumpInterval = config.get("bb.bbserverHeartbeat_DumpInterval", DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL);
+    poppedCount = (int64_t)(l_HeartbeatDumpInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_HeartbeatDumpInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a heartbeat dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void Dump_Local_Async_Controller::init(const double pTimerInterval)
+{
+    double l_DumpLocalAsyncTimeInterval = config.get("bb.bbserverDumpLocalAsyncMgrTimeInterval", DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL);
+    poppedCount = (int64_t)(l_DumpLocalAsyncTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_DumpLocalAsyncTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpLocalAsyncTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any LocalAsync manager dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpLocalAsyncTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any LocalAsync manager dump rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a local async request manager dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void Dump_WrkQMgr_Controller::init(const double pTimerInterval)
+{
+    double l_DumpTimeInterval = config.get("bb.bbserverDumpWorkQueueMgr_TimeInterval", DEFAULT_DUMP_MGR_TIME_INTERVAL);
+    poppedCount = (int64_t)(l_DumpTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_DumpTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a work queue manager dump rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void Heartbeat_Controller::init(const double pTimerInterval)
+{
+    double l_HeartbeatTimeInterval = config.get("bb.bbserverHeartbeat_TimeInterval", DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL);
+    poppedCount = (int64_t)(l_HeartbeatTimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)(l_HeartbeatTimeInterval))
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+
+    // Currently, for a restart transfer operation, we will wait a total of:
+    // min( max( twice the bbServer heartbeat interval, minimum declare server dead value ), maximum declare server dead value )
+    // Value(s) stored in seconds.
+    wrkqmgr.setDeclareServerDeadCount(min( max( (uint64_t)(l_HeartbeatTimeInterval * 2), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ), MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ));
+
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a heartbeat rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+    return;
+}
+
+void RemoteAsyncRequest_Controller::init(const double pTimerInterval)
+{
+    AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
+    poppedCount = (int64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != AsyncRequestRead_TimeInterval)
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a remote async request read rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+void ThrottleBucket_Controller::init(const double pTimerInterval)
+{
+    poppedCount = (int)(1.0/pTimerInterval);
+    if (((double)poppedCount)*pTimerInterval != (double)1.0)
+    {
+        if (poppedCount < 1)
+        {
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
+        }
+        else
+        {
+            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly more than what is specified.";
+        }
+        ++poppedCount;
+    }
+    LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a throttle rate with " \
+                   << pTimerInterval*poppedCount << " second intervals.";
+
+    return;
+}
+
+
+/*
+ * Classes derived from BBLocalRequest doit() methods
  */
 void BBAsyncRemoveJobInfo::doit()
 {
@@ -591,29 +987,8 @@ void BBAsyncRemoveJobInfo::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    int l_WorkQueueMgrLocked = 0;
-    try
-    {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit()");
-        l_WorkQueueMgrLocked = 1;
-
-        wrkqmgr.setAsyncRmvJobInfoTimerFired(0);
-        wrkqmgr.setAsyncRmvJobInfoTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit()");
-    }
-    catch(ExceptionBailout& e) { }
-    catch(std::exception& e)
-    {
-        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
-    }
-
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBAsyncRemoveJobInfo::doit() - On exit");
-    }
+    g_AsyncRemoveJobInfo_Controller.setTimerFired(0);
+    g_AsyncRemoveJobInfo_Controller.setCount(0);
 
     return;
 }
@@ -627,76 +1002,33 @@ void BBCheckCycleActivities::doit()
         l_WorkQueueMgrLocked = 1;
 
         // See if it is time to have a heartbeat for this bbServer
-        if (wrkqmgr.timeForServerHeartbeat())
-        {
-            // Tell the world this bbServer is still alive...
-            char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTimeStr();
-            snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
-            AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-            wrkqmgr.appendAsyncRequest(l_Request);
-        }
-
-        // See if it is time to dump local async manager
-        if (wrkqmgr.timeToPerformLocalAsyncDump())
-        {
-            BBDumpLocalAsync* l_Request = new BBDumpLocalAsync();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setDumpLocalAsyncTimerFired(1);
-        }
+        g_Heartbeat_Controller.checkTimeToPerform();
 
         // See if it is time to dump IB Stats
-        if (wrkqmgr.timeToPerformIBStatsDump())
-        {
-            BBIB_Stats* l_Request = new BBIB_Stats();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setIBStatsTimerFired(1);
-        }
+        g_BBIB_Stats_Controller.checkTimeToPerform();
 
         // See if it is time to dump IO Stats
-        if (wrkqmgr.timeToPerformIOStatsDump())
-        {
-            BBIO_Stats* l_Request = new BBIO_Stats();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setIOStatsTimerFired(1);
-        }
+        g_BBIO_Stats_Controller.checkTimeToPerform();
 
         // See if it is time to dump counters
-        if (wrkqmgr.timeToPerformCountersDump())
-        {
-            BBCounters* l_Request = new BBCounters();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setDumpCountersTimerFired(1);
-        }
+        g_Dump_Counters_Controller.checkTimeToPerform();
+
+        // See if it is time to dump local async manager
+        g_Dump_Local_Async_Controller.checkTimeToPerform();
+
+        // See if it is time to dump the heartbeat information
+        g_Dump_Heartbeat_Data_Controller.checkTimeToPerform();
+
+        // See if it is time to dump the work manager
+        g_Dump_WrkQMgr_Controller.checkTimeToPerform();
 
         // See if it is time to asynchronously remove job information from the cross-bbServer metadata
         if (g_AsyncRemoveJobInfo)
         {
-            if (wrkqmgr.timeToPerformAsyncJobInfoRemoval())
-            {
-                BBAsyncRemoveJobInfo* l_Request = new BBAsyncRemoveJobInfo();
-                g_LocalAsync.issueAsyncRequest(l_Request);
-                wrkqmgr.setAsyncRmvJobInfoTimerFired(1);
-            }
+            g_AsyncRemoveJobInfo_Controller.checkTimeToPerform();
         }
 
-        // See if it is time to dump the work manager
-        if (wrkqmgr.timeToPerformWrkQMgrDump())
-        {
-            BBDumpWrkQMgr* l_Request = new BBDumpWrkQMgr();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setDumpWrkQueueMgrTimerFired(1);
-        }
-
-        // See if it is time to dump the heartbeat information
-        if (wrkqmgr.timeToPerformHeartbeatDump())
-        {
-            BBDumpHeartbeatData* l_Request = new BBDumpHeartbeatData();
-            g_LocalAsync.issueAsyncRequest(l_Request);
-            wrkqmgr.setDumpHeartbeatDataTimerFired(1);
-        }
-
-        wrkqmgr.setCycleActivitiesTimerFired(0);
+        g_CycleActivities_Controller.setTimerFired(0);
 
         l_WorkQueueMgrLocked = 0;
         wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit()");
@@ -934,48 +1266,17 @@ void BBCounters::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    int l_WorkQueueMgrLocked = 0;
-    try
-    {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
-        l_WorkQueueMgrLocked = 1;
-
-        wrkqmgr.setDumpCountersTimerFired(0);
-        wrkqmgr.setDumpCountersTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit()");
-    }
-    catch(ExceptionBailout& e) { }
-    catch(std::exception& e)
-    {
-        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
-    }
-
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCounters::doit() - On exit");
-    }
+    g_Dump_Counters_Controller.setTimerFired(0);
+    g_Dump_Counters_Controller.setCount(0);
 
     return;
 }
 
 void BBDumpHeartbeatData::doit()
 {
-    int l_WorkQueueMgrLocked = 0;
-
     try
     {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
-        l_WorkQueueMgrLocked = 1;
-
         wrkqmgr.dumpHeartbeatData("info");
-        wrkqmgr.setDumpHeartbeatDataTimerFired(0);
-        wrkqmgr.setDumpHeartbeatDataTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -983,30 +1284,17 @@ void BBDumpHeartbeatData::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit() - On exit");
-    }
+    g_Dump_Heartbeat_Data_Controller.setTimerFired(0);
+    g_Dump_Heartbeat_Data_Controller.setCount(0);
 
     return;
 }
 
 void BBDumpLocalAsync::doit()
 {
-    int l_WorkQueueMgrLocked = 0;
-
     try
     {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit()");
-        l_WorkQueueMgrLocked = 1;
-
         g_LocalAsync.dump(" Local Async Mgr (Not an error - Timer Interval)");
-        wrkqmgr.setDumpLocalAsyncTimerFired(0);
-        wrkqmgr.setDumpLocalAsyncTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit()");
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -1014,30 +1302,17 @@ void BBDumpLocalAsync::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpLocalAsync::doit() - On exit");
-    }
+    g_Dump_Local_Async_Controller.setTimerFired(0);
+    g_Dump_Local_Async_Controller.setCount(0);
 
     return;
 }
 
 void BBDumpWrkQMgr::doit()
 {
-    int l_WorkQueueMgrLocked = 0;
-
     try
     {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
-        l_WorkQueueMgrLocked = 1;
-
         wrkqmgr.dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
-        wrkqmgr.setDumpWrkQueueMgrTimerFired(0);
-        wrkqmgr.setDumpTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit()");
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -1045,11 +1320,8 @@ void BBDumpWrkQMgr::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBDumpWrkQMgr::doit() - On exit");
-    }
+    g_Dump_WrkQMgr_Controller.setTimerFired(0);
+    g_Dump_WrkQMgr_Controller.setCount(0);
 
     return;
 }
@@ -1104,29 +1376,8 @@ void BBIB_Stats::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    int l_WorkQueueMgrLocked = 0;
-    try
-    {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit()");
-        l_WorkQueueMgrLocked = 1;
-
-        wrkqmgr.setIBStatsTimerFired(0);
-        wrkqmgr.setIBStatsTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit()");
-    }
-    catch(ExceptionBailout& e) { }
-    catch(std::exception& e)
-    {
-        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
-    }
-
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIB_Stats::doit() - On exit");
-    }
+    g_BBIB_Stats_Controller.setTimerFired(0);
+    g_BBIB_Stats_Controller.setCount(0);
 
     return;
 }
@@ -1156,29 +1407,8 @@ void BBIO_Stats::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    int l_WorkQueueMgrLocked = 0;
-    try
-    {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit()");
-        l_WorkQueueMgrLocked = 1;
-
-        wrkqmgr.setIOStatsTimerFired(0);
-        wrkqmgr.setIOStatsTimerCount(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit()");
-    }
-    catch(ExceptionBailout& e) { }
-    catch(std::exception& e)
-    {
-        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
-    }
-
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBIO_Stats::doit() - On exit");
-    }
+    g_BBIO_Stats_Controller.setTimerFired(0);
+    g_BBIO_Stats_Controller.setCount(0);
 
     return;
 }
@@ -1344,7 +1574,7 @@ void BBPruneMetadataBranch::doit()
 
 
 /*
- * dump() methods
+ * Classes derived from BBLocalRequest dump() methods
  */
 void BBLocalRequest::dump(const char* pPrefix)
 {

@@ -3228,31 +3228,6 @@ int bb_main(std::string who)
         wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
 //        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
-        wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement a throttle rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getThrottleTimerPoppedCount() << " second intervals.";
-        AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
-        wrkqmgr.setAsyncRequestReadTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " to implement an async request read rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " second intervals.";
-        wrkqmgr.setDumpLocalAsyncTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpLocalAsyncTimerPoppedCount() << " to implement a local async request manager dump rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getDumpLocalAsyncTimerPoppedCount() << " second intervals.";
-        wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getHeartbeatTimerPoppedCount() << " to implement a heartbeat rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getHeartbeatTimerPoppedCount() << " second intervals.";
-        wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getHeartbeatDumpPoppedCount() << " to implement a heartbeat dump rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getHeartbeatDumpPoppedCount() << " second intervals.";
-        wrkqmgr.setDumpCountersTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpCountersTimerPoppedCount() << " to implement a counter dump rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getDumpCountersTimerPoppedCount() << " second intervals.";
-        wrkqmgr.setIBStatsTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getIBStatsTimerPoppedCount() << " to implement an IB stats dump rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getIBStatsTimerPoppedCount() << " second intervals.";
-        wrkqmgr.setIOStatsTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getIOStatsTimerPoppedCount() << " to implement an IO stats dump rate with " \
-                       << Throttle_TimeInterval*wrkqmgr.getIOStatsTimerPoppedCount() << " second intervals.";
 
         // NOTE: We will only dequeue from the high priority work queue if the current number of cancel requests
         //       (i.e., thread waiting for the canceled extents to be removed from a work queue) is consuming no more than 50%
@@ -3268,12 +3243,6 @@ int bb_main(std::string who)
         wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
         wrkqmgr.setDumpOnRemoveWorkItemInterval((uint64_t)(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItemInterval", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL)));
-        wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
-        if (wrkqmgr.getDumpTimerPoppedCount())
-        {
-            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement a work queue manager dump rate with " \
-                           << Throttle_TimeInterval*wrkqmgr.getDumpTimerPoppedCount() << " second intervals.";
-        }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
@@ -3287,16 +3256,6 @@ int bb_main(std::string who)
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
-            wrkqmgr.setAsyncRmvJobInfoTimerPoppedCount(Throttle_TimeInterval);
-            if (wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount())
-            {
-                LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount() << " to implement async rmvjobinfo " \
-                               << Throttle_TimeInterval*wrkqmgr.getAsyncRmvJobInfoTimerPoppedCount() << " second intervals. Job information will be removed in groups of " << g_AsyncRemoveJobInfoNumberPerGroup << ".";
-            }
-        }
-        else
-        {
-            LOG(bb,always) << "Removal of bbServer job information metadata will be done synchronous with the bbcmd_removejobinfo and/or BB_RemoveJobInfo() API.";
         }
         wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
         LOG(bb,always) << "Async Request Turbo Mode=" << (wrkqmgr.getUseAsyncRequestReadTurboMode() ? "true" : "false");
