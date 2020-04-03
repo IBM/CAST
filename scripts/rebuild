@@ -81,23 +81,37 @@ if($rc)
     cmd("$remotecmd make $args $remotepost");
 }
 
+# Should "use Sort::Versions", but that isn't installed by default.  This should suffice:
+sub versioncmp
+{
+    my($a, $b) = @_;
+    my @v1 = split(/\./, $a);
+    my @v2 = split(/\./, $b);
+    for($x=0; $x <= $#v1; $x++)
+    {
+        $val = ($v1[$x] <=> $v2[$x]);
+        return $val if($val != 0);
+    }
+    return 0;
+}
+
 sub findCmake
 {
     $minversion = $CFG->{"MINCMAKE"};
-    @searchpaths = (`which cmake`, "/opt/ibm/cmake/bin/cmake", $ENV{HOME} . "/coraltools/cmake/bin/cmake");
+    @searchpaths = (`which cmake`, "/usr/bin/cmake3", "/opt/ibm/cmake/bin/cmake", $ENV{HOME} . "/coraltools/cmake/bin/cmake");
     foreach $path (@searchpaths)
     {
-	chomp($path);
-	if(-f $path)
-	{
-	    $ver_str = `$path --version`;
-	    ($ver) = $ver_str =~ /cmake version (\S+)/;
-	    print "cmake at $path is version = $ver\n";
-	    if(($ver cmp $minversion) > 0)
-	    {
-		return $path;
-	    }
-	}
+        chomp($path);
+        if(-f $path)
+        {
+            $ver_str = `$path --version`;
+            ($ver) = $ver_str =~ /cmake version (\S+)/;
+            print "cmake at $path is version = $ver\n";
+            if(versioncmp($ver, $minversion) >= 0)
+            {
+                return $path;
+            }
+        }
     }
     print "cmake version $minversion or higher is not installed on this system. \n";
     print "Recommend running the scripts/prereq.pl script to install into your user environment.\n";
