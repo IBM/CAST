@@ -1,0 +1,6 @@
+
+- hosts: management launch
+  tasks:
+  - name: start LSF
+    shell: ". /opt/ibm/spectrumcomputing/lsf/conf/profile.lsf; lsf_daemons start"
+    ignore_errors: yes

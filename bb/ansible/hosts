@@ -1,0 +1,23 @@
+[all:vars]
+RPMDIR=/u/tgooding/install//sandbox
+CSMREQUIRED=REMOVELINEIFNOTREQUIRED
+
+[compute]
+c650f06p25 ansible_private_key_file=/root/.ssh/id_rsa
+c650f06p27 
+c650f06p29
+c650f06p31
+
+[compute:vars]
+INSTALLROOT=/u/tgooding/install
+ansible_user=root
+
+[server]
+gssio1vm-hs
+gssio2vm-hs
+
+[management]
+c650mnp03
+
+[launch]
+c650mnp03

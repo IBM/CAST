@@ -1,0 +1,77 @@
+# test cases for ansible dev for bb
+#  sudo ansible-playbook -i hosts  <this.yml>
+# hosts must set RPMDIR in [all.vars] section
+
+#check to see if all hosts are available--fail it not
+- hosts: localhost
+  tasks:
+  - debug:
+        msg: prepare hostcheck for bb cluster install/start
+- name: Include hostcheck
+  import_playbook: hostcheck.yml
+- name: Do any CSM Required
+  import_playbook: csmStart.yml
+  when: CSMREQUIRED is defined  
+
+- hosts: all
+  tasks:
+  - name: check all nodes for RPM directory
+    command: /usr/bin/file {{RPMDIR}} 
+    any_errors_fatal: true
+
+- hosts: server
+  tasks:
+  - name: Skip any activation if bbserver is running
+    command:  /bin/systemctl status bbserver.service 
+    register: bbserver_service_result
+    ignore_errors: yes
+
+  - name: Installl BB RPMs on ESS
+    command: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-[01]*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    when: bbserver_service_result.rc != 0
+    any_errors_fatal: true
+
+  - name: systemctl daemon-reload on ESS
+    command: systemctl daemon-reload  
+
+  - name: Start bbServer
+    command: /opt/ibm/bb/scripts/bbactivate --server --metadata=/gpfs/gpfs0/bbmetadata
+    when: bbserver_service_result.rc != 0
+    any_errors_fatal: true
+
+- hosts: compute
+  tasks:
+  - name: Skip any activation if bbproxy is running
+    command:  /bin/systemctl status bbproxy.service 
+    register: bbproxy_service_result
+    ignore_errors: yes
+
+  - name: install BB RPMs on Compute
+    command: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    when: bbproxy_service_result.rc != 0
+
+  - name: bb systemctl daemon-reload on compute
+    command: systemctl daemon-reload
+    when: bbproxy_service_result.rc != 0
+
+  - name: Setup UID linger
+    shell: loginctl enable-linger root tgooding dlherms meaho rosnbrg
+    when: bbproxy_service_result.rc != 0
+
+  - name: Start BB on computes
+    command: /opt/ibm/bb/scripts/bbactivate
+    when: bbproxy_service_result.rc != 0
+  
+- hosts: launch
+  tasks:
+  - name: install BB RPMs on launch
+    command: yum localinstall -y "{{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    args:
+      warn: false # set warn=false to prevent warning
+
+  - name: /bin/systemctl daemon-reload on launch
+    command: systemctl daemon-reload
+
+  - name: start Burst Buffer on Launch node 
+    command: /opt/ibm/bb/scripts/bbactivate --ln --bscfswork=/u/tgooding/bscfswork --envdir=HOME --lsfdir=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc
+    ignore_errors: yes

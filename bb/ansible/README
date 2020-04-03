@@ -1,0 +1,40 @@
+This describes how to use ansible to check, uninstall, and install burstbuffer on 
+compute nodes, bbserver nodes, launch nodes, and management nodes. 
+
+Execution requires changing to the directory and running as root
+Example:
+sudo ansible-playbook -i hosts bbStop.ymls
+sudo ansible-playbook -i hosts bbStart.yml
+
+Logging is according the ansible.cfg in effect per ansible documentation.  This was run using /etc/ansible/ansible.cfg.
+
+
+hosts file
+Need to set the location of scripts for commands/shell within playbook tasks via INSTALLPATH.
+Need to set the location of the RPMs for burst buffer install
+For the root private key on the system running the playbook, set ansible_private_key_file=<private key location>
+
+Example file hosts:
+[all:vars]
+RPMDIR=/u/tgooding/install//sandbox
+CSMREQUIRED=REMOVELINEIFNOTREQUIRED
+
+[compute]
+c650f06p25 ansible_private_key_file=/root/.ssh/id_rsa
+c650f06p27 
+c650f06p29
+c650f06p31
+
+[compute:vars]
+INSTALLROOT=/u/tgooding/install
+ansible_user=root
+
+[server]
+gssio1vm-hs
+gssio2vm-hs
+
+[management]
+c650mnp03
+
+[launch]
+c650mnp03

@@ -1,0 +1,82 @@
+
+#check to see if hosts are available--fail if not reachable
+- hosts: management launch compute
+  tasks:
+  any_errors_fatal: true 
+
+- hosts: management
+  tasks:
+  - name: Skip any csmd-master activation if already running
+    command:  /bin/systemctl status csmd-master.service 
+    register: csmdmaster_service_result
+    ignore_errors: yes
+
+  - name: Skip any ccsmd-aggregator activation if already running
+    command:  /bin/systemctl status csmd-aggregator.service 
+    register: csmdaggregator_service_result
+    ignore_errors: yes
+
+  - name: install csm RPMs on MN
+    command: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm {{RPMDIR}}/ibm-csm-db*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm {{RPMDIR}}/ibm-burstbuffer-mn*rpm"
+    args:
+      warn: false # set warn=false to prevent warning 
+    when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
+
+  - name: csm MN daemon-reload on launch
+    command: systemctl daemon-reload
+    when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
+
+  - name: install BB RAS
+    shell: yes | /opt/ibm/csm/db/csm_db_ras_type_script.sh -l csmdb /opt/ibm/bb/scripts/bbras.csv
+    ignore_errors: yes
+    
+  - name: start CSM master
+    command: /bin/systemctl start csmd-master.service
+    when: csmdmaster_service_result.rc != 0
+  
+  - name: start CSM aggregator
+    command: /bin/systemctl start csmd-aggregator.service
+    when: csmdaggregator_service_result.rc != 0
+    
+
+- hosts: launch
+  tasks:
+  - name: Skip any csmd-utility activation if already running
+    command:  /bin/systemctl status csmd-utility.service 
+    register: csmdutility_service_result
+    ignore_errors: yes
+
+  - name: install CSM RPMs on launch
+    command: yum localinstall -y "{{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm"
+    args:
+      warn: false # set warn=false to prevent warning 
+    when: csmdutility_service_result.rc != 0    
+
+  - name: csm systemctl daemon-reload on launch
+    command: systemctl daemon-reload
+    when: csmdutility_service_result.rc != 0  
+
+  - name: start csmd-utility
+    command: /bin/systemctl start csmd-utility.service
+    when: csmdutility_service_result.rc != 0 
+
+- hosts: compute
+  tasks:
+  - name: Skip any csmd-compute activation if already running
+    command:  /bin/systemctl status csmd-compute.service 
+    register: csmdcompute_service_result
+    ignore_errors: yes
+
+  - name: install CSM RPMs on compute
+    command: yum localinstall -y "{{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm"
+    args:
+      warn: false # set warn=false to prevent warning 
+    when: csmdcompute_service_result.rc != 0    
+
+  - name: csm systemctl daemon-reload on compute
+    command: systemctl daemon-reload
+    when: csmdcompute_service_result.rc != 0  
+
+  - name: start CSM compute
+    command: /bin/systemctl start csmd-compute.service
+    when: csmdcompute_service_result.rc != 0  

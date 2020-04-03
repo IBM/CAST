@@ -1,0 +1,10 @@
+s
+
+- hosts: management launch
+  tasks:
+  - name: LSF shutdown  
+    any_errors_fatal: true
+    shell: ". /opt/ibm/spectrumcomputing/lsf/conf/profile.lsf; lsf_daemons stop"
+    ignore_errors: yes
+    
+

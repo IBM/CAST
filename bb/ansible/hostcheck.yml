@@ -1,0 +1,44 @@
+
+#check to see if all hosts are available--fail if not reachable
+- hosts: all
+  tasks:
+  any_errors_fatal: true 
+
+- hosts: server
+  tasks:
+  - name: Copy resolve.conf
+    command: cp "/u/tgooding/install/resolv.conf" /etc/resolv.conf
+    ignore_errors: yes
+
+  - name: check for sshfs mount on server nodes
+    command: grep '/u /u fuse.sshfs' /proc/mounts
+    register:  mountresult
+    ignore_errors: yes
+
+  - name: sshfs server /u
+    command: /usr/local/bin/sshfs -o allow_other c650f06p25-hs:/u /u
+    when:  mountresult.rc != 0
+    ignore_errors: yes
+
+  - name: require sshfs mount on server nodes
+    command: grep '/u /u fuse.sshfs' /proc/mounts
+    when:  mountresult.rc != 0
+    any_errors_fatal: true
+
+- hosts: management
+  tasks:
+
+  - name: check management node for gpfs mount
+    shell:  cat /proc/mounts|grep gpfs|grep fuse
+    register: gpfsmountresult
+    ignore_errors: yes
+
+  - name: ssh mamanagement node gpfs setup
+    command: /usr/bin/sshfs -o allow_other c650f06p25-ug:/gpfs /gpfs
+    when:  gpfsmountresult.rc != 0 
+    ignore_errors: yes  
+
+  - name: require management node have gpfs mount
+    shell:  cat /proc/mounts|grep gpfs|grep fuse  
+    when:  gpfsmountresult.rc != 0
+    any_errors_fatal: true
