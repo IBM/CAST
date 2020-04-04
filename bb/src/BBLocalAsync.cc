@@ -713,6 +713,15 @@ int RemoteAsyncRequest_Controller::getTimerPoppedCount()
 
 
 /*
+ * Classes derived from BBController timeToFire methods
+ */
+int AsyncRemoveJobInfo_Controller::timeToFire()
+{
+    return (g_AsyncRemoveJobInfo ? BBController::timeToFire() : 0);
+};
+
+
+/*
  * Classes derived from BBController init methods
  */
 void AsyncRemoveJobInfo_Controller::init(const double pTimerInterval)
@@ -1020,12 +1029,8 @@ void BBAsyncRemoveJobInfo::doit()
 
 void BBCheckCycleActivities::doit()
 {
-    int l_WorkQueueMgrLocked = 0;
     try
     {
-        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit()");
-        l_WorkQueueMgrLocked = 1;
-
         // See if it is time to have a heartbeat for this bbServer
         g_Heartbeat_Controller.checkTimeToPerform();
 
@@ -1048,15 +1053,7 @@ void BBCheckCycleActivities::doit()
         g_Dump_WrkQMgr_Controller.checkTimeToPerform();
 
         // See if it is time to asynchronously remove job information from the cross-bbServer metadata
-        if (g_AsyncRemoveJobInfo)
-        {
-            g_AsyncRemoveJobInfo_Controller.checkTimeToPerform();
-        }
-
-        g_CycleActivities_Controller.setTimerFired(0);
-
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit()");
+        g_AsyncRemoveJobInfo_Controller.checkTimeToPerform();
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -1064,11 +1061,7 @@ void BBCheckCycleActivities::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBCheckCycleActivities::doit() - On exit");
-    }
+    g_CycleActivities_Controller.setTimerFired(0);
 
     return;
 }

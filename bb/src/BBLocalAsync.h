@@ -234,11 +234,6 @@ class BBController
         return;
     };
 
-    inline int timeToFire()
-    {
-        return (!fired) && poppedCount && (++count >= poppedCount);
-    }
-
     inline void unlock()
     {
         pthread_mutex_unlock(&mutex);
@@ -250,6 +245,11 @@ class BBController
     virtual inline int getTimerPoppedCount()
     {
         return poppedCount;
+    };
+
+    virtual inline int timeToFire()
+    {
+        return (!fired) && poppedCount && (++count >= poppedCount);
     };
 
     // Virtual methods
@@ -283,6 +283,7 @@ class AsyncRemoveJobInfo_Controller : public BBController
     // Virtual methods
     virtual void checkTimeToPerform();
     virtual void init(const double pTimerInterval);
+    virtual inline int timeToFire();
 
     // Data members
 };
