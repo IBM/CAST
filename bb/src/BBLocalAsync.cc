@@ -529,6 +529,9 @@ int BBLocalAsync::init()
         // Basic check to perform other activities
         g_CycleActivities_Controller.init(Throttle_TimeInterval);
 
+        // Work queue throttling
+        g_ThrottleBucket_Controller.init(Throttle_TimeInterval);
+
         // Remote async requests and heartbeats/heartbeat data dumps
         g_RemoteAsyncRequest_Controller.init(Throttle_TimeInterval);
         g_Heartbeat_Controller.init(Throttle_TimeInterval);
