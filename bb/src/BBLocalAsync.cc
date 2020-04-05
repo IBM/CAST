@@ -601,6 +601,37 @@ void BBLocalAsync::recordRequestCompletion(int64_t l_RequestNumber, BBLocalReque
 
 
 /*
+ * BBLocalRequest class methods
+ */
+void BBLocalRequest::doitEnd(BBController* pController)
+{
+    // NOTE: Within normal error processing, whatever is
+    //       placed in this method must complete without
+    //       throwing an exception
+    pController->setTimerFired(0);
+    pController->setCount(0);
+
+    return;
+}
+
+void BBLocalRequest::doitStart(BBController* pController)
+{
+    // NOTE: Within normal error processing, whatever is
+    //       placed in this method must complete without
+    //       throwing an exception
+    // NOTE: It is only when the fired indicator is turned
+    //       on by the requestor, do we know we can proceed
+    //       with processing this request.
+    while (!(pController->fired))
+    {
+        usleep(250000);
+    }
+
+    return;
+}
+
+
+/*
  * Classes derived from BBController checkTimeToPerform methods
  */
 void AsyncRemoveJobInfo_Controller::checkTimeToPerform()
@@ -706,9 +737,9 @@ void Heartbeat_Controller::checkTimeToPerform()
 /*
  * Classes derived from BBController getTimerCount methods
  */
-int RemoteAsyncRequest_Controller::getTimerPoppedCount()
+uint64_t RemoteAsyncRequest_Controller::getTimerPoppedCount()
 {
-    return (int)((double)poppedCount * wrkqmgr.getAsyncRequestReadTurboFactor());
+    return (uint64_t)((double)poppedCount * wrkqmgr.getAsyncRequestReadTurboFactor());
 };
 
 
@@ -730,7 +761,7 @@ void AsyncRemoveJobInfo_Controller::init(const double pTimerInterval)
     {
         double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
 //        double l_AsyncRemoveJobInfoInterval = 60;
-        poppedCount = (int64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
+        poppedCount = (uint64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
         if (((double)poppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
         {
             if (poppedCount < 1)
@@ -757,7 +788,7 @@ void AsyncRemoveJobInfo_Controller::init(const double pTimerInterval)
 void BBIB_Stats_Controller::init(const double pTimerInterval)
 {
     double l_IB_StatsTimeInterval = DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL;
-    poppedCount = (int64_t)(l_IB_StatsTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_IB_StatsTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_IB_StatsTimeInterval))
     {
         if (poppedCount < 1)
@@ -783,7 +814,7 @@ void BBIB_Stats_Controller::init(const double pTimerInterval)
 void BBIO_Stats_Controller::init(const double pTimerInterval)
 {
     double l_IO_StatsTimeInterval = DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL;
-    poppedCount = (int64_t)(l_IO_StatsTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_IO_StatsTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_IO_StatsTimeInterval))
     {
         if (poppedCount < 1)
@@ -806,7 +837,7 @@ void BBIO_Stats_Controller::init(const double pTimerInterval)
 void Dump_Counters_Controller::init(const double pTimerInterval)
 {
     double l_DumpCountersTimeInterval = DEFAULT_BBSERVER_DUMP_COUNTERS_TIME_INTERVAL;
-    poppedCount = (int64_t)(l_DumpCountersTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_DumpCountersTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_DumpCountersTimeInterval))
     {
         if (poppedCount < 1)
@@ -828,7 +859,7 @@ void Dump_Counters_Controller::init(const double pTimerInterval)
 void Dump_Heartbeat_Data_Controller::init(const double pTimerInterval)
 {
     double l_HeartbeatDumpInterval = config.get("bb.bbserverHeartbeat_DumpInterval", DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL);
-    poppedCount = (int64_t)(l_HeartbeatDumpInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_HeartbeatDumpInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_HeartbeatDumpInterval))
     {
         if (poppedCount < 1)
@@ -850,7 +881,7 @@ void Dump_Heartbeat_Data_Controller::init(const double pTimerInterval)
 void Dump_Local_Async_Controller::init(const double pTimerInterval)
 {
     double l_DumpLocalAsyncTimeInterval = config.get("bb.bbserverDumpLocalAsyncMgrTimeInterval", DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL);
-    poppedCount = (int64_t)(l_DumpLocalAsyncTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_DumpLocalAsyncTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_DumpLocalAsyncTimeInterval))
     {
         if (poppedCount < 1)
@@ -872,7 +903,7 @@ void Dump_Local_Async_Controller::init(const double pTimerInterval)
 void Dump_WrkQMgr_Controller::init(const double pTimerInterval)
 {
     double l_DumpTimeInterval = config.get("bb.bbserverDumpWorkQueueMgr_TimeInterval", DEFAULT_DUMP_MGR_TIME_INTERVAL);
-    poppedCount = (int64_t)(l_DumpTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_DumpTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_DumpTimeInterval))
     {
         if (poppedCount < 1)
@@ -894,7 +925,7 @@ void Dump_WrkQMgr_Controller::init(const double pTimerInterval)
 void Heartbeat_Controller::init(const double pTimerInterval)
 {
     double l_HeartbeatTimeInterval = config.get("bb.bbserverHeartbeat_TimeInterval", DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL);
-    poppedCount = (int64_t)(l_HeartbeatTimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(l_HeartbeatTimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)(l_HeartbeatTimeInterval))
     {
         if (poppedCount < 1)
@@ -921,7 +952,7 @@ void Heartbeat_Controller::init(const double pTimerInterval)
 void RemoteAsyncRequest_Controller::init(const double pTimerInterval)
 {
     AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
-    poppedCount = (int64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
+    poppedCount = (uint64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != AsyncRequestRead_TimeInterval)
     {
         if (poppedCount < 1)
@@ -942,7 +973,7 @@ void RemoteAsyncRequest_Controller::init(const double pTimerInterval)
 
 void ThrottleBucket_Controller::init(const double pTimerInterval)
 {
-    poppedCount = (int)(1.0/pTimerInterval);
+    poppedCount = (uint64_t)(1.0/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != (double)1.0)
     {
         if (poppedCount < 1)
@@ -967,6 +998,8 @@ void ThrottleBucket_Controller::init(const double pTimerInterval)
  */
 void BBAsyncRemoveJobInfo::doit()
 {
+    doitStart(&g_AsyncRemoveJobInfo_Controller);
+
     const uint64_t l_JobsToSchedulePerPass = g_AsyncRemoveJobInfoNumberPerGroup;
     uint64_t l_JobsScheduled = 0;
 
@@ -1021,14 +1054,15 @@ void BBAsyncRemoveJobInfo::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    g_AsyncRemoveJobInfo_Controller.setTimerFired(0);
-    g_AsyncRemoveJobInfo_Controller.setCount(0);
+    doitEnd(&g_AsyncRemoveJobInfo_Controller);
 
     return;
 }
 
 void BBCheckCycleActivities::doit()
 {
+    doitStart(&g_CycleActivities_Controller);
+
     try
     {
         // See if it is time to have a heartbeat for this bbServer
@@ -1061,7 +1095,7 @@ void BBCheckCycleActivities::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    g_CycleActivities_Controller.setTimerFired(0);
+    doitEnd(&g_CycleActivities_Controller);
 
     return;
 }
@@ -1273,6 +1307,8 @@ void BBCleanUpTagInfo::doit()
 
 void BBCounters::doit()
 {
+    doitStart(&g_Dump_Counters_Controller);
+
     try
     {
         start_logging();
@@ -1286,14 +1322,15 @@ void BBCounters::doit()
     }
     end_logging();
 
-    g_Dump_Counters_Controller.setTimerFired(0);
-    g_Dump_Counters_Controller.setCount(0);
+    doitEnd(&g_Dump_Counters_Controller);
 
     return;
 }
 
 void BBDumpHeartbeatData::doit()
 {
+    doitStart(&g_Dump_Heartbeat_Data_Controller);
+
     try
     {
         start_logging();
@@ -1306,14 +1343,15 @@ void BBDumpHeartbeatData::doit()
     }
     end_logging();
 
-    g_Dump_Heartbeat_Data_Controller.setTimerFired(0);
-    g_Dump_Heartbeat_Data_Controller.setCount(0);
+    doitEnd(&g_Dump_Heartbeat_Data_Controller);
 
     return;
 }
 
 void BBDumpLocalAsync::doit()
 {
+    doitStart(&g_Dump_Local_Async_Controller);
+
     try
     {
         start_logging();
@@ -1326,14 +1364,15 @@ void BBDumpLocalAsync::doit()
     }
     end_logging();
 
-    g_Dump_Local_Async_Controller.setTimerFired(0);
-    g_Dump_Local_Async_Controller.setCount(0);
+    doitEnd(&g_Dump_Local_Async_Controller);
 
     return;
 }
 
 void BBDumpWrkQMgr::doit()
 {
+    doitStart(&g_Dump_WrkQMgr_Controller);
+
     try
     {
         start_logging();
@@ -1346,14 +1385,15 @@ void BBDumpWrkQMgr::doit()
     }
     end_logging();
 
-    g_Dump_WrkQMgr_Controller.setTimerFired(0);
-    g_Dump_WrkQMgr_Controller.setCount(0);
+    doitEnd(&g_Dump_WrkQMgr_Controller);
 
     return;
 }
 
 void BBIB_Stats::doit()
 {
+    doitStart(&g_BBIB_Stats_Controller);
+
     try
     {
         string l_Port_Rcv_Data = "port_rcv_data";
@@ -1404,14 +1444,15 @@ void BBIB_Stats::doit()
     }
     end_logging();
 
-    g_BBIB_Stats_Controller.setTimerFired(0);
-    g_BBIB_Stats_Controller.setCount(0);
+    doitEnd(&g_BBIB_Stats_Controller);
 
     return;
 }
 
 void BBIO_Stats::doit()
 {
+    doitStart(&g_BBIO_Stats_Controller);
+
     try
     {
         std::string cmd = string("/usr/bin/timeout ") + to_string(g_DiskStatsRate+2) + string(" /usr/bin/iostat -xym -p ALL ") + to_string(g_DiskStatsRate);
@@ -1438,8 +1479,7 @@ void BBIO_Stats::doit()
     }
     end_logging();
 
-    g_BBIO_Stats_Controller.setTimerFired(0);
-    g_BBIO_Stats_Controller.setCount(0);
+    doitEnd(&g_BBIO_Stats_Controller);
 
     return;
 }

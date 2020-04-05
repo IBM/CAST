@@ -186,8 +186,8 @@ class BBController
      * \brief Constructor
      */
     BBController() :
-        count(0),
         fired(0),
+        count(0),
         poppedCount(0) { };
 
     /**
@@ -204,8 +204,18 @@ class BBController
         return fired;
     };
 
-    inline int getCount()
+    inline uint64_t getCount()
     {
+        return count;
+    };
+
+    inline uint64_t incrCount()
+    {
+        do
+        {
+            ++count;
+        } while (!count);
+
         return count;
     };
 
@@ -216,10 +226,12 @@ class BBController
         return;
     };
 
-    inline void setCount(const int pValue)
+    inline void setCount(const uint64_t pValue)
     {
         lock();
+
         count = pValue;
+
         unlock();
 
         return;
@@ -228,7 +240,9 @@ class BBController
     inline void setTimerFired(const int pValue)
     {
         lock();
+
         fired = pValue;
+
         unlock();
 
         return;
@@ -242,14 +256,14 @@ class BBController
     };
 
     // Inlined virtual methods
-    virtual inline int getTimerPoppedCount()
+    virtual inline uint64_t getTimerPoppedCount()
     {
         return poppedCount;
     };
 
     virtual inline int timeToFire()
     {
-        return (!fired) && poppedCount && (++count >= poppedCount);
+        return (!fired) && poppedCount && (incrCount() >= poppedCount);
     };
 
     // Virtual methods
@@ -260,9 +274,9 @@ class BBController
 
     // Data members
     pthread_mutex_t     mutex;
-    volatile int64_t    count;
     volatile int        fired;
-    int64_t             poppedCount;
+    volatile uint64_t   count;
+    uint64_t            poppedCount;
 };
 
 class AsyncRemoveJobInfo_Controller : public BBController
@@ -478,7 +492,7 @@ class RemoteAsyncRequest_Controller : public BBController
     virtual ~RemoteAsyncRequest_Controller() { };
 
     // Virtual methods
-    virtual int getTimerPoppedCount();
+    virtual uint64_t getTimerPoppedCount();
     virtual void init(const double pTimerInterval);
 
     // Data members
@@ -545,6 +559,8 @@ class BBLocalRequest
     virtual void dump(const char* pPrefix="");
 
     // Non-virtual methods
+    void doitEnd(BBController* pController);
+    void doitStart(BBController* pController);
     void dumpRequest(stringstream& pStream);
     void end_logging();
     void start_logging();
