@@ -272,6 +272,7 @@ csm::network::EndpointUnix::~EndpointUnix()
   {
     // throw will always call terminate()
     // google later
+    // Consensous: Shouldn't throw exceptions in destructors. 
     //throw csm::network::Exception("Wrong address type", EBADF );
   }
   if( addr->_SockAddr.sun_path[0] != 0 )
