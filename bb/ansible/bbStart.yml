@@ -54,11 +54,7 @@
   - name: bb systemctl daemon-reload on compute
     command: systemctl daemon-reload
     when: bbproxy_service_result.rc != 0
-
-  - name: Setup UID linger
-    shell: loginctl enable-linger root tgooding dlherms meaho rosnbrg
-    when: bbproxy_service_result.rc != 0
-
+    
   - name: Start BB on computes
     command: /opt/ibm/bb/scripts/bbactivate
     when: bbproxy_service_result.rc != 0
