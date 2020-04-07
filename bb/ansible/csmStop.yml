@@ -1,9 +1,7 @@
 
 #check to see if hosts are available--fail if not reachable
 - hosts: management launch compute
-  tasks:
-  any_errors_fatal: true 
-    
+  tasks:  
   - name: stop CSM master
     command: /bin/systemctl stop csmd-master.service
   
@@ -25,5 +23,7 @@
 - hosts: all
   tasks:
   - name: remove RPMs
-    command: yum erase -y ibm-burstbuffer-mn ibm-flightlog ibm-csm-core ibm-csm-api ibm-csmutil ibm-csm-db
+    shell: yum erase -y ibm-burstbuffer-mn ibm-flightlog ibm-csm-core ibm-csm-api ibm-csmutil ibm-csm-db
+    args:
+      warn: false # set warn=false to prevent warning 
     any_errors_fatal: true

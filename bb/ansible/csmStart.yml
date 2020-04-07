@@ -47,7 +47,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on launch
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm"
+    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdutility_service_result.rc != 0    
@@ -68,7 +68,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on compute
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm"
+    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*rpm {{RPMDIR}}/ibm-csm-api*rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdcompute_service_result.rc != 0    
