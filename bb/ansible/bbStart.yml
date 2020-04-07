@@ -8,10 +8,7 @@
   - debug:
         msg: prepare hostcheck for bb cluster install/start
 - name: Include hostcheck
-  import_playbook: hostcheck.yml
-- name: Do any CSM Required
-  import_playbook: csmStart.yml
-  when: CSMREQUIRED is defined  
+  import_playbook: hostcheck.yml 
 
 - hosts: all
   tasks:
@@ -27,7 +24,9 @@
     ignore_errors: yes
 
   - name: Installl BB RPMs on ESS
-    command: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-[01]*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    shell: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-[01]*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    args:
+      warn: false # set warn=false to prevent warning
     when: bbserver_service_result.rc != 0
     any_errors_fatal: true
 
@@ -47,7 +46,9 @@
     ignore_errors: yes
 
   - name: install BB RPMs on Compute
-    command: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    shell: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    args:
+      warn: false # set warn=false to prevent warning 
     when: bbproxy_service_result.rc != 0
 
   - name: bb systemctl daemon-reload on compute
@@ -65,7 +66,7 @@
 - hosts: launch
   tasks:
   - name: install BB RPMs on launch
-    command: yum localinstall -y "{{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
+    shell: yum localinstall -y "{{RPMDIR}}/ibm-burstbuffer-*rpm {{RPMDIR}}/ibm-flightlog-[01]*rpm"
     args:
       warn: false # set warn=false to prevent warning
 
@@ -75,3 +76,11 @@
   - name: start Burst Buffer on Launch node 
     command: /opt/ibm/bb/scripts/bbactivate --ln --bscfswork=/u/tgooding/bscfswork --envdir=HOME --lsfdir=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc
     ignore_errors: yes
+
+- hosts: server
+  tasks:
+  - name: Fail if bbserver daemon is not now running
+    command:  /bin/systemctl status bbserver.service 
+    register: bbserver_service_result
+    any_errors_fatal: true
+   

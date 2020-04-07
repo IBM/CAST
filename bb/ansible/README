@@ -10,13 +10,12 @@ Logging is according the ansible.cfg in effect per ansible documentation.  This 
 
 
 hosts file
-Need to set the location of scripts for commands/shell within playbook tasks via INSTALLPATH.
 Need to set the location of the RPMs for burst buffer install
 For the root private key on the system running the playbook, set ansible_private_key_file=<private key location>
 
 Example file hosts:
 [all:vars]
-RPMDIR=/u/tgooding/install//sandbox
+RPMDIR=/u/tgooding/workspace/castbuild/work/rpms
 CSMREQUIRED=REMOVELINEIFNOTREQUIRED
 
 [compute]
@@ -26,7 +25,6 @@ c650f06p29
 c650f06p31
 
 [compute:vars]
-INSTALLROOT=/u/tgooding/install
 ansible_user=root
 
 [server]

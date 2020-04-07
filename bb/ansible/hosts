@@ -1,5 +1,5 @@
 [all:vars]
-RPMDIR=/u/tgooding/install//sandbox
+RPMDIR=/u/tgooding/workspace/castbuild/work/rpms
 CSMREQUIRED=REMOVELINEIFNOTREQUIRED
 
 [compute]
@@ -9,7 +9,6 @@ c650f06p29
 c650f06p31
 
 [compute:vars]
-INSTALLROOT=/u/tgooding/install
 ansible_user=root
 
 [server]

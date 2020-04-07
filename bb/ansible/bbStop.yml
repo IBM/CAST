@@ -59,17 +59,12 @@
     command: /bin/systemctl stop bbserver.service 
     ignore_errors: yes  
 
-- hosts: localhost
-  tasks:
-  - debug:
-        msg: If CSMREQUIRED, stop and remove CSM
-  - name: Include hostcheck
-  import_playbook: csmStop.yml
-
 - hosts: all
   tasks:
   - name: remove RPMs
-    command: yum erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-tests ibm-burstbuffer-tools ibm-burstbuffer-mn ibm-flightlog 
+    shell: yum erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-tests ibm-burstbuffer-tools ibm-burstbuffer-mn ibm-flightlog 
+    args:
+      warn: false # set warn=false to prevent warning
     any_errors_fatal: true
 
 - hosts: server
