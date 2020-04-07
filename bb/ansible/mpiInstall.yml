@@ -1,0 +1,9 @@
+- hosts: compute launch
+  tasks:
+  - name: install smpi RPMs
+  - shell: yum -y localinstall "{{RPMDIR}}/ibm_smpi*rpm"
+    ignore_errors: yes 
+
+  - name: Accept MPI license
+  - shell:  IBM_SPECTRUM_MPI_LICENSE_ACCEPT=yes /opt/ibm/spectrum_mpi/lap_se/bin/accept_spectrum_mpi_license.sh
+    ignore_errors: yes   
