@@ -291,6 +291,7 @@ class WRKQMGR
             outOfOrderOffsets = vector<uint64_t>();
             inflightHP_Requests = vector<string>();
             checkForCanceledExtents = 0;
+            lock_on_rmvWrkQ = PTHREAD_MUTEX_INITIALIZER;
             lock_workQueueMgr = PTHREAD_MUTEX_INITIALIZER;
             workQueueMgrLocked = 0;
         };
@@ -445,6 +446,13 @@ class WRKQMGR
         return throttleMode;
     }
 
+    inline void lock_rmvWrkQ()
+    {
+        pthread_mutex_lock(&lock_on_rmvWrkQ);
+
+        return;
+    }
+
     inline void setAllowDumpOfWorkQueueMgr(const int pValue)
     {
         allowDump = pValue;
@@ -571,6 +579,13 @@ class WRKQMGR
         return;
     }
 
+    inline void unlock_rmvWrkQ()
+    {
+        pthread_mutex_unlock(&lock_on_rmvWrkQ);
+
+        return;
+    }
+
     inline bool workQueueMgrIsLocked()
     {
         return (workQueueMgrLocked == pthread_self());
@@ -671,6 +686,7 @@ class WRKQMGR
                                                 // HPWrkQE transfer queue lock
   private:
     volatile int        checkForCanceledExtents;
+    pthread_mutex_t     lock_on_rmvWrkQ;
     pthread_mutex_t     lock_workQueueMgr;
     pthread_t           workQueueMgrLocked;
 };

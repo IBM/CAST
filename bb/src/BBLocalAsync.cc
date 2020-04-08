@@ -1107,6 +1107,7 @@ void BBCleanUpContribId::doit()
     int l_WorkQueueMgrLocked = 0;
     int l_LocalMetadataLocked = 0;
     int l_TransferQueueLocked = 0;
+    int l_rmvWrkQ_Locked = 0;
 
     bool l_AllDone = false;
     try
@@ -1115,6 +1116,11 @@ void BBCleanUpContribId::doit()
         {
             l_AllDone = true;
             uint64_t l_JobId = tagid.getJobId();
+
+            // NOTE: This mutex serializes with the bbwrkqmgr::rmvWrkQ()
+            wrkqmgr.lock_rmvWrkQ();
+            l_rmvWrkQ_Locked = 1;
+
             wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
             l_WorkQueueMgrLocked = 1;
 
@@ -1123,10 +1129,13 @@ void BBCleanUpContribId::doit()
             {
                 rc = 0;
                 CurrentWrkQE = l_WrkQE;
+
+                l_WorkQueueMgrLocked = 0;
+                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
+                lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+                l_LocalMetadataLocked = 1;
                 lockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
                 l_TransferQueueLocked = 1;
-                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
-                l_WorkQueueMgrLocked = 0;
 
                 size_t l_CurrentNumberOfInFlightExtents = 1;
                 {
@@ -1141,13 +1150,9 @@ void BBCleanUpContribId::doit()
                         BAIL;
                     }
                 }
-                l_TransferQueueLocked = 0;
-                unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
 
                 if (!l_CurrentNumberOfInFlightExtents)
                 {
-                    lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
-                    l_LocalMetadataLocked = 1;
                     for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
                     {
                         if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
@@ -1155,13 +1160,30 @@ void BBCleanUpContribId::doit()
                             (it->second).getTagInfoMap()->cleanUpContribId(&lvkey, tagid, handle, contribid);
                         }
                     }
-                    l_LocalMetadataLocked = 0;
-                    unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
                 }
                 else
                 {
                     l_AllDone = false;
                 }
+            }
+
+            if (l_TransferQueueLocked)
+            {
+                l_TransferQueueLocked = 0;
+                unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
+            }
+            CurrentWrkQE = 0;
+
+            if (l_LocalMetadataLocked)
+            {
+                l_LocalMetadataLocked = 0;
+                unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
+            }
+
+            if (l_rmvWrkQ_Locked)
+            {
+                l_rmvWrkQ_Locked = 0;
+                wrkqmgr.unlock_rmvWrkQ();
             }
 
             if (!l_AllDone)
@@ -1177,18 +1199,24 @@ void BBCleanUpContribId::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_LocalMetadataLocked)
-    {
-        l_LocalMetadataLocked = 0;
-        unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit - On exit");
-    }
-
     if (l_TransferQueueLocked)
     {
         l_TransferQueueLocked = 0;
         unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit - On exit");
     }
     CurrentWrkQE = (WRKQE*)0;
+
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(&lvkey, "BBCleanUpContribId::doit - On exit");
+    }
+
+    if (l_rmvWrkQ_Locked)
+    {
+        l_rmvWrkQ_Locked = 0;
+        wrkqmgr.unlock_rmvWrkQ();
+    }
 
     if (l_WorkQueueMgrLocked)
     {
@@ -1206,6 +1234,7 @@ void BBCleanUpTagInfo::doit()
     int l_WorkQueueMgrLocked = 0;
     int l_LocalMetadataLocked = 0;
     int l_TransferQueueLocked = 0;
+    int l_rmvWrkQ_Locked = 0;
 
     bool l_AllDone = false;
     try
@@ -1214,6 +1243,11 @@ void BBCleanUpTagInfo::doit()
         {
             l_AllDone = true;
             uint64_t l_JobId = tagid.getJobId();
+
+            // NOTE: This mutex serializes with the bbwrkqmgr::rmvWrkQ()
+            wrkqmgr.lock_rmvWrkQ();
+            l_rmvWrkQ_Locked = 1;
+
             wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
             l_WorkQueueMgrLocked = 1;
 
@@ -1222,10 +1256,14 @@ void BBCleanUpTagInfo::doit()
             {
                 rc = 0;
                 CurrentWrkQE = l_WrkQE;
+
+                // NOTE: Once we drop the work queue manager lock, we can no longer trust l_WrkQE
+                l_WorkQueueMgrLocked = 0;
+                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
+                lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+                l_LocalMetadataLocked = 1;
                 lockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
                 l_TransferQueueLocked = 1;
-                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
-                l_WorkQueueMgrLocked = 0;
 
                 size_t l_CurrentNumberOfInFlightExtents = 1;
                 {
@@ -1247,13 +1285,9 @@ void BBCleanUpTagInfo::doit()
                         BAIL;
                     }
                 }
-                l_TransferQueueLocked = 0;
-                unlockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
 
                 if (!l_CurrentNumberOfInFlightExtents)
                 {
-                    lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
-                    l_LocalMetadataLocked = 1;
                     for (auto it = metadata.metaDataMap.begin(); it != metadata.metaDataMap.end(); ++it)
                     {
                         if ((it->first).first == connection_name && (it->second).getJobId() == l_JobId)
@@ -1261,13 +1295,30 @@ void BBCleanUpTagInfo::doit()
                             (it->second).getTagInfoMap()->cleanUpTagInfo(&lvkey, tagid);
                         }
                     }
-                    l_LocalMetadataLocked = 0;
-                    unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
                 }
                 else
                 {
                     l_AllDone = false;
                 }
+            }
+
+            if (l_TransferQueueLocked)
+            {
+                l_TransferQueueLocked = 0;
+                unlockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
+            }
+            CurrentWrkQE = (WRKQE*)0;
+
+            if (l_LocalMetadataLocked)
+            {
+                l_LocalMetadataLocked = 0;
+                unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
+            }
+
+            if (l_rmvWrkQ_Locked)
+            {
+                l_rmvWrkQ_Locked = 0;
+                wrkqmgr.unlock_rmvWrkQ();
             }
 
             if (!l_AllDone)
@@ -1283,18 +1334,24 @@ void BBCleanUpTagInfo::doit()
         LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    if (l_LocalMetadataLocked)
-    {
-        l_LocalMetadataLocked = 0;
-        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit - On exit");
-    }
-
     if (l_TransferQueueLocked)
     {
         l_TransferQueueLocked = 0;
         unlockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit - On exit");
     }
     CurrentWrkQE = (WRKQE*)0;
+
+    if (l_LocalMetadataLocked)
+    {
+        l_LocalMetadataLocked = 0;
+        unlockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit - On exit");
+    }
+
+    if (l_rmvWrkQ_Locked)
+    {
+        l_rmvWrkQ_Locked = 0;
+        wrkqmgr.unlock_rmvWrkQ();
+    }
 
     if (l_WorkQueueMgrLocked)
     {

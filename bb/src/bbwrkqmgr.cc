@@ -148,8 +148,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    int l_LocalMetadataUnlockedInd = 0;
-    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
+    int l_LocalMetadataUnlocked = 0;
+    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlocked);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
@@ -170,7 +170,7 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
+    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlocked);
 
     return rc;
 }
@@ -2147,46 +2147,65 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkIt
 int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 {
     int rc = 0;
+    int l_rmvWrkQ_Locked = 0;
 
     stringstream l_Prefix;
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockTransferQueueIfNeeded((LVKey*)0, "rmvWrkQ");
-    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "rmvWrkQ");
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
+    unlockTransferQueueIfNeeded(pLVKey, "rmvWrkQ");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "rmvWrkQ");
+    lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it != wrkqs.end())
     {
-        // Remove the work queue from the map
-        WRKQE* l_WrkQE = it->second;
-        wrkqs.erase(it);
-
-        // If the work queue being removed is currently
-        // identified as the last work queue in the map
-        // with work items (not likely...), then reset
-        // lastQueueWithEntries so it is recalculated
-        // next time we try to findWork().
-        if (*pLVKey == lastQueueWithEntries)
+        try
         {
-            lastQueueWithEntries = LVKey_Null;
+            // Remove the work queue from the map
+            WRKQE* l_WrkQE = it->second;
+            // NOTE: This mutex serializes with the BBLocalAsync BBCleanup methods...
+            pthread_mutex_lock(&lock_on_rmvWrkQ);
+            l_rmvWrkQ_Locked = 1;
+            wrkqs.erase(it);
+
+            // If the work queue being removed is currently
+            // identified as the last work queue in the map
+            // with work items (not likely...), then reset
+            // lastQueueWithEntries so it is recalculated
+            // next time we try to findWork().
+            if (*pLVKey == lastQueueWithEntries)
+            {
+                lastQueueWithEntries = LVKey_Null;
+            }
+
+            if (l_WrkQE)
+            {
+                // Delete the work queue entry
+                if (l_WrkQE->getRate())
+                {
+                    // Removing a work queue that had a transfer rate.
+                    // Re-calculate the indication of throttle mode...
+                    calcThrottleMode();
+                }
+                if(CurrentWrkQE == l_WrkQE)
+                {
+                    CurrentWrkQE = NULL;
+                }
+                delete l_WrkQE;
+            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            rc = -1;
+            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         }
 
-        if (l_WrkQE)
+        if (l_rmvWrkQ_Locked)
         {
-            // Delete the work queue entry
-            if (l_WrkQE->getRate())
-            {
-                // Removing a work queue that had a transfer rate.
-                // Re-calculate the indication of throttle mode...
-                calcThrottleMode();
-            }
-            if(CurrentWrkQE == l_WrkQE)
-            {
-                CurrentWrkQE = NULL;
-            }
-            delete l_WrkQE;
+            l_rmvWrkQ_Locked = 0;
+            pthread_mutex_unlock(&lock_on_rmvWrkQ);
         }
     }
     else
@@ -2205,16 +2224,11 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    if (l_WorkQueueMgrLocked)
-    {
-        unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
-    }
-    if (l_LocalMetadataUnlocked)
-    {
-        lockLocalMetadata(pLVKey, "rmvWrkQ");
-    }
+    unlockWorkQueueMgr(pLVKey, "rmvWrkQ", &l_LocalMetadataUnlocked);
 
-    // NOTE: We just deleted the work queue, so no need to re-acquire the work queue lock
+    // NOTE: Even if we had an error, we do not re-acquire the
+    //       work queue lock.  Otherwise, we deleted the work queue,
+    //       so no need to re-acquire the work queue lock.
 
     return rc;
 }
