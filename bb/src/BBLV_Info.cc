@@ -624,17 +624,20 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
     // Remove the extent from the in-flight queue...
     extentInfo.removeFromInFlight(pLVKey, pExtentInfo);
 
-    // NOTE: If TagInfo cleanup is performed, there is no need to perform ContribId cleanup.
-    //       TagInfo cleanup will have already cleaned up the contribids...
-    if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
+    if (g_FastLocalMetadataRemoval)
     {
-        BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(pConnectionName, *pLVKey, pTagId);
-        g_LocalAsync.issueAsyncRequest(l_Request);
-    }
-    else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
-    {
-        BBCleanUpContribId* l_Request = new BBCleanUpContribId(pConnectionName, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
-        g_LocalAsync.issueAsyncRequest(l_Request);
+        // NOTE: If TagInfo cleanup is performed, there is no need to perform ContribId cleanup.
+        //       TagInfo cleanup will have already cleaned up the contribids...
+        if (l_PerformTagInfoCleanup == PERFORM_TAGINFO_CLEANUP)
+        {
+            BBCleanUpTagInfo* l_Request = new BBCleanUpTagInfo(pConnectionName, *pLVKey, pTagId);
+            g_LocalAsync.issueAsyncRequest(l_Request);
+        }
+        else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
+        {
+            BBCleanUpContribId* l_Request = new BBCleanUpContribId(pConnectionName, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+            g_LocalAsync.issueAsyncRequest(l_Request);
+        }
     }
 
     // We have to return with the same lock states as when we entered this code

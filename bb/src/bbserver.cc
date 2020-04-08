@@ -109,6 +109,9 @@ bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
 uint64_t g_AsyncRemoveJobInfoNumberPerGroup = DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE;
 
+// Fast Local Metadata Removal
+bool g_FastLocalMetadataRemoval = DEFAULT_FAST_LOCAL_METADATA_REMOVAL;
+
 // Diskstats rate (interval in seconds)
 int g_DiskStatsRate = DEFAULT_DISKSTATS_RATE;
 
@@ -3257,6 +3260,7 @@ int bb_main(std::string who)
         {
             g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
         }
+        g_FastLocalMetadataRemoval = config.get("bb.bbserverFastLocalMetadataRemoval", DEFAULT_FAST_LOCAL_METADATA_REMOVAL);
         wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
         LOG(bb,always) << "Async Request Turbo Mode=" << (wrkqmgr.getUseAsyncRequestReadTurboMode() ? "true" : "false");
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);

@@ -83,6 +83,7 @@ extern WRKQE* HPWrkQE;
 extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
+extern bool g_FastLocalMetadataRemoval;
 extern bool g_UseDirectIO;
 extern int g_DiskStatsRate;
 extern int g_DumpTransferMetadataAfterQueue;
@@ -205,6 +206,7 @@ const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
 const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
 const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
 const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
+const bool DEFAULT_FAST_LOCAL_METADATA_REMOVAL = true;
 const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
 
 const string ALL = "*";

@@ -1,6 +1,8 @@
 {
 	"bb" :
 	{
+		"bbserverAsyncRemoveJobInfo"                        : true,
+		"bbserverFastLocalMetadataRemoval"                  : true,
 		"nvmecliPath"                                       : "/usr/sbin/nvme",
 		"unixpath"                                          : "/run/bb_socket@USERSUFFIX@",
 		"bbserverMetadataPath"                              : "@METADATAPATH@",
