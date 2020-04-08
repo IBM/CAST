@@ -1,14 +1,4 @@
-# test cases for ansible dev for bb
 #  sudo ansible-playbook   <this.yml>
-
-
-#check to see if all hosts are available--fail it not
-- hosts: localhost
-  tasks:
-  - debug:
-        msg: prepare hostcheck for bb cluster stop
-- name: Include hostcheck
-  import_playbook: hostcheck.yml
 
 - hosts: compute
   tasks:
@@ -24,30 +14,6 @@
     command: /bin/systemctl stop bbhealth.service 
     ignore_errors: yes  
 
-  - name: remove old mount directories on /mnt/bb_
-    shell: rmdir /mnt/bb_*
-    args:
-      warn: false # set warn=false to prevent warning
-    ignore_errors: yes
-
-  - name: check for directories /mnt/bb)  
-    shell: "ls /mnt/bb_*"
-    register: ls_result
-    ignore_errors: yes
-
-
-  - name: unmount all old burst buffer volumes
-    shell: umount /mnt/bb_*
-    ignore_errors: yes
-    when: ls_result.rc == 2
-
-  - name: remove unmounted directories on /mnt/bb_
-    shell: rmdir /mnt/bb_*
-    args:
-      warn: false # set warn=false to prevent warning
-    ignore_errors: yes
-    when: ls_result.rc == 2
-
 - hosts: server
   tasks:
   - name: bbserver bbactivate --shutdown
@@ -58,27 +24,6 @@
   - name: Handle bbactivate did not shutdown bbserver
     command: /bin/systemctl stop bbserver.service 
     ignore_errors: yes  
-
-- hosts: all
-  tasks:
-  - name: remove RPMs
-    shell: yum erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-tests ibm-burstbuffer-tools ibm-burstbuffer-mn ibm-flightlog 
-    args:
-      warn: false # set warn=false to prevent warning
-    any_errors_fatal: true
-
-- hosts: server
-  tasks:
-  - name: Check bbserver status before nvme cleaning
-    command:  /bin/systemctl status bbserver.service 
-    register: bbserver_status_result
-    ignore_errors: yes
-
-  - name: clear nvme list
-    shell: "for i in $( nvme list |grep Linux|awk '{print $1} '); do echo $i; nvme disconnect -d  $i; rm -rf $i;  done" 
-    when: bbserver_status_result.rc != 0
-    ignore_errors: yes 
-
 
  
     
