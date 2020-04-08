@@ -89,6 +89,11 @@ string g_LockDebugLevel = DEFAULT_LOCK_DEBUG_LEVEL;
 
 void endOnError()
 {
+    stringstream errorText;
+
+    errorText << "Critical error has occurred. Server should be restarted.";
+    LOG_ERROR_TEXT_AND_RAS(errorText, bb.critical.general_error);
+
     if (g_AbortOnCriticalError)
     {
         abort();

@@ -1,6 +1,15 @@
 {
   "bb" :
   {
+      "critical" :
+      {
+          "general_error" :
+          {
+              "severity" : "FATAL",
+              "message" : "Critical error has occurred. Server should be restarted.",
+              "description" : "Critical error has occurred. Server should be restarted."
+          }
+      },
       "devpath" :
       {
           "readlinkFailed" :
