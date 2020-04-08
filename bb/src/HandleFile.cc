@@ -541,7 +541,7 @@ int HandleFile::get_xbbServerHandleStatus(BBSTATUS& pStatus, const LVKey* pLVKey
     else
     {
         errorText << "Failure when attempting to load the handle file for jobid " << pJobId << ", jobstepid " << pJobStepId  << ", handle " << pHandle;
-        LOG_ERROR_TEXT_RC(errorText, rc);
+        LOG_ERROR(errorText);
     }
 
     if (l_HandleFileName)
