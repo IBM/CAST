@@ -48,6 +48,7 @@
 #include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/mutex.h>
+#include <linux/sched.h>
 
 #include "../include/export_layout.h"
 
@@ -55,15 +56,18 @@
 #include <linux/iomap.h>
 #endif
 
-#define EXP_VERSION "1.3"
+#define EXP_VERSION "1.7.1"
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bryan Rosenburg");
 MODULE_DESCRIPTION("Provides access to block layout functionality");
 MODULE_VERSION(EXP_VERSION);
 
 static int export_layout_debug = 0;
+static int export_layout_callback_debug = 1;
 module_param(export_layout_debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(export_layout_debug, "  Debug level (default 0=off).");
+module_param(export_layout_callback_debug, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(export_layout_callback_debug, "  Debug level 1=on (default) 0=off");
 
 static int export_layout_open(struct inode *, struct file *);
 static int export_layout_release(struct inode *, struct file *);
@@ -161,7 +165,7 @@ static bool export_layout_callback(struct file_lock *fl)
 static void export_layout_callback(struct file_lock *fl)
 #endif
 {
-	if (export_layout_debug){
+	if (export_layout_callback_debug){
 		long int fd = (long int)fl->fl_owner;
 		printk(KERN_DEBUG "%s: fl_pid mainpid=%d fd=%ld file=%p\n", __func__, fl->fl_pid, fd, fl->fl_file);
 	}
@@ -193,7 +197,7 @@ static int export_layout_set_callback(struct transfer_info *t)
 	fl->fl_type = F_RDLCK;
 	fl->fl_end = OFFSET_MAX;
 	fl->fl_owner = (fl_owner_t)(long) t->fd;
-	fl->fl_pid = current->tgid;
+	fl->fl_pid = current->tgid;  //thread group id
 	fl->fl_file = t->target;
 
 	rc = vfs_setlease(t->target, F_RDLCK, &fl, NULL);

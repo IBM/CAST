@@ -827,6 +827,7 @@ public:
             LOG(bb,debug) << "Closing complete for /dev/export_layout device fd=" << fh->getfd() << ", exlo=" << exlo;
             if (fetched)
             {
+                LOG(bb,info) << __PRETTY_FUNCTION__ <<" doing release since extent layout exists /dev/export_layout fd=" << fh->getfd() << ", exlo=" << exlo;
                 release(BBFILE_FAILED); // NOTE: Only if the extent layout still exists will the file's
                                         //       final status be considered as BBFILE_FAILED
             }
@@ -877,7 +878,7 @@ public:
             threadLocalTrackSyscallPtr->clearTrack();
             if (!rc)
             {
-                LOG(bb,debug) << "Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
+                LOG(bb,info) << __PRETTY_FUNCTION__ <<" Releasing the file complete for fd=" << fh->getfd() << ", exlo=" << exlo << ", status=" << (int)completion_status;
             }
             else
             {
