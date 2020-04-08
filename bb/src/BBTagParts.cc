@@ -167,12 +167,20 @@ void BBTagParts::cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId)
     stringstream l_JobStr;
     pTagId.getJob().getStr(l_JobStr);
 
-    auto it = tagParts.begin();
-    while (it != tagParts.end()) {
-        it->second.cleanUp();
-        LOG(bb,debug) << "taginfo: Contrib(" << it->first << ") removed from TagId(" << l_JobStr.str() << "," << pTagId.getTag() \
-                      << ") for " << *pLVKey;
-        it = tagParts.erase(it);
+    bool l_Restart = true;
+    while (l_Restart)
+    {
+        l_Restart = false;
+        for (auto it = tagParts.begin(); it != tagParts.end(); ++it)
+        {
+            it->second.cleanUp();
+            LOG(bb,debug) << "taginfo: Contrib(" << it->first << ") removed from TagId(" << l_JobStr.str() << "," << pTagId.getTag() \
+                          << ") for " << *pLVKey;
+            tagParts.erase(it);
+
+            l_Restart = true;
+            break;
+        }
     }
 
     return;

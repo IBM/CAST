@@ -290,14 +290,14 @@ void BBLV_Info::ensureStageOutEnded(const LVKey* pLVKey, LOCAL_METADATA_RELEASED
         {
             // NOTE: Once we let go of the lock, we have to return and re-iterate
             //       through the map of local metadata
-            FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
-                     jobid, 0, 0, 0);
-            LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey << ", jobid " << jobid;
+//            FL_Write(FLDelay, StageOutEnd, "Waiting for stageout end processing to complete for jobid %ld.",
+//                     jobid, 0, 0, 0);
+//            LOG(bb,info) << ">>>>> DELAY <<<<< ensureStageOutEnded(): Waiting for stageout end processing to complete for " << *pLVKey << ", jobid " << jobid;
             pLockWasReleased = LOCAL_METADATA_LOCK_RELEASED;
 
             unlockLocalMetadata(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
             {
-                usleep((useconds_t)3000000);
+                usleep((useconds_t)2500000);
             }
             lockLocalMetadata(pLVKey, "ensureStageOutEnded - Waiting for stageout end to complete");
         }

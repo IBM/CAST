@@ -92,19 +92,26 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
     try
     {
         // For each TagId, cleanup each transfer definition...
-        auto it = tagInfoMap.begin();
-        while (it != tagInfoMap.end())
+        bool l_Restart = true;
+        while (l_Restart)
         {
-            it->second.cleanUpAll(pLVKey, it->first);
-            if (!l_JobStr.str().size())
+            l_Restart = false;
+            for (auto it = tagInfoMap.begin(); it != tagInfoMap.end(); ++it)
             {
-                it->first.getJob().getStr(l_JobStr);
+                it->second.cleanUpAll(pLVKey, it->first);
+                if (!l_JobStr.str().size())
+                {
+                    it->first.getJob().getStr(l_JobStr);
+                }
+                LOG(bb,debug) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
+                              << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
+                              << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
+                              << ") removed from " << *pLVKey;
+                tagInfoMap.erase(it);
+
+                l_Restart = true;
+                break;
             }
-            LOG(bb,debug) << "taginfo: TagId(" << l_JobStr.str() << "," << it->first.getTag() << ") with handle 0x" \
-                          << hex << uppercase << setfill('0') << setw(16) << it->second.transferHandle \
-                          << setfill(' ') << nouppercase << dec << " (" << it->second.transferHandle \
-                          << ") removed from " << *pLVKey;
-            it = tagInfoMap.erase(it);
         }
     }
     catch(ExceptionBailout& e) { }
