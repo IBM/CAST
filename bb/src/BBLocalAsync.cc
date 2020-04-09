@@ -940,9 +940,9 @@ void Heartbeat_Controller::init(const double pTimerInterval)
     }
 
     // Currently, for a restart transfer operation, we will wait a total of:
-    // min( max( twice the bbServer heartbeat interval, minimum declare server dead value ), maximum declare server dead value )
+    // min( max( bbServer heartbeat interval + 30 seconds, minimum declare server dead value ), maximum declare server dead value )
     // Value(s) stored in seconds.
-    wrkqmgr.setDeclareServerDeadCount(min( max( (uint64_t)(l_HeartbeatTimeInterval * 2), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ), MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ));
+    wrkqmgr.setDeclareServerDeadCount(min( max( (uint64_t)(l_HeartbeatTimeInterval + 30), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ), MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ));
 
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a heartbeat rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
