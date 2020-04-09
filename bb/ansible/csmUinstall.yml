@@ -1,0 +1,22 @@
+- hosts: all
+  tasks:
+  - name: remove RPMs
+    shell: "yum erase -y ibm-csm-core  ibm-csm-api ibm-csmutil ibm-csm-db"
+    args:
+      warn: false # set warn=false to prevent warning 
+    ignore_errors: yes
+
+  - name: check if ibm burstbuffer is installed
+    shell: rpm -qa|grep ibm-burstbuffer
+    args:
+      warn: false # set warn=false to prevent warning
+    register: ibmburstbuffer_result
+    ignore_errors: yes
+    
+
+  - name: remove ibm flightlog if no ibm-burstbuffer installed
+    shell: yum erase -y ibm-flightlog 
+    args:
+      warn: false # set warn=false to prevent warning
+    when: ibmburstbuffer_result.rc != 0
+    ignore_errors: yes
