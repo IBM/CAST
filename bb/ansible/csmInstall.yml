@@ -1,6 +1,13 @@
+#  sudo ansible-playbook -i hosts  <this.yml>
 
-#check to see if hosts are available--fail if not reachable
-- hosts: management launch compute
+- hosts: all
+  tasks:
+  - name: check all nodes for RPM directory
+    command: /usr/bin/file {{RPMDIR}} 
+    any_errors_fatal: true
+
+#check reachability of all hosts
+- hosts: all
   tasks:
   any_errors_fatal: true 
 
@@ -30,15 +37,6 @@
     shell: yes | /opt/ibm/csm/db/csm_db_ras_type_script.sh -l csmdb /opt/ibm/bb/scripts/bbras.csv
     ignore_errors: yes
     
-  - name: start CSM master
-    command: /bin/systemctl start csmd-master.service
-    when: csmdmaster_service_result.rc != 0
-  
-  - name: start CSM aggregator
-    command: /bin/systemctl start csmd-aggregator.service
-    when: csmdaggregator_service_result.rc != 0
-    
-
 - hosts: launch
   tasks:
   - name: Skip any csmd-utility activation if already running
@@ -51,14 +49,6 @@
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdutility_service_result.rc != 0    
-
-  - name: csm systemctl daemon-reload on launch
-    command: systemctl daemon-reload
-    when: csmdutility_service_result.rc != 0  
-
-  - name: start csmd-utility
-    command: /bin/systemctl start csmd-utility.service
-    when: csmdutility_service_result.rc != 0 
 
 - hosts: compute
   tasks:
@@ -75,8 +65,4 @@
 
   - name: csm systemctl daemon-reload on compute
     command: systemctl daemon-reload
-    when: csmdcompute_service_result.rc != 0  
-
-  - name: start CSM compute
-    command: /bin/systemctl start csmd-compute.service
     when: csmdcompute_service_result.rc != 0  
