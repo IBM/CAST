@@ -1555,6 +1555,10 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
         lockLocalMetadata((LVKey*)0, "msgin_removejobinfo");
         l_LockHeld = true;
 
+        // NOTE:  Need to first process all outstanding async requests.  We want to first process all
+        //        remove logical volume requests that may be related to thie removeJobInfo request.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
+
         rc = removeJobInfo(l_HostName, l_JobId);
         if (rc)
         {
@@ -3261,7 +3265,6 @@ int bb_main(std::string who)
         {
             g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
         }
-//        g_FastLocalMetadataRemoval = false;
         g_FastLocalMetadataRemoval = config.get("bb.bbserverFastLocalMetadataRemoval", DEFAULT_FAST_LOCAL_METADATA_REMOVAL);
         LOG(bb,always) << "Fast Local Metadata Removal=" << (g_FastLocalMetadataRemoval ? "true" : "false");
         wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
