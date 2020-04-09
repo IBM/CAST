@@ -3256,11 +3256,14 @@ int bb_main(std::string who)
         g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
         g_LogUpdateHandleStatusElapsedTimeClipValue = config.get(process_whoami+".bringup.logUpdateHandleStatusElapsedTimeClipValue", DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE);
         g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
+        LOG(bb,always) << "Async Remove Job Information=" << (g_FastLocalMetadataRemoval ? "true" : "false");
         if (g_AsyncRemoveJobInfo)
         {
             g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
         }
+//        g_FastLocalMetadataRemoval = false;
         g_FastLocalMetadataRemoval = config.get("bb.bbserverFastLocalMetadataRemoval", DEFAULT_FAST_LOCAL_METADATA_REMOVAL);
+        LOG(bb,always) << "Fast Local Metadata Removal=" << (g_FastLocalMetadataRemoval ? "true" : "false");
         wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
         LOG(bb,always) << "Async Request Turbo Mode=" << (wrkqmgr.getUseAsyncRequestReadTurboMode() ? "true" : "false");
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
