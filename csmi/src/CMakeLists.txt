@@ -79,11 +79,17 @@ file(GLOB csmi_python_boot
     "ras/src/lib_csm_ras_py.py"
 )
 
+# GENERAL NOTE: This section is under construction. commented out
+# Reason: python wasn't linking correctly
+# - wasn't critical path. we comment out to get a build up so IST can make an allocation and move fwd.
+
 # python
 # The Python Libraries:
-find_package(PythonLibs 2.7 )
-message("Python Include: ${PYTHON_INCLUDE_DIRS}")
-if (EXISTS ${PYTHON_INCLUDE_DIRS} )
+# find_package(PythonLibs 2.7 )
+# message("Python Include: ${PYTHON_INCLUDE_DIRS}")
+#if (EXISTS ${PYTHON_INCLUDE_DIRS} )
+# WORK AROUND COMMENT
+if (EXISTS ${PYTHON_INCLUDE_DISABLE_DIRS} )
     message("BUILDING PYTHON LIBRARIES")
 
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
