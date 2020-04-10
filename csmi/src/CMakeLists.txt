@@ -81,117 +81,50 @@ file(GLOB csmi_python_boot
 
 # python
 # The Python Libraries:
-#find_package(PythonLibs 3.6 )
-#message("Python Include: ${PYTHON_INCLUDE_DIRS}")
-
-
-# if (EXISTS ${PYTHON_INCLUDE_DIRS} )
-if (EXISTS ${PYTHON_INCLUDE_DIRS_FAKEY} )
+find_package(PythonLibs 2.7 )
+message("Python Include: ${PYTHON_INCLUDE_DIRS}")
+if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("BUILDING PYTHON LIBRARIES")
-
-    # print some cmake debug about boost and python
-
-    FIND_PACKAGE(PythonInterp)
-
-    if (PYTHONINTERP_FOUND)
-      if (UNIX AND NOT APPLE)
-        if (PYTHON_VERSION_MAJOR EQUAL 3)
-            message("1")
-            message("python${PYTHON_VERSION_SUFFIX}")
-            FIND_PACKAGE(Boost COMPONENTS python${PYTHON_VERSION_SUFFIX})
-            FIND_PACKAGE(PythonInterp 3)
-            FIND_PACKAGE(PythonLibs 3 REQUIRED)
-        else()
-            message("2")
-            FIND_PACKAGE(Boost COMPONENTS python)
-            FIND_PACKAGE(PythonInterp)
-            FIND_PACKAGE(PythonLibs REQUIRED)
-        endif()
-      else()    
-        if (PYTHON_VERSION_MAJOR EQUAL 3)
-             message("3")
-            FIND_PACKAGE(Boost COMPONENTS python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-            FIND_PACKAGE(PythonInterp 3)
-            FIND_PACKAGE(PythonLibs 3 REQUIRED)
-        else()
-             message("4")
-            FIND_PACKAGE(Boost COMPONENTS python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-            FIND_PACKAGE(PythonInterp)
-            FIND_PACKAGE(PythonLibs REQUIRED)
-        endif()
-      endif()
-    else()
-         message("5")
-        message("Python not found")
-    endif()
-
-    message(STATUS "PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
-    message(STATUS "PYTHON_EXECUTABLE = ${PYTHON_EXECUTABLE}")
-    message(STATUS "PYTHON_INCLUDE_DIRS = ${PYTHON_INCLUDE_DIRS}")
-    message(STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}")
-
-    ENABLE_TESTING()
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
-    #LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so convenient!
-
-    # end
 
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
     
     # The Boost Python Libraries:
-    message("BOOST_LIBRARYDIR: ${BOOST_LIBRARYDIR}")
-    #set(BOOST_LIBRARYDIR test)
-    message("BOOST_LIBRARYDIR: ${BOOST_LIBRARYDIR}")
-    message("BOOST_INCLUDEDIR: ${BOOST_INCLUDEDIR}")
-    #set(BOOST_LIBRARYDIR ${Boost_LIBRARY_DIRS})
-    #set(BOOST_INCLUDEDIR ${Boost_INCLUDE_DIRS})
-    message("BOOST_LIBRARYDIR: ${BOOST_LIBRARYDIR}")
-    message("BOOST_INCLUDEDIR: ${BOOST_INCLUDEDIR}")
-    message("Boost Root: ${BOOST_ROOT}")
-    message("BOOST_ROOT: ${BOOST_ROOT}")
-    #set(BOOST_ROOT /usr/include)
-    message("BOOST_ROOT: ${BOOST_ROOT}")
-    #set(BOOST_ROOT /usr/local)
-    message("BOOST_ROOT: ${BOOST_ROOT}")
-    message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
-    message("boost Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
-    message("boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
-    find_package(Boost COMPONENTS python3 REQUIRED)
+    find_package( Boost COMPONENTS python REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
     # Link the library
     #add_library(_csm_py SHARED ${csmi_python})
-    #target_link_libraries( _csm_py ${Boost_LIBRARY_DIRS} csmi)
+    #target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
     #install(TARGETS _csm_py COMPONENT csm-core DESTINATION csm/lib)
     #install(FILES ${csmi_python_boot} PERMISSIONS OWNER_READ COMPONENT csm-core DESTINATION csm/lib)
     
     add_library(_csm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES common/src/lib_csm_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_wm_py SHARED ${csmi_python})
-    target_link_libraries( _csm_wm_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_wm_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_wm_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES wm/src/lib_csm_wm_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_bb_py SHARED ${csmi_python})
-    target_link_libraries( _csm_bb_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_bb_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_bb_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES bb/src/lib_csm_bb_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_diag_py SHARED ${csmi_python})
-    target_link_libraries( _csm_diag_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_diag_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_diag_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES diag/src/lib_csm_diag_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_inv_py SHARED ${csmi_python})
-    target_link_libraries( _csm_inv_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_inv_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_inv_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES inv/src/lib_csm_inv_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
     
     add_library(_csm_ras_py SHARED ${csmi_python})
-    target_link_libraries( _csm_ras_py ${Boost_LIBRARY_DIRS} csmi)
+    target_link_libraries( _csm_ras_py ${Boost_LIBRARIES} csmi)
     install(TARGETS _csm_ras_py COMPONENT csm-api DESTINATION csm/lib)
     install(FILES ras/src/lib_csm_ras_py.py PERMISSIONS OWNER_READ COMPONENT csm-api DESTINATION csm/lib)
 
