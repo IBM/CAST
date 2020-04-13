@@ -152,8 +152,10 @@ std::string CSM_Environmental_Data::GetJsonString()
 void CSM_Environmental_Data::CollectNodeData()
 {
   // Set _timestamp
-  char time_stamp_buffer[80];
-  char time_stamp_with_usec[80];
+  const int32_t TS_BUFF_SIZE(80);
+  const int32_t TS_USEC_SIZE(120);
+  char time_stamp_buffer[TS_BUFF_SIZE];
+  char time_stamp_with_usec[TS_USEC_SIZE];
 
   struct timeval now_tv;
   time_t rawtime;
@@ -163,8 +165,8 @@ void CSM_Environmental_Data::CollectNodeData()
   rawtime = now_tv.tv_sec;
   info = localtime( &rawtime );
 
-  strftime(time_stamp_buffer, 80, "%Y-%m-%d %H:%M:%S", info);
-  snprintf(time_stamp_with_usec, 101, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
+  strftime(time_stamp_buffer, TS_BUFF_SIZE, "%Y-%m-%d %H:%M:%S", info);
+  snprintf(time_stamp_with_usec, TS_USEC_SIZE, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
   _timestamp = time_stamp_with_usec;
 
   // Set _source_node
