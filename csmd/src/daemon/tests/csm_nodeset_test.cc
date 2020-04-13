@@ -193,7 +193,7 @@ int NodeMTCTest( const csm::daemon::NodeNameList_t &nodes,
       std::cout << "Coverage error: " << msgSingleCount << ":" << msgSetCount << std::endl;
   }
 
-  double optimal = std::ceil( (double)mtcSize / ((double)aggSets[0].GetEntries()/2) ) + 2;
+  double optimal = ceil( (double)mtcSize / ((double)aggSets[0].GetEntries()/2) ) + 2;
   std::cout << "Agg-Msgs for nodes= " << mtcSize
       << ":   Res_set=(" << SetMsg._avg/TEST_COUNT << ", "<< SetMsg._min << "-" << SetMsg._max
       << "; " << SetMsg._mic/TEST_COUNT <<"us/m;" << SetMsg._avg/TEST_COUNT / optimal * 100. << "%)"
