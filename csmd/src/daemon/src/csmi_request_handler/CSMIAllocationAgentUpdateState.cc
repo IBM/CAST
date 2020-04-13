@@ -121,20 +121,25 @@ bool AllocationAgentUpdateState::HandleNetworkMessage(
 
             free( buffer );
 
-/*            LOG(csmapi,info) << ctx->GetCommandName() << ctx <<
+            if(response->error_message)
+            {
+                // There is an error message, so print it.
+                LOG(csmapi,info) << ctx->GetCommandName() << ctx <<
                 "Allocation ID: "      << allocation->allocation_id << 
                 "; Primary Job Id: "   << allocation->primary_job_id << 
                 "; Secondary Job Id: " << allocation->secondary_job_id <<
                 "; Error Code: "       << response->error_code << 
                 "; Error Message: "    << response->error_message << 
-                "; Message: Agent completed;";*/
-            LOG(csmapi,info) << ctx->GetCommandName() << ctx <<
+                "; Message: Agent completed;";
+            }else{
+                // There is not an error message, so do not print it.
+                LOG(csmapi,info) << ctx->GetCommandName() << ctx <<
                 "Allocation ID: "      << allocation->allocation_id << 
                 "; Primary Job Id: "   << allocation->primary_job_id << 
                 "; Secondary Job Id: " << allocation->secondary_job_id <<
                 "; Error Code: "       << response->error_code << 
-                "; Error Message: NICK WAS HERE"     << 
                 "; Message: Agent completed;";
+            }
         }
         else
         {
