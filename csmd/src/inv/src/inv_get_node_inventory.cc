@@ -231,13 +231,16 @@ bool GetNodeInventory(csm_node_inventory_t& node_inventory)
   struct timeval now_tv;
   time_t now_time_t;
   struct tm *now_tm;
-  char tm_buf[64], tm_usec_buf[85];
+  const int32_t TS_BUFF_SIZE(64);
+  const int32_t TS_USEC_SIZE(85);
+  char tm_buf[TS_BUFF_SIZE];
+  char tm_usec_buf[TS_USEC_SIZE];
 
   gettimeofday(&now_tv, NULL);
   now_time_t = now_tv.tv_sec;
   now_tm = localtime(&now_time_t);
-  strftime(tm_buf, sizeof tm_buf, "%Y-%m-%d %H:%M:%S", now_tm);
-  snprintf(tm_usec_buf, sizeof tm_usec_buf, "%s.%06lu", tm_buf, now_tv.tv_usec);
+  strftime(tm_buf, TS_BUFF_SIZE, "%Y-%m-%d %H:%M:%S", now_tm);
+  snprintf(tm_usec_buf, TS_USEC_SIZE, "%s.%06lu", tm_buf, now_tv.tv_usec);
     
   strncpy(node_inventory.collection_time, tm_usec_buf, CSM_COLLECTION_TIME_MAX);
   node_inventory.collection_time[CSM_COLLECTION_TIME_MAX - 1] = '\0'; 
