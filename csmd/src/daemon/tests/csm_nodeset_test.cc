@@ -18,7 +18,7 @@
 #include <set>
 #include <chrono>
 #include <algorithm>
-#include <cmath>
+#include <math.h>
 
 #include "csmnet/src/CPP/address.h"
 #include "include/csm_node_bitset.h"
@@ -517,8 +517,8 @@ int MTCPerformanceTest( const int listSize, const unsigned mtcSize )
 
   size_t overlappedOffset = listSize/2;
   size_t overlappedNodes = overlappedOffset * (AGG_COUNT-2);
-  double minimal = std::ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
-  double maximal = std::ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
+  double minimal = ceil( (double)mtcSize / ((double)listSize/2) ) + 1;
+  double maximal = ceil( (double)mtcSize / ((double)listSize/2) ) + 2;
 
 //  for( int i=0; i<TEST_COUNT; ++i )
   int i;
