@@ -270,13 +270,13 @@ csm::network::EndpointUnix::~EndpointUnix()
   csm::network::AddressUnix_sptr addr = std::dynamic_pointer_cast<csm::network::AddressUnix>( GetLocalAddr() );
   if( addr == nullptr )
   {
-    // throw will always call terminate()
-    // google later
-    // Consensous: Shouldn't throw exceptions in destructors. 
-    //throw csm::network::Exception("Wrong address type", EBADF );
+    LOG(csmnet, critical ) << "EndpointUnix with wrong address type in destructor";
   }
-  if( addr->_SockAddr.sun_path[0] != 0 )
-    unlink( addr->_SockAddr.sun_path );
+  else
+  {
+    if( addr->_SockAddr.sun_path[0] != 0 )
+      unlink( addr->_SockAddr.sun_path );
+  }
 }
 
 int csm::network::EndpointUnix::Connect( const csm::network::Address_sptr aSrvAddr )
