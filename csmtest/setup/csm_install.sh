@@ -246,7 +246,7 @@ if [ ! -z $SSL_KEY ]
 fi
 
 # 4.2.3 Prolog/Epilog Scripts Compute
-xdcp csm_comp /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
+xdcp csm_comp -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
 xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
 # Start Daemons
