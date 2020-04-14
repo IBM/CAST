@@ -1,3 +1,46 @@
+- hosts: management
+  tasks:
+  - name: Check csmd-master is running
+    command:  /bin/systemctl status csmd-master.service 
+    register: csmdmaster_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-master daemon is still running 
+    when: csmdmaster_service_result.rc == 0  
+
+  - name: Check ccsmd-aggregator activation is still running
+    command:  /bin/systemctl status csmd-aggregator.service 
+    register: csmdaggregator_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-aggregator daemon is still running 
+    when: csmdaggregator_service_result.rc == 0 
+
+- hosts: launch
+  tasks:
+  - name: Check csmd-utility activation is still running
+    command:  /bin/systemctl status csmd-utility.service 
+    register: csmdutility_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-utility daemon is still running 
+    when: csmdutility_service_result.rc == 0  
+
+- hosts: compute
+  tasks:
+  - name: Check csmd-compute activation is still running 
+    command:  /bin/systemctl status csmd-compute.service 
+    register: csmdcompute_service_result
+    ignore_errors: yes 
+
+  - fail:  
+     msg: csmd-compute daemon is still running 
+    when: csmdcompute_service_result.rc == 0  
+
+
 - hosts: all
   tasks:
   - name: remove RPMs
