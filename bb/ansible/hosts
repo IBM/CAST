@@ -1,5 +1,6 @@
 [all:vars]
 RPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+SMPIRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
 
 [compute]
 c650f06p25 ansible_private_key_file=/root/.ssh/id_rsa

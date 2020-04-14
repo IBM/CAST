@@ -1,20 +1,14 @@
 #  sudo ansible-playbook -i hosts  <this.yml>
  # hosts must set RPMDIR in [all.vars] section
 
- #check to see if all hosts are available--fail it not
-- hosts: localhost
-  tasks:
-    - debug:
-         msg: prepare hostcheck for bb cluster install/start
-- name: Include hostcheck         
-  import_playbook: hostcheck.yml 
-
+#check for RPMDIR early before doing upgrade
 - hosts: all
   tasks:
   - name: check all nodes for RPM directory
     command: /usr/bin/file {{RPMDIR}} 
     any_errors_fatal: true
 
+#section for stopping daemons, removing RPMs, cleaning up
 - hosts: localhost
   tasks:
     - debug:
@@ -28,6 +22,7 @@
 - name: Include bb uninstall       
   import_playbook: bbUninstall.yml    
 
+#section for installing RPMs, starting daemons
 - hosts: localhost
   tasks:
     - debug:

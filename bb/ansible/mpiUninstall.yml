@@ -2,7 +2,7 @@ s
 
 - hosts: compute launch
   tasks:
-  - name: install smpi RPMs
-  - shell: yum erase -y ibm_smpi_lic_s ibm_smpi ibm_smpi-devel ibm_smpi-jsm ibm_smpi-pami_devel ibm_smpi_gpusupport
+  - name: uninstall smpi RPMs
+  - shell: yum erase -y ibm_smpi_lic_s ibm_smpi_lic_c ibm_smpi ibm_smpi-devel ibm_smpi-jsm ibm_smpi-pami_devel ibm_smpi_gpusupport
     ignore_errors: yes 
 
