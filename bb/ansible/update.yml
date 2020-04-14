@@ -1,0 +1,44 @@
+#  sudo ansible-playbook -i hosts  <this.yml>
+ # hosts must set RPMDIR in [all.vars] section
+
+ #check to see if all hosts are available--fail it not
+- hosts: localhost
+  tasks:
+    - debug:
+         msg: prepare hostcheck for bb cluster install/start
+- name: Include hostcheck         
+  import_playbook: hostcheck.yml 
+
+- hosts: all
+  tasks:
+  - name: check all nodes for RPM directory
+    command: /usr/bin/file {{RPMDIR}} 
+    any_errors_fatal: true
+
+- hosts: localhost
+  tasks:
+    - debug:
+         msg: stop CSM and burstbuffer
+- name: Include stop of CSM        
+  import_playbook: csmStop.yml 
+- name: Include stop of bb       
+  import_playbook: bbStop.yml
+- name: Include uninstall of CSM       
+  import_playbook: csmUninstall.yml  
+- name: Include bb uninstall       
+  import_playbook: bbUninstall.yml    
+
+- hosts: localhost
+  tasks:
+    - debug:
+         msg: install csm and bb
+- name: Include csm install     
+  import_playbook: csmInstall.yml 
+- name: Include bb install      
+  import_playbook: bbInstall.yml 
+- name: Include csm start     
+  import_playbook: csmStart.yml 
+- name: Include bb start      
+  import_playbook: bbStart.yml  
+   
+

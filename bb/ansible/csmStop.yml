@@ -7,6 +7,7 @@
   
   - name: stop CSM aggregator
     command: /bin/systemctl stop csmd-aggregator.service
+    ignore_errors: yes
     
 
 - hosts: launch
