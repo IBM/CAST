@@ -171,19 +171,19 @@ public:
                 case 2:
                 {
                     uint16_t beNum = htobe16((uint16_t)number);
-                    memcpy(_ParamValues[_ParamIndex],&beNum, sizeof(T));
+                    memcpy(_ParamValues[_ParamIndex],&beNum, sizeof(beNum));
                     break;
                 }
                 case 4:
                 {
                     uint32_t beNum = htobe32((uint32_t)number);
-                    memcpy(_ParamValues[_ParamIndex], &beNum, sizeof(T));
+                    memcpy(_ParamValues[_ParamIndex], &beNum, sizeof(beNum));
                     break;
                 }
                 case 8:
                 {
                     uint64_t beNum = htobe64((uint64_t)number);
-                    memcpy(_ParamValues[_ParamIndex],&(beNum), sizeof(T));
+                    memcpy(_ParamValues[_ParamIndex],&(beNum), sizeof(beNum));
                     break;
                 }
                 default:

@@ -1018,8 +1018,10 @@ protected:
     // Generate a timestamp for this event 
     // Example format:
     // 2016-05-12 15:12:11.799506
-    char time_stamp[80];
-    char time_stamp_with_usec[80];
+    const int32_t TS_BUFF_SIZE(80);
+    const int32_t TS_USEC_SIZE(120);
+    char time_stamp_buffer[TS_BUFF_SIZE];
+    char time_stamp_with_usec[TS_USEC_SIZE];
 
     struct timeval now_tv;
     time_t rawtime;
@@ -1029,8 +1031,8 @@ protected:
     rawtime = now_tv.tv_sec;
     info = localtime( &rawtime );
 
-    strftime(time_stamp, 80, "%Y-%m-%d %H:%M:%S", info);
-    snprintf(time_stamp_with_usec, 80, "%s.%06lu", time_stamp, now_tv.tv_usec);
+    strftime(time_stamp_buffer, TS_BUFF_SIZE, "%Y-%m-%d %H:%M:%S", info);
+    snprintf(time_stamp_with_usec, TS_USEC_SIZE, "%s.%06lu", time_stamp_buffer, now_tv.tv_usec);
 
     csm_ras_event_create_input_t rargs;
 

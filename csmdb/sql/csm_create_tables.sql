@@ -17,9 +17,10 @@
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
 --   current_version:   18.0
 --   create:            12-14-2015
---   last modified:     06-03-2019
+--   last modified:     04-14-2020
 --   change log:
---   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
+--   18.0   Removed the indexes related to the ctid from the history tables as it's not recognized and needed in postgreSQl 10.6
+--          Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
 --          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
 --          Additional descriptions that have been updated include the following fields in the csm_step_history table:
 --              cpu_stats            - 'statistics gathered from the CPU for the step.';
@@ -401,9 +402,6 @@ CREATE INDEX ix_csm_allocation_state_history_a
 CREATE INDEX ix_csm_allocation_state_history_b
     on csm_allocation_state_history (allocation_id);
 
-CREATE INDEX ix_csm_allocation_state_history_c
-    on csm_allocation_state_history (ctid);
-
 CREATE INDEX ix_csm_allocation_state_history_d
     on csm_allocation_state_history (archive_history_time);
 
@@ -418,7 +416,6 @@ CREATE INDEX ix_csm_allocation_state_history_d
     COMMENT ON COLUMN csm_allocation_state_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';    
     COMMENT ON INDEX ix_csm_allocation_state_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_state_history_b IS 'index on allocation_id';
-    COMMENT ON INDEX ix_csm_allocation_state_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_allocation_state_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -474,9 +471,6 @@ CREATE INDEX ix_csm_allocation_history_a
 CREATE INDEX ix_csm_allocation_history_b
     on csm_allocation_history (allocation_id);
 
-CREATE INDEX ix_csm_allocation_history_c
-    on csm_allocation_history (ctid);
-
 CREATE INDEX ix_csm_allocation_history_d
     on csm_allocation_history (archive_history_time);
 
@@ -523,7 +517,6 @@ CREATE INDEX ix_csm_allocation_history_d
     COMMENT ON COLUMN csm_allocation_history.core_blink is 'flag indicating whether or not to run a blink operation on allocation cores.';
     COMMENT ON INDEX ix_csm_allocation_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_history_b IS 'index on allocation_id';
-    COMMENT ON INDEX ix_csm_allocation_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_allocation_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -675,9 +668,6 @@ CREATE INDEX ix_csm_node_history_a
 CREATE INDEX ix_csm_node_history_b
     on csm_node_history (node_name);
 
-CREATE INDEX ix_csm_node_history_c
-    on csm_node_history (ctid);
-
 CREATE INDEX ix_csm_node_history_d
     on csm_node_history (archive_history_time);
 
@@ -719,7 +709,6 @@ CREATE INDEX ix_csm_node_history_d
     COMMENT ON COLUMN csm_node_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_node_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_node_history_b IS 'index on node_name';
-    COMMENT ON INDEX ix_csm_node_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_node_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -741,9 +730,6 @@ CREATE INDEX ix_csm_node_state_history_a
 CREATE INDEX ix_csm_node_state_history_b
     on csm_node_state_history (node_name, state);
 
-CREATE INDEX ix_csm_node_state_history_c
-    on csm_node_state_history (ctid);
-
 CREATE INDEX ix_csm_node_state_history_d
     on csm_node_state_history (archive_history_time);
 
@@ -758,7 +744,6 @@ CREATE INDEX ix_csm_node_state_history_d
     COMMENT ON COLUMN csm_node_state_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_node_state_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_node_state_history_b IS 'index on node_name, state';
-    COMMENT ON INDEX ix_csm_node_state_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_node_state_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -852,9 +837,6 @@ CREATE INDEX ix_csm_allocation_node_history_a
 CREATE INDEX ix_csm_allocation_node_history_b
     on csm_allocation_node_history (allocation_id);
 
-CREATE INDEX ix_csm_allocation_node_history_c
-    on csm_allocation_node_history (ctid);
-
 CREATE INDEX ix_csm_allocation_node_history_d
     on csm_allocation_node_history (archive_history_time);
 
@@ -883,7 +865,6 @@ CREATE INDEX ix_csm_allocation_node_history_d
     COMMENT ON COLUMN csm_allocation_node_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_allocation_node_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_allocation_node_history_b IS 'index on allocation_id';
-    COMMENT ON INDEX ix_csm_allocation_node_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_allocation_node_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -946,9 +927,6 @@ CREATE INDEX ix_csm_diag_run_history_b
 CREATE INDEX ix_csm_diag_run_history_c
     on csm_diag_run_history (allocation_id);
 
-CREATE INDEX ix_csm_diag_run_history_d
-    on csm_diag_run_history (ctid);
-
 CREATE INDEX ix_csm_diag_run_history_e
     on csm_diag_run_history (archive_history_time);
 
@@ -969,7 +947,6 @@ CREATE INDEX ix_csm_diag_run_history_e
     COMMENT ON INDEX ix_csm_diag_run_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_diag_run_history_b IS 'index on run_id';
     COMMENT ON INDEX ix_csm_diag_run_history_c IS 'index on allocation_id';
-    COMMENT ON INDEX ix_csm_diag_run_history_d IS 'index on ctid';
     COMMENT ON INDEX ix_csm_diag_run_history_e IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1032,9 +1009,6 @@ CREATE INDEX ix_csm_diag_result_history_a
 CREATE INDEX ix_csm_diag_result_history_b
     on csm_diag_result_history (run_id);
 
-CREATE INDEX ix_csm_diag_result_history_c
-    on csm_diag_result_history (ctid);
-
 CREATE INDEX ix_csm_diag_result_history_d
     on csm_diag_result_history (archive_history_time);
 
@@ -1055,7 +1029,6 @@ CREATE INDEX ix_csm_diag_result_history_d
     COMMENT ON COLUMN csm_diag_result_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_diag_result_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_diag_result_history_b IS 'index on run_id';
-    COMMENT ON INDEX ix_csm_diag_result_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_diag_result_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1161,9 +1134,6 @@ CREATE INDEX ix_csm_step_history_d
 CREATE INDEX ix_csm_step_history_e
     on csm_step_history (step_id);
 
-CREATE INDEX ix_csm_step_history_f
-    on csm_step_history (ctid);
-
 CREATE INDEX ix_csm_step_history_g
     on csm_step_history (archive_history_time);
 
@@ -1203,7 +1173,6 @@ CREATE INDEX ix_csm_step_history_g
     COMMENT ON INDEX ix_csm_step_history_c IS 'index on allocation_id, end_time';
     COMMENT ON INDEX ix_csm_step_history_d IS 'index on end_time';
     COMMENT ON INDEX ix_csm_step_history_e IS 'index on step_id';
-    COMMENT ON INDEX ix_csm_step_history_f IS 'index on ctid';
     COMMENT ON INDEX ix_csm_step_history_g IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1264,9 +1233,6 @@ CREATE INDEX ix_csm_step_node_history_b
 CREATE INDEX ix_csm_step_node_history_c
     on csm_step_node_history (allocation_id, step_id);
 
-CREATE INDEX ix_csm_step_node_history_d
-    on csm_step_node_history (ctid);
-
 CREATE INDEX ix_csm_step_node_history_e
     on csm_step_node_history (archive_history_time);
 
@@ -1282,7 +1248,6 @@ CREATE INDEX ix_csm_step_node_history_e
     COMMENT ON INDEX ix_csm_step_node_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_step_node_history_b IS 'index on allocation_id';
     COMMENT ON INDEX ix_csm_step_node_history_c IS 'index on allocation_id, step_id';
-    COMMENT ON INDEX ix_csm_step_node_history_d IS 'index on ctid';
     COMMENT ON INDEX ix_csm_step_node_history_e IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1414,9 +1379,6 @@ CREATE INDEX ix_csm_ras_event_action_e
 CREATE INDEX ix_csm_ras_event_action_f
     on csm_ras_event_action (master_time_stamp);
 
-CREATE INDEX ix_csm_ras_event_action_g
-    on csm_ras_event_action (ctid);
-
 CREATE INDEX ix_csm_ras_event_action_h
     on csm_ras_event_action (archive_history_time);
 
@@ -1442,7 +1404,6 @@ CREATE INDEX ix_csm_ras_event_action_h
     COMMENT ON INDEX ix_csm_ras_event_action_d IS 'index on time_stamp, msg_id';
     COMMENT ON INDEX ix_csm_ras_event_action_e IS 'index on time_stamp, location_name';
     COMMENT ON INDEX ix_csm_ras_event_action_f IS 'index on master_time_stamp';
-    COMMENT ON INDEX ix_csm_ras_event_action_g IS 'index on ctid';
     COMMENT ON INDEX ix_csm_ras_event_action_h IS 'index on archive_history_time';
     COMMENT ON SEQUENCE csm_ras_event_action_rec_id_seq IS 'used to generate primary keys on rec ids';
 
@@ -1541,9 +1502,6 @@ CREATE INDEX ix_csm_gpu_history_b
 CREATE INDEX ix_csm_gpu_history_c
     on csm_gpu_history (node_name, gpu_id);
 
-CREATE INDEX ix_csm_gpu_history_d
-    on csm_gpu_history (ctid);
-
 CREATE INDEX ix_csm_gpu_history_e
     on csm_gpu_history (archive_history_time);
 
@@ -1566,7 +1524,6 @@ CREATE INDEX ix_csm_gpu_history_e
     COMMENT ON INDEX ix_csm_gpu_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_gpu_history_b IS 'index on serial_number';
     COMMENT ON INDEX ix_csm_gpu_history_c IS 'index on node_name, gpu_id';
-    COMMENT ON INDEX ix_csm_gpu_history_d IS 'index on ctid';
     COMMENT ON INDEX ix_csm_gpu_history_e IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1621,9 +1578,6 @@ CREATE INDEX ix_csm_processor_socket_history_a
 CREATE INDEX ix_csm_processor_socket_history_b
     on csm_processor_socket_history (serial_number, node_name);
 
-CREATE INDEX ix_csm_processor_socket_history_c
-    on csm_processor_socket_history (ctid);
-
 CREATE INDEX ix_csm_processor_socket_history_d
     on csm_processor_socket_history (archive_history_time);
 
@@ -1640,7 +1594,6 @@ CREATE INDEX ix_csm_processor_socket_history_d
     COMMENT ON COLUMN csm_processor_socket_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_processor_socket_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_processor_socket_history_b IS 'index on serial_number, node_name';
-    COMMENT ON INDEX ix_csm_processor_socket_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_processor_socket_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1751,9 +1704,6 @@ CREATE INDEX ix_csm_hca_history_a
 CREATE INDEX ix_csm_hca_history_b
     on csm_hca_history (node_name, serial_number);
 
-CREATE INDEX ix_csm_hca_history_c
-    on csm_hca_history (ctid);
-
 CREATE INDEX ix_csm_hca_history_d
     on csm_hca_history (archive_history_time);
 
@@ -1775,7 +1725,6 @@ CREATE INDEX ix_csm_hca_history_d
     COMMENT ON COLUMN csm_hca_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_hca_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_hca_history_b IS 'index on node_name, serial_number';
-    COMMENT ON INDEX ix_csm_hca_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_hca_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1826,9 +1775,6 @@ CREATE INDEX ix_csm_dimm_history_a
 CREATE INDEX ix_csm_dimm_history_b
     on csm_dimm_history (node_name, serial_number);
 
-CREATE INDEX ix_csm_dimm_history_c
-    on csm_dimm_history (ctid);
-
 CREATE INDEX ix_csm_dimm_history_d
     on csm_dimm_history (archive_history_time);
 
@@ -1845,7 +1791,6 @@ CREATE INDEX ix_csm_dimm_history_d
     COMMENT ON COLUMN csm_dimm_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_dimm_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_dimm_history_b IS 'index on node_name, serial_number';
-    COMMENT ON INDEX ix_csm_dimm_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_dimm_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1877,9 +1822,6 @@ CREATE INDEX ix_csm_ssd_history_a
 CREATE INDEX ix_csm_ssd_history_b
     on csm_ssd_history (serial_number, node_name);
 
-CREATE INDEX ix_csm_ssd_history_c
-    on csm_ssd_history (ctid);
-
 CREATE INDEX ix_csm_ssd_history_d
     on csm_ssd_history (archive_history_time);
 
@@ -1903,7 +1845,6 @@ CREATE INDEX ix_csm_ssd_history_d
     COMMENT ON COLUMN csm_ssd_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_ssd_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_ssd_history_b IS 'index on serial_number, node_name';
-    COMMENT ON INDEX ix_csm_ssd_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_ssd_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -1930,9 +1871,6 @@ CREATE INDEX ix_csm_ssd_wear_history_a
 CREATE INDEX ix_csm_ssd_wear_history_b
     on csm_ssd_wear_history (serial_number, node_name); 
     
-CREATE INDEX ix_csm_ssd_wear_history_c
-    on csm_ssd_wear_history (ctid);
-
 CREATE INDEX ix_csm_ssd_wear_history_d
     on csm_ssd_wear_history (archive_history_time);
 
@@ -1951,7 +1889,6 @@ CREATE INDEX ix_csm_ssd_wear_history_d
     COMMENT ON COLUMN csm_ssd_wear_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_ssd_wear_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_ssd_wear_history_b IS 'index on serial_number, node_name';
-    COMMENT ON INDEX ix_csm_ssd_wear_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_ssd_wear_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2010,9 +1947,6 @@ CREATE INDEX ix_csm_vg_history_a
 CREATE INDEX ix_csm_vg_history_b
     on csm_vg_history (vg_name, node_name);
 
-CREATE INDEX ix_csm_vg_history_c
-    on csm_vg_history (ctid);
-
 CREATE INDEX ix_csm_vg_history_d
     on csm_vg_history (archive_history_time);
 
@@ -2031,7 +1965,6 @@ CREATE INDEX ix_csm_vg_history_d
     COMMENT ON COLUMN csm_vg_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_vg_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_vg_history_b IS 'index on vg_name, node_name';
-    COMMENT ON INDEX ix_csm_vg_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_vg_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2084,9 +2017,6 @@ CREATE INDEX ix_csm_vg_ssd_history_a
 CREATE INDEX ix_csm_vg_ssd_history_b
     on csm_vg_ssd_history (vg_name, node_name);
 
-CREATE INDEX ix_csm_vg_ssd_history_c
-    on csm_vg_ssd_history (ctid);
-
 CREATE INDEX ix_csm_vg_ssd_history_d
     on csm_vg_ssd_history (archive_history_time);
 
@@ -2103,7 +2033,6 @@ CREATE INDEX ix_csm_vg_ssd_history_d
     COMMENT ON COLUMN csm_vg_ssd_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_vg_ssd_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_vg_ssd_history_b IS 'index on vg_name, node_name';
-    COMMENT ON INDEX ix_csm_vg_ssd_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_vg_ssd_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2186,9 +2115,6 @@ CREATE INDEX ix_csm_lv_history_a
 CREATE INDEX ix_csm_lv_history_b
     on csm_lv_history (logical_volume_name);
 
-CREATE INDEX ix_csm_lv_history_c
-    on csm_lv_history (ctid);
-
 CREATE INDEX ix_csm_lv_history_d
     on csm_lv_history (archive_history_time);
 
@@ -2217,7 +2143,6 @@ CREATE INDEX ix_csm_lv_history_d
     COMMENT ON COLUMN csm_lv_history.num_writes is 'number of writes during the life of this partition';
     COMMENT ON INDEX ix_csm_lv_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_lv_history_b IS 'index on logical_volume_name';
-    COMMENT ON INDEX ix_csm_lv_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_lv_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2243,9 +2168,6 @@ CREATE INDEX ix_csm_lv_update_history_a
 CREATE INDEX ix_csm_lv_update_history_b
     on csm_lv_update_history (logical_volume_name);
 
-CREATE INDEX ix_csm_lv_update_history_c
-    on csm_lv_update_history (ctid);
-
 CREATE INDEX ix_csm_lv_update_history_d
     on csm_lv_update_history (archive_history_time);
 
@@ -2263,7 +2185,6 @@ CREATE INDEX ix_csm_lv_update_history_d
     COMMENT ON COLUMN csm_lv_update_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_lv_update_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_lv_update_history_b IS 'index on logical_volume_name';
-    COMMENT ON INDEX ix_csm_lv_update_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_lv_update_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2386,9 +2307,6 @@ CREATE INDEX ix_csm_switch_history_a
 CREATE INDEX ix_csm_switch_history_b
     on csm_switch_history (switch_name, history_time);
 
-CREATE INDEX ix_csm_switch_history_c
-    on csm_switch_history (ctid);
-
 CREATE INDEX ix_csm_switch_history_d
     on csm_switch_history (archive_history_time);
 
@@ -2427,7 +2345,6 @@ CREATE INDEX ix_csm_switch_history_d
     COMMENT ON COLUMN csm_switch_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_switch_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_switch_history_b IS 'index on switch_name, history_time';
-    COMMENT ON INDEX ix_csm_switch_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_switch_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2514,9 +2431,6 @@ CREATE INDEX ix_csm_ib_cable_history_a
 CREATE INDEX ix_csm_ib_cable_history_b
     on csm_ib_cable_history (serial_number);
 
-CREATE INDEX ix_csm_ib_cable_history_c
-    on csm_ib_cable_history (ctid);
-
 CREATE INDEX ix_csm_ib_cable_history_d
     on csm_ib_cable_history (archive_history_time);
 
@@ -2545,7 +2459,6 @@ CREATE INDEX ix_csm_ib_cable_history_d
     COMMENT ON COLUMN csm_ib_cable_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_ib_cable_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_ib_cable_history_b IS 'index on serial_number';
-    COMMENT ON INDEX ix_csm_ib_cable_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_ib_cable_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2639,9 +2552,6 @@ CREATE INDEX ix_csm_switch_inventory_history_a
 CREATE INDEX ix_csm_switch_inventory_history_b
     on csm_switch_inventory_history (name);
 
-CREATE INDEX ix_csm_switch_inventory_history_c
-    on csm_switch_inventory_history (ctid);
-
 CREATE INDEX ix_csm_switch_inventory_history_d
     on csm_switch_inventory_history (archive_history_time);
 
@@ -2672,7 +2582,6 @@ CREATE INDEX ix_csm_switch_inventory_history_d
     COMMENT ON COLUMN csm_switch_inventory_history.fw_version is 'The firmware version on this piece of inventory.';
     COMMENT ON INDEX ix_csm_switch_inventory_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_switch_inventory_history_b IS 'index on name';
-    COMMENT ON INDEX ix_csm_switch_inventory_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_switch_inventory_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2741,9 +2650,6 @@ CREATE INDEX ix_csm_config_history_a
 CREATE INDEX ix_csm_config_history_b
     on csm_config_history (csm_config_id);
 
-CREATE INDEX ix_csm_config_history_c
-    on csm_config_history (ctid);
-
 CREATE INDEX ix_csm_config_history_d
     on csm_config_history (archive_history_time);
 
@@ -2765,7 +2671,6 @@ CREATE INDEX ix_csm_config_history_d
     COMMENT ON COLUMN csm_config_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_config_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_config_history_b IS 'index on csm_config_id';
-    COMMENT ON INDEX ix_csm_config_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_config_history_d IS 'index on archive_history_time';
 
 ---------------------------------------------------------------------------------------------------
@@ -2843,9 +2748,6 @@ CREATE INDEX ix_csm_db_schema_version_history_a
 CREATE INDEX ix_csm_db_schema_version_history_b
     on csm_db_schema_version_history (version);
 
-CREATE INDEX ix_csm_db_schema_version_history_c
-    on csm_db_schema_version_history (ctid);
-
 CREATE INDEX ix_csm_db_schema_version_history_d
     on csm_db_schema_version_history (archive_history_time);
 
@@ -2860,7 +2762,6 @@ CREATE INDEX ix_csm_db_schema_version_history_d
     COMMENT ON COLUMN csm_db_schema_version_history.archive_history_time is 'timestamp when the history data has been archived and sent to: BDS, archive file, and or other';
     COMMENT ON INDEX ix_csm_db_schema_version_history_a IS 'index on history_time';
     COMMENT ON INDEX ix_csm_db_schema_version_history_b IS 'index on version';
-    COMMENT ON INDEX ix_csm_db_schema_version_history_c IS 'index on ctid';
     COMMENT ON INDEX ix_csm_db_schema_version_history_d IS 'index on archive_history_time';
 
 COMMIT;

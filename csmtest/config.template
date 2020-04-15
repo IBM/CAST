@@ -14,6 +14,7 @@ export SQL_DIR=
 export SSL_KEY=
 
 # Node Types
+export XCATMN=
 export MASTER=
 export AGGREGATOR_A=
 export AGGREGATOR_B=

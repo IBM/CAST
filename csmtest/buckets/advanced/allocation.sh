@@ -43,7 +43,7 @@ date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
 # Enable IRQ Affinity setting on all computes
-xdsh ${COMPUTE_NODES} "sed -i -- 's/\"irq_affinity\"       : false,/\"irq_affinity\"       : true,/g' /etc/ibm/csm/csm_compute.cfg" > ${TEMP_LOG} 2>&1
+xdsh ${COMPUTE_NODES} "sed -i '/irq_affinity/s/false/true/' /etc/ibm/csm/csm_compute.cfg" > ${TEMP_LOG} 2>&1
 xdsh ${COMPUTE_NODES} "cat /etc/ibm/csm/csm_compute.cfg | grep irq_affinity" > ${TEMP_LOG} 2>&1
 check_all_output "true"
 check_return_exit $? 0 "Enable IRQ Affinity setting on all computes"

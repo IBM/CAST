@@ -18,6 +18,7 @@
 
 #include "csmnet/src/CPP/csm_network_msg_cpp.h"
 #include "logging.h"
+#include <vector>
 
 namespace csm {
 namespace network {

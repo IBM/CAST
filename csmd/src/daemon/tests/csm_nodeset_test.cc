@@ -18,6 +18,7 @@
 #include <set>
 #include <chrono>
 #include <algorithm>
+#include <math.h>
 
 #include "csmnet/src/CPP/address.h"
 #include "include/csm_node_bitset.h"

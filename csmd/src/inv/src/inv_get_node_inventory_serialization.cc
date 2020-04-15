@@ -134,7 +134,7 @@ uint32_t get_node_inventory_unpack(const string& in_payload_str, csm_full_invent
   uint32_t offset(0);  
 
   // Clear the current structure
-  memset( &out_inventory, 0, sizeof(out_inventory) );
+  memset( static_cast<void*>(&out_inventory), 0, sizeof(out_inventory) );
   //LOG(csmd, info) << "sizeof(out_inventory) = " << sizeof(out_inventory);
 
   // Unpack the node portion of the inventory
