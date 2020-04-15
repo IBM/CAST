@@ -436,7 +436,7 @@ int BBTagInfoMap::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentIn
     return rc;
 }
 
-int BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBTagInfoMap::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus)
 {
     int rc = 0;
 

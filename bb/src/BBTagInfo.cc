@@ -492,7 +492,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                     }
                     if (pTransferDef->allExtentsTransferred())
                     {
-                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pHandle, pContribId, pTransferDef);
+                        BBSTATUS l_ContribIdStatus = BBNONE;    // sendTransferCompleteForContribIdMsg() will determine the real contribid status
+                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pHandle, pContribId, pTransferDef, l_ContribIdStatus);
 
                         int l_NewStatus = 0;
                         Extent l_Extent = Extent();
@@ -504,7 +505,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                             // Send the transfer is complete for this handle message to bbProxy
                             string l_HostName;
                             activecontroller->gethostname(l_HostName);
-                            metadata.sendTransferCompleteForHandleMsg(l_HostName, pTransferDef->getHostName(), pHandle);
+                            BBSTATUS l_HandleStatus = BBNONE;     // sendTransferCompleteForHandleMsg() will determine the real handle status
+                            metadata.sendTransferCompleteForHandleMsg(l_HostName, pTransferDef->getHostName(), pHandle, l_HandleStatus);
 
                             // Check/update the status for the LVKey
                             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message for the LVKey...
@@ -831,7 +833,7 @@ int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo*
     return rc;
 }
 
-int BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus)
 {
     int rc = 0;
 

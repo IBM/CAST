@@ -1669,8 +1669,7 @@ void msgin_resume(txp::Id id, const std::string&  pConnectionName, txp::Msg* msg
         // Now perform this resume operation
         string l_HostName;
         activecontroller->gethostname(l_HostName);
-        LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
-        rc = metadata.setSuspended(l_HostName, l_CN_HostName, l_Local_Metadata_Lock_Released, RESUME);
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, RESUME);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)
@@ -3038,8 +3037,7 @@ void msgin_suspend(txp::Id id, const std::string&  pConnectionName, txp::Msg* ms
         // Now perform this suspend operation
         string l_HostName;
         activecontroller->gethostname(l_HostName);
-        LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
-        rc = metadata.setSuspended(l_HostName, l_CN_HostName, l_Local_Metadata_Lock_Released, SUSPEND);
+        rc = metadata.setSuspended(l_HostName, l_CN_HostName, SUSPEND);
     }
     catch (ExceptionBailout& e) { }
     catch (exception& e)

@@ -680,7 +680,7 @@ int BBLV_Info::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef)
+void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef, BBSTATUS& pStatus)
 {
     txp::Msg* l_Complete = 0;
     txp::Msg::buildMsg(txp::BB_TRANSFER_COMPLETE_FOR_CONTRIBID, l_Complete);
@@ -761,6 +761,8 @@ void BBLV_Info::sendTransferCompleteForContribIdMsg(const string& pConnectionNam
     }
 
     delete l_Complete;
+
+    pStatus = l_Status;
 
     return;
 }
@@ -944,7 +946,7 @@ void BBLV_Info::sendTransferCompleteForFileMsg(const string& pConnectionName, co
     return;
 }
 
-int BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus)
 {
     int rc = 0;
     txp::Msg* l_Complete = 0;
@@ -1053,6 +1055,8 @@ int BBLV_Info::sendTransferCompleteForHandleMsg(const string& pHostName, const s
     }
 
     delete l_Complete;
+
+    pStatus = l_Status;
 
     return rc;
 }
@@ -1249,8 +1253,10 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
     {
         if (!l_TransferDef->stopped())
         {
-            sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef);
-            if (pTagInfo->allContribsReported())
+            BBSTATUS l_Status = BBNONE;
+            sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib(), l_TransferDef, l_Status);
+            // NOTE: Today, we only do a fast local metadata cleanup if the contribid status is BBFULLSUCCESS
+            if (l_Status == BBFULLSUCCESS)
             {
                 pPerformContribIdCleanup = PERFORM_CONTRIBID_CLEANUP;
             }
@@ -1270,9 +1276,14 @@ int BBLV_Info::updateAllTransferStatus(const string& pConnectionName, const LVKe
                 // Send the transfer is complete for this handle message to bbProxy
                 string l_HostName;
                 activecontroller->gethostname(l_HostName);
-                if (metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle()))
+                BBSTATUS l_Status = BBNONE;
+                if (metadata.sendTransferCompleteForHandleMsg(l_HostName, l_TransferDef->getHostName(), pExtentInfo.getHandle(), l_Status))
                 {
-                    pPerformTagInfoCleanup = PERFORM_TAGINFO_CLEANUP;
+                    // NOTE: Today, we only do a fast local metadata cleanup if the handle status is BBFULLSUCCESS
+                    if (l_Status == BBFULLSUCCESS)
+                    {
+                        pPerformTagInfoCleanup = PERFORM_TAGINFO_CLEANUP;
+                    }
                 }
             }
 

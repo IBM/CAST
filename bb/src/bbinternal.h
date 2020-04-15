@@ -131,7 +131,9 @@ const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 180;                  
 const double DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE = 60;           // in seconds (1 minute)
 const double DEFAULT_BBSERVER_DUMP_COUNTERS_TIME_INTERVAL = 60;                 // in seconds (1 minute)
 const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 180;                    // in seconds (3 minutes)
+// NOTE: If the DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL is modified, the
+//       declare server dead time is also affected.
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 150;                    // in seconds (2.5 minutes)
 const double DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
 const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
@@ -143,7 +145,7 @@ const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1.00;                    
 const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25;            // in seconds
 const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100;           // in seconds
 const double DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL = 180;             // in seconds
-const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 240;                // in seconds (4 minutes)
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds (2 minutes)
 const uint64_t MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 600;                // in seconds (10 minutes)
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS = 48;
 const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 24;

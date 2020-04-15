@@ -2147,7 +2147,6 @@ void WRKQMGR::removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkIt
 int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 {
     int rc = 0;
-    int l_rmvWrkQ_Locked = 0;
 
     stringstream l_Prefix;
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
@@ -2155,6 +2154,9 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
 
     unlockTransferQueueIfNeeded(pLVKey, "rmvWrkQ");
     int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "rmvWrkQ");
+
+    // NOTE: This mutex serializes with the BBLocalAsync BBCleanup methods
+    pthread_mutex_lock(&lock_on_rmvWrkQ);
     lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
@@ -2164,9 +2166,6 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
         {
             // Remove the work queue from the map
             WRKQE* l_WrkQE = it->second;
-            // NOTE: This mutex serializes with the BBLocalAsync BBCleanup methods...
-            pthread_mutex_lock(&lock_on_rmvWrkQ);
-            l_rmvWrkQ_Locked = 1;
             wrkqs.erase(it);
 
             // If the work queue being removed is currently
@@ -2190,7 +2189,7 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
                 }
                 if(CurrentWrkQE == l_WrkQE)
                 {
-                    CurrentWrkQE = NULL;
+                    CurrentWrkQE = (WRKQE*)0;
                 }
                 delete l_WrkQE;
             }
@@ -2200,12 +2199,6 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
         {
             rc = -1;
             LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
-
-        if (l_rmvWrkQ_Locked)
-        {
-            l_rmvWrkQ_Locked = 0;
-            pthread_mutex_unlock(&lock_on_rmvWrkQ);
         }
     }
     else
@@ -2224,11 +2217,20 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockWorkQueueMgr(pLVKey, "rmvWrkQ", &l_LocalMetadataUnlocked);
+    // NOTE: The rmvWrkQ lock cannot be held when attempting to
+    //       obtain the local metadata lock
+    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    pthread_mutex_unlock(&lock_on_rmvWrkQ);
+    if (l_LocalMetadataUnlocked)
+    {
+        l_LocalMetadataUnlocked = 0;
+        lockLocalMetadata(pLVKey, "rmvWrkQ");
+    }
 
-    // NOTE: Even if we had an error, we do not re-acquire the
-    //       work queue lock.  Otherwise, we deleted the work queue,
-    //       so no need to re-acquire the work queue lock.
+    // NOTE: If no error, we deleted the work queue, so no need to
+    //       re-acquire the transfer queue lock.  Even if we had an error,
+    //       we do not re-acquire the transfer queue lock because there
+    //       is no way to access that work queue now.
 
     return rc;
 }
@@ -2274,16 +2276,15 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_M
             rc = -2;
         }
 
+        if (l_LocalMetadataUnlockedInd)
+        {
+            pLocal_Metadata_Lock_Released = LOCAL_METADATA_LOCK_RELEASED;
+        }
         unlockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
     }
     else
     {
         rc = -2;
-    }
-
-    if (l_LocalMetadataUnlockedInd)
-    {
-        pLocal_Metadata_Lock_Released = LOCAL_METADATA_LOCK_RELEASED;
     }
 
     return rc;

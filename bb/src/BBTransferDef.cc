@@ -1605,7 +1605,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             //       this transfer definition originated on this bbServer.  If the
             //       second volley doesn't occur rather quickly, most likely the
             //       failover occurred between the two volleys.  Therefore, we
-            //       don't wait for the fill amount of time here.  The
+            //       don't wait for the full amount of time here.  The
             //       bbServer attempting to take over will wait the full amount of
             //       time.  So if possible, we want the original server to process
             //       first.

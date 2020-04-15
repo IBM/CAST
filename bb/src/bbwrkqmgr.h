@@ -446,6 +446,13 @@ class WRKQMGR
         return throttleMode;
     }
 
+    // NOTE: When this lock is obtained, no lock can be held
+    //       except for the work queue manager lock.  The
+    //       work queue manager lock cannot be released when
+    //       this lock is held.
+    // NOTE: After this lock is obtained, locks other than the
+    //       work queue manager lock can be obtained following
+    //       the lock protocol for those various locks.
     inline void lock_rmvWrkQ()
     {
         pthread_mutex_lock(&lock_on_rmvWrkQ);

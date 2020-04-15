@@ -1,6 +1,8 @@
 {
 	"bb" :
 	{
+		"bbserverDumpWorkQueueMgr_TimeInterval"             : 30,
+		"bbserverDumpLocalAsyncMgrTimeInterval"             : 180,
 		"bbserverAsyncRemoveJobInfo"                        : true,
 		"bbserverFastLocalMetadataRemoval"                  : true,
 		"nvmecliPath"                                       : "/usr/sbin/nvme",
@@ -14,7 +16,7 @@
 		"keepaliveinterval"                                 : 5,
 		"numHandlefileBuckets"                              : 4096,
 		"bbserverThrottle_TimeInterval"                     : 0.25,
-		"bbserverAsyncRequestRead_TimeInterval"             : 25.00,
+		"bbserverAsyncRequestRead_TimeInterval"             : 25,
 		"bbserverAsyncRemoveJobInfoInterval"                : 180,
 		"bbserverAsyncRemoveJobInfoNumberPerGroup"          : 4,
 

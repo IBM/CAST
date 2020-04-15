@@ -760,7 +760,7 @@ void AsyncRemoveJobInfo_Controller::init(const double pTimerInterval)
     if (g_AsyncRemoveJobInfo)
     {
         double l_AsyncRemoveJobInfoInterval = max(config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE), DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE);
-//        double l_AsyncRemoveJobInfoInterval = 60;
+//        l_AsyncRemoveJobInfoInterval = 60;
         poppedCount = (uint64_t)(l_AsyncRemoveJobInfoInterval/pTimerInterval);
         if (((double)poppedCount)*pTimerInterval != (l_AsyncRemoveJobInfoInterval))
         {
@@ -946,6 +946,7 @@ void Heartbeat_Controller::init(const double pTimerInterval)
 
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a heartbeat rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
+    LOG(bb,always) << "For failover situations, declare server dead time set to " << wrkqmgr.getDeclareServerDeadCount() << " seconds.";
     return;
 }
 
@@ -1104,7 +1105,6 @@ void BBCleanUpContribId::doit()
 {
     WRKQE* l_WrkQE = 0;
 
-    int l_WorkQueueMgrLocked = 0;
     int l_LocalMetadataLocked = 0;
     int l_TransferQueueLocked = 0;
     int l_rmvWrkQ_Locked = 0;
@@ -1121,17 +1121,12 @@ void BBCleanUpContribId::doit()
             wrkqmgr.lock_rmvWrkQ();
             l_rmvWrkQ_Locked = 1;
 
-            wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
-            l_WorkQueueMgrLocked = 1;
-
             int rc = wrkqmgr.getWrkQE(&lvkey, l_WrkQE);
             if (rc == 1 && l_WrkQE)
             {
                 rc = 0;
                 CurrentWrkQE = l_WrkQE;
 
-                l_WorkQueueMgrLocked = 0;
-                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit");
                 lockLocalMetadata(&lvkey, "BBCleanUpContribId::doit");
                 l_LocalMetadataLocked = 1;
                 lockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
@@ -1141,7 +1136,9 @@ void BBCleanUpContribId::doit()
                 {
 
                     BBLV_Info* l_LV_Info = metadata.getLV_Info(&lvkey);
-                    if (l_LV_Info)
+                    // NOTE: If stageout end processing has started, we cannot continue.
+                    //       That processing will clean up this transfer definition.
+                    if (l_LV_Info && (!l_LV_Info->stageOutEnded()))
                     {
                         l_CurrentNumberOfInFlightExtents = l_LV_Info->moreExtentsToTransfer(handle, contribid, 0);
                     }
@@ -1172,7 +1169,7 @@ void BBCleanUpContribId::doit()
                 l_TransferQueueLocked = 0;
                 unlockTransferQueue(&lvkey, "BBCleanUpContribId::doit");
             }
-            CurrentWrkQE = 0;
+            CurrentWrkQE = (WRKQE*)0;
 
             if (l_LocalMetadataLocked)
             {
@@ -1218,12 +1215,6 @@ void BBCleanUpContribId::doit()
         wrkqmgr.unlock_rmvWrkQ();
     }
 
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpContribId::doit - On exit");
-    }
-
     return;
 }
 
@@ -1231,7 +1222,6 @@ void BBCleanUpTagInfo::doit()
 {
     WRKQE* l_WrkQE = 0;
 
-    int l_WorkQueueMgrLocked = 0;
     int l_LocalMetadataLocked = 0;
     int l_TransferQueueLocked = 0;
     int l_rmvWrkQ_Locked = 0;
@@ -1248,18 +1238,12 @@ void BBCleanUpTagInfo::doit()
             wrkqmgr.lock_rmvWrkQ();
             l_rmvWrkQ_Locked = 1;
 
-            wrkqmgr.lockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
-            l_WorkQueueMgrLocked = 1;
-
             int rc = wrkqmgr.getWrkQE(&lvkey, l_WrkQE);
             if (rc == 1 && l_WrkQE)
             {
                 rc = 0;
                 CurrentWrkQE = l_WrkQE;
 
-                // NOTE: Once we drop the work queue manager lock, we can no longer trust l_WrkQE
-                l_WorkQueueMgrLocked = 0;
-                wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit");
                 lockLocalMetadata(&lvkey, "BBCleanUpTagInfo::doit");
                 l_LocalMetadataLocked = 1;
                 lockTransferQueue(&lvkey, "BBCleanUpTagInfo::doit");
@@ -1268,7 +1252,9 @@ void BBCleanUpTagInfo::doit()
                 size_t l_CurrentNumberOfInFlightExtents = 1;
                 {
                     BBLV_Info* l_LV_Info = metadata.getLV_Info(&lvkey);
-                    if (l_LV_Info)
+                    // NOTE: If stageout end processing has started, we cannot continue.
+                    //       That processing will clean up this taginfo object.
+                    if (l_LV_Info && (!l_LV_Info->stageOutEnded()))
                     {
                         BBTagInfo* l_TagInfo = l_LV_Info->getTagInfo(tagid);
                         if (l_TagInfo)
@@ -1351,12 +1337,6 @@ void BBCleanUpTagInfo::doit()
     {
         l_rmvWrkQ_Locked = 0;
         wrkqmgr.unlock_rmvWrkQ();
-    }
-
-    if (l_WorkQueueMgrLocked)
-    {
-        l_WorkQueueMgrLocked = 0;
-        wrkqmgr.unlockWorkQueueMgr(&lvkey, "BBCleanUpTagInfo::doit - On exit");
     }
 
     return;

@@ -84,9 +84,9 @@ class BBLV_Info
     int recalculateFlags(const string& pConnectionName, const LVKey* pLVKey, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo, const int64_t pHandle, const int32_t pContribId);
     void removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists);
     int retrieveTransfers(BBTransferDefs& pTransferDefs);
-    void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
+    void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef, BBSTATUS& pStatus);
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
-    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
+    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, ExtentInfo& pExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption);
     int setSuspended(const LVKey* pLVKey, const string& pHostName, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
@@ -227,7 +227,7 @@ class BBLV_Info
         return extentInfo.resizeLogicalVolumeDuringStageOut();
     }
 
-    inline int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const LVKey* pLVKey, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE) {
+    inline int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const LVKey* pLVKey, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus) {
         return tagInfoMap.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, connectionName, pLVKey, this, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
