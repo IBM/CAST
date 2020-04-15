@@ -1,38 +1,85 @@
-This describes how to use ansible to check, uninstall, and install burstbuffer on 
-compute nodes, bbserver nodes, launch nodes, and management nodes. 
+This describes how to use ansible to update burstbuffer with or without csm
+on compute nodes, bbserver nodes, launch nodes, and management nodes. 
 
-Execution requires changing to the directory and running as root
+Running update.sh will run the update.yml playbook.  The bash script will
+switch to the directory of update.sh use the hosts inventory file residing
+there.  The update playbook requires root.  The update.sh does a sudo.
+The bash script also sets environment variables to speed along execution.
+
+Execution of playbooks in the ansible directory requires switching to the
+directory and executing ansible-playbook as root.
 Example:
-sudo ansible-playbook -i hosts bbStop.ymls
-sudo ansible-playbook -i hosts bbStart.yml
+sudo ansible-playbook -i hosts update.yml
 
-Logging is according the ansible.cfg in effect per ansible documentation.  This was run using /etc/ansible/ansible.cfg.
+The ansible documentation also mentions ansible.cfg options and locations.
+The playbook design presumes the configuration file of /etc/ansible/ansible.cfg.
 
 
-hosts file
-Need to set the location of the RPMs for burst buffer install
-For the root private key on the system running the playbook, set ansible_private_key_file=<private key location>
-
-Example file hosts:
+Inventory file hosts
+For all hosts, these vars are settable:
 [all:vars]
-RPMDIR=/u/tgooding/workspace/castbuild/work/rpms
-CSMREQUIRED=REMOVELINEIFNOTREQUIRED
+BBRPMDIR=<fully qualified path to burst buffer RPMs>
+CSMRPMDIR=<fully qualified path to csm RPMs>
+
+To install burst buffer without CSM, remove the line with CSMRPMDIR.
+
+BBACTIVATE_PARMS needs to be set in the compute, server, and launch var lists.
+For example, 
+[compute:vars]
+BBACTIVATE_PARMS="--sharednode --csm"
+sets the bbactivate parameters to run with csm.  To run without csm, 
+[compute:vars]
+BBACTIVATE_PARMS="--sharednode --nocsm"
+
+For server vars, 
+[server:vars]
+BBMETADATA=/gpfs/gpfs0/bbmetadata
+BBACTIVATE_PARMS="--server --metadata={{BBMETADATA}}"
+where the BBMETADATA sets the bbserver location of the bbmetadata file and
+gets resued into the BBACTIVATE_PARMS.
+
+For launch vars, 
+launch:vars]
+BBACTIVATE_PARMS="--ln --bscfswork=<bscfs work dir> --envdir=HOME --lsfdir=<lsf etc directory with bb bash scripts>"
+
+Need to set the ansible_user such as 
+[all:vars]
+ansible_user=root
+
+
+Example file hosts running playbooks from c650f06p25:
+[all:vars]
+BBRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+CSMRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+SMPIRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
 
 [compute]
 c650f06p25 ansible_private_key_file=/root/.ssh/id_rsa
 c650f06p27 
 c650f06p29
 c650f06p31
+c650f07p07
+c650f07p05
+c650f06p35
 
 [compute:vars]
 ansible_user=root
+BBACTIVATE_PARMS="--sharednode --csm"
 
 [server]
 gssio1vm-hs
 gssio2vm-hs
+
+[server:vars]
+BBMETADATA=/gpfs/gpfs0/bbmetadata
+BBACTIVATE_PARMS="--server --metadata={{BBMETADATA}}"
 
 [management]
 c650mnp03
 
 [launch]
 c650mnp03
+
+[launch:vars]
+BBACTIVATE_PARMS="--ln --bscfswork=/u/tgooding/bscfswork --envdir=HOME --lsfdir=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc"
+
