@@ -2,8 +2,8 @@
 
 - hosts: all
   tasks:
-  - name: check all nodes for RPM directory
-    command: /usr/bin/file {{RPMDIR}} 
+  - name: check all nodes for CSM RPM directory
+    command: /usr/bin/file {{CSMRPMDIR}} 
     any_errors_fatal: true
 
 #check reachability of all hosts
@@ -24,7 +24,7 @@
     ignore_errors: yes
 
   - name: install csm RPMs on MN
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*.rpm {{RPMDIR}}/ibm-csm-api*.rpm {{RPMDIR}}/ibm-csm-db*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm {{RPMDIR}}/ibm-burstbuffer-mn*.rpm"
+    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-csm-db*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm {{CSMRPMDIR}}/ibm-burstbuffer-mn*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
@@ -45,7 +45,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on launch
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*.rpm {{RPMDIR}}/ibm-csm-api*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdutility_service_result.rc != 0    
@@ -58,7 +58,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on compute
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-csm-core*.rpm {{RPMDIR}}/ibm-csm-api*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdcompute_service_result.rc != 0    

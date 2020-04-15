@@ -8,7 +8,7 @@
     ignore_errors: yes
 
   - name: Start bbServer
-    command: /opt/ibm/bb/scripts/bbactivate --server --metadata=/gpfs/gpfs0/bbmetadata
+    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
     when: bbserver_service_result.rc != 0
     any_errors_fatal: true
 
@@ -25,7 +25,7 @@
     ignore_errors: yes
 
   - name: Start BB on computes
-    command: /opt/ibm/bb/scripts/bbactivate --sharednode --csm
+    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
     when: bbproxy_service_result.rc != 0
 
   - name: Check bbproxy is running
@@ -36,7 +36,7 @@
 - hosts: launch
   tasks:
   - name: start Burst Buffer on Launch node 
-    command: /opt/ibm/bb/scripts/bbactivate --ln --bscfswork=/u/tgooding/bscfswork --envdir=HOME --lsfdir=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc
+    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
     any_errors_fatal: true
 
 

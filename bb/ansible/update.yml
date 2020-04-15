@@ -1,12 +1,26 @@
 #  sudo ansible-playbook -i hosts  <this.yml>
- # hosts must set RPMDIR in [all.vars] section
 
-#check for RPMDIR early before doing upgrade
-- hosts: all
+- hosts: localhost
+  tasks:
+    - name: cwd
+      command: pwd  
+      register: pwd_info
+
+    - debug: 
+         msg: "cwd is {{pwd_info.stdout}} playbook_dir is {{playbook_dir}}" 
+
+#check for BB RPMDIR early before doing upgrade
+- hosts: server compute launch
   tasks:
   - name: check all nodes for RPM directory
-    command: /usr/bin/file {{RPMDIR}} 
+    command: /usr/bin/file {{BBRPMDIR}} 
     any_errors_fatal: true
+
+- hosts: server
+  tasks:
+  - name: check server node for BBMETADATA 
+    command: /usr/bin/file {{BBMETADATA}} 
+    any_errors_fatal: true    
 
 #section for stopping daemons, removing RPMs, cleaning up
 - hosts: localhost
@@ -29,10 +43,12 @@
          msg: install csm and bb
 - name: Include csm install     
   import_playbook: csmInstall.yml 
+  when: CSMRPMDIR is defined
 - name: Include bb install      
   import_playbook: bbInstall.yml 
 - name: Include csm start     
   import_playbook: csmStart.yml 
+  when: CSMRPMDIR is defined
 - name: Include bb start      
   import_playbook: bbStart.yml  
    

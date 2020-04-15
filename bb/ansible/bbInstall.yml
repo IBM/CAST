@@ -3,13 +3,13 @@
 - hosts: all
   tasks:
   - name: check all nodes for RPM directory
-    command: /usr/bin/file {{RPMDIR}} 
+    command: /usr/bin/file {{BBRPMDIR}} 
     any_errors_fatal: true
 
 - hosts: launch
   tasks:
   - name: install BB RPMs on launch node
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning       
 
@@ -21,7 +21,7 @@
     ignore_errors: yes
 
   - name: Installl BB RPMs on ESS
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-[01]*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[01]*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning
     when: bbserver_service_result.rc != 0
@@ -38,7 +38,7 @@
     ignore_errors: yes
 
   - name: install BB RPMs on Compute
-    shell: "yum localinstall -y {{RPMDIR}}/ibm-burstbuffer-*.rpm {{RPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: bbproxy_service_result.rc != 0

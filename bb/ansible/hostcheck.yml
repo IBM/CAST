@@ -2,7 +2,7 @@
 #check to see if all hosts are available--fail if not reachable
 - hosts: all
   tasks:
-  any_errors_fatal: true 
+  any_errors_fatal: true      
 
 - hosts: server
   tasks:
