@@ -56,7 +56,12 @@
 #include <linux/iomap.h>
 #endif
 
-#define EXP_VERSION "1.7.1"
+#if (LINUX_VERSION_CODE >=  KERNEL_VERSION(4,18,0))
+#define EXP_VERSION "1.8.1.R8"
+#else
+#define EXP_VERSION "1.8.1.R7"
+#endif 
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Bryan Rosenburg");
 MODULE_DESCRIPTION("Provides access to block layout functionality");
@@ -133,8 +138,8 @@ static int __init export_layout_init(void)
 	Device = device;
 
 	printk(KERN_INFO
-	       "%s: export_layout module (built %s %s)  major %d version %s  \n",
-	       __func__, __DATE__, __TIME__, Major, EXP_VERSION);
+	       "%s: export_layout module (built __DATE__ __TIME__)  major %d version %s  \n",
+	       __func__,  Major, EXP_VERSION);
 
 	return 0;
 
@@ -370,13 +375,22 @@ static long transfer_setup(struct file *filep,
 		       __func__, t->fd, t->target, t->target->f_path.dentry,rc,t->iomap_count,offset,length);
 			goto error_free_iomap;
 		}
-
+#if (LINUX_VERSION_CODE >=  KERNEL_VERSION(4,18,0))
+        if (map->offset < offset) {
+			u64 delta = offset - map->offset;
+			map->offset += delta;
+			map->addr += (delta / BASIC_BLOCK_SIZE) * BASIC_BLOCK_SIZE;
+			map->length -= delta;
+		}
+#else
 		if (map->offset < offset) {
 			u64 delta = offset - map->offset;
 			map->offset += delta;
 			map->blkno += (delta / BASIC_BLOCK_SIZE);
 			map->length -= delta;
 		}
+#endif		
+
 
 		if (map->length > length) {
 			map->length = length;
@@ -412,9 +426,16 @@ static long transfer_setup(struct file *filep,
 	setup_return->extent_count = t->iomap_count;
 	for (i = 0; i < t->iomap_count; i++) {
 		setup_return->extent[i].file_offset = t->iomap[i].offset;
+
+#if (LINUX_VERSION_CODE >=  KERNEL_VERSION(4,18,0))
+        setup_return->extent[i].blkdev_offset =
+		    t->iomap[i].addr +
+		    (t->iomap[i].offset % BASIC_BLOCK_SIZE);
+#else		
 		setup_return->extent[i].blkdev_offset =
 		    (t->iomap[i].blkno * BASIC_BLOCK_SIZE) +
 		    (t->iomap[i].offset % BASIC_BLOCK_SIZE);
+#endif			
 		setup_return->extent[i].length = t->iomap[i].length;
 	}
 
