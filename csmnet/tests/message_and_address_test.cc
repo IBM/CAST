@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 {
 	int rc = 0;
 	
-	csm_network_header_t header;
+	csm_network_header_t header = {0};
 	csm::network::Message Msg(header, "message");
 	csm::network::Address_sptr Addr = std::make_shared<csm::network::AddressUnix>(CSM_NETWORK_LOCAL_SSOCKET);
 
