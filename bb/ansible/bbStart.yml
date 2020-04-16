@@ -19,6 +19,16 @@
 
 - hosts: compute
   tasks:
+  - name: check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    register: export_layout_loaded
+    ignore_errors: yes
+
+  - name: modprobe export_layout module 
+    command: modprobe export_layout 
+    when: export_layout_loaded.rc != 0
+    any_errors_fatal: true 
+    
   - name: Skip any activation if bbproxy is running
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
