@@ -11,20 +11,18 @@
     register: csmdmaster_service_result
     ignore_errors: yes
 
-  - name: Skip any ccsmd-aggregator activation if already running
+  - name: Skip any csmd-aggregator activation if already running
     command:  /bin/systemctl status csmd-aggregator.service 
     register: csmdaggregator_service_result
     ignore_errors: yes
     
-  - name: start CSM master
-    command: /bin/systemctl start csmd-master.service
+  - debug: 
+      msg: csmd-master.service is NOT running
     when: csmdmaster_service_result.rc != 0
-    any_errors_fatal: true
-  
-  - name: start CSM aggregator
-    command: /bin/systemctl start csmd-aggregator.service
+
+  - debug: 
+      msg: csmd-aggregator.service is NOT running
     when: csmdaggregator_service_result.rc != 0
-    any_errors_fatal: true
     
 - hosts: launch
   tasks:
@@ -33,10 +31,9 @@
     register: csmdutility_service_result
     ignore_errors: yes
 
-  - name: start csmd-utility
-    command: /bin/systemctl start csmd-utility.service
+  - debug: 
+      msg: csmd-utility.service is NOT running
     when: csmdutility_service_result.rc != 0 
-    any_errors_fatal: true 
 
 - hosts: compute
   tasks:
@@ -45,7 +42,6 @@
     register: csmdcompute_service_result
     ignore_errors: yes
 
-  - name: start CSM compute
-    command: /bin/systemctl start csmd-compute.service
+  - debug: 
+      msg: csmd-compute.service is NOT running
     when: csmdcompute_service_result.rc != 0  
-    any_errors_fatal: true 
