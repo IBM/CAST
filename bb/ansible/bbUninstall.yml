@@ -83,6 +83,30 @@
     when: bbserver_status_result.rc != 0
     ignore_errors: yes 
 
+- hosts: compute 
+  tasks:
+  - name: remove export_layout.ko
+    shell: yum erase -y ibm-export_layout*
+    args:
+      warn: false # set warn=false to prevent warning
+    ignore_errors: yes    
+
+  - name: check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    register: export_layout_loaded
+    ignore_errors: yes  
+
+  - debug: 
+      msg: export_layout module STILL loaded
+    when:  export_layout_loaded.rc == 0
+
+  - fail: 
+     msg: failing since export_layout module STILL loaded
+    when: export_layout_loaded.rc == 0
+
+
+
+
 
  
     
