@@ -32,6 +32,22 @@
 
 - hosts: compute
   tasks:
+  - name: check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    register: export_layout_loaded
+    ignore_errors: yes
+
+  - name: install expert RPM on Compute
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-export_layout*.rpm"
+    args:
+      warn: false # set warn=false to prevent warning 
+    when: export_layout_loaded.rc != 0
+    ignore_errors: yes
+   
+  - name: Again check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    any_errors_fatal: true
+    
   - name: Skip any activation if bbproxy is running
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
