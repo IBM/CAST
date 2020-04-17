@@ -1494,7 +1494,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
         if (err.value())
         {
             l_Status = BBFAILED;
-            pTransferDef->setFailed(&pKey, pHandle, pContribId);
+            pTransferDef->setFailed(&pKey, pHandle, pContribId, UPDATE_CONTRIBID_FILE);
         }
 
         switch(l_Status) {
@@ -1522,7 +1522,7 @@ int doTransfer(LVKey& pKey, const uint64_t pHandle, const uint32_t pContribId, B
     {
         if (pExtent->flags & BBTD_Failed)
         {
-            pTransferDef->setFailed(&pKey, pHandle, pContribId);
+            pTransferDef->setFailed(&pKey, pHandle, pContribId, UPDATE_CONTRIBID_FILE);
             LOG(bb,info) << "Local compute node SSD copy failed for file " << pTransferDef->files[pExtent->sourceindex] \
                          << ", handle = " << pHandle << ", contribid = " << pContribId << ", sourceindex = " << pExtent->sourceindex;
         }
@@ -1684,18 +1684,17 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
     int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "markTransferFailed");
     int l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "markTransferFailed");
 
-    LVKey* l_LVKey = const_cast<LVKey*>(pLVKey);
-
     if (pTransferDef)
     {
         if (!pTransferDef->failed())
         {
+            UPDATE_CONTRIBID_FILE_OPTION l_UpdateOption = UPDATE_CONTRIBID_FILE;
             string l_ServerHostName;
             activecontroller->gethostname(l_ServerHostName);
             string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pTransferDef->getJobId(), pTransferDef->getJobStepId()), pHandle, pContribId);
             if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
             {
-                l_LVKey = NULL;
+                l_UpdateOption = DO_NOT_UPDATE_CONTRIBID_FILE;
                 LOG(bb,error) << "Transfer definition not marked as failed at for " << *pLVKey \
                               << ", handle " << pHandle << ", contribid " << pContribId \
                               << " because this bbserver is no longer servicing this transfer definition. " \
@@ -1704,8 +1703,7 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
 
             // Only mark the local transfer definition as failed so we do not attempt to
             // transfer any additional extents for this transfer definition.
-            // NOTE: l_LVKey passed as NULL indicates to setFailed() to not update the cross-bbserver metadata.
-            pTransferDef->setFailed(l_LVKey, pHandle, pContribId);
+            pTransferDef->setFailed(pLVKey, pHandle, pContribId, l_UpdateOption);
 
             if (pLV_Info && (!(pLV_Info->stageOutEnded())))
             {
@@ -3842,35 +3840,34 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
     int l_LocalMetadataUnlocked = 0;
     int l_WorkQueueMgrLocked = 0;
 
-    LVKey l_LVKey = *pLVKey;
-    l_LV_Info = metadata.getLV_Info(&l_LVKey);
-
-    if (l_LV_Info)
+    try
     {
-        // LVKey value found in BBLV_Info...
-        if (!(l_LV_Info->stageOutEnded()))
+        LVKey l_LVKey = *pLVKey;
+        l_LV_Info = metadata.getLV_Info(&l_LVKey);
+
+        if (l_LV_Info)
         {
-            // Stageout end not started
+            // LVKey value found in BBLV_Info...
             uint64_t l_JobId = l_LV_Info->getJobId();
-
-            // NOTE:  First, mark BBLV_Info as StageOutEnded before processing any extents associated with the jobid.
-            //        Doing so will ensure that such extents are not actually transferred and this thread of execution
-            //        is the only thread trying to cleanup this LVKey.
-            // NOTE:  The code below is very paranoid about re-resolving to the BBLV_Info object and the work queue
-            //        entry.  It is believed that the setting of the 'stageout ended' bit should only allow a single
-            //        thread to process (and remove) this LVKey and associated objects.  However, the code to re-resolve
-            //        has been kept as protection against SIGSEGV to those associated objects. SIGSEGV will end the server.
-            l_LV_Info->setStageOutEnded(&l_LVKey, l_JobId);
-
-            // Check to see if stgout_start has been called...  If not, send warning and continue...
-            // NOTE: 'Stageout started' really has no currently meaning...
-            if (!l_LV_Info->stageOutStarted()) {
-                // Stageout start was never received...
-                LOG(bb,debug) << "Stageout end received for " << l_LVKey << " without preceding stageout start.  Continuing...";
-            }
-
-            try
+            if (!(l_LV_Info->stageOutEnded()))
             {
+                // Stageout end not started
+                // NOTE:  First, mark BBLV_Info as StageOutEnded before processing any extents associated with the jobid.
+                //        Doing so will ensure that such extents are not actually transferred and this thread of execution
+                //        is the only thread trying to cleanup this LVKey.
+                // NOTE:  The code below is very paranoid about re-resolving to the BBLV_Info object and the work queue
+                //        entry.  It is believed that the setting of the 'stageout ended' bit should only allow a single
+                //        thread to process (and remove) this LVKey and associated objects.  However, the code to re-resolve
+                //        has been kept as protection against SIGSEGV to those associated objects. SIGSEGV will end the server.
+                l_LV_Info->setStageOutEnded(&l_LVKey, l_JobId);
+
+                // Check to see if stgout_start has been called...  If not, send warning and continue...
+                // NOTE: 'Stageout started' really has no currently meaning...
+                if (!l_LV_Info->stageOutStarted()) {
+                    // Stageout start was never received...
+                    LOG(bb,debug) << "Stageout end received for " << l_LVKey << " without preceding stageout start.  Continuing...";
+                }
+
                 LOG(bb,debug) << "StageoutEnd: Start:   " << l_LVKey << " for jobid " << l_JobId;
                 if (!CurrentWrkQE)
                 {
@@ -3886,231 +3883,268 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                 l_LV_Info = metadata.getLV_Info(&l_LVKey);
                 if (l_LV_Info)
                 {
-                    if (l_WrkQE)
+                    try
                     {
-                        CurrentWrkQE = l_WrkQE;
-                        l_WrkQ = l_WrkQE->getWrkQ();
-                        lockTransferQueue((LVKey*)0, "stageoutEnd");
-                        l_TransferQueueLocked = 1;
-
-                        // Next, wait for all in-flight I/O to complete
-                        // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
-                        //       \todo - What to do???  @DLH
-                        uint32_t i = 0;
-                        int l_DelayMsgLogged = 0;
-                        size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
-                        while (l_CurrentNumberOfInFlightExtents)
+                        if (l_WrkQE)
                         {
-                            LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << l_LVKey;
-                            // Source file for extent being inspected has NOT been closed.
-                            // Delay a bit for it to clear the in-flight queue and be closed...
-                            // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
-                            if ((i++ % 40) == 12)
-                            {
-                                FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
-                                         (uint64_t)l_CurrentNumberOfInFlightExtents, l_JobId, 0, 0);
-                                LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
-                                l_LV_Info->getExtentInfo()->dumpInFlight("info");
-                                l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
-                                l_DelayMsgLogged = 1;
-                            }
-                            l_TransferQueueLocked = 0;
-                            unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                            l_LocalMetadataUnlocked = 0;
-                            unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                            {
-                                usleep((useconds_t)250000);
-                            }
-                            lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
-                            l_LocalMetadataUnlocked = 1;
-                            lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                            CurrentWrkQE = l_WrkQE;
+                            l_WrkQ = l_WrkQE->getWrkQ();
+                            lockTransferQueue((LVKey*)0, "stageoutEnd");
                             l_TransferQueueLocked = 1;
-                            l_LV_Info = metadata.getLV_Info(&l_LVKey);
-                            l_CurrentNumberOfInFlightExtents = (l_LV_Info ? l_LV_Info->getNumberOfInFlightExtents() : 0);
-                        }
 
-                        if (l_DelayMsgLogged)
+                            // Next, wait for all in-flight I/O to complete
+                            // NOTE: If for some reason I/O is 'stuck' and does not return, the following is an infinite loop...
+                            //       \todo - What to do???  @DLH
+                            uint32_t i = 0;
+                            int l_DelayMsgLogged = 0;
+                            size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
+                            while (l_CurrentNumberOfInFlightExtents)
+                            {
+                                LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << l_LVKey;
+                                // Source file for extent being inspected has NOT been closed.
+                                // Delay a bit for it to clear the in-flight queue and be closed...
+                                // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
+                                if ((i++ % 40) == 12)
+                                {
+                                    FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
+                                             (uint64_t)l_CurrentNumberOfInFlightExtents, l_JobId, 0, 0);
+                                    LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
+                                    l_LV_Info->getExtentInfo()->dumpInFlight("info");
+                                    l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
+                                    l_DelayMsgLogged = 1;
+                                }
+                                l_TransferQueueLocked = 0;
+                                unlockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                                l_LocalMetadataUnlocked = 0;
+                                unlockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                                {
+                                    usleep((useconds_t)250000);
+                                }
+                                lockLocalMetadata(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                                l_LocalMetadataUnlocked = 1;
+                                lockTransferQueue(&l_LVKey, "stageoutEnd - Waiting for the in-flight queue to clear");
+                                l_TransferQueueLocked = 1;
+                                l_LV_Info = metadata.getLV_Info(&l_LVKey);
+                                l_CurrentNumberOfInFlightExtents = (l_LV_Info ? l_LV_Info->getNumberOfInFlightExtents() : 0);
+                            }
+
+                            if (l_DelayMsgLogged)
+                            {
+                                 LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
+                            }
+
+                            if (l_LV_Info)
+                            {
+                                size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
+                                if (l_CurrentNumberOfExtents)
+                                {
+                                    // Extents still left to be transferred...
+                                    l_TransferQueueLocked = 0;
+                                    unlockTransferQueue((LVKey*)0, "stageoutEnd - start process the work queue");
+                                    wrkqmgr.lockWorkQueueMgr(pLVKey, "stageoutEnd - start process the work queue", &l_LocalMetadataUnlocked);
+                                    l_WorkQueueMgrLocked = 1;
+                                    lockTransferQueue(&l_LVKey, "stageoutEnd - start process the work queue");
+                                    l_TransferQueueLocked = 1;
+
+                                    WorkID l_WorkId;
+                                    queue<WorkID> l_Temp;
+                                    queue<WorkID> l_Temp2;
+                                    BBLV_Info* l_WorkItemLV_Info;
+
+                                    wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
+                                    if (l_WrkQE)
+                                    {
+                                        // Now, process the remaining extents for this jobid
+                                        LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << l_LVKey;
+
+                                        // The workqueue is currently locked and must remain locked during the following
+                                        // unload and reload of the workqueue.
+                                        //
+                                        // Unload the current workqueue into l_Temp
+                                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents remaining on workqueue for " << l_LVKey << " before the reload processing";
+                                        while (l_WrkQE->getWrkQ_Size())
+                                        {
+                                            LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
+                                            l_WorkId = l_WrkQ->front();
+                                            l_WrkQ->pop();
+                                            l_Temp.push(l_WorkId);
+                                        }
+
+                                        // Reload the current workqueue
+                                        // For every work item that is not associated with the jobid that is having
+                                        // stageout ended, simply push the work item back on the workqueue.
+                                        //
+                                        // Note, that the extents will not be reordered as part of this unload/reload
+                                        // of the workqueue.  Also, because we push the extents that we will eventually
+                                        // invoke transferExtent() with onto l_Temp2, those extents will also be processed
+                                        // in the original order.  This is important because the first/last extent flags
+                                        // need to be processed in the correct order.
+                                        bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
+                                        while (l_Temp.size())
+                                        {
+                                            LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
+                                            l_WorkId = l_Temp.front();
+                                            l_Temp.pop();
+                                            l_WorkItemLV_Info = l_WorkId.getLV_Info();
+                                            if (l_WorkItemLV_Info)
+                                            {
+                                                if (l_WorkItemLV_Info->getJobId() == l_JobId)
+                                                {
+                                                    l_Temp2.push(l_WorkId);
+                                                }
+                                                else
+                                                {
+                                                    LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
+#if 0
+                                                    // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
+                                                    //       for cancel transfer or stop/restart processing
+                                                    if (!l_Temp.size())
+                                                    {
+                                                        // Validate work queue on last add...
+                                                        l_ValidateOption = VALIDATE_WORK_QUEUE;
+                                                    }
+#endif
+                                                    l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Reload processing.";
+                                                l_WorkId.dump("info", "Failure when reloading work queue ");
+                                            }
+                                        }
+                                    }
+
+                                    l_TransferQueueLocked = 0;
+                                    unlockTransferQueue(&l_LVKey, "stageoutEnd - end process the work queue");
+                                    l_WorkQueueMgrLocked = 0;
+                                    wrkqmgr.unlockWorkQueueMgr(pLVKey, "stageoutEnd - end process the work queue", &l_LocalMetadataUnlocked);
+                                    lockTransferQueue(&l_LVKey, "stageoutEnd - end process the work queue");
+                                    l_TransferQueueLocked = 1;
+
+                                    LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << l_LVKey << " after the reload processing";
+
+                                    // Unload and reload is complete.
+                                    //
+                                    // For every work item that is associated with the job that is having stageout
+                                    // ended, invoke transferExtent() to process the extent.  Note, that
+                                    // the extent will not be transferred, but rather, added and removed
+                                    // from the inflight queue.  Proper metadata updates, file unlocking,
+                                    // and messages sent to bbproxy will be performed as part removing the work
+                                    // items from the inflight queue.  The message(s) that are sent to bbproxy will
+                                    // eventually cause the files on the compute node to be unlocked.  The unlocking
+                                    // of the files on the compute node is necessary so that the ensuing Remove
+                                    // Logical Volume processing can unmount the file system from the logical
+                                    // volume.
+                                    // NOTE: We do not adjust the counting semaphore because we cannot re-init it...
+                                    //       We will just leave the excess posts there and the worker threads will
+                                    //       discard those as no-ops.
+
+                                    // NOTE: We dropped the local metadata lock above to process the work queue entries
+                                    //       so we need to re-resolve to the BBLV_Info...  It may already be gone...
+                                    l_LV_Info = metadata.getLV_Info(&l_LVKey);
+                                    if (l_LV_Info)
+                                    {
+                                        // NOTE: Calling transferExtent() may cause the transfer queue lock to be dropped and
+                                        //       re-acquired...
+                                        uint64_t l_LastJobId = UNDEFINED_JOBID;
+                                        XBBSERVER_JOB_EXISTS_OPTION l_JobExists = XBBSERVER_JOB_EXISTS;
+                                        while (l_Temp2.size())
+                                        {
+                                            LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_process_workitem");
+                                            l_WorkId = l_Temp2.front();
+                                            l_Temp2.pop();
+                                            l_WorkItemLV_Info = l_WorkId.getLV_Info();
+                                            if (l_WorkItemLV_Info)
+                                            {
+                                                ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
+                                                Extent* l_Extent = l_ExtentInfo.getExtent();
+                                                // Only need to process the last extent
+                                                if (l_Extent->isLastExtent())
+                                                {
+                                                    if (l_LastJobId != l_WorkItemLV_Info->getJobId())
+                                                    {
+                                                        l_LastJobId = l_WorkItemLV_Info->getJobId();
+                                                        if (!verifyJobIdExistsInXBbServerMetadata(l_LastJobId))
+                                                        {
+                                                            l_JobExists = XBBSERVER_JOB_DOES_NOT_EXIST;
+                                                        }
+                                                    }
+                                                    transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo, l_JobExists);
+                                                }
+                                                else
+                                                {
+                                                    // NOTE: transferExtent() will remove the extent from allExtents.
+                                                    //       Since we are not invoking transferExtent() for this extent,
+                                                    //       we must remove it here.
+                                                    l_WorkItemLV_Info->extentInfo.removeExtent(l_Extent);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Not sure how we could get here...  Do not set rc...  Plow ahead...
+                                                LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
+                                                l_WorkId.dump("info", "Failure when processing work items to remove ");
+                                            }
+                                            wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
                         {
-                             LOG(bb,info) << ">>>>> RESUME <<<<< stageoutEnd(): In-flight queue now clear.";
+                            // Do not set rc...  Plow ahead...
+                            LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
                         }
+                    }
+                    catch (ExceptionBailout& e) { }
+                    catch (exception& e)
+                    {
+                        LOG(bb,error) << "stageoutEnd(): Exception thrown: " << e.what();
+                        if (l_TransferQueueLocked)
+                        {
+                            l_TransferQueueLocked = 0;
+                            unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
+                        }
+                        if (l_WorkQueueMgrLocked)
+                        {
+                            l_WorkQueueMgrLocked = 0;
+                            wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - Exception thrown");
+                        }
+                        if (l_LocalMetadataUnlocked)
+                        {
+                            l_LocalMetadataUnlocked = 0;
+                            lockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
+                        }
+                        l_TransferQueueLocked = 1;
+                        lockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
+                    }
 
+                    try
+                    {
+                        // NOTE: If we had dropped the local metadata lock above to process the work queue entries,
+                        //       (transferExtent() processing) we need to re-resolve to the BBLV_Info...  It may already be gone...
+                        l_LV_Info = metadata.getLV_Info(&l_LVKey);
                         if (l_LV_Info)
                         {
-                            size_t l_CurrentNumberOfExtents = l_LV_Info->getNumberOfExtents();
-                            if (l_CurrentNumberOfExtents)
-                            {
-                                // Extents still left to be transferred...
-                                l_TransferQueueLocked = 0;
-                                unlockTransferQueue((LVKey*)0, "stageoutEnd - start process the work queue");
-                                wrkqmgr.lockWorkQueueMgr(pLVKey, "stageoutEnd - start process the work queue", &l_LocalMetadataUnlocked);
-                                l_WorkQueueMgrLocked = 1;
-                                lockTransferQueue(&l_LVKey, "stageoutEnd - start process the work queue");
-                                l_TransferQueueLocked = 1;
-
-                                WorkID l_WorkId;
-                                queue<WorkID> l_Temp;
-                                queue<WorkID> l_Temp2;
-                                BBLV_Info* l_WorkItemLV_Info;
-
-                                wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
-                                if (l_WrkQE)
-                                {
-                                    // Now, process the remaining extents for this jobid
-                                    LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfExtents << " extents still remain on workqueue for " << l_LVKey;
-
-                                    // The workqueue is currently locked and must remain locked during the following
-                                    // unload and reload of the workqueue.
-                                    //
-                                    // Unload the current workqueue into l_Temp
-                                    LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents remaining on workqueue for " << l_LVKey << " before the reload processing";
-                                    while (l_WrkQE->getWrkQ_Size())
-                                    {
-                                        LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
-                                        l_WorkId = l_WrkQ->front();
-                                        l_WrkQ->pop();
-                                        l_Temp.push(l_WorkId);
-                                    }
-
-                                    // Reload the current workqueue
-                                    // For every work item that is not associated with the jobid that is having
-                                    // stageout ended, simply push the work item back on the workqueue.
-                                    //
-                                    // Note, that the extents will not be reordered as part of this unload/reload
-                                    // of the workqueue.  Also, because we push the extents that we will eventually
-                                    // invoke transferExtent() with onto l_Temp2, those extents will also be processed
-                                    // in the original order.  This is important because the first/last extent flags
-                                    // need to be processed in the correct order.
-                                    bool l_ValidateOption = DO_NOT_VALIDATE_WORK_QUEUE;
-                                    while (l_Temp.size())
-                                    {
-                                        LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_unload_workqueue");
-                                        l_WorkId = l_Temp.front();
-                                        l_Temp.pop();
-                                        l_WorkItemLV_Info = l_WorkId.getLV_Info();
-                                        if (l_WorkItemLV_Info)
-                                        {
-                                            if (l_WorkItemLV_Info->getJobId() == l_JobId)
-                                            {
-                                                l_Temp2.push(l_WorkId);
-                                            }
-                                            else
-                                            {
-                                                LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_reload_workqueue");
-#if 0
-                                                // NOTE: This validate can fail because of the 'lazy' remove we now perform when canceling extexts
-                                                //       for cancel transfer or stop/restart processing
-                                                if (!l_Temp.size())
-                                                {
-                                                    // Validate work queue on last add...
-                                                    l_ValidateOption = VALIDATE_WORK_QUEUE;
-                                                }
-#endif
-                                                l_WrkQE->addWorkItem(l_WorkId, l_ValidateOption);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                            LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Reload processing.";
-                                            l_WorkId.dump("info", "Failure when reloading work queue ");
-                                        }
-                                    }
-                                }
-
-                                l_TransferQueueLocked = 0;
-                                unlockTransferQueue(&l_LVKey, "stageoutEnd - end process the work queue");
-                                l_WorkQueueMgrLocked = 0;
-                                wrkqmgr.unlockWorkQueueMgr(pLVKey, "stageoutEnd - end process the work queue", &l_LocalMetadataUnlocked);
-                                lockTransferQueue(&l_LVKey, "stageoutEnd - end process the work queue");
-                                l_TransferQueueLocked = 1;
-
-                                LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << l_LVKey << " after the reload processing";
-
-                                // Unload and reload is complete.
-                                //
-                                // For every work item that is associated with the job that is having stageout
-                                // ended, invoke transferExtent() to process the extent.  Note, that
-                                // the extent will not be transferred, but rather, added and removed
-                                // from the inflight queue.  Proper metadata updates, file unlocking,
-                                // and messages sent to bbproxy will be performed as part removing the work
-                                // items from the inflight queue.  The message(s) that are sent to bbproxy will
-                                // eventually cause the files on the compute node to be unlocked.  The unlocking
-                                // of the files on the compute node is necessary so that the ensuing Remove
-                                // Logical Volume processing can unmount the file system from the logical
-                                // volume.
-                                // NOTE: We do not adjust the counting semaphore because we cannot re-init it...
-                                //       We will just leave the excess posts there and the worker threads will
-                                //       discard those as no-ops.
-
-                                // NOTE: We dropped the local metadata lock above to process the work queue entries
-                                //       so we need to re-resolve to the BBLV_Info...  It may already be gone...
-                                l_LV_Info = metadata.getLV_Info(&l_LVKey);
-                                if (l_LV_Info)
-                                {
-                                    // NOTE: Calling transferExtent() may cause the transfer queue lock to be dropped and
-                                    //       re-acquired...
-                                    uint64_t l_LastJobId = UNDEFINED_JOBID;
-                                    XBBSERVER_JOB_EXISTS_OPTION l_JobExists = XBBSERVER_JOB_EXISTS;
-                                    while (l_Temp2.size())
-                                    {
-                                        LOOP_COUNT(__FILE__,__FUNCTION__,"stageoutEnd_process_workitem");
-                                        l_WorkId = l_Temp2.front();
-                                        l_Temp2.pop();
-                                        l_WorkItemLV_Info = l_WorkId.getLV_Info();
-                                        if (l_WorkItemLV_Info)
-                                        {
-                                            ExtentInfo l_ExtentInfo = l_WorkItemLV_Info->getNextExtentInfo();
-                                            Extent* l_Extent = l_ExtentInfo.getExtent();
-                                            // Only need to process the last extent
-                                            if (l_Extent->isLastExtent())
-                                            {
-                                                if (l_LastJobId != l_WorkItemLV_Info->getJobId())
-                                                {
-                                                    l_LastJobId = l_WorkItemLV_Info->getJobId();
-                                                    if (!verifyJobIdExistsInXBbServerMetadata(l_LastJobId))
-                                                    {
-                                                        l_JobExists = XBBSERVER_JOB_DOES_NOT_EXIST;
-                                                    }
-                                                }
-                                                transferExtent(l_WorkItemLV_Info, l_WorkId, l_ExtentInfo, l_JobExists);
-                                            }
-                                            else
-                                            {
-                                                // NOTE: transferExtent() will remove the extent from allExtents.
-                                                //       Since we are not invoking transferExtent() for this extent,
-                                                //       we must remove it here.
-                                                l_WorkItemLV_Info->extentInfo.removeExtent(l_Extent);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            // Not sure how we could get here...  Do not set rc...  Plow ahead...
-                                            LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
-                                            l_WorkId.dump("info", "Failure when processing work items to remove ");
-                                        }
-                                        wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
-                                    }
-                                }
-                            }
+                            // Perform cleanup for the LVKey value
+                            // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
+                            //       associated with this LVKey.
+                            l_LV_Info->cleanUpAll(&l_LVKey);
                         }
                     }
-                    else
+                    catch (ExceptionBailout& e) { }
+                    catch (exception& e)
                     {
-                        // Do not set rc...  Plow ahead...
-                        LOG(bb,warning) << "stageoutEnd(): Failure when attempting to resolve to the work queue entry for " << l_LVKey;
+                        // Tolerate all and plow ahead...
+                        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
                     }
+                }
 
-                    // NOTE: If we had dropped the local metadata lock above to process the work queue entries,
-                    //       (transferExtent() processing) we need to re-resolve to the BBLV_Info...  It may already be gone...
-                    l_LV_Info = metadata.getLV_Info(&l_LVKey);
-                    if (l_LV_Info)
-                    {
-                        // Perform cleanup for the LVKey value
-                        // NOTE: The invocation of cleanUpAll() will remove all transfer definitions
-                        //       associated with this LVKey.
-                        l_LV_Info->cleanUpAll(&l_LVKey);
-                    }
-
+                try
+                {
                     // Remove the work queue
                     // NOTE: Since the work queue will be deleted by rmvWrkQ(),
                     //       the work queue lock is removed by that method.
@@ -4123,72 +4157,74 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                         LOG(bb,warning) << "stageoutEnd: Failure occurred when attempting to remove the work queue for " << l_LVKey;
                         rc = 0;
                     }
+                }
+                catch (ExceptionBailout& e) { }
+                catch (exception& e)
+                {
+                    // Tolerate all and plow ahead...
+                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+                }
 
-                    // NOTE:  Not sure of the original intent of pForced, but this method is always
-                    //        invoked with pForced = FORCED (1)
-                    // NOTE:  For now, keep BBLV_Info around so that the dump of the work queue manager
-                    //        shows the depleted allExtents/inflight queues until removejobinfo() removes the
-                    //        LVKey entry and LVInfo object.
-                    // NOTE:  If we ever want to invoke cleanLVKeyOnly() here, need to fix the problem when
-                    //        removejobinfo() is later invoked and attempts -  metaDataMap.erase(it);
-                    //        Probably would have to erase the entire entry here also...
-                    if (0==1 ||(!pForced))
-                    {
-                        // Remove BBLV_Info that is currently associated with this LVKey value...
-                        LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
-                        metadata.cleanLVKeyOnly(&l_LVKey);
-                    }
-
+#if 0
+                // NOTE:  Not sure of the original intent of pForced, but this method is always
+                //        invoked with pForced = FORCED (1)
+                // NOTE:  For now, keep BBLV_Info around so that the dump of the work queue manager
+                //        shows the depleted allExtents/inflight queues until removejobinfo() removes the
+                //        LVKey entry and LVInfo object.
+                // NOTE:  If we ever want to invoke cleanLVKeyOnly() here, need to fix the problem when
+                //        removejobinfo() is later invoked and attempts -  metaDataMap.erase(it);
+                //        Probably would have to erase the entire entry here also...
+                if (0==1 ||(!pForced))
+                {
+                    // Remove BBLV_Info that is currently associated with this LVKey value...
+                    LOG(bb,info) << "stageoutEnd(): Removing all transfer definitions and clearing the allExtents vector for " << l_LVKey << " for jobid = " << l_LV_Info->getJobId();
+                    metadata.cleanLVKeyOnly(&l_LVKey);
+                }
+#endif
+                try
+                {
                     if (l_LV_Info)
                     {
                         l_LV_Info->setStageOutEndedComplete(&l_LVKey, l_LV_Info->getJobId());
                         LOG(bb,debug) << "StageoutEnd: Ended:   " << l_LVKey << " for jobid " << l_LV_Info->getJobId();
                     }
                 }
+                catch (ExceptionBailout& e) { }
+                catch (exception& e)
+                {
+                    // Tolerate all and plow ahead...
+                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+                }
             }
-            catch (ExceptionBailout& e) { }
-            catch (exception& e)
+            else
             {
-                LOG(bb,error) << "stageoutEnd(): Exception thrown: " << e.what();
-                if (l_TransferQueueLocked)
+                // Stageout end was already received...
+                rc = -2;
+                if (!(l_LV_Info->stageOutEndedComplete()))
                 {
-                    l_TransferQueueLocked = 0;
-                    unlockTransferQueue(&l_LVKey, "stageoutEnd - Exception thrown");
+                    errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and is currently being processed";
+                    LOG_INFO_TEXT_RC(errorText, rc);
                 }
-                if (l_WorkQueueMgrLocked)
+                else
                 {
-                    l_WorkQueueMgrLocked = 0;
-                    wrkqmgr.unlockWorkQueueMgr(&l_LVKey, "stageoutEnd - Exception thrown");
-                }
-                if (l_LocalMetadataUnlocked)
-                {
-                    l_LocalMetadataUnlocked = 0;
-                    lockLocalMetadata(&l_LVKey, "stageoutEnd - Exception thrown");
+                    errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and has finished being processed";
+                    LOG_INFO_TEXT_RC(errorText, rc);
                 }
             }
         }
         else
         {
-            // Stageout end was already received...
+            // LVKey could not be found in BBLV_Info...
             rc = -2;
-            if (!(l_LV_Info->stageOutEndedComplete()))
-            {
-                errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and is currently being processed";
-                LOG_INFO_TEXT_RC(errorText, rc);
-            }
-            else
-            {
-                errorText << "Stageout end was received for " << l_LVKey << ", but stageout end has already been received and has finished being processed";
-                LOG_INFO_TEXT_RC(errorText, rc);
-            }
+            errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
+            LOG_INFO_TEXT_RC(errorText, rc);
         }
     }
-    else
+    catch (ExceptionBailout& e) { }
+    catch (exception& e)
     {
-        // LVKey could not be found in BBLV_Info...
-        rc = -2;
-        errorText << "Stageout end was received, but no transfer handles can be found for " << l_LVKey << ". Cleanup of metadata not required.";
-        LOG_INFO_TEXT_RC(errorText, rc);
+        // Tolerate all and plow ahead...
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
     EXIT(__FILE__,__FUNCTION__);

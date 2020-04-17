@@ -350,6 +350,13 @@ enum PERFORM_TAGINFO_CLEANUP_OPTION
 };
 typedef enum PERFORM_TAGINFO_CLEANUP_OPTION PERFORM_TAGINFO_CLEANUP_OPTION;
 
+enum UPDATE_CONTRIBID_FILE_OPTION
+{
+    DO_NOT_UPDATE_CONTRIBID_FILE    = 0,
+    UPDATE_CONTRIBID_FILE           = 1
+};
+typedef enum UPDATE_CONTRIBID_FILE_OPTION UPDATE_CONTRIBID_FILE_OPTION;
+
 /*******************************************************************************
  | Macro definitions
  *******************************************************************************/

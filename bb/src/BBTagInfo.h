@@ -208,10 +208,6 @@ class BBTagInfo
         return parts.setCanceled(pLVKey, this, pHandle, pContribId, pValue);
     }
 
-    inline int setFailed(const LVKey* pLVKey, uint64_t pHandle, const uint32_t pContribId, const int pValue=1) {
-        return parts.setFailed(pLVKey, this, pHandle, pContribId, pValue);
-    }
-
     inline int stopped() {
         RETURN_FLAG(BBTD_Stopped);
     }

@@ -118,6 +118,7 @@ void BBTagInfoMap::cleanUpAll(const LVKey* pLVKey)
     catch(exception& e)
     {
         // Tolerate everything...
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
     return;

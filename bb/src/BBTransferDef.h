@@ -418,7 +418,7 @@ class BBTransferDef
     void setAllFilesClosed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
     void setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
-    void setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue=1);
+    void setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const UPDATE_CONTRIBID_FILE_OPTION pUpdateContribIdFileOption, const int pValue=1);
 #endif
     void setJob();
 #if BBSERVER

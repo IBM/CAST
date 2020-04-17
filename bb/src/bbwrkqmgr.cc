@@ -2159,10 +2159,10 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     pthread_mutex_lock(&lock_on_rmvWrkQ);
     lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
 
-    std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
-    if (it != wrkqs.end())
+    try
     {
-        try
+        std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
+        if (it != wrkqs.end())
         {
             // Remove the work queue from the map
             WRKQE* l_WrkQE = it->second;
@@ -2193,29 +2193,20 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
                 }
                 delete l_WrkQE;
             }
-        }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
-    }
-    else
-    {
-        // NOTE: This is possible with a concurrent remove logical volume and the opening up
-        //       of processing windows for the local metadata lock.  Simply, tolerate the condition...
-#if 0
-        rc = -1;
-        stringstream errorText;
-        errorText << " Failure when attempting to remove workqueue for " << *pLVKey << ". Work queue was not found.";
-        dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
-        LOG_ERROR_TEXT_RC(errorText, rc);
-#endif
-    }
 
-    l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
-    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+            l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
+            dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+        }
+        else
+        {
+            // NOTE: Tolerate the condition...
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
 
     // NOTE: The rmvWrkQ lock cannot be held when attempting to
     //       obtain the local metadata lock
