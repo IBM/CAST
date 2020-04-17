@@ -82,10 +82,11 @@ int main(int argc, char *argv[])
 	/*CSM Variables*/
 	csm_api_object *csm_obj = NULL;
 	/*API Variables*/
-    API_PARAMETER_INPUT_TYPE   input;
-    input.allocation_id = 0;
+	API_PARAMETER_INPUT_TYPE input;
+	API_PARAMETER_OUTPUT_TYPE *output = NULL;
 
-    API_PARAMETER_OUTPUT_TYPE *output = NULL;
+	csm_init_struct(API_PARAMETER_INPUT_TYPE, input);
+    	input.allocation_id = 0;
 	
 	while ((opt = getopt_long(argc, argv, "hv:a:", longopts, &indexptr)) != -1) {
 		switch (opt) {
