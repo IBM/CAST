@@ -163,6 +163,8 @@ class BBAsyncRequestData
     void recordRequestCompletion(int64_t pRequestNumber);
     int64_t addRequest(BBLocalRequest* pRequest);
     int64_t getNumberOfInFlightRequests();
+    int64_t getNumberOfOutOfSequenceRequests();
+    int64_t getNumberOfWaitingRequests();
     int64_t removeNextRequest(BBLocalRequest* &pRequest);
 
     // Data members

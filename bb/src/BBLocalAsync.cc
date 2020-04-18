@@ -175,9 +175,12 @@ int64_t BBAsyncRequestData::addRequest(BBLocalRequest* pRequest)
 
 void BBAsyncRequestData::dump(const char* pPrefix)
 {
-    LOG(bb,info) << "  Priority " << setw(11) << getLocalAsyncPriorityStr(priority) << ": last issued " << lastRequestNumberIssued \
-                 << ", last dispatched " << lastRequestNumberDispatched << ", last processed " << lastRequestNumberProcessed \
-                 << ", max concurrent " << maximumConcurrentRunning<< ", # OutOfSeq " << size(outOfSequenceRequests);
+    lock();
+    LOG(bb,info) << "  Priority " << setw(11) << getLocalAsyncPriorityStr(priority) << ": #Iss'd " << lastRequestNumberIssued \
+                 << ", #Disptch'd " << lastRequestNumberDispatched << ", #Proc'd " << lastRequestNumberProcessed \
+                 << ", #MaxConcur " << maximumConcurrentRunning << " #Inflt " << (lastRequestNumberDispatched - lastRequestNumberProcessed) - size(outOfSequenceRequests) \
+                 << ", #Wait " << lastRequestNumberIssued - lastRequestNumberDispatched << ", #_OutOfSeq " << size(outOfSequenceRequests);
+    unlock();
 
     return;
 }
@@ -187,7 +190,29 @@ int64_t BBAsyncRequestData::getNumberOfInFlightRequests()
     int64_t l_NumberOfRequests = 0;
 
     lock();
-    l_NumberOfRequests = lastRequestNumberDispatched - lastRequestNumberProcessed;
+    l_NumberOfRequests = (lastRequestNumberDispatched - lastRequestNumberProcessed) - size(outOfSequenceRequests);
+    unlock();
+
+    return l_NumberOfRequests;
+}
+
+int64_t BBAsyncRequestData::getNumberOfOutOfSequenceRequests()
+{
+    int64_t l_NumberOfRequests = 0;
+
+    lock();
+    l_NumberOfRequests = size(outOfSequenceRequests);
+    unlock();
+
+    return l_NumberOfRequests;
+}
+
+int64_t BBAsyncRequestData::getNumberOfWaitingRequests()
+{
+    int64_t l_NumberOfRequests = 0;
+
+    lock();
+    l_NumberOfRequests = lastRequestNumberIssued - lastRequestNumberDispatched;
     unlock();
 
     return l_NumberOfRequests;
