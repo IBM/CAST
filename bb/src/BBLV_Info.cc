@@ -441,18 +441,23 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
 //    pExtentInfo.verify();
 
+    Extent* l_Extent = pExtentInfo.getExtent();
+    BBTransferDef* l_TransferDef = pExtentInfo.getTransferDef();
+    uint64_t l_Handle = pExtentInfo.getHandle();
+    uint32_t l_ContribId = pExtentInfo.getContrib();
+
     // Check to see if this is the last extent to be transferred for the source file
     // NOTE:  isCP_Transfer() indicates this is a transfer performed via cp, either locally on
     //        the compute node or remotely on the I/O node.  A single extent is enqueued
     //        for a local/remote cp for a file.
-    if (!(pExtentInfo.getExtent()->isCP_Transfer()))
+    if (!(l_Extent->isCP_Transfer()))
     {
         // An actual transfer of data was performed...
         // NOTE:  However, the length could be zero for a file with no extents
         //        or the last extent was truncated to zero.  We send extents with
         //        a length of zero down this path so that the file status is properly
         //        updated.
-        if (pExtentInfo.getExtent()->flags & BBI_Last_Extent)
+        if (l_Extent->flags & BBI_Last_Extent)
         {
             // Last extent
 
@@ -461,7 +466,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
             uint32_t i = 0;
             int l_DumpOption = DO_NOT_DUMP_QUEUES_ON_VALUE;
             int l_DelayMsgLogged = 0;
-            while (extentInfo.moreExtentsToTransferForFile((int64_t)pExtentInfo.getHandle(), (int32_t)pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, l_DumpOption))
+            while (extentInfo.moreExtentsToTransferForFile((int64_t)l_Handle, (int32_t)l_ContribId, pExtentInfo.getSourceIndex(), THIS_EXTENT_IS_IN_THE_INFLIGHT_QUEUE, l_DumpOption))
             {
                 unlockTransferQueue(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
                 l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Waiting for in-flight queue to clear");
@@ -472,9 +477,9 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                     if ((i++ % 240) == 120)
                     {
                         FL_Write(FLDelay, RemoveFromInFlight, "Processing last extent, waiting for in-flight queue to clear of extents for handle %ld, contribid %ld, sourceindex %ld.",
-                                 pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getSourceIndex(), 0);
-                        LOG(bb,info) << ">>>>> DELAY <<<<< removeFromInFlight(): Processing last extent, waiting for in-flight queue to clear of extents for handle " << pExtentInfo.getHandle() \
-                                     << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " << pExtentInfo.getSourceIndex();
+                                 l_Handle, l_ContribId, pExtentInfo.getSourceIndex(), 0);
+                        LOG(bb,info) << ">>>>> DELAY <<<<< removeFromInFlight(): Processing last extent, waiting for in-flight queue to clear of extents for handle " << l_Handle \
+                                     << ", contribid " << l_ContribId << ", sourceindex " << pExtentInfo.getSourceIndex();
                         l_DelayMsgLogged = 1;
                     }
                     usleep((useconds_t)250000);
@@ -499,16 +504,16 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
             if (l_DelayMsgLogged)
             {
-                LOG(bb,info) << ">>>>> RESUME <<<<< removeFromInFlight(): Processing last extent, in-flight queue is now clear of all extents for handle " << pExtentInfo.getHandle() \
-                             << ", contribid " << pExtentInfo.getContrib() << ", sourceindex " << pExtentInfo.getSourceIndex();
+                LOG(bb,info) << ">>>>> RESUME <<<<< removeFromInFlight(): Processing last extent, in-flight queue is now clear of all extents for handle " << l_Handle \
+                             << ", contribid " << l_ContribId << ", sourceindex " << pExtentInfo.getSourceIndex();
             }
 
             unlockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
 
-            if ((!pExtentInfo.getTransferDef()->stopped()) && (!pExtentInfo.getTransferDef()->canceled()))
+            if ((!l_TransferDef->stopped()) && (!l_TransferDef->canceled()) && (!l_TransferDef->failed()))
             {
-                uint16_t l_BundleId = pExtentInfo.getExtent()->getBundleID();
-                BBIO* l_IO = pExtentInfo.getTransferDef()->iomap[l_BundleId];
+                uint16_t l_BundleId = l_Extent->getBundleID();
+                BBIO* l_IO = l_TransferDef->iomap[l_BundleId];
                 if (l_IO)
                 {
                     // Perform any necessary syncing of the data for the target file
@@ -516,46 +521,46 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
                     try
                     {
-                        if (pExtentInfo.getExtent()->flags & BBI_TargetSSD)
+                        if (l_Extent->flags & BBI_TargetSSD)
                         {
-                            if (pExtentInfo.getExtent()->len)
+                            if (l_Extent->len)
                             {
                                 // Target is SSD...
-                                int ssd_fd = l_IO->getReadFdByExtent(pExtentInfo.getExtent());
+                                int ssd_fd = l_IO->getReadFdByExtent(l_Extent);
                                 if (ssd_fd >= 0)
                                 {
-                                    LOG(bb,debug) << "Final SSD fsync start: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
+                                    LOG(bb,debug) << "Final SSD fsync start: targetindex " << l_Extent->targetindex << ", ssd fd " << ssd_fd;
                                     FL_Write(FLTInf2, FSYNC_SSD, "Performing SSD fsync.  fd=%ld", ssd_fd,0,0,0);
-                                    pExtentInfo.getTransferDef()->preProcessSync(l_Time);
+                                    l_TransferDef->preProcessSync(l_Time);
                                     ::fsync(ssd_fd);
-                                    pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
+                                    l_TransferDef->postProcessSync(l_Extent->targetindex, l_Time);
                                     FL_Write(FLTInf2, FSYNC_SSDCMP, "Performed SSD fsync.  fd=%ld", ssd_fd,0,0,0);
-                                    LOG(bb,debug) << "Final SSD fsync: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
+                                    LOG(bb,debug) << "Final SSD fsync: targetindex " << l_Extent->targetindex << ", ssd fd " << ssd_fd;
                                 }
                                 else
                                 {
-                                    LOG(bb,error) << "getReadFdByExtent: targetindex " << pExtentInfo.getExtent()->targetindex << ", ssd fd " << ssd_fd;
+                                    LOG(bb,error) << "getReadFdByExtent: targetindex " << l_Extent->targetindex << ", ssd fd " << ssd_fd;
                                 }
                             }
 
                         }
-                        else if (pExtentInfo.getExtent()->flags & BBI_TargetPFS)
+                        else if (l_Extent->flags & BBI_TargetPFS)
                         {
                             // Target is PFS...
-                            LOG(bb,debug) << "Final PFS fsync start: targetindex=" << pExtentInfo.getExtent()->targetindex << ", transdef=" << pExtentInfo.getTransferDef() << ", handle=" << pExtentInfo.getHandle() << ", contribid=" << pExtentInfo.getContrib();
-                            FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
-                            pExtentInfo.getTransferDef()->preProcessSync(l_Time);
-                            l_IO->fsync(pExtentInfo.getExtent()->targetindex);
-                            pExtentInfo.getTransferDef()->postProcessSync(pExtentInfo.getExtent()->targetindex, l_Time);
-                            FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", pExtentInfo.getExtent()->targetindex,0,0,0);
-                            LOG(bb,debug) << "Final PFS fsync end: targetindex=" << pExtentInfo.getExtent()->targetindex;
+                            LOG(bb,debug) << "Final PFS fsync start: targetindex=" << l_Extent->targetindex << ", transdef=" << l_TransferDef << ", handle=" << l_Handle << ", contribid=" << l_ContribId;
+                            FL_Write(FLTInf2, FSYNC_PFS, "Performing PFS fsync.  Target index=%ld", l_Extent->targetindex,0,0,0);
+                            l_TransferDef->preProcessSync(l_Time);
+                            l_IO->fsync(l_Extent->targetindex);
+                            l_TransferDef->postProcessSync(l_Extent->targetindex, l_Time);
+                            FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", l_Extent->targetindex,0,0,0);
+                            LOG(bb,debug) << "Final PFS fsync end: targetindex=" << l_Extent->targetindex;
                         }
                     }
                     catch (ExceptionBailout& e) { }
                     catch (exception& e)
                     {
                         LOG(bb,error) << "removeFromInFlight(): Exception thrown when attempting to sync the data: " << e.what();
-                        pExtentInfo.getExtent()->dump("info", "Exception thrown when attempting to sync the data");
+                        l_Extent->dump("info", "Exception thrown when attempting to sync the data");
                     }
 
                     if (l_LocalMetadataUnlocked)
@@ -566,7 +571,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                 }
                 else
                 {
-                    LOG(bb,error) << "removeFromInFlight: Could not retrieve the BBIO object for extent " << pExtentInfo.getExtent();
+                    LOG(bb,error) << "removeFromInFlight: Could not retrieve the BBIO object for extent " << l_Extent;
                 }
             }
             // Update the status for the file in xbbServer data
@@ -575,7 +580,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
             if (pJobExists == XBBSERVER_JOB_EXISTS)
             {
-                ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
+                ContribIdFile::update_xbbServerFileStatus(pLVKey, l_TransferDef, l_Handle, l_ContribId, l_Extent, BBTD_All_Extents_Transferred);
             }
             l_UpdateTransferStatus = true;
         }
@@ -601,7 +606,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
         if (pJobExists == XBBSERVER_JOB_EXISTS)
         {
-            ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), pExtentInfo.getHandle(), pExtentInfo.getContrib(), pExtentInfo.getExtent(), BBTD_All_Extents_Transferred);
+            ContribIdFile::update_xbbServerFileStatus(pLVKey, pExtentInfo.getTransferDef(), l_Handle, l_ContribId, l_Extent, BBTD_All_Extents_Transferred);
         }
         l_UpdateTransferStatus = true;
     }
@@ -635,7 +640,7 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
         }
         else if (l_PerformContribIdCleanup == PERFORM_CONTRIBID_CLEANUP)
         {
-            BBCleanUpContribId* l_Request = new BBCleanUpContribId(pConnectionName, *pLVKey, pTagId, pExtentInfo.getHandle(), pExtentInfo.getContrib());
+            BBCleanUpContribId* l_Request = new BBCleanUpContribId(pConnectionName, *pLVKey, pTagId, l_Handle, l_ContribId);
             g_LocalAsync.issueAsyncRequest(l_Request);
         }
     }

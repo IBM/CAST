@@ -1689,16 +1689,23 @@ void markTransferFailed(const LVKey* pLVKey, BBTransferDef* pTransferDef, BBLV_I
         if (!pTransferDef->failed())
         {
             UPDATE_CONTRIBID_FILE_OPTION l_UpdateOption = UPDATE_CONTRIBID_FILE;
-            string l_ServerHostName;
-            activecontroller->gethostname(l_ServerHostName);
-            string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pTransferDef->getJobId(), pTransferDef->getJobStepId()), pHandle, pContribId);
-            if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
+            if (verifyJobIdExistsInXBbServerMetadata(pTransferDef->getJobId()))
+            {
+                string l_ServerHostName;
+                activecontroller->gethostname(l_ServerHostName);
+                string l_ServicedByHostname = ContribIdFile::isServicedBy(BBJob(pTransferDef->getJobId(), pTransferDef->getJobStepId()), pHandle, pContribId);
+                if ((!l_ServicedByHostname.empty()) && l_ServicedByHostname != l_ServerHostName)
+                {
+                    l_UpdateOption = DO_NOT_UPDATE_CONTRIBID_FILE;
+                    LOG(bb,error) << "Transfer definition not marked as failed at for " << *pLVKey \
+                                  << ", handle " << pHandle << ", contribid " << pContribId \
+                                  << " because this bbserver is no longer servicing this transfer definition. " \
+                                  << "An attempt to transfer any additional extents for this transfer definition will not be attempted.";
+                }
+            }
+            else
             {
                 l_UpdateOption = DO_NOT_UPDATE_CONTRIBID_FILE;
-                LOG(bb,error) << "Transfer definition not marked as failed at for " << *pLVKey \
-                              << ", handle " << pHandle << ", contribid " << pContribId \
-                              << " because this bbserver is no longer servicing this transfer definition. " \
-                              << "An attempt to transfer any additional extents for this transfer definition will not be attempted.";
             }
 
             // Only mark the local transfer definition as failed so we do not attempt to
