@@ -3907,7 +3907,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                             size_t l_CurrentNumberOfInFlightExtents = l_LV_Info->getNumberOfInFlightExtents();
                             while (l_CurrentNumberOfInFlightExtents)
                             {
-                                LOG(bb,info) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << l_LVKey;
+                                LOG(bb,debug) << "stageoutEnd(): " << l_CurrentNumberOfInFlightExtents << " extents are still inflight for " << l_LVKey;
                                 // Source file for extent being inspected has NOT been closed.
                                 // Delay a bit for it to clear the in-flight queue and be closed...
                                 // NOTE: Currently set to log after 3 seconds of not being able to clear, and every 10 seconds thereafter...
@@ -3915,7 +3915,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                 {
                                     FL_Write(FLDelay, InFlight, "%ld extents are still inflight for jobid %ld. Waiting for the in-flight queue to clear during stageout end processing. Delay of 250 milliseconds.",
                                              (uint64_t)l_CurrentNumberOfInFlightExtents, l_JobId, 0, 0);
-                                    LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for the in-flight queue to clear.  Delay of 250 milliseconds.";
+                                    LOG(bb,info) << ">>>>> DELAY <<<<< stageoutEnd(): Waiting for in-flight queue to clear. " << l_CurrentNumberOfInFlightExtents \
+                                                 << " extents are still inflight for jobid " << l_JobId << ", " << l_LVKey << ". Delay of 250 milliseconds.";
                                     l_LV_Info->getExtentInfo()->dumpInFlight("info");
                                     l_LV_Info->getExtentInfo()->dumpExtents("info", "stageoutEnd()");
                                     l_DelayMsgLogged = 1;
