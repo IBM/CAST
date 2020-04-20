@@ -137,9 +137,15 @@ static int __init export_layout_init(void)
 	}
 	Device = device;
 
+#if (LINUX_VERSION_CODE >=  KERNEL_VERSION(4,18,0))    
 	printk(KERN_INFO
-	       "%s: export_layout module (built __DATE__ __TIME__)  major %d version %s  \n",
+	       "%s: export_layout module major %d version %s  \n",
 	       __func__,  Major, EXP_VERSION);
+#else
+    printk(KERN_INFO
+	       "%s: export_layout module (built %s %s)  major %d version %s  \n",
+	       __func__, __DATE__, __TIME__, Major, EXP_VERSION);
+#endif 		   
 
 	return 0;
 
