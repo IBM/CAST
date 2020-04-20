@@ -8,7 +8,7 @@
     ignore_errors: yes
 
   - name: Start bbServer
-    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
+    command: /opt/ibm/bb/scripts/bbactivate --server {{BBACTIVATE_PARMS}}
     when: bbserver_service_result.rc != 0
     any_errors_fatal: true
 
@@ -35,7 +35,7 @@
     ignore_errors: yes
 
   - name: Start BB on computes
-    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
+    command: /opt/ibm/bb/scripts/bbactivate --cn {{BBACTIVATE_PARMS}}
     when: bbproxy_service_result.rc != 0
 
   - name: Check bbproxy is running
@@ -46,7 +46,7 @@
 - hosts: launch
   tasks:
   - name: start Burst Buffer on Launch node 
-    command: /opt/ibm/bb/scripts/bbactivate {{BBACTIVATE_PARMS}}
+    command: /opt/ibm/bb/scripts/bbactivate --ln {{BBACTIVATE_PARMS}}
     any_errors_fatal: true
 
 

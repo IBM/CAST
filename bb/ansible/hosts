@@ -1,10 +1,16 @@
 [all:vars]
 BBRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
 CSMRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
-SMPIRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+SMPIRPMDIR=/u/tgooding/install
+
+BBMETADATA=/gpfs/gpfs0/bbmetadata
+BSCFSWORK=/u/tgooding/bscfswork
+LSF_SERVERDIR=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc
+
+BBACTIVATE_PARMS="--csm --sharednode --bscfswork={{BSCFSWORK}} --lsfdir={{LSF_SERVERDIR}} --metadata={{BBMETADATA}}"
 
 [compute]
-c650f06p25 ansible_private_key_file=/root/.ssh/id_rsa
+c650f06p25
 c650f06p27 
 c650f06p29
 c650f06p31
@@ -13,23 +19,12 @@ c650f07p05
 c650f06p33
 c650f06p35
 
-[compute:vars]
-ansible_user=root
-BBACTIVATE_PARMS="--sharednode --csm"
-
 [server]
 gssio1vm-hs
 gssio2vm-hs
-
-[server:vars]
-BBMETADATA=/gpfs/gpfs0/bbmetadata
-BBACTIVATE_PARMS="--server --metadata={{BBMETADATA}}"
 
 [management]
 c650mnp03
 
 [launch]
 c650mnp03
-
-[launch:vars]
-BBACTIVATE_PARMS="--ln --bscfswork=/u/tgooding/bscfswork --envdir=HOME --lsfdir=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc"
