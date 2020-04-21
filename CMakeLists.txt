@@ -100,6 +100,15 @@ list(REMOVE_ITEM TOPLEVELS ${DOUT})
 set(CMAKE_C_FLAGS   "-g -Wall -Werror -m64 -fPIC")
 set(CMAKE_CXX_FLAGS "-g -Wall -Werror -m64 -fPIC -std=c++11")
 
+if(${CMAKE_SYSTEM} STRGREATER "Linux-4.15")
+  set(EXPLICIT_PYTHON_VERSION 1)
+else()
+  set(EXPLICIT_PYTHON_VERSION 0)
+endif()
+
+message("System: ${CMAKE_SYSTEM}")
+message("Explicit python version: ${EXPLICIT_PYTHON_VERSION}")
+
 if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU"  AND  ${CMAKE_C_COMPILER_VERSION} VERSION_GREATER "7.0.0")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=format-truncation= -Wno-error=format-overflow= -Wno-error=stringop-truncation")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=format-truncation= -Wno-error=format-overflow= -Wno-error=stringop-truncation")
