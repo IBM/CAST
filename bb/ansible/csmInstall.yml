@@ -3,7 +3,7 @@
 - hosts: all
   tasks:
   - name: check all nodes for CSM RPM directory
-    command: /usr/bin/file {{CSMRPMDIR}} 
+    command: ls -d  {{CSMRPMDIR}} 
     any_errors_fatal: true
 
 #check reachability of all hosts
