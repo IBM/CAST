@@ -8,12 +8,16 @@
 
     - debug: 
          msg: "cwd is {{pwd_info.stdout}} playbook_dir is {{playbook_dir}}" 
+    - debug:
+         msg: "BBRPMDIR={{BBRPMDIR}}"
+    - debug:
+        msg:  "CSMRPMDIR={{CSMRPMDIR}}"
 
 #check for BB RPMDIR early before doing upgrade
 - hosts: server compute launch
   tasks:
   - name: check all nodes for RPM directory
-    command: /usr/bin/file {{BBRPMDIR}} 
+    command: ls -d  {{BBRPMDIR}} 
     any_errors_fatal: true
 
 - hosts: server
