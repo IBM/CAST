@@ -24,7 +24,7 @@
     ignore_errors: yes
 
   - name: install csm RPMs on MN
-    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-csm-db*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm {{CSMRPMDIR}}/ibm-burstbuffer-mn*.rpm"
+    shell: "yum localinstall -y --skip-broken {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-csm-db*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm {{CSMRPMDIR}}/ibm-burstbuffer-mn*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
