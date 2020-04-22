@@ -58,6 +58,8 @@
   when: CSMRPMDIR is defined
 - name: Include bb install      
   import_playbook: bbInstall.yml 
+- name: certificate setup     
+  import_playbook: certificates.yml   
 - name: Include csm start     
   import_playbook: csmStart.yml 
   when: CSMRPMDIR is defined
