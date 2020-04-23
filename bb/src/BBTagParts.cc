@@ -11,6 +11,8 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
+#include <map>
+
 #include "bbinternal.h"
 #include "bbserver_flightlog.h"
 #include "BBLV_Info.h"
@@ -158,19 +160,66 @@ int BBTagParts::canceled(BBTagInfo* pTagInfo, const uint32_t pContribId) {
 
 void BBTagParts::cleanUpAll(const LVKey* pLVKey, const BBTagID pTagId)
 {
-    Uuid lv_uuid = pLVKey->second;
-    char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
-    lv_uuid.copyTo(lv_uuid_str);
+    try
+    {
+        Uuid lv_uuid = pLVKey->second;
+        char lv_uuid_str[LENGTH_UUID_STR] = {'\0'};
+        lv_uuid.copyTo(lv_uuid_str);
 
-    stringstream l_JobStr;
-    pTagId.getJob().getStr(l_JobStr);
+        stringstream l_JobStr;
+        pTagId.getJob().getStr(l_JobStr);
 
-    auto it = tagParts.begin();
-    while (it != tagParts.end()) {
-        it->second.cleanUp();
-        LOG(bb,debug) << "taginfo: Contrib(" << it->first << ") removed from TagId(" << l_JobStr.str() << "," << pTagId.getTag() \
-                      << ") for " << *pLVKey;
-        it = tagParts.erase(it);
+        bool l_Restart = true;
+        while (l_Restart)
+        {
+            l_Restart = false;
+            for (auto it = tagParts.begin(); it != tagParts.end(); ++it)
+            {
+                it->second.cleanUp();
+                LOG(bb,debug) << "taginfo: Contrib(" << it->first << ") removed from TagId(" << l_JobStr.str() << "," << pTagId.getTag() \
+                              << ") for " << *pLVKey;
+                tagParts.erase(it);
+
+                l_Restart = true;
+                break;
+            }
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    return;
+}
+
+void BBTagParts::cleanUpContribId(const LVKey* pLVKey, const BBTagID& pTagId, const uint64_t pHandle, const uint32_t pContribId)
+{
+    try
+    {
+        map<uint32_t, BBTransferDef>::iterator it;
+        it = tagParts.find(pContribId);
+        if (it != tagParts.end())
+        {
+            it->second.cleanUp();
+
+            stringstream l_JobStr;
+            pTagId.getJob().getStr(l_JobStr);
+            LOG(bb,info) << "taginfo: ContribId " << pContribId << ", TagId(" << l_JobStr.str() \
+                         << "," << pTagId.getTag() << ") with handle 0x" \
+                         << hex << uppercase << setfill('0') << setw(16) << pHandle \
+                         << setfill(' ') << nouppercase << dec << " (" << pHandle \
+                         << ") removed from " << *pLVKey;
+
+            tagParts.erase(it);
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        // Tolerate everything...
     }
 
     return;
@@ -445,34 +494,6 @@ int BBTagParts::setCanceled(const LVKey* pLVKey, BBTagInfo* pTagInfo, uint64_t p
     if (l_LocalMetadataWasLocked)
     {
         unlockLocalMetadata(pLVKey, "BBTagParts::setCanceled");
-    }
-
-    return rc;
-}
-
-int BBTagParts::setFailed(const LVKey* pLVKey, BBTagInfo* pTagInfo, uint64_t pHandle, const uint32_t pContribId, const int pValue)
-{
-    int rc = -1;
-
-    int l_LocalMetadataWasLocked = 0;
-    if (pTagInfo->localMetadataLockRequired())
-    {
-        l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagParts::setFailed");
-    }
-
-    for (auto it = tagParts.begin(); it != tagParts.end(); ++it)
-    {
-        if (it->first == pContribId)
-        {
-            BBTransferDef* l_TransferDef = const_cast <BBTransferDef*> (&(it->second));
-            l_TransferDef->setFailed(pLVKey, pHandle, pValue);
-            rc = 0;
-        }
-    }
-
-    if (l_LocalMetadataWasLocked)
-    {
-        unlockLocalMetadata(pLVKey, "BBTagParts::setFailed");
     }
 
     return rc;

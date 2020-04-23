@@ -268,6 +268,14 @@ extern int getLogicalVolumeUUID(const std::string& pFile, Uuid& pUuid);
  */
 extern int getLogicalVolumeUUIDForPath(const std::string& pFile, Uuid& pUuid);
 
+/**
+    \brief Returns the logical volume uuid for the path of the input file name
+
+    \param[in]  pTime Time value
+    \return Time string value
+ */
+extern std::string timevalToStr(const struct timeval& pTime);
+
 
 class Config {
   public:

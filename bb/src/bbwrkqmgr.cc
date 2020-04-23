@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 
 #include "bbinternal.h"
+#include "BBLocalAsync.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
@@ -91,22 +92,6 @@ int isGpfsFile(const char* pFileName, bool& pValue)
     return rc;
 }
 
-string timevalToStr(const struct timeval& pTime)
-{
-	char l_Buffer[20] = {'\0'};
-	char l_ReturnTime[27] = {'\0'};
-
-    unsigned long l_Micro = pTime.tv_usec;
-
-    // localtime is not thread safe
-    // NOTE:  No spaces in the formatted timestamp, because this can be sent as part of an
-    //        async request message.  That processing uses scanf to parse the data...
-    strftime(l_Buffer, sizeof(l_Buffer), "%Y-%m-%d_%H:%M:%S", localtime((const time_t*)&pTime.tv_sec));
-    snprintf(l_ReturnTime, sizeof(l_ReturnTime), "%s.%06lu", l_Buffer, l_Micro);
-
-    return string(l_ReturnTime);
-}
-
 
 /*
  * Static methods
@@ -116,14 +101,6 @@ void HeartbeatEntry::getCurrentTime(struct timeval& pTime)
     gettimeofday(&pTime, NULL);
 
     return;
-}
-
-string HeartbeatEntry::getHeartbeatCurrentTimeStr()
-{
-    struct timeval l_CurrentTime = timeval {.tv_sec=0, .tv_usec=0};
-    getCurrentTime(l_CurrentTime);
-
-    return timevalToStr(l_CurrentTime);
 }
 
 
@@ -171,8 +148,8 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() before adding " << *pLVKey << " for jobid " << pJobId << ", suspend indicator " << pSuspendIndicator;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    int l_LocalMetadataUnlockedInd = 0;
-    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
+    int l_LocalMetadataUnlocked = 0;
+    lockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlocked);
 
     std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
     if (it == wrkqs.end())
@@ -193,7 +170,7 @@ int WRKQMGR::addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJ
     l_Prefix << " - addWrkQ() after adding " << *pLVKey << " for jobid " << pJobId;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlockedInd);
+    unlockWorkQueueMgr(pLVKey, "addWrkQ", &l_LocalMetadataUnlocked);
 
     return rc;
 }
@@ -282,7 +259,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     }
 
     // Reset the heartbeat timer count...
-    heartbeatTimerCount = 0;
+    g_Heartbeat_Controller.setCount(0);
 
   	becomeUser(l_Uid, l_Gid);
 
@@ -424,6 +401,9 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
             LOG(bb,error) << "Error occured when attempting to read the cross bbserver async request file, l_AsyncRequestFileSeqNbr = " \
                           << l_AsyncRequestFileSeqNbr << ", l_OffsetToNextAsyncRequest = " << l_OffsetToNextAsyncRequest;
         }
+
+        // Reset the timer count here, as this method is invoked in places other than checkThrottleTimer()
+        g_RemoteAsyncRequest_Controller.setCount(0);
     }
     else
     {
@@ -461,46 +441,28 @@ void WRKQMGR::checkThrottleTimer()
 
         // See if it is time to check/add new high priority
         // work items from the cross bbserver metadata
-        if (asyncRequestReadTimerPoppedCount && (++asyncRequestReadTimerCount >= getAsyncRequestReadTimerPoppedCount()))
+        if (g_RemoteAsyncRequest_Controller.timeToFire())
         {
             checkForNewHPWorkItems();
-            asyncRequestReadTimerCount = 0;
-        }
-
-        // See if it is time to dump the work manager
-        if (dumpTimerPoppedCount && (++dumpTimerCount >= dumpTimerPoppedCount))
-        {
-            dump("info", " Work Queue Mgr (Not an error - Timer Interval)", DUMP_ALWAYS);
-            dumpTimerCount = 0;
         }
 
         // See if it is time to reload the work queue throttle buckets
-        if (++throttleTimerCount >= throttleTimerPoppedCount)
+        if (g_ThrottleBucket_Controller.timeToFire())
         {
             // If any workqueue in throttle mode, load the buckets
             if (inThrottleMode())
             {
                 loadBuckets();
             }
-            throttleTimerCount = 0;
+            g_ThrottleBucket_Controller.setCount(0);
             setDelayMessageSent(false);
         }
 
-        // See if it is time to have a heartbeat for this bbServer
-        if (++heartbeatTimerCount >= heartbeatTimerPoppedCount)
+        if (!g_CycleActivities_Controller.alreadyFired())
         {
-            // Tell the world this bbServer is still alive...
-            char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-            string l_CurrentTime = HeartbeatEntry::getHeartbeatCurrentTimeStr();
-            snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
-            AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-            appendAsyncRequest(l_Request);
-        }
-
-        // See if it is time to dump the heartbeat information
-        if (heartbeatDumpPoppedCount && (++heartbeatDumpCount >= heartbeatDumpPoppedCount))
-        {
-            dumpHeartbeatData("info");
+            BBCheckCycleActivities* l_Request = new BBCheckCycleActivities();
+            g_LocalAsync.issueAsyncRequest(l_Request);
+            g_CycleActivities_Controller.setTimerFired(1);
         }
     }
 
@@ -646,15 +608,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             {
                                 LOG(bb,debug) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
-//                            LOG(bb,debug) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-                            LOG(bb,debug) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
                             if (useAsyncRequestReadTurboMode)
                             {
                                 LOG(bb,debug) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
                             }
-//                            LOG(bb,debug) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                            LOG(bb,debug) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                            LOG(bb,debug) << "              Dump Timer Count: " << heartbeatTimerCount << "          Dump Timer Popped Count: " << heartbeatTimerPoppedCount;
 //                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -687,15 +644,10 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             {
                                 LOG(bb,info) << "          ConcurrentHPRequests: " << numberOfConcurrentHPRequests << "  AllowedConcurrentHPRequests: " << numberOfAllowedConcurrentHPRequests;
                             }
-//                            LOG(bb,info) << "          Throttle Timer Count: " << throttleTimerCount << "  Throttle Timer Popped Count: " << throttleTimerPoppedCount;
-                            LOG(bb,info) << "  AsyncRequestRead Timer Count: " << asyncRequestReadTimerCount << "  AsyncRequestRead Timer Popped Count: " << asyncRequestReadTimerPoppedCount;
                             if (useAsyncRequestReadTurboMode)
                             {
                                 LOG(bb,info) << " AsyncRequestRead Turbo Factor: " << asyncRequestReadTurboFactor << "  AsyncRequestRead ConsecutiveNoNewRequests: " << asyncRequestReadConsecutiveNoNewRequests;
                             }
-//                            LOG(bb,info) << "         Heartbeat Timer Count: " << dumpTimerCount << " Heartbeat Timer Popped Count: " << dumpTimerPoppedCount;
-//                            LOG(bb,info) << "          Heartbeat Dump Count: " << heartbeatDumpCount << "  Heartbeat Dump Popped Count: " << heartbeatDumpPoppedCount;
-//                            LOG(bb,info) << "              Dump Timer Count: " << dumpTimerCount << "      Dump Timer Popped Count: " << dumpTimerPoppedCount;
 //                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
                             LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
@@ -719,7 +671,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
 
                         lastDumpedNumberOfWorkQueueItemsProcessed = numberOfWorkQueueItemsProcessed;
                         numberOfSkippedDumpRequests = 0;
-                        dumpTimerCount = 0;
+                        g_Dump_WrkQMgr_Controller.setCount(0);
                     }
                     else
                     {
@@ -825,8 +777,6 @@ void WRKQMGR::dumpHeartbeatData(const char* pSev, const char* pPrefix)
             LOG(bb,info) << ">>>>>   No other reporting bbServers";
         }
     }
-
-    heartbeatDumpCount = 0;
 
     if (l_HP_TransferQueueLocked)
     {
@@ -1138,11 +1088,6 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
     return rc;
 }
 
-int WRKQMGR::getAsyncRequestReadTimerPoppedCount()
-{
-    return (int)((double)asyncRequestReadTimerPoppedCount * asyncRequestReadTurboFactor);
-};
-
 uint64_t WRKQMGR::getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId)
 {
     // NOTE: If the server has been declared dead, then we return a count of 1.
@@ -1248,9 +1193,16 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
     //       still be removed from a suspended work queue if the extent(s) exist for a canceled transfer definition.
     //       Thus, we must return suspended work queues from this method.
 
-    int l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
+    int l_TransferQueueUnlocked = 0;
     int l_LocalMetadataUnlockedInd = 0;
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+    int l_WorkQueueMgrLocked = 0;
+
+    if (!workQueueMgrIsLocked())
+    {
+        l_TransferQueueUnlocked = unlockTransferQueueIfNeeded(pLVKey, "getWrkQE");
+        lockWorkQueueMgr(pLVKey, "getWrkQE", &l_LocalMetadataUnlockedInd);
+        l_WorkQueueMgrLocked = 1;
+    }
 
     if (pLVKey == NULL || (pLVKey->second).is_null())
     {
@@ -1370,8 +1322,8 @@ int WRKQMGR::getWrkQE(const LVKey* pLVKey, WRKQE* &pWrkQE)
                                             l_EarlyExit = true;
 //                                            LOG(bb,info) << "WRKQMGR::getWrkQE(): Early exit, top of map";
                                         }
+                                        l_FoundFirstPositiveWorkQueueInMap = true;
                                     }
-                                    l_FoundFirstPositiveWorkQueueInMap = true;
                                 }
                             }
 
@@ -1558,6 +1510,10 @@ void WRKQMGR::getWrkQE_WithCanceledExtents(WRKQE* &pWrkQE)
 
 void WRKQMGR::incrementNumberOfWorkItemsProcessed(WRKQE* pWrkQE, const WorkID& pWorkItem)
 {
+    // NOTE: The work item object contains an BBLV_Info*.  However, if this is/was the
+    //       last item on the work queue, keep in mind that 'early' local metadata
+    //       cleanup may yield this pointer invalid.  When passed to this method,
+    //       only the HP work queue path can use the pWorkItem object.
     if (pWrkQE != HPWrkQE)
     {
         // Not the high priority work queue.
@@ -1841,11 +1797,11 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
                 l_FilePtr = ::fopen(l_AsyncRequestFileNamePtr, pOpenOption);
                 threadLocalTrackSyscallPtr->clearTrack();
-                setbuf(l_FilePtr, NULL);
                 if (pOpenOption[0] != 'a')
                 {
                     if (l_FilePtr != NULL)
                     {
+                        setbuf(l_FilePtr, NULL);
                         FL_Write(FLAsyncRqst, OpenRead, "Open async request file having seqnbr %ld using mode 'rb', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
                         // NOTE:  All closes for fds opened for read are done via the cached
                         //        fd that has been stashed in asyncRequestFile_Read.
@@ -1871,6 +1827,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 {
                     if (l_FilePtr != NULL)
                     {
+                        setbuf(l_FilePtr, NULL);
                         FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
                         // Append mode...  Check the file size...
                         threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
@@ -2089,7 +2046,7 @@ void WRKQMGR::processThrottle(LVKey* pLVKey, WRKQE* pWrkQE, BBLV_Info* pLV_Info,
         if(pWrkQE)
         {
             pThreadDelay = pWrkQE->processBucket(pTagId, pExtentInfo);
-            pTotalDelay = (pThreadDelay ? ((double)(throttleTimerPoppedCount-throttleTimerCount-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
+            pTotalDelay = (pThreadDelay ? ((double)(g_ThrottleBucket_Controller.getTimerPoppedCount()-g_ThrottleBucket_Controller.getCount()-1) * (Throttle_TimeInterval*1000000)) + pThreadDelay : 0);
         }
     }
 
@@ -2100,14 +2057,14 @@ void WRKQMGR::processTurboFactorForFoundRequest()
 {
     if (useAsyncRequestReadTurboMode)
     {
-        if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR)) >= 1)
+        if (round((double)g_RemoteAsyncRequest_Controller.getTimerPoppedCount() * (asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR)) >= 1)
         {
-            LOG(bb,info) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
+            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Increase turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor * DEFAULT_TURBO_FACTOR;
             asyncRequestReadTurboFactor *= DEFAULT_TURBO_FACTOR;
         }
         else
         {
-            LOG(bb,info) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
+            LOG(bb,debug) << "processTurboFactorForFoundRequest(): Floor reached. No change in turbo factor, current asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor;
         }
         asyncRequestReadConsecutiveNoNewRequests = 0;
     }
@@ -2121,15 +2078,15 @@ void WRKQMGR::processTurboFactorForNotFoundRequest()
     {
         if ((++asyncRequestReadConsecutiveNoNewRequests % DEFAULT_TURBO_CLIP_VALUE) == 0)
         {
-            if (round((double)asyncRequestReadTimerPoppedCount * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR)) <= round(AsyncRequestRead_TimeInterval / Throttle_TimeInterval))
+            if (round((double)g_RemoteAsyncRequest_Controller.getTimerPoppedCount() * (asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR)) <= round(AsyncRequestRead_TimeInterval / Throttle_TimeInterval))
             {
-                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
+                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Decrease turbo factor from " << asyncRequestReadTurboFactor << " to " << asyncRequestReadTurboFactor / DEFAULT_TURBO_FACTOR;
                 asyncRequestReadTurboFactor /= DEFAULT_TURBO_FACTOR;
                 asyncRequestReadConsecutiveNoNewRequests = 0;
             }
             else
             {
-                LOG(bb,info) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
+                LOG(bb,debug) << "processTurboFactorForNotFoundRequest(): Ceiling reached. No change in turbo factor, asyncRequestReadTurboFactor=" << asyncRequestReadTurboFactor << ", asyncRequestReadConsecutiveNoNewRequests=" << asyncRequestReadConsecutiveNoNewRequests;
             }
         }
         else
@@ -2195,161 +2152,95 @@ int WRKQMGR::rmvWrkQ(const LVKey* pLVKey)
     l_Prefix << " - rmvWrkQ() before removing" << *pLVKey;
     dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
 
-    unlockTransferQueueIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded((LVKey*)0, "getNumberOfWorkQueues");
-    int l_WorkQueueMgrLocked = lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
+    unlockTransferQueueIfNeeded(pLVKey, "rmvWrkQ");
+    int l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "rmvWrkQ");
 
-    std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
-    if (it != wrkqs.end())
+    // NOTE: This mutex serializes with the BBLocalAsync BBCleanup methods
+    pthread_mutex_lock(&lock_on_rmvWrkQ);
+    lockWorkQueueMgrIfNeeded(pLVKey, "rmvWrkQ");
+
+    try
     {
-        // Remove the work queue from the map
-        WRKQE* l_WrkQE = it->second;
-        wrkqs.erase(it);
-
-        // If the work queue being removed is currently
-        // identified as the last work queue in the map
-        // with work items (not likely...), then reset
-        // lastQueueWithEntries so it is recalculated
-        // next time we try to findWork().
-        if (*pLVKey == lastQueueWithEntries)
+        std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
+        if (it != wrkqs.end())
         {
-            lastQueueWithEntries = LVKey_Null;
-        }
+            // Remove the work queue from the map
+            WRKQE* l_WrkQE = it->second;
+            wrkqs.erase(it);
 
-        if (l_WrkQE)
+            // If the work queue being removed is currently
+            // identified as the last work queue in the map
+            // with work items (not likely...), then reset
+            // lastQueueWithEntries so it is recalculated
+            // next time we try to findWork().
+            if (*pLVKey == lastQueueWithEntries)
+            {
+                lastQueueWithEntries = LVKey_Null;
+            }
+
+            if (l_WrkQE)
+            {
+                // Delete the work queue entry
+                if (l_WrkQE->getRate())
+                {
+                    // Removing a work queue that had a transfer rate.
+                    // Re-calculate the indication of throttle mode...
+                    calcThrottleMode();
+                }
+                if(CurrentWrkQE == l_WrkQE)
+                {
+                    CurrentWrkQE = (WRKQE*)0;
+                }
+                delete l_WrkQE;
+            }
+
+            l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
+            dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
+        }
+        else
         {
-            // Delete the work queue entry
-            if (l_WrkQE->getRate())
-            {
-                // Removing a work queue that had a transfer rate.
-                // Re-calculate the indication of throttle mode...
-                calcThrottleMode();
-            }
-            if(CurrentWrkQE == l_WrkQE)
-            {
-                CurrentWrkQE = NULL;
-            }
-            delete l_WrkQE;
+            // NOTE: Tolerate the condition...
         }
     }
-    else
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
-        rc = -1;
-        stringstream errorText;
-        errorText << " Failure when attempting to remove workqueue for " << *pLVKey << ". Work queue was not found.";
-        dump("info", errorText.str().c_str(), DUMP_UNCONDITIONALLY);
-        LOG_ERROR_TEXT_RC(errorText, rc);
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
     }
 
-    l_Prefix << " - rmvWrkQ() after removing " << *pLVKey;
-    dump("debug", l_Prefix.str().c_str(), DUMP_UNCONDITIONALLY);
-
-    if (l_WorkQueueMgrLocked)
-    {
-        unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
-    }
+    // NOTE: The rmvWrkQ lock cannot be held when attempting to
+    //       obtain the local metadata lock
+    unlockWorkQueueMgr(pLVKey, "rmvWrkQ");
+    pthread_mutex_unlock(&lock_on_rmvWrkQ);
     if (l_LocalMetadataUnlocked)
     {
+        l_LocalMetadataUnlocked = 0;
         lockLocalMetadata(pLVKey, "rmvWrkQ");
     }
 
-    // NOTE: We just deleted the work queue, so no need to re-acquire the work queue lock
+    // NOTE: If no error, we deleted the work queue, so no need to
+    //       re-acquire the transfer queue lock.  Even if we had an error,
+    //       we do not re-acquire the transfer queue lock because there
+    //       is no way to access that work queue now.
 
     return rc;
 }
 
-void WRKQMGR::setAsyncRequestReadTimerPoppedCount(const double pTimerInterval)
+void WRKQMGR::setDeclareServerDeadCount(const uint64_t pValue)
 {
-    asyncRequestReadTimerPoppedCount = (int64_t)(AsyncRequestRead_TimeInterval/pTimerInterval);
-    if (((double)asyncRequestReadTimerPoppedCount)*pTimerInterval != AsyncRequestRead_TimeInterval)
-    {
-        if (asyncRequestReadTimerPoppedCount < 1)
-        {
-            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly less than what is specified.";
-        }
-        else
-        {
-            LOG(bb,warning) << "AsyncRequestRead timer interval of " << to_string(AsyncRequestRead_TimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any async request read rates may be implemented as slightly more than what is specified.";
-        }
-        ++asyncRequestReadTimerPoppedCount;
-    }
+    declareServerDeadCount = pValue;
 
     return;
 }
 
-void WRKQMGR::setDumpTimerPoppedCount(const double pTimerInterval)
-{
-    double l_DumpTimeInterval = config.get("bb.bbserverDumpWorkQueueMgr_TimeInterval", DEFAULT_DUMP_MGR_TIME_INTERVAL);
-    dumpTimerPoppedCount = (int64_t)(l_DumpTimeInterval/pTimerInterval);
-    if (((double)dumpTimerPoppedCount)*pTimerInterval != (double)(l_DumpTimeInterval))
-    {
-        if (dumpTimerPoppedCount < 1)
-        {
-            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly less than what is specified.";
-        }
-        else
-        {
-            LOG(bb,warning) << "WRKQMGR dump timer interval of " << to_string(l_DumpTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any WRKQMGR dump rates may be implemented as slightly more than what is specified.";
-        }
-        ++dumpTimerPoppedCount;
-    }
-
-    return;
-}
-
-void WRKQMGR::setHeartbeatDumpPoppedCount(const double pTimerInterval)
-{
-    double l_HeartbeatDumpInterval = config.get("bb.bbserverHeartbeat_DumpInterval", DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL);
-    heartbeatDumpPoppedCount = (int64_t)(l_HeartbeatDumpInterval/pTimerInterval);
-    if (((double)heartbeatDumpPoppedCount)*pTimerInterval != (double)(l_HeartbeatDumpInterval))
-    {
-        if (heartbeatDumpPoppedCount < 1)
-        {
-            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly less than what is specified.";
-        }
-        else
-        {
-            LOG(bb,warning) << "Heartbeat dump timer interval of " << to_string(l_HeartbeatDumpInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat dump rates may be implemented as slightly more than what is specified.";
-        }
-        ++heartbeatDumpPoppedCount;
-    }
-
-    return;
-}
-
-void WRKQMGR::setHeartbeatTimerPoppedCount(const double pTimerInterval)
-{
-    double l_HeartbeatTimeInterval = config.get("bb.bbserverHeartbeat_TimeInterval", DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL);
-    heartbeatTimerPoppedCount = (int64_t)(l_HeartbeatTimeInterval/pTimerInterval);
-    if (((double)heartbeatTimerPoppedCount)*pTimerInterval != (double)(l_HeartbeatTimeInterval))
-    {
-        if (heartbeatTimerPoppedCount < 1)
-        {
-            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly less than what is specified.";
-        }
-        else
-        {
-            LOG(bb,warning) << "Heartbeat timer interval of " << to_string(l_HeartbeatTimeInterval) << " second(s) is not a common multiple of " << pTimerInterval << " second(s).  Any heartbeat rates may be implemented as slightly more than what is specified.";
-        }
-        ++heartbeatTimerPoppedCount;
-    }
-
-    // Currently, for a restart transfer operation, we will wait a total
-    // of twice the bbServer heartbeat before declaring a bbServer dead
-    // because the transfer definition is not marked as being stopped.
-    // Value stored in seconds.
-    declareServerDeadCount = max((uint64_t)(l_HeartbeatTimeInterval * 2), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE);
-
-    return;
-}
-
-int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
+int WRKQMGR::setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue)
 {
     int rc = 0;
 
+    int l_LocalMetadataUnlockedInd = 0;
+
     if (pLVKey)
     {
-        int l_LocalMetadataUnlockedInd = 0;
         lockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
 
         std::map<LVKey,WRKQE*>::iterator it = wrkqs.find(*pLVKey);
@@ -2376,6 +2267,10 @@ int WRKQMGR::setSuspended(const LVKey* pLVKey, const int pValue)
             rc = -2;
         }
 
+        if (l_LocalMetadataUnlockedInd)
+        {
+            pLocal_Metadata_Lock_Released = LOCAL_METADATA_LOCK_RELEASED;
+        }
         unlockWorkQueueMgr(pLVKey, "setSuspended", &l_LocalMetadataUnlockedInd);
     }
     else
@@ -2407,25 +2302,6 @@ int WRKQMGR::setThrottleRate(const LVKey* pLVKey, const uint64_t pRate)
     unlockWorkQueueMgr(pLVKey, "setThrottleRate");
 
     return rc;
-}
-
-void WRKQMGR::setThrottleTimerPoppedCount(const double pTimerInterval)
-{
-    throttleTimerPoppedCount = (int)(1.0/pTimerInterval);
-    if (((double)throttleTimerPoppedCount)*pTimerInterval != (double)1.0)
-    {
-        if (throttleTimerPoppedCount < 1)
-        {
-            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly less than what is specified.";
-        }
-        else
-        {
-            LOG(bb,warning) << "Throttle timer interval of " << pTimerInterval << " second(s) is not a common multiple of 1.0 second.  Any throttling rates may be implemented as slightly more than what is specified.";
-        }
-        ++throttleTimerPoppedCount;
-    }
-
-    return;
 }
 
 int WRKQMGR::startProcessingHP_Request(AsyncRequest& pRequest)
@@ -2629,6 +2505,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
     bfs::path datastore(l_DataStorePath);
     bool l_AllDone = false;
     bool l_DataStoreExists = true;
+    uint64_t l_AttemptsToCreateDataStore = 0;
     while (!l_AllDone)
     {
         try
@@ -2639,9 +2516,9 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                 //       that causes an expensive xstat64 operation for every
                 //       timer interval.  Therefore, we just monitor for exceptions
                 //       in this segment of code.
-                for(auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+                for (auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
                 {
-                    if(pathIsDirectory(asyncfile)) continue;
+                    if (pathIsDirectory(asyncfile)) continue;
 
                     int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
                     // NOTE: If pSeqNbr is passed in, that is the file we want to open...
@@ -2655,6 +2532,10 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             }
             else
             {
+                if (l_AttemptsToCreateDataStore++)
+                {
+                    usleep(10000000);   // Already had one create of the datastore fail...  Delay 10 seconds...
+                }
                 bfs::create_directories(datastore);
                 l_DataStoreExists = true;
                 LOG(bb,info) << "WRKQMGR: Directory " << datastore << " created to house the cross bbServer metadata after exception trying access " << l_DataStorePath;
@@ -2677,22 +2558,22 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     if (!rc)
     {
-        if (!l_SeqNbr)
+        try
         {
-            l_SeqNbr = 1;
-            snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
-            rc = createAsyncRequestFile(pAsyncRequestFileName);
-            if (rc)
+            if (!l_SeqNbr)
             {
-                errorText << "Failure when attempting to create new cross bbserver async request file";
-                bberror << err("error.filename", pAsyncRequestFileName);
-                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                l_SeqNbr = 1;
+                snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
+                rc = createAsyncRequestFile(pAsyncRequestFileName);
+                if (rc)
+                {
+                    errorText << "Failure when attempting to create new cross bbserver async request file";
+                    bberror << err("error.filename", pAsyncRequestFileName);
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
             }
-        }
 
-        if (!rc)
-        {
-            try
+            if (!rc)
             {
                 switch (pMaintenanceOption)
                 {
@@ -2756,7 +2637,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
                             // NOTE:  root:root will insert jobid directories into this directory and then ownership
                             //        of those jobid directories will be changed to the uid:gid of the mountpoint.
-                            //        The mode of the jobid directories is also changed to be 0700.
+                            //        The mode of the jobid directories are also created to be 0750.
                             rc = chmod(l_DataStorePath.c_str(), 0755);
                             if (rc)
                             {
@@ -2877,8 +2758,17 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             if (asyncfile.path().filename().string() == XBBSERVER_ASYNC_REQUEST_BASE_FILENAME)
                             {
                                 // Old style....  Simply delete it...
-                                bfs::remove(asyncfile.path());
-                                LOG(bb,info) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() << " removed";
+                                rc = remove(asyncfile.path());
+                                if (!rc)
+                                {
+                                    LOG(bb,info) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() << " removed";
+                                }
+                                else
+                                {
+                                    LOG(bb,warning) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() \
+                                                    << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
+                                                    << ". Continuing...";
+                                }
                                 continue;
                             }
 
@@ -2898,8 +2788,17 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                         time_t l_CurrentTime = time(0);
                                         if (difftime(l_CurrentTime, l_Statinfo.st_atime) > ASYNC_REQUEST_FILE_PRUNE_TIME)
                                         {
-                                            bfs::remove(asyncfile.path());
-                                            LOG(bb,info) << "WRKQMGR: Async request file " << asyncfile.path() << " removed";
+                                            rc = remove(asyncfile.path());
+                                            if (!rc)
+                                            {
+                                                LOG(bb,info) << "WRKQMGR: Async request file " << asyncfile.path() << " removed";
+                                            }
+                                            else
+                                            {
+                                                LOG(bb,warning) << "WRKQMGR: Async request file " << asyncfile.path().c_str() \
+                                                                << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
+                                                                << ". Continuing...";
+                                            }
                                         }
                                     }
                                 }
@@ -2924,12 +2823,12 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                         break;
                 }
             }
-            catch(ExceptionBailout& e) { }
-            catch(exception& e)
-            {
-                rc = -1;
-                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-            }
+        }
+        catch(ExceptionBailout& e) { }
+        catch(exception& e)
+        {
+            rc = -1;
+            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
         }
 
         LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;

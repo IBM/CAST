@@ -51,6 +51,8 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     int rc = 0;
     stringstream errorText;
 
+    int l_SwitchUsers = 0;
+
     try
     {
         if (pJobId != UNDEFINED_JOBID)
@@ -74,36 +76,51 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
                 // Switch to root:root
                 // NOTE:  Must do this so we can insert into the cross bbserver
                 //        metadata directory, which has permissions of 755.
+                l_SwitchUsers = 1;
                 becomeUser(0,0);
 
                 // Create the jobid directory
-                bfs::create_directories(job);
+                // NOTE: umask of 0027 yields permissions of 0750 for jobid directory
+                rc = mkdir(job.c_str(), (mode_t)0777);
 
-                // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
-                int rc = chown(job.c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
-                               (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
-                if (rc)
+                if (!rc)
                 {
-                    int l_Errno = errno;
-                    bfs::remove_all(job);
-                    errorText << "chown failed for the jobid directory";
-                    bberror << err("error.path", job.string());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, l_Errno);
+                    // Unconditionally perform a chown for the jobid directory to the uid:gid of the mountpoint.
+                    int rc = chown(job.c_str(), (uid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptuid))->getData(),
+                                   (gid_t)((txp::Attr_uint32*)pMsg->retrieveAttrs()->at(txp::mntptgid))->getData());
+                    if (rc)
+                    {
+                        rc = -1;
+                        int l_Errno = errno;
+                        bfs::remove_all(job);
+                        bberror << err("error.path", job.string());
+                        errorText << "chown failed for the jobid directory at " << job.string() \
+                                  << ", errno " << l_Errno << " (" << strerror(l_Errno) << ")";
+                        LOG_ERROR_TEXT_ERRNO(errorText, l_Errno);
+                        SET_RC_AND_BAIL(rc);
+                    }
+                }
+                else
+                {
+                    if (errno != EEXIST)
+                    {
+                        rc = -1;
+                        bberror << err("error.path", job.c_str());
+                        errorText << "mkdir failed for jobid directory at " << job.string() \
+                                  << ", errno " << errno << " (" << strerror(errno) << ")";
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        SET_RC_AND_BAIL(rc);
+                    }
+                    else
+                    {
+                        // Tolerate if the jobid directory already exists.  There exists a possible
+                        // race condition between CNs when registering their logical volumes.
+                    }
                 }
 
                 // Switch back to the correct uid:gid
                 switchIdsToMountPoint(pMsg);
-
-                // Unconditionally perform a chmod to 0770 for the jobid directory.
-                // This is required so that only root, the uid, and any user belonging to the gid can access this 'job'
-                rc = chmod(job.c_str(), 0770);
-                if (rc)
-                {
-                    errorText << "chmod failed for the jobid directory";
-                    bberror << err("error.path", job.c_str());
-                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                }
-                LOG(bb,info) << "xbbServer: JobId " << pJobId << " is being registered";
+                l_SwitchUsers = 0;
             }
         }
         else
@@ -119,6 +136,11 @@ int BBLV_Metadata::update_xbbServerAddData(txp::Msg* pMsg, const uint64_t pJobId
     {
         rc = -1;
         LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+    }
+
+    if (l_SwitchUsers)
+    {
+        switchIdsToMountPoint(pMsg);
     }
 
     return rc;
@@ -144,9 +166,24 @@ int BBLV_Metadata::update_xbbServerRemoveData(const uint64_t pJobId) {
             bfs::path hidejob(g_BBServer_Metadata_Path);
             string hidejobname = "." + to_string(pJobId);
             hidejob /= bfs::path(hidejobname);
-            bfs::rename(job, hidejob);
+            rc = rename(job.c_str(), hidejob.c_str());
+            if (rc)
+            {
+                // NOTE: There is a window between checking for the job above and subsequently renaming/removing
+                //       the job directory.  This is the most likely exception...  Return -2...
+                //       Also, if a script sends a RemoveJobInfo command to each CN, it is a big race condition
+                //       as to which bbServer actually removes the job from the cross bbServer metadata and
+                //       which servers 'may' take an exception trying to concurrently remove the data.
+                //       Simply log this as an info...
+                rc = -2;
+                errorText << "JobId " << pJobId << " was not found in the cross-bbServer metadata";
+                LOG_INFO_TEXT_RC(errorText, rc);
+            }
         }
-        LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
+        if (!rc)
+        {
+            LOG(bb,info) << "JobId " << pJobId << " was removed from the cross-bbServer metadata";
+        }
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -267,7 +304,8 @@ int BBLV_Metadata::addLVKey(const string& pHostName, txp::Msg* pMsg, const LVKey
             //       the setSuspended() invocation will set the metadata and the work queue object as suspended.
             int l_SuspendOption = (pTolerateAlreadyExists ? 1 : 0);
             rc = wrkqmgr.addWrkQ(pLVKey, l_LV_Info, pJobId, l_SuspendOption);
-            pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_SuspendOption);
+            LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released;
+            pLV_Info.getExtentInfo()->setSuspended(pLVKey, l_LV_Info->getHostName(), pJobId, l_Local_Metadata_Lock_Released, l_SuspendOption);
             if (!rc)
             {
                 // NOTE: If necessary, errstate will be filled in by update_xbbServerAddData()
@@ -491,11 +529,12 @@ void BBLV_Metadata::cleanUpAll(const uint64_t pJobId) {
                 (it->second).ensureStageOutEnded(&(it->first), l_LockWasReleased);
                 if (l_LockWasReleased == LOCAL_METADATA_LOCK_NOT_RELEASED)
                 {
+                    LOG(bb,debug) << "taginfo: " << it->first << " removed from local metadata";
                     it = metaDataMap.erase(it);
                 }
 
                 // NOTE: Reset CurrentWrkQE for the next iteration...
-                CurrentWrkQE = NULL;
+                CurrentWrkQE = (WRKQE*)0;
 
                 l_Restart = true;
                 break;
@@ -795,13 +834,22 @@ int BBLV_Metadata::getLVKey(const std::string& pConnectionName, LVKey* &pLVKey, 
 }
 
 BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
+    int l_TransferQueueWasUnlocked = 0;
+    int l_LocalMetadataWasLocked = 0;
+
     BBLV_Info* l_BBLV_Info = 0;
 
-    int l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
-    int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
+    if (!localMetadataIsLocked())
+    {
+        l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBLV_Metadata::getLV_Info");
+        lockLocalMetadata(pLVKey, "BBLV_Metadata::getLV_Info");
+        l_LocalMetadataWasLocked = 1;
+    }
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it) {
-        if (it->first == *pLVKey) {
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    {
+        if (it->first == *pLVKey)
+        {
             l_BBLV_Info = const_cast <BBLV_Info*> (&(it->second));
             break;
         }
@@ -809,11 +857,13 @@ BBLV_Info* BBLV_Metadata::getLV_Info(const LVKey* pLVKey) const {
 
     if (l_LocalMetadataWasLocked)
     {
+        l_LocalMetadataWasLocked = 0;
         unlockLocalMetadata(pLVKey, "BBLV_Metadata::getLV_Info");
     }
 
     if (l_TransferQueueWasUnlocked)
     {
+        l_TransferQueueWasUnlocked = 0;
         lockTransferQueue(pLVKey, "BBLV_Metadata::getLV_Info");
     }
 
@@ -1035,15 +1085,17 @@ int BBLV_Metadata::retrieveTransfers(BBTransferDefs& pTransferDefs)
     return rc;
 }
 
-void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus)
+int BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, BBSTATUS& pStatus)
 {
+    int rc = 0;
     int l_AppendAsyncRequestFlag = ASYNC_REQUEST_HAS_NOT_BEEN_APPENDED;
 
     int l_LocalMetadataWasLocked = lockLocalMetadataIfNeeded((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
     {
-        it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
+        int rc2 = it->second.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, &(it->first), pHandle, l_AppendAsyncRequestFlag, pStatus);
+        rc = (rc2 ? rc2 : rc);
     }
 
     if (l_LocalMetadataWasLocked)
@@ -1051,7 +1103,7 @@ void BBLV_Metadata::sendTransferCompleteForHandleMsg(const string& pHostName, co
         unlockLocalMetadata((LVKey*)0, "BBLV_Metadata::sendTransferCompleteForHandleMsg");
     }
 
-    return;
+    return rc;
 }
 
 void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption)
@@ -1068,7 +1120,7 @@ void BBLV_Metadata::setCanceled(const uint64_t pJobId, const uint64_t pJobStepId
             it->second.setCanceled(&(it->first), pJobId, pJobStepId, pHandle, l_LockWasReleased, pRemoveOption);
 
             // NOTE: Reset CurrentWrkQE for the next iteration...
-            CurrentWrkQE = NULL;
+            CurrentWrkQE = (WRKQE*)0;
 
             if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
             {
@@ -1089,61 +1141,93 @@ int BBLV_Metadata::setSuspended(const string& pHostName, const string& pCN_HostN
     uint32_t l_NumberOfQueuesNotFoundForLVKey = 0;
     uint32_t l_NumberSet = 0;
     uint32_t l_NumberFailed = 0;
+    bool l_AllDone = false;
+    vector<LVKey> l_LVKeysProcessed = vector<LVKey>();
+    vector<LVKey>::iterator it2;
 
-    for(auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
+    while (!l_AllDone)
     {
-        rc = it->second.setSuspended(&(it->first), pCN_HostName, pValue);
-        switch (rc)
+        l_AllDone = true;
+        for (auto it = metaDataMap.begin(); it != metaDataMap.end(); ++it)
         {
-            case 2:
+            LVKey l_LVKey = it->first;
+            if (find(l_LVKeysProcessed.begin(), l_LVKeysProcessed.end(), l_LVKey) == l_LVKeysProcessed.end())
             {
-                // Value was already set for this work queue.
-                // Continue to the next LVKey...
-                LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
-                             << " was already " << (pValue ? "inactive" : "active");
-                ++l_NumberAlreadySet;
+                LOCAL_METADATA_RELEASED l_Local_Metadata_Lock_Released = LOCAL_METADATA_LOCK_NOT_RELEASED;
+                try
+                {
+                    string l_HostName = it->second.getHostName();
+                    rc = it->second.setSuspended(&l_LVKey, pCN_HostName, l_Local_Metadata_Lock_Released, pValue);
+                    switch (rc)
+                    {
+                        case 2:
+                        {
+                            // Value was already set for this work queue.
+                            // Continue to the next LVKey...
+                            LOG(bb,info) << "BBLV_Metadata::setSuspended(): Queue for hostname " << l_HostName << ", " << l_LVKey \
+                                         << " was already " << (pValue ? "inactive" : "active");
+                            ++l_NumberAlreadySet;
 
-                break;
-            }
+                            break;
+                        }
 
-            case 1:
-            {
-                // Hostname did not match...  Continue to the next LVKey...
-                LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << it->second.getHostName() << ", " << it->first \
-                              << " did not match the host name criteria";
-                ++l_NumberOfQueuesNotMatchingHostNameCriteria;
+                        case 1:
+                        {
+                            // Hostname did not match...  Continue to the next LVKey...
+                            LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Queue for hostname " << l_HostName << ", " << l_LVKey \
+                                          << " did not match the host name criteria";
+                            ++l_NumberOfQueuesNotMatchingHostNameCriteria;
 
-                break;
-            }
+                            break;
+                        }
 
-            case 0:
-            {
-                // If the hostname matched, the suspended value was successfully set
-                // for the work queue.  Already logged...  Continue to the next LVKey...
-                ++l_NumberSet;
+                        case 0:
+                        {
+                            // If the hostname matched, the suspended value was successfully set
+                            // for the work queue.  Already logged...  Continue to the next LVKey...
+                            ++l_NumberSet;
 
-                break;
-            }
+                            break;
+                        }
 
-            case -2:
-            {
-                // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
-                LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << it->second.getHostName() << ", " << it->first \
-                              << " was not found";
-                ++l_NumberOfQueuesNotFoundForLVKey;
+                        case -2:
+                        {
+                            // Work quque not found for hostname/LVKey...  Continue to the next LVKey...
+                            LOG(bb,debug) << "BBLV_Metadata::setSuspended(): Work queue for hostname " << l_HostName << ", " << l_LVKey \
+                                          << " was not found";
+                            ++l_NumberOfQueuesNotFoundForLVKey;
 
-                break;
-            }
+                            break;
+                        }
 
-            default:
-            {
-                // Error occurred....  It was already logged...  Continue...
-                ++l_NumberFailed;
+                        default:
+                        {
+                            // Error occurred....  It was already logged...  Continue...
+                            ++l_NumberFailed;
 
-                break;
+                            break;
+                        }
+                    }
+                }
+                catch(ExceptionBailout& e) { }
+                catch(exception& e)
+                {
+                    LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+                }
+
+                // NOTE: Reset CurrentWrkQE for the next iteration...
+                CurrentWrkQE = (WRKQE*)0;
+
+                rc = 0;
+
+                l_LVKeysProcessed.push_back(l_LVKey);
+                if (l_Local_Metadata_Lock_Released == LOCAL_METADATA_LOCK_RELEASED)
+                {
+                    l_AllDone = false;
+                    break;
+                }
             }
         }
-        rc = 0;
     }
 
     if (l_NumberSet)
@@ -1286,7 +1370,7 @@ int BBLV_Metadata::stopTransfer(const string pHostName, const string pCN_HostNam
                 }
 
                 // NOTE: Reset CurrentWrkQE for the next iteration...
-                CurrentWrkQE = NULL;
+                CurrentWrkQE = (WRKQE*)0;
 
                 if (l_LockWasReleased == LOCAL_METADATA_LOCK_RELEASED)
                 {

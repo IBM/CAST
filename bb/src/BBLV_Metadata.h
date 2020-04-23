@@ -64,7 +64,7 @@ class BBLV_Metadata
     void removeAllLogicalVolumesForUuid(const string& pHostName, const LVKey* pLVKey, const uint64_t pJobId);
     void removeLVKey(const uint64_t pJobId, const LVKey* pLVKey);
     int retrieveTransfers(BBTransferDefs& pTransferDefs);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, const BBSTATUS pStatus=BBNONE);
+    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const uint64_t pHandle, BBSTATUS& pStatus);
     void setCanceled(const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pRemoveOption);
     int setSuspended(const string& pHostName, const string& pCN_HostName, const int pValue);
     int stopTransfer(const string pHostName, const string pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const uint32_t pContribId);
