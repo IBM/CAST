@@ -543,22 +543,45 @@ sub configureNVMeTarget
     ($configfs) = $mtab =~ /configfs\s+(\S+)/;
     output("Configfs found at: $configfs");
 
+    my $interfacename = $CFG{"interfacename"};
+    my $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");
+    ($myip) = $ipaddr =~ /inet\s+(\S+?)\//;
+    output("My IP address for $interfacename: $myip");
+
+    if(!isNVMeTargetOffloadCapable())
+    {
+        output("Node is not capable of NVMe over Fabrics target offload");
+        $CFG{"useOffload"} = 0;
+    }
+    my $state = "disabled";
+    $state = "enabled" if($CFG{"useOffload"});
+    output("NVMe over Fabrics target offload is $state");
+
     my $nvmetjson = cat($CFG{"nvmetempl"});
     my $json      = decode_json($nvmetjson);
     my $bootid    = cat("/proc/sys/kernel/random/boot_id");
-    my $nqn       = substr($nodename . "-" . $bootid, 5, 10);
     chomp($bootid);
-    $json->{"subsystems"}[0]{"nqn"} = $nqn;
-    my $ns        = $json->{"subsystems"}[0]{"namespaces"}[0]{"nsid"} = $namespace;
+    my $subsystemnqnprefix = substr($nodename . "-" . $bootid, 5, 9);
 
-    requireBlockDevice($json->{"subsystems"}[0]{"namespaces"}[0]{"device"}{"path"});
-
-    my $enabled = cat("$configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
-    if($enabled =~ /1/)
+    foreach $suffix (0..1)
+    {
+        $json->{"subsystems"}[$suffix]{"nqn"} = $subsystemnqnprefix . $suffix;
+        $json->{"subsystems"}[$suffix]{"namespaces"}[0]{"nsid"} = $namespace;
+        requireBlockDevice($json->{"subsystems"}[$suffix]{"namespaces"}[0]{"device"}{"path"});
+    }
+    
+    my $NvmeChangesRequired = 0;
+    foreach $subsystemnqn (@{$json->{"subsystem"}})
+    {
+        my $enabled = cat("$configfs/nvmet/subsystems/$subsystemnqn/namespaces/$namespace/enable");
+        $NvmeChangesRequired = 1 if($enabled =~ /1/);
+    }
+    
+    if($NvmeChangesRequired)
     {
         if($CFG{"sharednode"})
         {
-            output("NVMe over Fabrics target has already been configured and the node is shared.  Skipping NVMe over Fabrics setup");
+            output("NVMe over Fabrics target requires changes but bbactivate parms declared the node is shared.  Skipping NVMe over Fabrics setup");
             return;
         }
         output("NVMe over Fabrics target has already been configured.  Clearing potentially stale NVMe over Fabrics target configuration");
@@ -574,41 +597,33 @@ sub configureNVMeTarget
         cmd("nvmetcli clear", 1);
     }
 
-    my $interfacename = $CFG{"interfacename"};
-    my $ipaddr = safe_cmd("ip addr show dev $interfacename | grep \"inet \"");
-    
-    ($myip) = $ipaddr =~ /inet\s+(\S+?)\//;
-
-    output("myip: $myip");
-
-    if(!isNVMeTargetOffloadCapable())
-    {
-        output("Node is not capable of NVMe over Fabrics target offload");
-        $CFG{"useOffload"} = 0;
-    }
-    my $state = "disabled";
-    $state = "enabled" if($CFG{"useOffload"});
-    output("NVMe over Fabrics target offload is $state");
-
+    # Define valid hosts:
     $json->{"hosts"}[0]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"servercfg"});
-    $json->{"subsystems"}[0]{"allowed_hosts"}[0] = $json->{"hosts"}[0]{"nqn"};
     if($cfgfile->{"bb"}{"proxy"}{"backupcfg"} ne "")
     {
         $json->{"hosts"}[1]{"nqn"} = &genRandomName($cfgfile->{"bb"}{"proxy"}{"backupcfg"});
-        $json->{"subsystems"}[0]{"allowed_hosts"}[1] = $json->{"hosts"}[1]{"nqn"};
     }
 
+    # Define subsystems.  All subsystems need to allow all hosts IDs:
+    foreach $subid (@{$json->{"subsystems"}})
+    {
+        foreach $hostid (@{$json->{"hosts"}})
+        {
+            push(@{$subid->{"allowed_hosts"}}, $hostid->{"nqn"});
+        }
+        $subid->{"offload"}                 = $CFG{"useOffload"};
+        $subid->{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
+    }
+
+    # Define ports.  Each port needs to be assigned to 1 subsystem.
+    my $subindex = 0;
     foreach $port (@{$json->{"ports"}})
     {
         $port->{"addr"}{"traddr"} = $myip;
-        $port->{"subsystems"}[0] = $nqn;
+        $port->{"subsystems"}[0] = $json->{"subsystems"}[$subindex]{"nqn"};
+        $subindex++;
     }
-
-    $json->{"subsystems"}[0]{"offload"}                 = $CFG{"useOffload"};
-    $json->{"subsystems"}[0]{"namespaces"}[0]{"enable"} = !$CFG{"useOffload"};    # workaround
-
-    output("My IP addr: " . $json->{"ports"}[0]{"addr"}{"traddr"});
-
+    
     my $jsonoo = JSON->new->allow_nonref->canonical;
     my $out    = $jsonoo->pretty->encode($json);
 
@@ -627,7 +642,7 @@ sub configureNVMeTarget
         }
 
         cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/attr_offload");
-        cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$ns/enable");
+        cmd("echo 1 > $configfs/nvmet/subsystems/$nqn/namespaces/$namespace/enable");
 
         foreach $port (@{$json->{"ports"}})
         {
