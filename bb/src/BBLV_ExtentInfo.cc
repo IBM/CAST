@@ -806,13 +806,13 @@ void BBLV_ExtentInfo::setStageOutStarted(const LVKey* pLVKey, const uint64_t pJo
     return;
 }
 
-int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const int pValue)
+int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue)
 {
     int rc = 0;
 
     if (!stageOutStarted())
     {
-        rc = wrkqmgr.setSuspended(pLVKey, pValue);
+        rc = wrkqmgr.setSuspended(pLVKey, pLocal_Metadata_Lock_Released, pValue);
         switch (rc)
         {
             // NOTE: Even if the work queue had the suspend bit on (rc=2), we still unconditionally set the suspend

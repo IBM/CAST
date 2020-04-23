@@ -1494,7 +1494,7 @@ void BBTransferDef::setExtentsEnqueued(const LVKey* pLVKey, const uint64_t pHand
     return;
 }
 
-void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const int pValue)
+void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, const UPDATE_CONTRIBID_FILE_OPTION pUpdateContribIdFileOption, const int pValue)
 {
     // NOTE: Doesn't matter if all extents have been processed.  We can fail a transfer definition after processing
     //       all of the extents.  (e.g., close for a file)
@@ -1511,7 +1511,7 @@ void BBTransferDef::setFailed(const LVKey* pLVKey, const uint64_t pHandle, const
     }
     SET_FLAG(BBTD_Failed, pValue);
 
-    if (pLVKey && (*pLVKey) != LVKey_Null)
+    if (pUpdateContribIdFileOption == UPDATE_CONTRIBID_FILE)
     {
         // Now update the status for the ContribId and Handle files in the xbbServer data...
         // NOTE: We do not handle the return code...
@@ -1605,7 +1605,7 @@ int BBTransferDef::stopTransfer(const LVKey* pLVKey, const string& pHostName, co
             //       this transfer definition originated on this bbServer.  If the
             //       second volley doesn't occur rather quickly, most likely the
             //       failover occurred between the two volleys.  Therefore, we
-            //       don't wait for the fill amount of time here.  The
+            //       don't wait for the full amount of time here.  The
             //       bbServer attempting to take over will wait the full amount of
             //       time.  So if possible, we want the original server to process
             //       first.

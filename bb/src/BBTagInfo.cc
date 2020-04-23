@@ -82,7 +82,7 @@ int BBTagInfo::compareContrib(const uint64_t pNumContrib, const uint32_t pContri
     return rc;
 }
 
-void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib, bool& guaranteeUnique) 
+void BBTagInfo::genTransferHandle(uint64_t& pHandle, const BBJob pJob, const uint64_t pTag, vector<uint32_t>& pContrib, bool& guaranteeUnique)
 {
     if((pContrib.size() == 1) && (serverIdentifier != 0))  //  serverIdentifier=0 means disabled opt
     {
@@ -187,10 +187,12 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                 // Serialize threads within this server to read the bump count file
                 l_TransferQueueWasUnlocked = unlockTransferQueueIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
                 l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "BBTagInfo::getTransferHandle");
-                // Perform the necessary locking across bbServers to read the bump count file
-                if(guaranteeUnique == false)
+
+                // If we are serializing the generation of handle values across bbServers,
+                // perform the necessary locking across bbServers to read the bump count file
+                if (guaranteeUnique == false)
                 {
-                    // obtain accurate bumpCount value
+                    // Obtain accurate bumpCount value
                     rc = TagInfo::lock(l_JobStepPath);
                     if (!rc)
                     {
@@ -201,106 +203,103 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                             l_TagInfoLocked = 0;
                             TagInfo::unlock();
                         }
+                        else
+                        {
+                            // Error from reading the bump count file
+                            rc = -1;
+                            errorText << "Unexpected error occurred during the generation of a handle value.  Could not retrieve/read the bump count file/value at " << l_JobStepPath.string();
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                        }
+                    }
+                    else
+                    {
+                        // Error locking taginfo file
+                        rc = -1;
+                        errorText << "Unexpected error occurred during the generation of a handle value.  Could not lock the TagInfo file at " << l_JobStepPath.string();
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                     }
                 }
 
                 if (!rc)
                 {
-                    if(1)       // todo, remove this nested level.  
+                    if (l_LocalMetadataLocked)
                     {
-                        if (l_LocalMetadataLocked)
+                        l_LocalMetadataLocked = 0;
+                        unlockLocalMetadata(pLVKey, "BBTagInfo::getTransferHandle");
+                    }
+                    if (l_TransferQueueWasUnlocked)
+                    {
+                        l_TransferQueueWasUnlocked = 0;
+                        lockTransferQueue(pLVKey, "BBTagInfo::getTransferHandle");
+                    }
+
+                    // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
+                    int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle, l_BumpCount);
+
+                    // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
+                    switch (rc2)
+                    {
+                        case 0:
                         {
-                            l_LocalMetadataLocked = 0;
-                            unlockLocalMetadata(pLVKey, "BBTagInfo::getTransferHandle");
+                            // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
+                            // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
                         }
-                        if (l_TransferQueueWasUnlocked)
+                        break;
+
+                        case 1:
                         {
-                            l_TransferQueueWasUnlocked = 0;
-                            lockTransferQueue(pLVKey, "BBTagInfo::getTransferHandle");
+                            // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
+                            // Use the returned handle value passed back in l_Handle.
                         }
+                        break;
 
-                        // Process this proposed handle value for this job, jobstep, tag, and expectContrib vector.
-                        int rc2 = processNewHandle(pLVKey, pJob, pTag, l_ExpectContrib, l_Handle, l_BumpCount);
-
-                        // NOTE:  Upon return, the l_Handle value could have been modified by processNewHandle()
-                        switch (rc2)
+                        case 2:
                         {
-                            case 0:
+                            // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
+                            // Assign a new handle value and try to process the new handle value again.
+                            do
                             {
-                                // Newly generated handle value is currently unused for this job, jobstep, tag, and expectContrib vector.
-                                // Use the newly generated handle value for this job, jobstep, tag, and expectContrib vector.
-                            }
-                            break;
-
-                            case 1:
+                                bumpTransferHandle(l_Handle);
+                            } while(l_Handle == 0);
+                            if (!TagInfo::incrBumpCountFile(l_JobStepPath))
                             {
-                                // Tag value for this expectContrib vector has already been assigned a handle for this job, jobstep.
-                                // Use the returned handle value passed back in l_Handle.
-                            }
-                            break;
-
-                            case 2:
-                            {
-                                // Newly generated handle value is already in use for this job and jobstepid, but for a different tag value.
-                                // Assign a new handle value and try to process the new handle value again.
-                                do
-                                {
-                                    bumpTransferHandle(l_Handle);
-                                } while(l_Handle == 0);
-                                if (!TagInfo::incrBumpCountFile(l_JobStepPath))
-                                {
-                                    l_Continue = true;
-                                }
-                                else
-                                {
-                                    // Error from incrBumpCount()
-                                    rc = -1;
-                                    errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
-                                    LOG_ERROR_TEXT_RC(errorText, rc);
-                                }
-                            }
-                            break;
-
-                            case -2:
-                            {
-                                // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
-                                rc = -1;
-                                errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
-                                          << " but for a different contrib vector. Another tag value must be specified.";
-                                LOG_ERROR_TEXT_RC(errorText, rc);
-                            }
-                            break;
-
-                            case -3:
-                            {
-                                // Bump count did not match...  Just start over...
                                 l_Continue = true;
                             }
-                            break;
-
-                            default:
+                            else
                             {
-                                // Some other error
+                                // Error from incrBumpCount()
                                 rc = -1;
-                                errorText << "Unexpected error occurred during the generation of a handle value";
+                                errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
                                 LOG_ERROR_TEXT_RC(errorText, rc);
                             }
                         }
+                        break;
+
+                        case -2:
+                        {
+                            // Tag value has already been used for this job and jobstep for a different expectContrib vector.  Error condition.
+                            rc = -1;
+                            errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
+                                      << " but for a different contrib vector. Another tag value must be specified.";
+                            LOG_ERROR_TEXT_RC(errorText, rc);
+                        }
+                        break;
+
+                        case -3:
+                        {
+                            // Bump count did not match...  Just start over...
+                            l_Continue = true;
+                        }
+                        break;
+
+                        default:
+                        {
+                            // Some other error
+                            rc = -1;
+                            errorText << "Unexpected error occurred during the generation of a handle value";
+                            LOG_ERROR_TEXT_RC(errorText, rc);
+                        }
                     }
-                    else
-                    {
-                        // Error from reading the bump count file
-                        rc = -1;
-                        errorText << "Unexpected error occurred during the generation of a handle value.  Could not retrieve/read the bump count file/value at " << l_JobStepPath.string();
-                        LOG_ERROR_TEXT_RC(errorText, rc);
-                    }
-                }
-                else
-                {
-                    // Error locking taginfo file
-                    rc = -1;
-                    errorText << "Unexpected error occurred during the generation of a handle value.  Could not lock the TagInfo file at " << l_JobStepPath.string();
-                    LOG_ERROR_TEXT_RC(errorText, rc);
                 }
             }
             catch(ExceptionBailout& e) { }
@@ -360,52 +359,38 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
 
         if (access(jobstepid.c_str(), F_OK))
         {
-            // Job step directory does not exist
-            // NOTE:  There is a window between creating the job directory and
-            //        performing the chmod to the correct uid:gid.  Therefore, if
-            //        create_directories() returns EACCESS (permission denied), keep
-            //        attempting for 2 minutes.
-            bs::error_code l_ErrorCode;
-            int l_Attempts = 120;
-            while (l_Attempts-- > 0)
+            // Attempt to create the jobstepid directory
+            // NOTE: umask of 0027 yields permissions of 0750 for jobstepid directory
+            mkdir(jobstepid.c_str(), (mode_t)0777);
+
+            if (!rc)
             {
-                // Attempt to create the jobstepid directory
-                bfs::create_directories(jobstepid, l_ErrorCode);
-                if (l_ErrorCode.value() == EACCES)
+                // Create the lock file for the taginfo
+                rc = TagInfo::createLockFile(jobstepid.string());
+                if (rc)
                 {
-                    usleep((useconds_t)1000000);    // Delay 1 second
+                    rc = -1;
+                    bberror << err("error.path", jobstepid.c_str());
+                    errorText << "Creation of the lockfile failed at " << jobstepid.string();
+                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                }
+            }
+            else
+            {
+                if (errno != EEXIST)
+                {
+                    rc = -1;
+                    bberror << err("error.path", jobstepid.c_str());
+                    errorText << "mkdir failed for jobstepid directory at " << jobstepid.string();
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                    SET_RC_AND_BAIL(rc);
                 }
                 else
                 {
-                    // Jobstepid directory created
-                    l_Attempts = -1;
+                    // Tolerate if the jobstepid directory already exists.  There exists a possible
+                    // race condition between CNs when requesting handles.
                 }
             }
-
-            if (l_Attempts == 0)
-            {
-                // Error returned via create_directories...
-                // Attempt one more time, without the error code.
-                // On error, the appropriate boost exception will be thrown...
-                LOG(bb,debug) << "BBTagInfoMap::update_xbbServerAddData(): l_Attempts " << l_Attempts << ", l_ErrorCode.value() " << l_ErrorCode.value();
-                bfs::create_directories(jobstepid);
-            }
-
-            // Perform a chmod to 0770 for the jobstepid directory.
-
-            // NOTE:  This is done for completeness, as all access is via the parent directory (jobid) and access to the files
-            //        contained in this tree is controlled there.
-            rc = chmod(jobstepid.c_str(), 0770);
-            if (rc)
-            {
-                errorText << "chmod failed";
-                bberror << err("error.path", jobstepid.c_str());
-                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-            }
-
-            // Create the lock file for the taginfo
-            rc = TagInfo::createLockFile(jobstepid.string());
-            if (rc) BAIL;
         }
     }
     catch(ExceptionBailout& e) { }
@@ -507,7 +492,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                     }
                     if (pTransferDef->allExtentsTransferred())
                     {
-                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pHandle, pContribId, pTransferDef);
+                        BBSTATUS l_ContribIdStatus = BBNONE;    // sendTransferCompleteForContribIdMsg() will determine the real contribid status
+                        pLV_Info->sendTransferCompleteForContribIdMsg(pConnectionName, pLVKey, pTagId, pHandle, pContribId, pTransferDef, l_ContribIdStatus);
 
                         int l_NewStatus = 0;
                         Extent l_Extent = Extent();
@@ -519,7 +505,8 @@ int BBTagInfo::addTransferDef(const std::string& pConnectionName, const LVKey* p
                             // Send the transfer is complete for this handle message to bbProxy
                             string l_HostName;
                             activecontroller->gethostname(l_HostName);
-                            metadata.sendTransferCompleteForHandleMsg(l_HostName, pTransferDef->getHostName(), pHandle);
+                            BBSTATUS l_HandleStatus = BBNONE;     // sendTransferCompleteForHandleMsg() will determine the real handle status
+                            metadata.sendTransferCompleteForHandleMsg(l_HostName, pTransferDef->getHostName(), pHandle, l_HandleStatus);
 
                             // Check/update the status for the LVKey
                             // NOTE:  If the status changes at the LVKey level, the updateTransferStatus() routine will send the message for the LVKey...
@@ -846,14 +833,16 @@ int BBTagInfo::retrieveTransfers(BBTransferDefs& pTransferDefs, BBLV_ExtentInfo*
     return rc;
 }
 
-void BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus)
+int BBTagInfo::sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, BBLV_Info* pLV_Info, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus)
 {
+    int rc = 0;
+
     if (pHandle == transferHandle)
     {
-        pLV_Info->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
+        rc = pLV_Info->sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, pConnectionName, pLVKey, pTagId, pHandle, pAppendAsyncRequestFlag, pStatus);
     }
 
-    return;
+    return rc;
 }
 
 void BBTagInfo::setAllContribsReported(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, const uint64_t pHandle, const int pValue)
@@ -1127,10 +1116,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_JobStepDirectoryExists)
                     {
-                        // Unconditionally perform a chmod to 0770 for the jobstepid directory.
+                        // Unconditionally perform a chmod to 0750 for the jobstepid directory.
                         // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                         //        contained in this tree is controlled there.
-                        rc = chmod(l_JobStepPath.c_str(), 0770);
+                        rc = chmod(l_JobStepPath.c_str(), 0750);
                         if (rc)
                         {
                             errorText << "chmod failed";
@@ -1145,10 +1134,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
 
                     if (!l_ToplevelHandleDirectoryExists)
                     {
-                        // Unconditionally perform a chmod to 0770 for the toplevel handle directory.
+                        // Unconditionally perform a chmod to 0750 for the toplevel handle directory.
                         // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                         //        contained in this tree is controlled there.
-                        rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0770);
+                        rc = chmod(l_ToplevelHandleDirectoryPath.c_str(), 0750);
                         if (rc)
                         {
                             errorText << "chmod failed";
@@ -1157,10 +1146,10 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
                         }
                     }
 
-                    // Unconditionally perform a chmod to 0770 for the lvuuid directory.
+                    // Unconditionally perform a chmod to 0750 for the lvuuid directory.
                     // NOTE:  This is done for completeness, as all access is via the great-grandparent directory (jobid) and access to the files
                     //        contained in this tree is controlled there.
-                    rc = chmod(l_LVUuidPath.c_str(), 0770);
+                    rc = chmod(l_LVUuidPath.c_str(), 0750);
                     if (rc)
                     {
                         errorText << "chmod failed";
@@ -1222,7 +1211,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, HandleFile* pHandleF
         }
 
         bool l_UpdateHandleStatus = false;
-        if (!pTransferDef->hasFilesInRequest())
+        if (!pTransferDef->numberOfFilesInRequest())
         {
             // No files in the request
             l_UpdateHandleStatus = true;

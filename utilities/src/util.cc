@@ -16,6 +16,7 @@
 #include <iostream>
 #include <mntent.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <arpa/inet.h>
@@ -344,6 +345,22 @@ int retrieveLVM_BreadCrumb(const std::string pMountPoint, Uuid* pUuid, std::stri
     return l_RC;
 }
 
+std::string timevalToStr(const struct timeval& pTime)
+{
+	char l_Buffer[20] = {'\0'};
+	char l_ReturnTime[27] = {'\0'};
+
+    unsigned long l_Micro = pTime.tv_usec;
+
+    // localtime is not thread safe
+    // NOTE:  No spaces in the formatted timestamp, because this can be sent as part of an
+    //        async request message.  That processing uses scanf to parse the data...
+    strftime(l_Buffer, sizeof(l_Buffer), "%Y-%m-%d_%H:%M:%S", localtime((const time_t*)&pTime.tv_sec));
+    snprintf(l_ReturnTime, sizeof(l_ReturnTime), "%s.%06lu", l_Buffer, l_Micro);
+
+    return std::string(l_ReturnTime);
+}
+
 
 const char ERROR_PREFIX[] = "ERROR - ";
 
@@ -403,9 +420,9 @@ std::vector<std::string> runCommand(const std::string& cmd, bool flatfile,bool n
         {
             free(buffer);
             buffer = NULL;
-        }     
+        }
 
-        int ferror_rc=ferror(f);   
+        int ferror_rc=ferror(f);
         if (flatfile)
             fclose(f);
         else

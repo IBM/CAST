@@ -1,6 +1,15 @@
 {
   "bb" :
   {
+      "critical" :
+      {
+          "general_error" :
+          {
+              "severity" : "FATAL",
+              "message" : "Critical error has occurred. Server should be restarted.",
+              "description" : "Critical error has occurred. Server should be restarted."
+          }
+      },
       "devpath" :
       {
           "readlinkFailed" :
@@ -534,6 +543,15 @@
 	      "message" : "An admin level command or API operation failed.",
 	      "description" : "An admin level command or API operation failed."
 	  }
-      }
+      },
+      "lar" :
+      {
+	  "pthread_create" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "The daemon was unable to create asyncRequestWorker threads.",
+	      "description" : "The pthread_create call failed."
+	  }
+	  }
   }
 }

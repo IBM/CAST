@@ -82,17 +82,17 @@ class BBLV_Info
     int getTransferHandle(uint64_t& pHandle, const LVKey* pLVKey, const BBJob pJob, const uint64_t pTag, const uint64_t pNumContrib, const uint32_t pContrib[]);
     int prepareForRestart(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, const BBJob pJob, const uint64_t pHandle, const int32_t pContribId, BBTransferDef* pOrigTransferDef, BBTransferDef* pRebuiltTransferDef, const int pPass);
     int recalculateFlags(const string& pConnectionName, const LVKey* pLVKey, BBTagInfoMap* pTagInfoMap, BBTagInfo* pTagInfo, const int64_t pHandle, const int32_t pContribId);
-    void removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists);
+    void removeFromInFlight(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, const XBBSERVER_JOB_EXISTS_OPTION pJobExists);
     int retrieveTransfers(BBTransferDefs& pTransferDefs);
-    void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef);
+    void sendTransferCompleteForContribIdMsg(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, const int64_t pHandle, const int32_t pContribId, BBTransferDef* pTransferDef, BBSTATUS& pStatus);
     void sendTransferCompleteForFileMsg(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef);
-    void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE);
+    int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const string& pConnectionName, const LVKey* pLVKey, const BBTagID pTagId, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus);
     void setAllExtentsTransferred(const LVKey* pLVKey, const uint64_t pHandle, ExtentInfo& pExtentInfo, const BBTagID pTagId, const int pValue=1);
     void setCanceled(const LVKey* pLVKey, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, LOCAL_METADATA_RELEASED& pLockWasReleased, const int pRemoveOption);
-    int setSuspended(const LVKey* pLVKey, const string& pHostName, const int pValue);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
     int stopTransfer(const LVKey* pLVKey, const string& pHostName, const string& pCN_HostName, const uint64_t pJobId, const uint64_t pJobStepId, uint64_t pHandle, uint32_t pContribId, LOCAL_METADATA_RELEASED& pLockWasReleased);
-    void updateAllContribsReported(const LVKey* pLVKey);
-    int updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight, const XBBSERVER_JOB_EXISTS_OPTION pJobExists);
+    int updateAllTransferStatus(const string& pConnectionName, const LVKey* pLVKey, const BBTagID& pTagId, BBTagInfo* pTagInfo, ExtentInfo& pExtentInfo, uint32_t pNumberOfExpectedInFlight, const XBBSERVER_JOB_EXISTS_OPTION pJobExists,
+                                PERFORM_TAGINFO_CLEANUP_OPTION& pPerformTagInfoCleanup, PERFORM_CONTRIBID_CLEANUP_OPTION& pPerformContribIdCleanup);
     void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, const BBTagID& pTagId, const int32_t pContribId, int& pNewStatus, uint32_t pNumberOfExpectedInFlight);
 
     inline int addExtents(const LVKey* pLVKey, const uint64_t pHandle, const uint32_t pContribId, BBTagInfo* pTagInfo, BBTransferDef* pTransfer, vector<struct stat*>* pStats) {
@@ -101,10 +101,6 @@ class BBLV_Info
 
     inline void addToInFlight(const string& pConnectionName, const LVKey* pLVKey, ExtentInfo& pExtentInfo) {
         return extentInfo.addToInFlight(pConnectionName, pLVKey, pExtentInfo);
-    }
-
-    inline int allContribsReported() {
-        return extentInfo.allContribsReported();
     }
 
     inline int allExtentsTransferred() {
@@ -207,6 +203,14 @@ class BBLV_Info
         return extentInfo.mergeFlags(pFlags);
     }
 
+    inline int moreExtentsToTransfer(const int64_t pHandle, const int32_t pContrib, uint32_t pNumberOfExpectedInFlight, int pDumpQueuesOnValue=DO_NOT_DUMP_QUEUES_ON_VALUE) {
+        return extentInfo.moreExtentsToTransfer(pHandle, pContrib, pNumberOfExpectedInFlight, pDumpQueuesOnValue);
+    }
+
+    inline int moreInFlightExtentsForTransferDefinition(const uint64_t pHandle, const uint32_t pContrib, int pDumpQueuesOnValue) {
+        return extentInfo.moreInFlightExtentsForTransferDefinition(pHandle, pContrib, pDumpQueuesOnValue);
+    }
+
     inline void removeExtent(const Extent* pExtent) {
         return extentInfo.removeExtent(pExtent);
     }
@@ -223,12 +227,8 @@ class BBLV_Info
         return extentInfo.resizeLogicalVolumeDuringStageOut();
     }
 
-    inline void sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const LVKey* pLVKey, const uint64_t pHandle, int& pAppendAsyncRequestFlag, const BBSTATUS pStatus=BBNONE) {
+    inline int sendTransferCompleteForHandleMsg(const string& pHostName, const string& pCN_HostName, const LVKey* pLVKey, const uint64_t pHandle, int& pAppendAsyncRequestFlag, BBSTATUS& pStatus) {
         return tagInfoMap.sendTransferCompleteForHandleMsg(pHostName, pCN_HostName, connectionName, pLVKey, this, pHandle, pAppendAsyncRequestFlag, pStatus);
-    }
-
-    inline void setAllContribsReported(const LVKey* pLVKey, const int pValue=1) {
-        return extentInfo.setAllContribsReported(pLVKey, pValue);
     }
 
     inline void setAllExtentsTransferred(const string& pConnectionName, const LVKey* pLVKey, const int pValue=1) {

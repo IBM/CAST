@@ -35,6 +35,7 @@ using namespace std;
 /*******************************************************************************
  | Forward declarations
  *******************************************************************************/
+class BBLocalAsync;
 class BBLV_Metadata;
 class WRKQMGR;
 class WRKQE;
@@ -75,12 +76,14 @@ extern thread_local std::string bbconnectionName;
 extern BBLV_Metadata metadata;
 
 #if BBSERVER
+extern BBLocalAsync g_LocalAsync;
 extern WRKQMGR wrkqmgr;
 extern WRKQE* HPWrkQE;
 // extern Timer ResizeSSD_Timer;
 extern Timer Throttle_Timer;
 extern AtomicCounter metadataCounter;
 extern bool g_AsyncRemoveJobInfo;
+extern bool g_FastLocalMetadataRemoval;
 extern bool g_UseDirectIO;
 extern int g_DiskStatsRate;
 extern int g_DumpTransferMetadataAfterQueue;
@@ -88,6 +91,7 @@ extern int g_DumpStatsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeAddingToAllExtents;
 extern int g_DumpExtentsBeforeSort;
 extern int g_DumpExtentsAfterSort;
+extern uint32_t g_NumberOfAsyncRequestsThreads;
 extern int64_t g_IBStatsLowActivityClipValue;
 extern uint64_t g_ForceSSDReadError;
 extern uint64_t g_ForceSSDWriteError;
@@ -96,7 +100,6 @@ extern uint64_t g_ForcePFSWriteError;
 // extern double ResizeSSD_TimeInterval;
 extern double Throttle_TimeInterval;
 extern double AsyncRequestRead_TimeInterval;
-extern double g_AsyncRemoveJobInfoInterval;
 extern string g_BBServer_Metadata_Path;
 extern int l_SSD_Read_Governor_Active;
 extern int l_SSD_Write_Governor_Active;
@@ -124,29 +127,34 @@ extern void writeVar(const char* pVariable, const char* pValue);
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 1800;                 // in seconds (30 minutes)
+const double DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE = 180;                  // in seconds (3 minutes)
+const double DEFAULT_ASYNC_REMOVEJOBINFO_MINIMUM_INTERVAL_VALUE = 60;           // in seconds (1 minute)
+const double DEFAULT_BBSERVER_DUMP_COUNTERS_TIME_INTERVAL = 60;                 // in seconds (1 minute)
 const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   // in seconds (30 minutes)
-const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 900;                    // in seconds (15 minutes)
+// NOTE: If the DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL is modified, the
+//       declare server dead time is also affected.
+const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 150;                    // in seconds (2.5 minutes)
+const double DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
+const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
-const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1.00;   // in seconds
+const double DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE = 1;      // in seconds
 const double DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL = 0.25;                    // in seconds
 const double MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL = 1.00;                    // in seconds
-const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25.00;         // in seconds
-const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100.00;        // in seconds
-const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds
-                                                                                // NOTE: The default declareServerDeadCount value
-                                                                                //       is 2 * heartbeat time interval, which by
-                                                                                //       default is 4 minutes.  The declareServerDeadCount
-                                                                                //       is then set to the max(default declareServerDeadCount,
-                                                                                //                              MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE)
-const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 64;
+const double DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 25;            // in seconds
+const double MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL = 100;           // in seconds
+const double DEFAULT_BBSERVER_DUMP_LOCAL_ASYNC_TIME_INTERVAL = 180;             // in seconds
+const uint64_t MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 120;                // in seconds (2 minutes)
+const uint64_t MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE = 600;                // in seconds (10 minutes)
+const unsigned int DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS = 48;
+const unsigned int DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS = 24;
 
 // NOTE: If the BB throttling rate is used to limit the amount of
 //       bandwidth BB consumes, the following default value should be
 //       changed to the default rate/sec value used for BB throttling.
 const uint64_t DEFAULT_MAXIMUM_TRANSFER_SIZE = 1*1024*1024*1024;
+const uint64_t DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE = 4;
 const uint64_t DEFAULT_NUMBER_OF_HANDLES = 1024;
 const uint64_t DEFAULT_FORCE_SSD_READ_ERROR = 0;
 const uint64_t DEFAULT_FORCE_SSD_WRITE_ERROR = 0;
@@ -200,6 +208,7 @@ const bool DEFAULT_GENERATE_UUID_ON_CREATE_LOGICAL_VOLUME = true;
 const bool DEFAULT_ABORT_ON_CRITICAL_ERROR = false;
 const bool DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY = false;
 const bool DEFAULT_ASYNC_REMOVEJOBINFO_VALUE = true;
+const bool DEFAULT_FAST_LOCAL_METADATA_REMOVAL = true;
 const bool DEFAULT_USE_DIRECT_IO_VALUE = true;
 
 const string ALL = "*";
@@ -326,6 +335,27 @@ enum XBBSERVER_JOB_EXISTS_OPTION
     XBBSERVER_JOB_DOES_NOT_EXIST    = 1
 };
 typedef enum XBBSERVER_JOB_EXISTS_OPTION XBBSERVER_JOB_EXISTS_OPTION;
+
+enum PERFORM_CONTRIBID_CLEANUP_OPTION
+{
+    DO_NOT_PERFORM_CONTRIBID_CLEANUP  = 0,
+    PERFORM_CONTRIBID_CLEANUP         = 1
+};
+typedef enum PERFORM_CONTRIBID_CLEANUP_OPTION PERFORM_CONTRIBID_CLEANUP_OPTION;
+
+enum PERFORM_TAGINFO_CLEANUP_OPTION
+{
+    DO_NOT_PERFORM_TAGINFO_CLEANUP  = 0,
+    PERFORM_TAGINFO_CLEANUP         = 1
+};
+typedef enum PERFORM_TAGINFO_CLEANUP_OPTION PERFORM_TAGINFO_CLEANUP_OPTION;
+
+enum UPDATE_CONTRIBID_FILE_OPTION
+{
+    DO_NOT_UPDATE_CONTRIBID_FILE    = 0,
+    UPDATE_CONTRIBID_FILE           = 1
+};
+typedef enum UPDATE_CONTRIBID_FILE_OPTION UPDATE_CONTRIBID_FILE_OPTION;
 
 /*******************************************************************************
  | Macro definitions

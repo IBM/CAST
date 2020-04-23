@@ -21,6 +21,7 @@
 #include "time.h"
 
 #include "bbinternal.h"
+#include "BBLocalAsync.h"
 #include "BBTagID.h"
 #include "bbwrkqe.h"
 #include "CnxSock.h"
@@ -88,6 +89,11 @@ typedef MAINTENANCE_OPTION MAINTENANCE_OPTION;
  *******************************************************************************/
 extern const LVKey* HPWrkQE_LVKey;
 extern WRKQE* HPWrkQE;
+extern CycleActivities_Controller g_CycleActivities_Controller;
+extern Dump_WrkQMgr_Controller g_Dump_WrkQMgr_Controller;
+extern Heartbeat_Controller g_Heartbeat_Controller;
+extern RemoteAsyncRequest_Controller g_RemoteAsyncRequest_Controller;
+extern ThrottleBucket_Controller g_ThrottleBucket_Controller;
 
 
 /*******************************************************************************
@@ -208,7 +214,6 @@ class HeartbeatEntry
     }
 
     static void getCurrentTime(struct timeval& pTime);
-    static string getHeartbeatCurrentTimeStr();
 
     inline uint64_t getCount()
     {
@@ -257,10 +262,6 @@ class WRKQMGR
      */
     WRKQMGR() :
         throttleMode(0),
-        throttleTimerCount(0),
-        throttleTimerPoppedCount(0),
-        asyncRequestReadTimerCount(0),
-        asyncRequestReadTimerPoppedCount(0),
         asyncRequestReadTurboFactor(1.0),
         asyncRequestReadConsecutiveNoNewRequests(0),
         allowDump(DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR),
@@ -276,12 +277,6 @@ class WRKQMGR
         numberOfAllowedConcurrentHPRequests(0),
         numberOfConcurrentHPRequests(0),
         dumpOnRemoveWorkItemInterval(DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL),
-        dumpTimerCount(0),
-        heartbeatDumpCount(0),
-        heartbeatTimerCount(0),
-        dumpTimerPoppedCount(0),
-        heartbeatDumpPoppedCount(0),
-        heartbeatTimerPoppedCount(0),
         declareServerDeadCount(0),
         numberOfWorkQueueItemsProcessed(0),
         lastDumpedNumberOfWorkQueueItemsProcessed(0),
@@ -294,7 +289,9 @@ class WRKQMGR
             wrkqs = map<LVKey, WRKQE*>();
             heartbeatData = map<string, HeartbeatEntry>();
             outOfOrderOffsets = vector<uint64_t>();
+            inflightHP_Requests = vector<string>();
             checkForCanceledExtents = 0;
+            lock_on_rmvWrkQ = PTHREAD_MUTEX_INITIALIZER;
             lock_workQueueMgr = PTHREAD_MUTEX_INITIALIZER;
             workQueueMgrLocked = 0;
         };
@@ -327,6 +324,11 @@ class WRKQMGR
         return delayMsgSent;
     }
 
+    inline double getAsyncRequestReadTurboFactor()
+    {
+        return asyncRequestReadTurboFactor;
+    };
+
     inline int getCheckForCanceledExtents()
     {
         return checkForCanceledExtents;
@@ -351,16 +353,6 @@ class WRKQMGR
     {
         return dumpOnRemoveWorkItemInterval;
     };
-
-    inline int getDumpTimerCount()
-    {
-        return dumpTimerCount;
-    }
-
-    inline int getDumpTimerPoppedCount()
-    {
-        return dumpTimerPoppedCount;
-    }
 
     inline void getOffsetToNextAsyncRequest(int &pSeqNbr, uint64_t &pOffset)
     {
@@ -403,16 +395,6 @@ class WRKQMGR
     inline string getServerLoggingLevel()
     {
         return loggingLevel;
-    }
-
-    inline int getThrottleTimerCount()
-    {
-        return throttleTimerCount;
-    }
-
-    inline int getThrottleTimerPoppedCount()
-    {
-        return throttleTimerPoppedCount;
     }
 
     inline int getUseAsyncRequestReadTurboMode()
@@ -464,6 +446,20 @@ class WRKQMGR
         return throttleMode;
     }
 
+    // NOTE: When this lock is obtained, no lock can be held
+    //       except for the work queue manager lock.  The
+    //       work queue manager lock cannot be released when
+    //       this lock is held.
+    // NOTE: After this lock is obtained, locks other than the
+    //       work queue manager lock can be obtained following
+    //       the lock protocol for those various locks.
+    inline void lock_rmvWrkQ()
+    {
+        pthread_mutex_lock(&lock_on_rmvWrkQ);
+
+        return;
+    }
+
     inline void setAllowDumpOfWorkQueueMgr(const int pValue)
     {
         allowDump = pValue;
@@ -505,13 +501,6 @@ class WRKQMGR
 
         return;
     };
-
-    inline void setDumpTimerCount(const int pValue)
-    {
-        dumpTimerCount = pValue;
-
-        return;
-    }
 
     inline void setLastDumpedNumberOfWorkQueueItemsProcessed(const int pValue)
     {
@@ -590,23 +579,16 @@ class WRKQMGR
         return;
     }
 
-    inline void setThrottleTimerCount(const int pValue)
-    {
-        throttleTimerCount = pValue;
-
-        return;
-    }
-
-    inline void setThrottleTimerPoppedCount(const int pValue)
-    {
-        throttleTimerPoppedCount = pValue;
-
-        return;
-    }
-
     inline void setUseAsyncRequestReadTurboMode(const int pValue)
     {
         useAsyncRequestReadTurboMode = pValue;
+
+        return;
+    }
+
+    inline void unlock_rmvWrkQ()
+    {
+        pthread_mutex_unlock(&lock_on_rmvWrkQ);
 
         return;
     }
@@ -635,7 +617,6 @@ class WRKQMGR
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
     int getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest);
-    int getAsyncRequestReadTimerPoppedCount();
     HeartbeatEntry* getHeartbeatEntry(const string& pHostName);
     uint64_t getDeclareServerDeadCount(const BBJob pJob, const uint64_t pHandle, const int32_t pContribId);
     size_t getNumberOfWorkQueues();
@@ -659,13 +640,9 @@ class WRKQMGR
     void processTurboFactorForNotFoundRequest();
     void removeWorkItem(WRKQE* pWrkQE, WorkID& pWorkItem, bool& pLastWorkItemRemoved);
     int rmvWrkQ(const LVKey* pLVKey);
-    void setAsyncRequestReadTimerPoppedCount(const double pTimerInterval);
-    void setDumpTimerPoppedCount(const double pTimerInterval);
-    void setHeartbeatDumpPoppedCount(const double pTimerInterval);
-    void setHeartbeatTimerPoppedCount(const double pTimerInterval);
-    int setSuspended(const LVKey* pLVKey, const int pValue);
+    void setDeclareServerDeadCount(const uint64_t pValue);
+    int setSuspended(const LVKey* pLVKey, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue);
     int setThrottleRate(const LVKey* pLVKey, const uint64_t pRate);
-    void setThrottleTimerPoppedCount(const double pTimerInterval);
     int startProcessingHP_Request(AsyncRequest& pRequest);
     void unlockWorkQueueMgr(const LVKey* pLVKey, const char* pMethod, int* pLocalMetadataUnlockedInd=0);
     int unlockWorkQueueMgrIfNeeded(const LVKey* pLVKey, const char* pMethod);
@@ -679,10 +656,6 @@ class WRKQMGR
     // NOTE:  Unless otherwise noted, data member access is serialized
     //        with the work queue manager lock (lock_workQueueMgr)
     int                 throttleMode;
-    volatile int        throttleTimerCount;
-    int                 throttleTimerPoppedCount;
-    volatile int        asyncRequestReadTimerCount;
-    int                 asyncRequestReadTimerPoppedCount;
     volatile double     asyncRequestReadTurboFactor;
     volatile uint64_t   asyncRequestReadConsecutiveNoNewRequests;
     int                 allowDump;
@@ -700,14 +673,7 @@ class WRKQMGR
     volatile uint32_t   numberOfConcurrentHPRequests;           // Access is serialized with the
                                                                 // HPWrkQE transfer queue lock
     uint64_t            dumpOnRemoveWorkItemInterval;
-    volatile int64_t    dumpTimerCount;
-    volatile int64_t    heartbeatDumpCount;
-    volatile int64_t    heartbeatTimerCount;                    // Access is serialized with the
-                                                                // HPWrkQE transfer queue lock
-    int64_t             dumpTimerPoppedCount;
-    int64_t             heartbeatDumpPoppedCount;
-    int64_t             heartbeatTimerPoppedCount;
-    int64_t             declareServerDeadCount;                 // In seconds
+    uint64_t            declareServerDeadCount;                 // In seconds
     volatile uint64_t   numberOfWorkQueueItemsProcessed;
     volatile uint64_t   lastDumpedNumberOfWorkQueueItemsProcessed;
     volatile uint64_t   offsetToNextAsyncRequest;               // Access is serialized with the
@@ -727,6 +693,7 @@ class WRKQMGR
                                                 // HPWrkQE transfer queue lock
   private:
     volatile int        checkForCanceledExtents;
+    pthread_mutex_t     lock_on_rmvWrkQ;
     pthread_mutex_t     lock_workQueueMgr;
     pthread_t           workQueueMgrLocked;
 };

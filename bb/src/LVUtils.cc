@@ -2030,7 +2030,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
         }
     }
 
-    if (transfer->hasFilesInRequest())
+    if (transfer->numberOfFilesInRequest())
     {
         transfer->setAll_CN_CP_TransfersInDefinition();
         transfer->setNoStageinOrStageoutTransfersInDefinition();

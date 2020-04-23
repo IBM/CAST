@@ -118,7 +118,7 @@ class BBLV_ExtentInfo
     void setStageOutEnded(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutEndedComplete(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
     void setStageOutStarted(const LVKey* pLVKey, const uint64_t pJobId, const int pValue=1);
-    int setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, const int pValue=1);
+    int setSuspended(const LVKey* pLVKey, const string& pHostName, const uint64_t pJobId, LOCAL_METADATA_RELEASED &pLocal_Metadata_Lock_Released, const int pValue=1);
     int sortExtents(const LVKey* pLVKey, size_t& pNumberOfNewExtentsCanceled, uint64_t* pHandle=0, uint32_t* pContribId=0);
     void updateTransferStatus(const string& pConnectionName, const LVKey* pLVKey, uint32_t pNumberOfExpectedInFlight);
     void updateTransferStatus(const LVKey* pLVKey, ExtentInfo& pExtentInfo, BBTransferDef* pTransferDef, int& pNewStatus, int& pExtentsRemainForSourceIndex, uint32_t pNumberOfExpectedInFlight);

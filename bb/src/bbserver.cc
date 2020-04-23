@@ -34,6 +34,7 @@ using namespace std;
 
 
 #include "bbinternal.h"
+#include "BBLocalAsync.h"
 #include "BBLV_Info.h"
 #include "BBLV_Metadata.h"
 #include "bbserver_flightlog.h"
@@ -60,6 +61,9 @@ FL_SetSize(FLMetaData, 65536)
 // Metadata that is kept on each bbserver...
 BBLV_Metadata metadata;
 WRKQMGR wrkqmgr;
+
+// Object to handle local async requests...
+BBLocalAsync g_LocalAsync;
 
 // Timer used to for resize SSD messages sent to bbproxy
 // Timer ResizeSSD_Timer;
@@ -103,7 +107,10 @@ bool g_LogAllAsyncRequestActivity = DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY;
 
 // Async RemoveJobInfo
 bool g_AsyncRemoveJobInfo = DEFAULT_ASYNC_REMOVEJOBINFO_VALUE;
-double g_AsyncRemoveJobInfoInterval = DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE;
+uint64_t g_AsyncRemoveJobInfoNumberPerGroup = DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE;
+
+// Fast Local Metadata Removal
+bool g_FastLocalMetadataRemoval = DEFAULT_FAST_LOCAL_METADATA_REMOVAL;
 
 // Diskstats rate (interval in seconds)
 int g_DiskStatsRate = DEFAULT_DISKSTATS_RATE;
@@ -131,6 +138,9 @@ int g_DumpExtentsAfterSort = DEFAULT_DUMP_EXTENTS_AFTER_SORT_VALUE;
 
 // BBServer Metadata Path
 string g_BBServer_Metadata_Path = DEFAULT_BBSERVER_METADATAPATH;
+
+// Handlefile bucket size
+uint32_t g_NumberOfAsyncRequestsThreads = DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS;
 
 // Handlefile bucket size
 uint64_t g_Number_Handlefile_Buckets = DEFAULT_NUMBER_OF_HANDLEFILE_BUCKETS;
@@ -443,14 +453,21 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 if (l_Continue)
                                 {
                                     rc = 0;
-#ifndef __clang_analyzer__  // l_LockHeld is never read, but keep it for debug
                                     l_LockHeld = false;
-#endif
                                     unlockLocalMetadata((LVKey*)0, "msgin_canceltransfer - Waiting for LVKey to be registered");
                                     {
                                         int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                         if ((l_SecondsWaiting % 15) == 1)
                                         {
+                                            BBSTATUS l_Status;
+                                            HandleFile::get_xbbServerHandleStatus(l_Status, (LVKey*)0, l_FromJobId, l_FromJobStepId, l_Handle);
+                                            if (l_Status == BBFULLSUCCESS)
+                                            {
+                                                rc = -2;
+                                                errorText << "A cancel request was made for the transfer definition associated with handle " << l_Handle \
+                                                          << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getLVKey).";
+                                                LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                            }
                                             // Display this message every 15 seconds...
                                             FL_Write6(FLDelay, CancelWaitForLVKey, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the LVKey.",
                                                       l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
@@ -501,8 +518,18 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                         l_LV_Info = metadata.getLV_Info(l_LVKey);
                         if (!l_LV_Info)
                         {
+                            l_LockHeld = false;
                             unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBLV_Info to be registered");
                             {
+                                BBSTATUS l_Status;
+                                HandleFile::get_xbbServerHandleStatus(l_Status, l_LVKey, l_FromJobId, l_FromJobStepId, l_Handle);
+                                if (l_Status == BBFULLSUCCESS)
+                                {
+                                    rc = -2;
+                                    errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ",  handle " << l_Handle \
+                                              << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getLV_Info).";
+                                    LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
                                 {
@@ -516,6 +543,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBLV_Info to be registered");
+                            l_LockHeld = true;
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, (BBLV_Info*)0, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -543,11 +571,21 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                     {
                         if (!l_LV_Info->getTagInfo(l_Handle, l_ContribId, l_TagId, l_TagInfo))
                         {
+                            l_LockHeld = false;
                             unlockLocalMetadata(l_LVKey, "msgin_canceltransfer - Waiting for BBTagInfo to be registered");
                             {
                                 int l_SecondsWaiting = DELAY_SECONDS - l_Continue;
                                 if ((l_SecondsWaiting % 15) == 1)
                                 {
+                                    BBSTATUS l_Status;
+                                    HandleFile::get_xbbServerHandleStatus(l_Status, l_LVKey, l_FromJobId, l_FromJobStepId, l_Handle);
+                                    if (l_Status == BBFULLSUCCESS)
+                                    {
+                                        rc = -2;
+                                        errorText << "A cancel request was made for the transfer definition associated with " << *l_LVKey << ",  handle " << l_Handle \
+                                                  << ", contribid " << l_ContribId << ". However the status for the handle is BBFULLSUCCESS. Cancel request ignored (via getTagInfo).";
+                                        LOG_INFO_TEXT_RC_AND_BAIL(errorText, rc);
+                                    }
                                     // Display this message every 15 seconds...
                                     FL_Write6(FLDelay, CancelWaitForBBTagInfo, "Attempting to cancel a transfer definition for jobid %ld, jobstepid %ld, handle %ld, contribid %ld. Delay of 1 second before retry. %ld seconds remain waiting for the BBTagInfo.",
                                               l_FromJobId, l_FromJobStepId, l_Handle, (uint64_t)l_ContribId, (uint64_t)l_Continue, 0);
@@ -558,6 +596,7 @@ void msgin_canceltransfer(txp::Id id, const std::string& pConnectionName,  txp::
                                 usleep((useconds_t)1000000);    // Delay 1 second
                             }
                             lockLocalMetadata(l_LVKey, "BBLV_Metadata::getLVKey - Waiting for BBTagInfo to be registered");
+                            l_LockHeld = true;
 
                             // Check to make sure the job still exists after releasing/re-acquiring the lock
                             if (!jobStillExists(pConnectionName, l_LVKey, l_LV_Info, (BBTagInfo*)0, l_FromJobId, l_ContribId))
@@ -882,7 +921,7 @@ void msgin_getthrottlerate(txp::Id id, const std::string& pConnectionName, txp::
     return;
 }
 
-#define DELAY_SECONDS 20
+#define DELAY_SECONDS 120
 void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp::Msg* msg)
 {
     ENTRY(__FILE__,__FUNCTION__);
@@ -978,7 +1017,7 @@ void msgin_gettransferhandle(txp::Id id, const std::string& pConnectionName, txp
                     //
                     // Continue to wait...
 
-                    // Hang out for a bit (20 x 1 second each, 20 seconds total) and see if the necessary LVKey appears...
+                    // Hang out for a bit (120 x 1 second each, 120 seconds total) and see if the necessary LVKey appears...
                     int l_SecondsWaiting = wrkqmgr.getDeclareServerDeadCount() - l_Continue;
                     if ((l_SecondsWaiting % 8) == 1)
                     {
@@ -1515,6 +1554,11 @@ void msgin_removejobinfo(txp::Id id, const std::string&  pConnectionName, txp::M
 
         lockLocalMetadata((LVKey*)0, "msgin_removejobinfo");
         l_LockHeld = true;
+
+        // NOTE:  Need to first process all outstanding async requests.  We want to first process all
+        //        remove logical volume requests that may be related to thie removeJobInfo request.
+        wrkqmgr.processAllOutstandingHP_Requests((LVKey*)0);
+
         rc = removeJobInfo(l_HostName, l_JobId);
         if (rc)
         {
@@ -3189,13 +3233,6 @@ int bb_main(std::string who)
         wrkqmgr.setServerLoggingLevel(config.get(who + ".default_sev", "info"));
 //        ResizeSSD_TimeInterval = config.get("bb.bbserverResizeSSD_TimeInterval", DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL);
         Throttle_TimeInterval = min(config.get("bb.bbserverThrottle_TimeInterval", DEFAULT_BBSERVER_THROTTLE_TIME_INTERVAL), MAXIMUM_BBSERVER_THROTTLE_TIME_INTERVAL);
-        wrkqmgr.setThrottleTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getThrottleTimerPoppedCount() << " to implement throttle rate intervals";
-        AsyncRequestRead_TimeInterval = min(config.get("bb.bbserverAsyncRequestRead_TimeInterval", DEFAULT_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL), MAXIMUM_BBSERVER_ASYNC_REQUEST_READ_TIME_INTERVAL);
-        wrkqmgr.setAsyncRequestReadTimerPoppedCount(Throttle_TimeInterval);
-        LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getAsyncRequestReadTimerPoppedCount() << " to implement async request read intervals";
-        wrkqmgr.setHeartbeatTimerPoppedCount(Throttle_TimeInterval);
-        wrkqmgr.setHeartbeatDumpPoppedCount(Throttle_TimeInterval);
 
         // NOTE: We will only dequeue from the high priority work queue if the current number of cancel requests
         //       (i.e., thread waiting for the canceled extents to be removed from a work queue) is consuming no more than 50%
@@ -3203,19 +3240,14 @@ int bb_main(std::string who)
         //       efficient removal of canceled extents from the work queue(s).
         uint32_t l_NumberOfTransferThreads = (uint32_t)(config.get(resolveServerConfigKey("numTransferThreads"), DEFAULT_BBSERVER_NUMBER_OF_TRANSFER_THREADS));
 
+        g_NumberOfAsyncRequestsThreads = (uint32_t)(config.get(resolveServerConfigKey("numAsyncRequestThreads"), DEFAULT_BBSERVER_NUMBER_OF_LOCAL_ASYNC_REQUEST_THREADS));
+
         wrkqmgr.setNumberOfAllowedConcurrentCancelRequests(l_NumberOfTransferThreads >= 16 ? l_NumberOfTransferThreads/16 : 1);
         wrkqmgr.setNumberOfAllowedConcurrentHPRequests(l_NumberOfTransferThreads >= 2 ? l_NumberOfTransferThreads/2 : 1);
         wrkqmgr.setAllowDumpOfWorkQueueMgr(config.get("bb.bbserverAllowDumpOfWorkQueueMgr", DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR));
         wrkqmgr.setDumpOnRemoveWorkItem(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItem", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM));
         wrkqmgr.setDumpOnDelay(config.get("bb.bbserverDumpWorkQueueMgrOnDelay", DEFAULT_DUMP_MGR_ON_DELAY));
         wrkqmgr.setDumpOnRemoveWorkItemInterval((uint64_t)(config.get("bb.bbserverDumpWorkQueueMgrOnRemoveWorkItemInterval", DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM_INTERVAL)));
-        wrkqmgr.setDumpTimerPoppedCount(Throttle_TimeInterval);
-        wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
-        LOG(bb,always) << "Use Async Request Turbo Mode=" << wrkqmgr.getUseAsyncRequestReadTurboMode();
-        if (wrkqmgr.getDumpTimerPoppedCount())
-        {
-            LOG(bb,always) << "Timer interval is set to " << Throttle_TimeInterval << " second(s) with a multiplier of " << wrkqmgr.getDumpTimerPoppedCount() << " to implement work queue manager dump intervals";
-        }
         wrkqmgr.setNumberOfAllowedSkippedDumpRequests(config.get("bb.bbserverNumberOfAllowedSkippedDumpRequests", DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS));
         g_LockDebugLevel = config.get(who + ".bringup.lockDebugLevel", DEFAULT_LOCK_DEBUG_LEVEL);
         g_AbortOnCriticalError = config.get(who + ".bringup.abortOnCriticalError", DEFAULT_ABORT_ON_CRITICAL_ERROR);
@@ -3226,12 +3258,15 @@ int bb_main(std::string who)
         g_LogAllAsyncRequestActivity = config.get(process_whoami+".bringup.logAllAsyncRequestActivity", DEFAULT_LOG_ALL_ASYNC_REQUEST_ACTIVITY);
         g_LogUpdateHandleStatusElapsedTimeClipValue = config.get(process_whoami+".bringup.logUpdateHandleStatusElapsedTimeClipValue", DEFAULT_LOG_UPDATE_HANDLE_STATUS_ELAPSED_TIME_CLIP_VALUE);
         g_AsyncRemoveJobInfo = config.get("bb.bbserverAsyncRemoveJobInfo", DEFAULT_ASYNC_REMOVEJOBINFO_VALUE);
-        g_AsyncRemoveJobInfoInterval = 0;
+        LOG(bb,always) << "Async Remove Job Information=" << (g_FastLocalMetadataRemoval ? "true" : "false");
         if (g_AsyncRemoveJobInfo)
         {
-            g_AsyncRemoveJobInfoInterval = config.get("bb.bbserverAsyncRemoveJobInfoInterval", DEFAULT_ASYNC_REMOVEJOBINFO_INTERVAL_VALUE);
-            LOG(bb,always) << "Async Remove JobInfo Interval=" << g_AsyncRemoveJobInfoInterval << " second(s)";
+            g_AsyncRemoveJobInfoNumberPerGroup = config.get("bb.bbserverAsyncRemoveJobInfoNumberPerGroup", DEFAULT_ASYNC_REMOVEJOBINFO_NUMBER_PER_GROUP_VALUE);
         }
+        g_FastLocalMetadataRemoval = config.get("bb.bbserverFastLocalMetadataRemoval", DEFAULT_FAST_LOCAL_METADATA_REMOVAL);
+        LOG(bb,always) << "Fast Local Metadata Removal=" << (g_FastLocalMetadataRemoval ? "true" : "false");
+        wrkqmgr.setUseAsyncRequestReadTurboMode((int)(config.get(resolveServerConfigKey("useAsyncRequestReadTurboMode"), DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE)));
+        LOG(bb,always) << "Async Request Turbo Mode=" << (wrkqmgr.getUseAsyncRequestReadTurboMode() ? "true" : "false");
         g_UseDirectIO = config.get(process_whoami+".usedirectio", DEFAULT_USE_DIRECT_IO_VALUE);
         LOG(bb,always) << "PFS Direct I/O=" << g_UseDirectIO;
         g_DiskStatsRate = config.get(process_whoami+".iostatrate", DEFAULT_DISKSTATS_RATE);
@@ -3250,7 +3285,7 @@ int bb_main(std::string who)
 
         serverIdentifier = config.get(resolveServerConfigKey("id"), 0);
         LOG(bb,always) << "Server ID=" << serverIdentifier;
-        
+
         // Check for the existence of the file used to communicate high-priority async requests between instances
         // of bbServers.  Correct permissions are also ensured for the cross-bbServer metadata.
         char* l_AsyncRequestFileNamePtr = 0;
@@ -3274,11 +3309,6 @@ int bb_main(std::string who)
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_create(&tid, &attr, mountMonitorThread, NULL);
-        pthread_create(&tid, &attr, diskstatsMonitorThread, NULL);
-        if (g_AsyncRemoveJobInfo)
-        {
-            pthread_create(&tid, &attr, asyncRemoveJobInfo, NULL);
-        }
 
         // Initialize SSD WriteDirect
         bool ssdwritedirect = config.get("bb.ssdwritedirect", true);
@@ -3331,10 +3361,19 @@ int bb_main(std::string who)
             LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
+        // Initialize the handle bucket mutexes
         HandleBucketMutex = (pthread_mutex_t*)(new char[g_Number_Handlefile_Buckets*sizeof(pthread_mutex_t)]);
         for (uint64_t i=0; i<g_Number_Handlefile_Buckets; ++i)
         {
             HandleBucketMutex[i] = PTHREAD_MUTEX_INITIALIZER;
+        }
+
+        // Initialize the local async request object
+        if (g_LocalAsync.init())
+        {
+            rc = -1;
+	        errorText << "Error occurred when initializing the local async request object";
+            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
         }
 
         // Log which jobs are currently known by the system in the cross bbServer metadata.
