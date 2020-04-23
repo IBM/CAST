@@ -148,26 +148,37 @@ void look4NVMFinitiator(){
                 vector<string> files = {"subsysnqn", "transport"};
                 for(unsigned int index=0; index<files.size(); index++)
                 {
-                cmd = string("/sys/block/") + device.substr(5) + string("/device/") + files[index];
-                for(auto line : runCommand(cmd, true))
-                {
-                    if(files[index] == "transport")
+                    vector<string> lines;
+                    string device_tmp = device;
+
+                    // handle MOFED 4.8 to 4.9 differences in /sys/block organization
+                    cmd = string("cat /sys/block/") + device_tmp.insert(device_tmp.rfind("n"), "c*").substr(5) + string("/device/") + files[index];
+                    lines = runCommand(cmd, false);
+
+                    if(lines.size() == 0)
                     {
-                    if(line == string("loop"))
+                        cmd = string("/sys/block/") + device_tmp.substr(5) + string("/device/") + files[index];
+                        lines = runCommand(cmd, true);
+                    }
+                    for(auto line : lines)
                     {
+                        if(files[index] == "transport")
+                        {
+                            if(line == string("loop"))
+                            {
+                            }
+                            else if(line == string("rdma"))
+                            {
+                                files.push_back("address");
+                            }
+                        }
+                        if(files[index] == "address")
+                        {
+                            line.erase(line.find("traddr="), 7);
+                            line.erase(line.find("trsvcid="), 8);
+                        }
+                        nvmet_pseudoserial += ((nvmet_pseudoserial != "") ? ",": "") + line;
                     }
-                    else if(line == string("rdma"))
-                    {
-                        files.push_back("address");
-                    }
-                    }
-                    if(files[index] == "address")
-                    {
-                    line.erase(line.find("traddr="), 7);
-                    line.erase(line.find("trsvcid="), 8);
-                    }
-                    nvmet_pseudoserial += ((nvmet_pseudoserial != "") ? ",": "") + line;
-                }
                 }
                 nvmeDeviceInfo[device]["pseudosn"]                = nvmet_pseudoserial;
                     SerialOrder.push_back(nvmet_pseudoserial);
