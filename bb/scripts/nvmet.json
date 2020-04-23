@@ -47,6 +47,23 @@
         }
       ], 
       "nqn": "burstbuffer"
+    },
+    {
+      "allowed_hosts": [], 
+      "attr": {
+        "allow_any_host": "0"
+      }, 
+      "namespaces": [
+        {
+          "device": {
+            "nguid": "00000000-0000-0000-0000-000000000000", 
+            "path": "/dev/nvme0n1"
+          }, 
+          "enable": 1, 
+          "nsid": 10
+        }
+      ], 
+      "nqn": "burstbuffer"
     }
   ]
 }
