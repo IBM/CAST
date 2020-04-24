@@ -179,7 +179,7 @@ int getUUID(const char* pLogicalVolumeDeviceName, Uuid& pUuid)
                 if(bfs::equivalent(uuid, vglv))
                 {
                     LOG(bb,debug) << "getUUID(): ** MATCH ** vglv=" << vglv.string() << ", uuid=" << uuid.path().filename().string();
-                    pUuid.copyFrom(uuid.path().filename().string().c_str());
+                    pUuid.copyFrom(uuid.path().filename().c_str());
                     rc = 0;
                     break;
                 }

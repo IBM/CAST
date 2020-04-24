@@ -119,7 +119,7 @@ int BBTransferDefs::xbbServerRetrieveTransfers(BBTransferDefs& pTransferDefs)
                                         }
                                         LOG(bb,debug) << "BBTransferDefs::xbbServerRetrieveTransfers(): Starting transfer definition retrieval for handle " << l_Handle.path().filename().string();
                                         bfs::path handlefile = l_Handle.path() / bfs::path("^" + l_Handle.path().filename().string());
-                                        rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.string().c_str());
+                                        rc = HandleFile::loadHandleFile(l_HandleFile, handlefile.c_str());
                                         if (!rc)
                                         {
                                             // Early exit if we already have a 'final' status
