@@ -157,6 +157,7 @@ void look4NVMFinitiator(){
 
                     if(lines.size() == 0)
                     {
+                        device_tmp = device;
                         cmd = string("/sys/block/") + device_tmp.substr(5) + string("/device/") + files[index];
                         lines = runCommand(cmd, true);
                     }
