@@ -278,8 +278,25 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			//std::cout << "error: " << error << std::endl;
 			//We ignore this error for now because we know we connected in an uncool way.
 			//If we correct the connection process, then this error will go away.
+		}else if(error.value() == 1){
+			//error: asio.ssl.stream:1
+			//stream truncated
+
+			std::cout << " " << std::endl;
+			std::cout << "error: " << error << std::endl;
+			std::cout << "error: " << "stream truncated" << std::endl;
+			std::cout << "error: " << "Possible that SSL connection was not properly closed." << std::endl;
+			std::cout << " " << std::endl;
+
+			//This error occured because of an improper close to the SSL connection.
+			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
+			//std::cout << "error: " << error << std::endl;
+			//We ignore this error for now because we know we connected in an uncool way.
+			//If we correct the connection process, then this error will go away.
 		}else{
 			//Non expected. Non special case error code.
+			std::cout << "error: " << error << std::endl;
+			std::cout << "error.value: " << error.value() << std::endl;
 			throw boost::system::system_error(error);
 		}
 	
