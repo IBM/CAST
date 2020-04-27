@@ -3,7 +3,7 @@
 - hosts: all
   tasks:
   - name: check all nodes for RPM directory
-    command: /usr/bin/file {{BBRPMDIR}} 
+    command: ls -d  {{BBRPMDIR}} 
     any_errors_fatal: true
 
 - hosts: launch

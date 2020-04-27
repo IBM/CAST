@@ -1,5 +1,10 @@
 #  sudo ansible-playbook -i hosts  <this.yml>
 
+#check to see if all hosts are available--fail if not reachable
+- hosts: all
+  tasks:
+  any_errors_fatal: true
+
 - hosts: localhost
   tasks:
     - name: cwd
@@ -8,18 +13,25 @@
 
     - debug: 
          msg: "cwd is {{pwd_info.stdout}} playbook_dir is {{playbook_dir}}" 
+    - debug:
+         msg: "BBRPMDIR={{BBRPMDIR}}"
+    - debug:
+        msg:  "CSMRPMDIR={{CSMRPMDIR}}"
+    - debug:
+        msg:  "BBMETADATA={{BBMETADATA}}"
 
 #check for BB RPMDIR early before doing upgrade
 - hosts: server compute launch
   tasks:
   - name: check all nodes for RPM directory
-    command: /usr/bin/file {{BBRPMDIR}} 
+    command: ls -d  {{BBRPMDIR}} 
+    register: bbrpmdir_check
     any_errors_fatal: true
 
 - hosts: server
   tasks:
   - name: check server node for BBMETADATA 
-    command: /usr/bin/file {{BBMETADATA}} 
+    command: ls -d  {{BBMETADATA}} 
     any_errors_fatal: true    
 
 #section for stopping daemons, removing RPMs, cleaning up
@@ -46,6 +58,8 @@
   when: CSMRPMDIR is defined
 - name: Include bb install      
   import_playbook: bbInstall.yml 
+- name: certificate setup     
+  import_playbook: certificates.yml   
 - name: Include csm start     
   import_playbook: csmStart.yml 
   when: CSMRPMDIR is defined

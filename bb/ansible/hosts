@@ -9,6 +9,9 @@ LSF_SERVERDIR=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-cs
 
 BBACTIVATE_PARMS="--csm --sharednode --bscfswork={{BSCFSWORK}} --lsfdir={{LSF_SERVERDIR}} --metadata={{BBMETADATA}}"
 
+FQP_KEYFILE=/u/meaho/key.pem
+FQP_CERTFILE=/u/meaho/cert.pem
+
 [compute]
 c650f06p25
 c650f06p27 
