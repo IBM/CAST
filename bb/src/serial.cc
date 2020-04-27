@@ -610,6 +610,14 @@ int removeDeviceSerial(string serial)
             LOG_ERROR_TEXT_RC_AND_RAS(errorText, -1, bb.net.noViableDevices);
             throw runtime_error(string("There are zero remaining viable devices between bbProxy and bbServer"));
         }
+        if((DriveBySerial.size() < nvmeDeviceInfo.size()) && (nvmeDeviceInfo.size() > 0))
+        {
+            stringstream errorText;
+            errorText << "The number of viable devices between bbProxy and bbServer is lower than available NVMe devices";
+            bberror << err("error.serial.num", "0");
+            LOG_ERROR_TEXT_RC_AND_RAS(errorText, -1, bb.net.insufficientNVMfDevices);
+            throw runtime_error(string("Insufficient NVMe over Fabrics devices between bbProxy and bbServer"));
+        }
         genSerialByDrive();
         pthread_mutex_unlock(&findSerialMutex);
         return 0;
