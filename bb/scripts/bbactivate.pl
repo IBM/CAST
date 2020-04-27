@@ -571,8 +571,9 @@ sub configureNVMeTarget
     }
     
     my $NvmeChangesRequired = 0;
-    foreach $subsystemnqn (@{$json->{"subsystem"}})
+    foreach $subsystem (@{$json->{"subsystems"}})
     {
+        my $subsystemnqn = $subsystem->{"nqn"};
         my $enabled = cat("$configfs/nvmet/subsystems/$subsystemnqn/namespaces/$namespace/enable");
         $NvmeChangesRequired = 1 if($enabled =~ /1/);
     }
