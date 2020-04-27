@@ -41,7 +41,7 @@ unsigned long bbcounters_shadow[BB_COUNTER_MAX];
 
 atomic<int64_t> g_Last_Port_Rcv_Data_Delta(-1);
 atomic<int64_t> g_Last_Port_Xmit_Data_Delta(-1);
-string g_IB_Adapter = "mlx5_0";
+string g_IB_NVMe_Adapter = "mlx5_0";
 
 AsyncRemoveJobInfo_Controller g_AsyncRemoveJobInfo_Controller = AsyncRemoveJobInfo_Controller();
 CycleActivities_Controller g_CycleActivities_Controller = CycleActivities_Controller();
@@ -1616,7 +1616,7 @@ void BBIB_Stats::doit()
                     {
                         uint64_t l_Delta = stoll(tokens[1]) - stoll(diskStatCache[tokens[0]]);
                         LOG(bb,always) << "IBSTAT:  " << line << " (delta " << l_Delta << ")";
-                        if (tokens[0].find(g_IB_Adapter) != string::npos)
+                        if (tokens[0].find(g_IB_NVMe_Adapter) != string::npos)
                         {
                             if (tokens[0].find(l_Port_Rcv_Data) != string::npos)
                             {
@@ -1831,8 +1831,8 @@ void BBPruneMetadataBranch::doit()
             {
                 l_AllDone = false;
                 LOG(bb,debug) << "BBLocalAsync::BBPruneMetadataBranch(): IB activity too high to do removal at " << path.c_str() \
-                              << ". Current " << g_IB_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
-                              << ", current " << g_IB_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
+                              << ". Current " << g_IB_NVMe_Adapter << " port_rcv_data delta " << g_Last_Port_Rcv_Data_Delta \
+                              << ", current " << g_IB_NVMe_Adapter << " port_xmit_data delta " << g_Last_Port_Xmit_Data_Delta \
                               << ", current IB stats low activity clip value " << g_IBStatsLowActivityClipValue \
                               << ". Delaying " << g_DiskStatsRate << " seconds...";
                 sleep(g_DiskStatsRate);
@@ -1997,66 +1997,50 @@ void BBSwapAsyncRequestFile::doit()
         HPWrkQE->lock((LVKey*)0, "BBSwapAsyncRequestFile::doit");
         l_TransferQueueLocked = true;
 
+        // Find the current async request file
         int rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, l_MaintenanceOption);
         if ((!rc) && l_AsyncRequestFileNamePtr)
         {
-            bool l_AllDone = false;
-            while (!l_AllDone)
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
+            l_FilePtr = ::fopen(l_AsyncRequestFileNamePtr, l_OpenOption);
+            threadLocalTrackSyscallPtr->clearTrack();
+            if (l_FilePtr != NULL)
             {
-                l_AllDone = true;
-                if (l_FilePtr == NULL)
+                setbuf(l_FilePtr, NULL);
+                FL_Write(FLAsyncRqst, OpenForSwap, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", l_SeqNbr, l_MaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+
+                // Check the file size
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
+                int64_t l_Offset = (int64_t)::ftell(l_FilePtr);
+                threadLocalTrackSyscallPtr->clearTrack();
+                if (l_Offset >= 0)
                 {
-                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
-                    l_FilePtr = ::fopen(l_AsyncRequestFileNamePtr, l_OpenOption);
-                    threadLocalTrackSyscallPtr->clearTrack();
-                    if (l_FilePtr != NULL)
+                    FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", l_SeqNbr, l_Offset, 0, 0);
+                    if (wrkqmgr.crossingAsyncFileBoundary(l_Offset))
                     {
-                        setbuf(l_FilePtr, NULL);
-                        FL_Write(FLAsyncRqst, OpenAppendForRemove, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", l_SeqNbr, l_MaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
-
-                        // Check the file size
-                        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
-                        int64_t l_Offset = (int64_t)::ftell(l_FilePtr);
-                        threadLocalTrackSyscallPtr->clearTrack();
-                        if (l_Offset >= 0)
-                        {
-                            FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", l_SeqNbr, l_Offset, 0, 0);
-                            if (wrkqmgr.crossingAsyncFileBoundary(l_Offset))
-                            {
-                                // Time for a new async request file...
-                                delete [] l_AsyncRequestFileNamePtr;
-                                l_AsyncRequestFileNamePtr = 0;
-                                rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, CREATE_NEW_FILE);
-                                if (!rc)
-                                {
-                                    // Close the file...
-                                    FL_Write(FLAsyncRqst, CloseForNewFile, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, l_MaintenanceOption, 0);
-                                    ::fclose(l_FilePtr);
-                                    l_FilePtr = NULL;
-
-                                    // Iterate to open the new file...
-                                    l_AllDone = false;
-                                }
-                                else
-                                {
-                                    // Error case...  Just return this file...
-                                }
-                            }
-                        }
-                        else
-                        {
-                            FL_Write(FLAsyncRqst, RtvEndOffsetFail, "Failed ftell() request, sequence number %ld, errno %ld.", l_SeqNbr, errno, 0, 0);
-                            errorText << "openAsyncRequestFile(): Failed ftell() request, sequence number " << l_SeqNbr;
-                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                        }
-                    }
-                    else
-                    {
-                        FL_Write(FLAsyncRqst, OpenAppendForRemoveFailed, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld failed.", l_SeqNbr, l_MaintenanceOption, 0, 0);
-                        errorText << "Open async request file having seqnbr " << l_SeqNbr << " using mode 'ab', maintenance option " << l_MaintenanceOption << " failed.";
-                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        // Time for a new async request file...
+                        delete [] l_AsyncRequestFileNamePtr;
+                        l_AsyncRequestFileNamePtr = 0;
+                        wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, CREATE_NEW_FILE);
                     }
                 }
+                else
+                {
+                    FL_Write(FLAsyncRqst, RtvEndOffsetFail, "Failed ftell() request, sequence number %ld, errno %ld.", l_SeqNbr, errno, 0, 0);
+                    errorText << "BBSwapAsyncRequestFile(): Failed ftell() request, sequence number " << l_SeqNbr;
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                }
+
+                // Close the file...
+                FL_Write(FLAsyncRqst, CloseForSwap, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, l_MaintenanceOption, 0);
+                ::fclose(l_FilePtr);
+                l_FilePtr = NULL;
+            }
+            else
+            {
+                FL_Write(FLAsyncRqst, OpenForSwapFailed, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld failed.", l_SeqNbr, l_MaintenanceOption, 0, 0);
+                errorText << "BBSwapAsyncRequestFile(): Open async request file having seqnbr " << l_SeqNbr << " using mode 'ab', maintenance option " << l_MaintenanceOption << " failed.";
+                LOG_ERROR_TEXT_ERRNO(errorText, errno);
             }
         }
 
@@ -2070,6 +2054,21 @@ void BBSwapAsyncRequestFile::doit()
     }
 
     // Cleanup
+    try
+    {
+        if (l_FilePtr)
+        {
+            FL_Write(FLAsyncRqst, CloseForSwapOnExit, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, l_MaintenanceOption, 0);
+            ::fclose(l_FilePtr);
+            l_FilePtr = NULL;
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
     try
     {
         if (l_TransferQueueLocked)
