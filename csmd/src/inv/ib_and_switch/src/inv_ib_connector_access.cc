@@ -282,11 +282,15 @@ int INV_IB_CONNECTOR_ACCESS::ExecuteDataCollection(std::string rest_address, std
 			//error: asio.ssl.stream:1
 			//stream truncated
 
+			// https://github.ibm.com/CSM/team_process/issues/70
+			// Un comment for investigation. 
+			/*
 			std::cout << " " << std::endl;
 			std::cout << "error: " << error << std::endl;
 			std::cout << "error: " << "stream truncated" << std::endl;
 			std::cout << "error: " << "Possible that SSL connection was not properly closed." << std::endl;
 			std::cout << " " << std::endl;
+			*/
 
 			//This error occured because of an improper close to the SSL connection.
 			//I believe related to the fact that above we connected via the "socket.set_verify_mode(ssl::verify_none);"
