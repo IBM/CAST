@@ -39,6 +39,12 @@
 	      "message" : "There are zero remaining viable devices between bbProxy and bbServer.",
 	      "description" : "No bulk data path exists between bbProxy and bbServer.  Possibly NVMe over Fabrics was not able to be established between the nodes.  The bbProxy on this compute node is unable to initiate burst buffer transfers."
 	  },
+	  "insufficientNVMfDevices" :
+	  {
+	      "severity" : "WARNING",
+	      "message" : "There is an insufficient number of NVMe over Fabrics connections between bbProxy and bbServer.",
+	      "description" : "No bulk data path exists between bbProxy and bbServer over NVMe over Fabrics.  Possibly NVMe over Fabrics was not able to be established between the nodes.  The bbProxy on this compute node is unable to initiate burst buffer transfers."
+	  },
 	  "authrange" :
 	  {
 	      "severity" : "WARNING",
