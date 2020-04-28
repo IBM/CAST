@@ -14,6 +14,14 @@
 
 #check to see if all hosts are available--fail if not reachable
 
+- hosts: localhost
+  tasks:
+  - name: remove previous serverlist
+    file: 
+      dest: /tmp/nodelist
+      state: absent
+    ignore_errors: true
+
 - hosts: compute
   serial: 1
   tasks:
