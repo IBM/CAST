@@ -23,8 +23,8 @@ c650f06p33
 c650f06p35
 
 [server]
-gssio1vm-hs
-gssio2vm-hs
+gssio1vm-hs backup=gssio2vm-hs
+gssio2vm-hs backup=gssio1vm-hs
 
 [management]
 c650mnp03

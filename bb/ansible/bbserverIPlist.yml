@@ -1,0 +1,74 @@
+###########################################################
+#     nodelist.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+#check to see if all hosts are available--fail if not reachable
+
+- hosts: localhost
+  tasks:
+  - name: remove previous serverlist
+    file: 
+      dest: /tmp/serverlist
+      state: absent
+    ignore_errors: true
+
+- hosts: server
+  serial: 1
+  tasks:
+  - name: create serverlist
+    file:
+      dest: /tmp/serverlist
+      state: touch
+    delegate_to: localhost
+
+  - name: echo hostname ip address
+    shell: hostname -i 
+    register: ipvar
+
+  - debug:
+      msg: "backup={{backup}}"
+    when: backup is defined
+
+  - name: get backup ip address
+    shell: hostname -i
+    delegate_to: "{{backup}}"
+    register: ipvarbackup
+    when: backup is defined
+
+  - name: build host list with backup
+    lineinfile:
+      dest: /tmp/serverlist 
+      line: "{{ipvar.stdout}}:9001 {{ipvarbackup.stdout}}:9001"
+      insertafter: EOF
+    delegate_to: localhost
+    when: backup is defined
+      
+  - name: build host list without backup
+    lineinfile:
+      dest: /tmp/serverlist 
+      line: "{{ipvar.stdout}}:9001"
+      insertafter: EOF
+    delegate_to: localhost  
+    when: backup is not defined
+
+- hosts: compute
+  tasks:
+  - name: Copy server ip list to compute nodes
+    copy:
+        src: /tmp/serverlist
+        dest: /etc/ibm//bbserverlist
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes  
+    any_errors_fatal: true    
