@@ -20,7 +20,7 @@
     register: bbserver_service_result
     ignore_errors: yes
 
-  - name: Installl BB RPMs on ESS
+  - name: Install BB RPMs on ESS
     shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[01]*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
     args:
       warn: false # set warn=false to prevent warning
@@ -37,7 +37,7 @@
     register: export_layout_loaded
     ignore_errors: yes
 
-  - name: install expert RPM on Compute
+  - name: install export RPM on Compute
     shell: "yum localinstall -y {{BBRPMDIR}}/ibm-export_layout*.rpm"
     args:
       warn: false # set warn=false to prevent warning 

@@ -70,19 +70,6 @@
     when: csmcore_result.rc != 0
     ignore_errors: yes
 
-- hosts: server
-  tasks:
-
-  - name: Check bbserver status before nvme cleaning
-    command:  /bin/systemctl status bbserver.service 
-    register: bbserver_status_result
-    ignore_errors: yes
-
-  - name: clear nvme list
-    shell: "for i in $( nvme list |grep Linux|awk '{print $1} '); do echo $i; nvme disconnect -d  $i; rm -rf $i;  done" 
-    when: bbserver_status_result.rc != 0
-    ignore_errors: yes 
-
 - hosts: compute 
   tasks:
   - name: remove export_layout.ko
