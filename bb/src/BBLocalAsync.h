@@ -61,12 +61,13 @@ extern uint64_t g_AsyncRemoveJobInfoNumberPerGroup;
 enum LOCAL_ASYNC_REQUEST_PRIORITY
 {
     NONE           = 0,
-    HIGH           = 10,
-    MEDIUM_HIGH    = 30,
-    MEDIUM         = 50,
-    MEDIUM_LOW     = 70,
-    LOW            = 90,
-    VERY_LOW       = 91
+    HIGH           = 10,    // BBCheckCycleActivities, BBLogIt, default priority
+    MEDIUM_HIGH    = 30,    // BBCleanContribId, BBCleanUpTagInfo, BBIO_Stats
+    MEDIUM         = 50,    // BBCounters, BBDumpHeartbeatData, BBDumpLocalAsync,
+                            // BBDumpWrkQMgr, BBIB_Stats, BBSwapAsyncRequestFile
+    MEDIUM_LOW     = 70,    // BBPruneMetadataBranch, BBRemoveAsyncRequestFile
+    LOW            = 90,    // BBPruneMetadata
+    VERY_LOW       = 91     // BBAsyncRemoveJobInfo
 };
 typedef enum LOCAL_ASYNC_REQUEST_PRIORITY LOCAL_ASYNC_REQUEST_PRIORITY;
 
@@ -923,7 +924,7 @@ class BBIO_Stats : public BBLocalRequest
      * \brief Constructor
      */
     BBIO_Stats() :
-        BBLocalRequest("BBIO_Stats", MEDIUM) {
+        BBLocalRequest("BBIO_Stats", MEDIUM_HIGH) {
     };
 
     /**
@@ -1056,7 +1057,7 @@ class BBRemoveAsyncRequestFile : public BBLocalRequest
      * \brief Constructor
      */
     BBRemoveAsyncRequestFile() :
-        BBLocalRequest("BBRemoveAsyncRequestFile", MEDIUM) {
+        BBLocalRequest("BBRemoveAsyncRequestFile", MEDIUM_LOW) {
     };
 
     /**
@@ -1133,10 +1134,10 @@ class BBLocalAsync
     // Static data
     vector<BBAsyncRequestType> requestType = {
         BBAsyncRequestType(string("HIGH"), HIGH, (double)0),    // With 48 async threads, leaves 2 threads
-        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)18/(double)48),
+        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)16/(double)48),
         BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)8/(double)48),
         BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)16/(double)48),
-        BBAsyncRequestType(string("LOW"), LOW, (double)2/(double)48),
+        BBAsyncRequestType(string("LOW"), LOW, (double)4/(double)48),
         BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)2/(double)48)
     };
 

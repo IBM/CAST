@@ -43,10 +43,11 @@ class WorkID;
 /*******************************************************************************
  | Constants
  *******************************************************************************/
-const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 3600;   // In seconds, default 1 hour
-//const time_t ASYNC_REQUEST_FILE_PRUNE_TIME = 300;   // In seconds, default 5 minutes
-const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 16 * 1024 * 1024;  // Default 16M
-//const uint64_t MAXIMUM_ASYNC_REQUEST_FILE_SIZE = 32 * 1024;
+const double ASYNC_REQUEST_FILE_PRUNE_TIME = 3600;   // In seconds, default 1 hour
+//const double ASYNC_REQUEST_FILE_PRUNE_TIME = 180;    // In seconds, default 3 minutes
+const uint64_t ASYNC_REQUEST_FILE_SIZE_FOR_SWAP = 16 * 1024 * 1024;  // Default 16M
+//const uint64_t ASYNC_REQUEST_FILE_SIZE_FOR_SWAP = 24 * 1024;        // Default 24K
+const uint64_t START_PROCESSING_AT_OFFSET_ZERO = 0xFFFFFFFF;
 const int DEFAULT_ALLOW_DUMP_OF_WORKQUEUE_MGR = 1;  // Default, allow dump of wrkqmgr
 const int DEFAULT_DUMP_MGR_ON_REMOVE_WORK_ITEM = 0; // Default, do not dump wrkqmgr based on work items being removed
 const int DEFAULT_DUMP_MGR_ON_DELAY = 0;    // Default, do not dump wrkqmgr when it 'delays'
@@ -77,7 +78,7 @@ enum MAINTENANCE_OPTION
     NO_MAINTENANCE = 0,
     FORCE_REOPEN = 1,
     MINIMAL_MAINTENANCE = 2,    // Currently not used
-    FULL_MAINTENANCE = 3,
+    FULL_MAINTENANCE = 3,       // Currently not used
     START_BBSERVER = 4,
     CREATE_NEW_FILE = 5
 };
@@ -270,6 +271,7 @@ class WRKQMGR
         useAsyncRequestReadTurboMode(DEFAULT_USE_ASYNC_REQUEST_READ_TURBO_MODE),
         delayMsgSent(0),
         asyncRequestFileSeqNbr(0),
+        asyncRequestFileSeqNbrLastProcessed(0),
         numberOfAllowedSkippedDumpRequests(DEFAULT_NUMBER_OF_ALLOWED_SKIPPED_DUMP_REQUESTS),
         numberOfSkippedDumpRequests(0),
         numberOfAllowedConcurrentCancelRequests(0),
@@ -313,11 +315,6 @@ class WRKQMGR
     }
 
     // Inlined non-static methods
-
-    inline int crossingAsyncFileBoundary(const uint64_t pOffset)
-    {
-        return (pOffset < MAXIMUM_ASYNC_REQUEST_FILE_SIZE ? 0 : 1);
-    }
 
     inline int delayMessageSent()
     {
@@ -603,16 +600,19 @@ class WRKQMGR
     int addWrkQ(const LVKey* pLVKey, BBLV_Info* pLV_Info, const uint64_t pJobId, const int pSuspendIndicator);
     int appendAsyncRequest(AsyncRequest& pRequest);
     void calcLastWorkQueueWithEntries();
+    void calcNextOffsetToProcess(int& pSeqNbr, uint64_t& pOffset);
     void calcThrottleMode();
     uint64_t checkForNewHPWorkItems();
     int checkLoggingLevel(const char* pSev);
     void checkThrottleTimer();
     int createAsyncRequestFile(const char* pAsyncRequestFileName);
+    int crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset);
     void decrementNumberOfConcurrentCancelRequests();
     void decrementNumberOfConcurrentHPRequests();
     void dump(const char* pSev, const char* pPrefix, DUMP_OPTION pOption=DUMP_ALWAYS);
-    void dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPostfix);
+    void dump(queue<WorkID>* pWrkQ, WRKQE* pWrkQE, const char* pSev, const char* pPostfix);
     void endProcessingHP_Request(AsyncRequest& pRequest);
+    uint64_t findAsyncRequestFileSize(const int pSeqNbr);
     int findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset);
     void dumpHeartbeatData(const char* pSev, const char* pPrefix=0);
     int findWork(const LVKey* pLVKey, WRKQE* &pWrkQE);
@@ -649,7 +649,7 @@ class WRKQMGR
     void updateHeartbeatData(const string& pHostName);
     void updateHeartbeatData(const string& pHostName, const string& pServerTimeStamp);
     void verify();
-    int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=FULL_MAINTENANCE);
+    int verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption=NO_MAINTENANCE);
 
     // Data members
     //
@@ -664,6 +664,7 @@ class WRKQMGR
     int                 useAsyncRequestReadTurboMode;
     volatile int        delayMsgSent;
     volatile int        asyncRequestFileSeqNbr;
+    volatile int        asyncRequestFileSeqNbrLastProcessed;
     uint32_t            numberOfAllowedSkippedDumpRequests;
     volatile uint32_t   numberOfSkippedDumpRequests;
     uint32_t            numberOfAllowedConcurrentCancelRequests;

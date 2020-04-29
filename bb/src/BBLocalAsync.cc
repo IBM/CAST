@@ -53,9 +53,9 @@ Dump_Local_Async_Controller g_Dump_Local_Async_Controller = Dump_Local_Async_Con
 Dump_WrkQMgr_Controller g_Dump_WrkQMgr_Controller = Dump_WrkQMgr_Controller();
 Heartbeat_Controller g_Heartbeat_Controller = Heartbeat_Controller();
 RemoteAsyncRequest_Controller g_RemoteAsyncRequest_Controller = RemoteAsyncRequest_Controller();
-ThrottleBucket_Controller g_ThrottleBucket_Controller = ThrottleBucket_Controller();
 RemoveAsyncRequestFile_Controller g_RemoveAsyncRequestFile_Controller = RemoveAsyncRequestFile_Controller();
 SwapAsyncRequestFile_Controller g_SwapAsyncRequestFile_Controller = SwapAsyncRequestFile_Controller();
+ThrottleBucket_Controller g_ThrottleBucket_Controller = ThrottleBucket_Controller();
 
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t log_mutex_locked = 0;
@@ -580,8 +580,8 @@ int BBLocalAsync::init()
         g_AsyncRemoveJobInfo_Controller.init(Throttle_TimeInterval);
 
         // Async request file maintenance
-        g_RemoveAsyncRequestFile_Controller.init(Throttle_TimeInterval);
         g_SwapAsyncRequestFile_Controller.init(Throttle_TimeInterval);
+        g_RemoveAsyncRequestFile_Controller.init(Throttle_TimeInterval);
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -1033,6 +1033,7 @@ void RemoteAsyncRequest_Controller::init(const double pTimerInterval)
 void RemoveAsyncRequestFile_Controller::init(const double pTimerInterval)
 {
     double RemoveAsyncRequestFile_TimeInterval = 900;   // Check every 15 minutes
+//    RemoveAsyncRequestFile_TimeInterval = 60;   // Check every minute
     poppedCount = (uint64_t)(RemoveAsyncRequestFile_TimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != RemoveAsyncRequestFile_TimeInterval)
     {
@@ -1047,11 +1048,11 @@ void RemoveAsyncRequestFile_Controller::init(const double pTimerInterval)
         ++poppedCount;
     }
 
-    // NOTE: Pop this 'event' on next pass so we check for the removal of async request file(s) immediately
-    count = poppedCount;
-
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a check for async request file removal rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
+
+    LOG(bb,always) << "Async request files will swapped to a new file after growing to a size of " << ASYNC_REQUEST_FILE_SIZE_FOR_SWAP << " bytes.";
+    LOG(bb,always) << "After being swapped for a new file, async request files will be considered expired and eligible for removal after " << ASYNC_REQUEST_FILE_PRUNE_TIME << " seconds.";
 
     return;
 }
@@ -1059,6 +1060,7 @@ void RemoveAsyncRequestFile_Controller::init(const double pTimerInterval)
 void SwapAsyncRequestFile_Controller::init(const double pTimerInterval)
 {
     double SwapAsyncRequestFile_TimeInterval = 300;   // Check every 5 minutes
+//    SwapAsyncRequestFile_TimeInterval = 60;   // Check every minute
     poppedCount = (uint64_t)(SwapAsyncRequestFile_TimeInterval/pTimerInterval);
     if (((double)poppedCount)*pTimerInterval != SwapAsyncRequestFile_TimeInterval)
     {
@@ -1177,26 +1179,26 @@ void BBCheckCycleActivities::doit()
 
     try
     {
-        // See if it is time to have a heartbeat for this bbServer
-        g_Heartbeat_Controller.checkTimeToPerform();
+        // See if it is time to dump local async manager
+        g_Dump_Local_Async_Controller.checkTimeToPerform();
 
-        // See if it is time to dump IB Stats
-        g_BBIB_Stats_Controller.checkTimeToPerform();
+        // See if it is time to dump the work manager
+        g_Dump_WrkQMgr_Controller.checkTimeToPerform();
+
+        // See if it is time to swap out the existing async request file and create a new one
+        g_SwapAsyncRequestFile_Controller.checkTimeToPerform();
 
         // See if it is time to dump IO Stats
         g_BBIO_Stats_Controller.checkTimeToPerform();
 
+        // See if it is time to dump IB Stats
+        g_BBIB_Stats_Controller.checkTimeToPerform();
+
         // See if it is time to dump counters
         g_Dump_Counters_Controller.checkTimeToPerform();
 
-        // See if it is time to dump local async manager
-        g_Dump_Local_Async_Controller.checkTimeToPerform();
-
         // See if it is time to dump the heartbeat information
         g_Dump_Heartbeat_Data_Controller.checkTimeToPerform();
-
-        // See if it is time to dump the work manager
-        g_Dump_WrkQMgr_Controller.checkTimeToPerform();
 
         // See if it is time to asynchronously remove job information from the cross-bbServer metadata
         g_AsyncRemoveJobInfo_Controller.checkTimeToPerform();
@@ -1204,8 +1206,9 @@ void BBCheckCycleActivities::doit()
         // See if it is time to remove any expired async request files
         g_RemoveAsyncRequestFile_Controller.checkTimeToPerform();
 
-        // See if it is time to swap out the existing async request file and create a new one
-        g_SwapAsyncRequestFile_Controller.checkTimeToPerform();
+        // See if it is time to have a heartbeat for this bbServer
+        // NOTE: This controller executes the "heartbeat operation" directly inline
+        g_Heartbeat_Controller.checkTimeToPerform();
     }
     catch(ExceptionBailout& e) { }
     catch(std::exception& e)
@@ -1852,19 +1855,27 @@ void BBRemoveAsyncRequestFile::doit()
 {
     int l_SeqNbr = 0;
     int l_CurrentSeqNbr = 0;
-    MAINTENANCE_OPTION l_MaintenanceOption = NO_MAINTENANCE;
     char* l_AsyncRequestFileNamePtr = 0;
+    bool l_WorkQueueMgrLocked = false;
     bool l_TransferQueueLocked = false;
 
     doitStart(&g_RemoveAsyncRequestFile_Controller);
 
     try
     {
+        // Find the current async request file
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBRemoveAsyncRequestFile::doit");
+        l_WorkQueueMgrLocked = true;
         HPWrkQE->lock((LVKey*)0, "BBRemoveAsyncRequestFile::doit");
         l_TransferQueueLocked = true;
 
-        // Find the current async request file
-        int rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, l_MaintenanceOption);
+        int rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr);
+
+        l_TransferQueueLocked = false;
+        HPWrkQE->unlock((LVKey*)0, "BBRemoveAsyncRequestFile::doit");
+        l_WorkQueueMgrLocked = false;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBRemoveAsyncRequestFile::doit");
+
         if ((!rc) && l_AsyncRequestFileNamePtr)
         {
             bfs::path datastore(g_BBServer_Metadata_Path);
@@ -1877,7 +1888,7 @@ void BBRemoveAsyncRequestFile::doit()
                     try
                     {
                         // Old style....  Simply delete it...
-                        int rc = remove(asyncfile.path());
+                        int rc = remove(asyncfile.path().c_str());
                         if (!rc)
                         {
                             LOG(bb,info) << "BBLocalAsync::BBRemoveAsyncRequestFile(): Deprecated async request file " << asyncfile.path().c_str() << " removed";
@@ -1913,7 +1924,7 @@ void BBRemoveAsyncRequestFile::doit()
                             time_t l_CurrentTime = time(0);
                             if (difftime(l_CurrentTime, l_Statinfo.st_atime) > ASYNC_REQUEST_FILE_PRUNE_TIME)
                             {
-                                rc = remove(asyncfile.path());
+                                rc = remove(asyncfile.path().c_str());
                                 if (!rc)
                                 {
                                     LOG(bb,info) << "BBLocalAsync::BBRemoveAsyncRequestFile(): Async request file " << asyncfile.path() << " removed";
@@ -1935,9 +1946,6 @@ void BBRemoveAsyncRequestFile::doit()
                 }
             }
         }
-
-        l_TransferQueueLocked = false;
-        HPWrkQE->unlock((LVKey*)0, "BBRemoveAsyncRequestFile::doit");
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -1950,7 +1958,22 @@ void BBRemoveAsyncRequestFile::doit()
     {
         if (l_TransferQueueLocked)
         {
+            l_TransferQueueLocked = false;
             HPWrkQE->unlock((LVKey*)0, "BBRemoveAsyncRequestFile::doit - On exit");
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    try
+    {
+        if (l_WorkQueueMgrLocked)
+        {
+            l_WorkQueueMgrLocked = false;
+            wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBRemoveAsyncRequestFile::doit - On exit");
         }
     }
     catch (ExceptionBailout& e) { }
@@ -1984,21 +2007,23 @@ void BBSwapAsyncRequestFile::doit()
 
     const char* l_OpenOption = "ab";
     int l_SeqNbr = 0;
-    MAINTENANCE_OPTION l_MaintenanceOption = NO_MAINTENANCE;
 
     FILE* l_FilePtr = 0;
     char* l_AsyncRequestFileNamePtr = 0;
+    bool l_WorkQueueMgrLocked = false;
     bool l_TransferQueueLocked = false;
 
     doitStart(&g_SwapAsyncRequestFile_Controller);
 
     try
     {
+        wrkqmgr.lockWorkQueueMgr((LVKey*)0, "BBSwapAsyncRequestFile::doit");
+        l_WorkQueueMgrLocked = true;
         HPWrkQE->lock((LVKey*)0, "BBSwapAsyncRequestFile::doit");
         l_TransferQueueLocked = true;
 
         // Find the current async request file
-        int rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, l_MaintenanceOption);
+        int rc = wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr);
         if ((!rc) && l_AsyncRequestFileNamePtr)
         {
             threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileNamePtr, __LINE__);
@@ -2007,7 +2032,7 @@ void BBSwapAsyncRequestFile::doit()
             if (l_FilePtr != NULL)
             {
                 setbuf(l_FilePtr, NULL);
-                FL_Write(FLAsyncRqst, OpenForSwap, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", l_SeqNbr, l_MaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
+                FL_Write(FLAsyncRqst, OpenForSwap, "Open async request file having seqnbr %ld using mode 'ab'. File pointer returned is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
 
                 // Check the file size
                 threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
@@ -2016,7 +2041,7 @@ void BBSwapAsyncRequestFile::doit()
                 if (l_Offset >= 0)
                 {
                     FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", l_SeqNbr, l_Offset, 0, 0);
-                    if (wrkqmgr.crossingAsyncFileBoundary(l_Offset))
+                    if (l_Offset > (int64_t)ASYNC_REQUEST_FILE_SIZE_FOR_SWAP)
                     {
                         // Time for a new async request file...
                         delete [] l_AsyncRequestFileNamePtr;
@@ -2032,20 +2057,22 @@ void BBSwapAsyncRequestFile::doit()
                 }
 
                 // Close the file...
-                FL_Write(FLAsyncRqst, CloseForSwap, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, l_MaintenanceOption, 0);
+                FL_Write(FLAsyncRqst, CloseForSwap, "Close async request file having seqnbr %ld using mode 'ab'. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
                 ::fclose(l_FilePtr);
                 l_FilePtr = NULL;
             }
             else
             {
-                FL_Write(FLAsyncRqst, OpenForSwapFailed, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld failed.", l_SeqNbr, l_MaintenanceOption, 0, 0);
-                errorText << "BBSwapAsyncRequestFile(): Open async request file having seqnbr " << l_SeqNbr << " using mode 'ab', maintenance option " << l_MaintenanceOption << " failed.";
+                FL_Write(FLAsyncRqst, OpenForSwapFailed, "Open async request file having seqnbr %ld using mode 'ab'.", l_SeqNbr, 0, 0, 0);
+                errorText << "BBSwapAsyncRequestFile(): Open async request file having seqnbr " << l_SeqNbr << " using mode 'ab' failed.";
                 LOG_ERROR_TEXT_ERRNO(errorText, errno);
             }
         }
 
         l_TransferQueueLocked = false;
         HPWrkQE->unlock((LVKey*)0, "BBSwapAsyncRequestFile::doit");
+        l_WorkQueueMgrLocked = false;
+        wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBSwapAsyncRequestFile::doit");
     }
     catch (ExceptionBailout& e) { }
     catch (std::exception& e)
@@ -2058,7 +2085,7 @@ void BBSwapAsyncRequestFile::doit()
     {
         if (l_FilePtr)
         {
-            FL_Write(FLAsyncRqst, CloseForSwapOnExit, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, l_MaintenanceOption, 0);
+            FL_Write(FLAsyncRqst, CloseForSwapOnExit, "Close async request file having seqnbr %ld using mode 'ab'. File pointer is %p.", l_SeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
             ::fclose(l_FilePtr);
             l_FilePtr = NULL;
         }
@@ -2073,7 +2100,22 @@ void BBSwapAsyncRequestFile::doit()
     {
         if (l_TransferQueueLocked)
         {
+            l_TransferQueueLocked = false;
             HPWrkQE->unlock((LVKey*)0, "BBSwapAsyncRequestFile::doit - On exit");
+        }
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    try
+    {
+        if (l_WorkQueueMgrLocked)
+        {
+            l_WorkQueueMgrLocked = false;
+            wrkqmgr.unlockWorkQueueMgr((LVKey*)0, "BBSwapAsyncRequestFile::doit - On exit");
         }
     }
     catch (ExceptionBailout& e) { }
