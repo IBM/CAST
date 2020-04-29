@@ -42,9 +42,9 @@
       insertafter: EOF
     delegate_to: localhost
       
-- hosts: launch
+- hosts: compute
   tasks:
-  - name: Copy nodelist to launch nodes
+  - name: Copy nodelist to compute nodes
     copy:
         src: /tmp/nodelist
         dest: /etc/ibm/nodelist

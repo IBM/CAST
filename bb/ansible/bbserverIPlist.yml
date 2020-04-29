@@ -61,12 +61,12 @@
     delegate_to: localhost  
     when: backup is not defined
 
-- hosts: compute
+- hosts: compute server
   tasks:
-  - name: Copy server ip list to compute nodes
+  - name: Copy server ip list to compute/server  nodes
     copy:
         src: /tmp/serverlist
-        dest: /etc/ibm//bbserverlist
+        dest: /etc/ibm//esslist 
         owner: root
         group: root
         mode: '0644'

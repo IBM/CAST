@@ -65,6 +65,10 @@
   tasks:
     - debug:
          msg: install csm and bb
+- name: Build/install node list
+  import_playbook: nodelist.yml
+- name: Build/install esslist
+  import_playbook: bbserverIPlist.yml
 - name: Include csm install     
   import_playbook: csmInstall.yml 
   when: CSMRPMDIR is defined
