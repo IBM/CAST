@@ -75,7 +75,7 @@
     ignore_errors: yes
     
 
-  - name: remove ibm flightlog if no csm-core installed
+  - name: remove ibm flightlog RPM if no csm-core installed
     shell: yum erase -y ibm-flightlog 
     args:
       warn: false # set warn=false to prevent warning

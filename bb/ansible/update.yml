@@ -66,20 +66,20 @@
     - debug:
          msg: install csm and bb
 - name: Build/install node list
-  import_playbook: nodelist.yml
+  import_playbook: "{{playbook_dir}}/nodelist.yml"
 - name: Build/install esslist
-  import_playbook: bbserverIPlist.yml
+  import_playbook: "{{playbook_dir}}/bbserverIPlist.yml"
 - name: Include csm install     
-  import_playbook: csmInstall.yml 
+  import_playbook: "{{playbook_dir}}/csmInstall.yml"
   when: CSMRPMDIR is defined
 - name: Include bb install      
-  import_playbook: bbInstall.yml 
+  import_playbook: "{{playbook_dir}}/bbInstall.yml"
 - name: certificate setup     
-  import_playbook: certificates.yml   
+  import_playbook: "{{playbook_dir}}/certificates.yml"   
 - name: Include csm start     
-  import_playbook: csmStart.yml 
+  import_playbook: "{{playbook_dir}}/csmStart.yml" 
   when: CSMRPMDIR is defined
 - name: Include bb start      
-  import_playbook: bbStart.yml  
+  import_playbook: "{{playbook_dir}}/bbStart.yml"  
    
 
