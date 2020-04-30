@@ -1,0 +1,56 @@
+###########################################################
+#     certificates.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+#check to see if all hosts are available--fail if not reachable
+
+- hosts: localhost
+  tasks:
+    - debug: 
+       msg:  "key file={{FQP_KEYFILE}}"
+    - debug: 
+       msg:  "certificate file={{FQP_CERTFILE}}"   
+
+
+    - name: Check for certificate key file 
+      command: ls -l {{FQP_KEYFILE}}
+      any_errors_fatal: true
+
+    - name: Check for certificate file 
+      command: ls -l {{FQP_CERTFILE}} 
+      any_errors_fatal: true     
+ 
+- hosts: server
+  tasks:
+    - name: Copy private key to bbserver nodes
+      copy:
+        src: "{{FQP_KEYFILE}}"
+        dest: /etc/ibm/key.pem
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      any_errors_fatal: true  
+
+- hosts: server compute
+  tasks:
+  - name: Copy certificate to bbserver nodes
+    copy:
+        src: "{{FQP_CERTFILE}}"
+        dest: /etc/ibm/cert.pem
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes  
+    any_errors_fatal: true        
+

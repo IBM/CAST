@@ -1,0 +1,44 @@
+###########################################################
+#     README
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+
+This describes how to use ansible to update burst buffer with or without csm
+on compute nodes, bbserver nodes, launch nodes, and management nodes. 
+
+Here is an example helper script for running the update.yml playbook:
+
+#!/bin/bash 
+export ANSIBLE_INVENTORY_CACHE_PLUGIN=jsonfile
+export ANSIBLE_INVENTORY_CACHE=True
+#default forks is 5, override
+FORKS=50
+FQPATH=$(readlink -fm $0)
+echo $FQPATH
+PLAYDIR=$(dirname $FQPATH)
+echo $PLAYDIR
+cd $PLAYDIR
+sudo ansible-playbook -i hosts  update.yml -f $FORKS
+
+
+Running update.sh will run the update.yml playbook.  The bash script will
+switch to the directory of update.sh and use the hosts inventory file residing
+there.  The update playbook requires root.  The update.sh does a sudo.
+The bash script also sets environment variables to speed along execution.
+
+Execution of playbooks in the ansible directory requires switching to the
+directory and executing ansible-playbook as root.
+Example:
+sudo ansible-playbook -i hosts update.yml
+
+The ansible documentation also mentions ansible.cfg options and locations.
+The playbook design presumes the configuration file of /etc/ansible/ansible.cfg.
+

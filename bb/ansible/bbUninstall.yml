@@ -1,0 +1,112 @@
+###########################################################
+#     bbUninstall.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+- hosts: compute
+  tasks:
+  - name: Check if bbproxy daemon is running
+    command:  /bin/systemctl status bbproxy.service 
+    register: bbproxy_service_status
+    ignore_errors: yes
+
+  - fail:  
+     msg: bbproxy daemon is still running 
+    when: bbproxy_service_status.rc == 0
+
+  - name: remove old mount directories on /mnt/bb_
+    shell: rmdir /mnt/bb_*
+    args:
+      warn: false # set warn=false to prevent warning
+    ignore_errors: yes
+
+  - name: check for directories /mnt/bb)  
+    shell: "ls /mnt/bb_*"
+    register: ls_result
+    ignore_errors: yes
+
+  - name: unmount all old burst buffer volumes
+    shell: umount /mnt/bb_*
+    ignore_errors: yes
+    when: ls_result.rc == 2
+
+  - name: remove unmounted directories on /mnt/bb_
+    shell: rmdir /mnt/bb_*
+    args:
+      warn: false # set warn=false to prevent warning
+    ignore_errors: yes
+    when: ls_result.rc == 2
+
+- hosts: server
+  tasks:
+  - name: Check if bbserver daemon is running
+    command:  /bin/systemctl status bbserver.service 
+    register: bbserver_service_status
+    ignore_errors: yes
+
+  - fail:  
+     msg: bbserver daemon is still running 
+    when: bbserver_service_status.rc == 0
+
+- hosts: all
+  tasks:
+  - name: remove RPMs
+    shell: yum erase -y ibm-burstbuffer*
+    args:
+      warn: false # set warn=false to prevent warning
+    any_errors_fatal: true
+
+- hosts: compute server
+  tasks:
+  - name: check if csm core is installed
+    shell: rpm -qa|grep ibm-csm-core
+    args:
+      warn: false # set warn=false to prevent warning
+    register: csmcore_result
+    ignore_errors: yes
+    
+
+  - name: remove ibm flightlog RPM if no csm-core installed
+    shell: yum erase -y ibm-flightlog 
+    args:
+      warn: false # set warn=false to prevent warning
+    when: csmcore_result.rc != 0
+    ignore_errors: yes
+
+- hosts: compute 
+  tasks:
+  - name: remove export_layout.ko
+    shell: yum erase -y ibm-export_layout*
+    args:
+      warn: false # set warn=false to prevent warning
+    ignore_errors: yes    
+
+  - name: check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    register: export_layout_loaded
+    ignore_errors: yes  
+
+  - debug: 
+      msg: export_layout module STILL loaded
+    when:  export_layout_loaded.rc == 0
+
+  - fail: 
+     msg: failing since export_layout module STILL loaded
+    when: export_layout_loaded.rc == 0
+
+
+
+
+
+ 
+    
+

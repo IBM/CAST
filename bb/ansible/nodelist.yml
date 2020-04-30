@@ -1,0 +1,55 @@
+###########################################################
+#     nodelist.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+#check to see if all hosts are available--fail if not reachable
+
+- hosts: localhost
+  tasks:
+  - name: remove previous serverlist
+    file: 
+      dest: /tmp/nodelist
+      state: absent
+    ignore_errors: true
+
+- hosts: compute
+  serial: 1
+  tasks:
+  - name: create nodelist
+    file:
+      dest: /tmp/nodelist
+      state: touch
+    delegate_to: localhost
+
+  - name: echo hostname
+    shell: echo "{{ inventory_hostname }}"
+    register: hostnamevar
+
+  - name: build host list
+    lineinfile:
+      dest: /tmp/nodelist 
+      line: "{{hostnamevar.stdout}}"
+      insertafter: EOF
+    delegate_to: localhost
+      
+- hosts: compute
+  tasks:
+  - name: Copy nodelist to compute nodes
+    copy:
+        src: /tmp/nodelist
+        dest: /etc/ibm/nodelist
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes  
+    any_errors_fatal: true    

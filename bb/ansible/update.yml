@@ -1,0 +1,85 @@
+###########################################################
+#     update.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  See the README
+
+#check to see if all hosts are available--fail if not reachable
+- hosts: all
+  tasks:
+  any_errors_fatal: true
+
+- hosts: localhost
+  tasks:
+    - name: cwd
+      command: pwd  
+      register: pwd_info
+
+    - debug: 
+         msg: "cwd is {{pwd_info.stdout}} playbook_dir is {{playbook_dir}}" 
+    - debug:
+         msg: "BBRPMDIR={{BBRPMDIR}}"
+    - debug:
+        msg:  "CSMRPMDIR={{CSMRPMDIR}}"
+    - debug:
+        msg:  "BBMETADATA={{BBMETADATA}}"
+
+#check for BB RPMDIR early before doing upgrade
+- hosts: server compute launch
+  tasks:
+  - name: check all nodes for RPM directory
+    command: ls -d  {{BBRPMDIR}} 
+    register: bbrpmdir_check
+    any_errors_fatal: true
+
+- hosts: server
+  tasks:
+  - name: check server node for BBMETADATA 
+    command: ls -d  {{BBMETADATA}} 
+    any_errors_fatal: true    
+
+#section for stopping daemons, removing RPMs, cleaning up
+- hosts: localhost
+  tasks:
+    - debug:
+         msg: stop CSM and burstbuffer
+- name: Include stop of CSM        
+  import_playbook: csmStop.yml 
+- name: Include stop of bb       
+  import_playbook: bbStop.yml
+- name: Include uninstall of CSM       
+  import_playbook: csmUninstall.yml  
+- name: Include bb uninstall       
+  import_playbook: bbUninstall.yml    
+
+#section for installing RPMs, starting daemons
+- hosts: localhost
+  tasks:
+    - debug:
+         msg: install csm and bb
+- name: Build/install node list
+  import_playbook: "{{playbook_dir}}/nodelist.yml"
+- name: Build/install esslist
+  import_playbook: "{{playbook_dir}}/bbserverIPlist.yml"
+- name: Include csm install     
+  import_playbook: "{{playbook_dir}}/csmInstall.yml"
+  when: CSMRPMDIR is defined
+- name: Include bb install      
+  import_playbook: "{{playbook_dir}}/bbInstall.yml"
+- name: certificate setup     
+  import_playbook: "{{playbook_dir}}/certificates.yml"   
+- name: Include csm start     
+  import_playbook: "{{playbook_dir}}/csmStart.yml" 
+  when: CSMRPMDIR is defined
+- name: Include bb start      
+  import_playbook: "{{playbook_dir}}/bbStart.yml"  
+   
+
