@@ -1,0 +1,33 @@
+[all:vars]
+BBRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+CSMRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
+SMPIRPMDIR=/u/tgooding/install
+
+BBMETADATA=/gpfs/gpfs0/bbmetadata
+BSCFSWORK=/u/tgooding/bscfswork
+LSF_SERVERDIR=/opt/ibm/spectrumcomputing/lsf/10.1/linux3.10-glibc2.17-ppc64le-csm/etc
+
+BBACTIVATE_PARMS="--csm --sharednode --bscfswork={{BSCFSWORK}} --lsfdir={{LSF_SERVERDIR}} --metadata={{BBMETADATA}}"
+
+FQP_KEYFILE=/u/meaho/key.pem
+FQP_CERTFILE=/u/meaho/cert.pem
+
+[compute]
+c650f06p25
+c650f06p27 
+c650f06p29
+c650f06p31
+c650f07p07
+c650f07p05
+c650f06p33
+c650f06p35
+
+[server]
+gssio1vm-hs backup=gssio2vm-hs
+gssio2vm-hs backup=gssio1vm-hs
+
+[management]
+c650mnp03
+
+[launch]
+c650mnp03

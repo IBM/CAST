@@ -1,0 +1,37 @@
+###########################################################
+#     csmStop.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+- hosts: management launch compute
+  tasks:  
+  - name: stop CSM master
+    command: /bin/systemctl stop csmd-master.service
+    ignore_errors: yes
+  
+  - name: stop CSM aggregator
+    command: /bin/systemctl stop csmd-aggregator.service
+    ignore_errors: yes
+    
+
+- hosts: launch
+  tasks:
+  - name: stop csmd-utility
+    command: /bin/systemctl stop csmd-utility.service
+    ignore_errors: yes
+    
+
+- hosts: compute
+  tasks:
+  - name: stop CSM compute
+    command: /bin/systemctl stop csmd-compute.service
+    ignore_errors: yes

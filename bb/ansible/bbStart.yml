@@ -1,0 +1,65 @@
+###########################################################
+#     bbStart.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+- hosts: server
+  tasks:
+  - name: Skip any activation if bbserver is running
+    command:  /bin/systemctl status bbserver.service 
+    register: bbserver_service_result
+    ignore_errors: yes
+
+  - name: Start bbServer
+    command: /opt/ibm/bb/scripts/bbactivate --server {{BBACTIVATE_PARMS}}
+    when: bbserver_service_result.rc != 0
+    any_errors_fatal: true
+
+  - name: Fail if bbserver daemon is not now running
+    command:  /bin/systemctl status bbserver.service 
+    register: bbserver_service_result
+    any_errors_fatal: true  
+
+- hosts: compute
+  tasks:
+  - name: check export_layout module is loaded
+    shell: lsmod |grep export_layout 
+    register: export_layout_loaded
+    ignore_errors: yes
+
+  - name: modprobe export_layout module 
+    command: modprobe export_layout 
+    when: export_layout_loaded.rc != 0
+    any_errors_fatal: true 
+    
+  - name: Skip any activation if bbproxy is running
+    command:  /bin/systemctl status bbproxy.service 
+    register: bbproxy_service_result
+    ignore_errors: yes
+
+  - name: Start BB on computes
+    command: /opt/ibm/bb/scripts/bbactivate --cn {{BBACTIVATE_PARMS}}
+    when: bbproxy_service_result.rc != 0
+
+  - name: Check bbproxy is running
+    command:  /bin/systemctl status bbproxy.service 
+    register: bbproxy_service_result
+    any_errors_fatal: true  
+  
+- hosts: launch
+  tasks:
+  - name: start Burst Buffer on Launch node 
+    command: /opt/ibm/bb/scripts/bbactivate --ln {{BBACTIVATE_PARMS}}
+    any_errors_fatal: true
+
+
+   

@@ -1,0 +1,79 @@
+###########################################################
+#     csmUninstall.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+- hosts: management
+  tasks:
+  - name: Check csmd-master is running
+    command:  /bin/systemctl status csmd-master.service 
+    register: csmdmaster_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-master daemon is still running 
+    when: csmdmaster_service_result.rc == 0  
+
+  - name: Check ccsmd-aggregator activation is still running
+    command:  /bin/systemctl status csmd-aggregator.service 
+    register: csmdaggregator_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-aggregator daemon is still running 
+    when: csmdaggregator_service_result.rc == 0 
+
+- hosts: launch
+  tasks:
+  - name: Check csmd-utility activation is still running
+    command:  /bin/systemctl status csmd-utility.service 
+    register: csmdutility_service_result
+    ignore_errors: yes
+
+  - fail:  
+     msg: csmd-utility daemon is still running 
+    when: csmdutility_service_result.rc == 0  
+
+- hosts: compute
+  tasks:
+  - name: Check csmd-compute activation is still running 
+    command:  /bin/systemctl status csmd-compute.service 
+    register: csmdcompute_service_result
+    ignore_errors: yes 
+
+  - fail:  
+     msg: csmd-compute daemon is still running 
+    when: csmdcompute_service_result.rc == 0  
+
+
+- hosts: all
+  tasks:
+  - name: remove RPMs
+    shell: "yum erase -y ibm-csm-core  ibm-csm-api ibm-csmutil ibm-csm-db"
+    args:
+      warn: false # set warn=false to prevent warning 
+    ignore_errors: yes
+
+  - name: check if ibm burstbuffer is installed
+    shell: rpm -qa|grep ibm-burstbuffer
+    args:
+      warn: false # set warn=false to prevent warning
+    register: ibmburstbuffer_result
+    ignore_errors: yes
+    
+
+  - name: remove ibm flightlog if no ibm-burstbuffer installed
+    shell: yum erase -y ibm-flightlog 
+    args:
+      warn: false # set warn=false to prevent warning
+    when: ibmburstbuffer_result.rc != 0
+    ignore_errors: yes

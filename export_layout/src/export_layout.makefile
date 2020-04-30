@@ -47,6 +47,7 @@ export_layout.ko: export_layout.c ../include/export_layout.h
 	make -C /lib/modules/$(KERNEL_LEVEL)/build M=$(PWD) modules
 
 install:  export_layout.ko
+	mkdir -p /lib/modules/$(KERNEL_LEVEL)/extra
 	cp export_layout.ko /lib/modules/$(KERNEL_LEVEL)/extra/export_layout.ko
 	depmod -a $(KERNEL_LEVEL)
 	echo export_layout > /etc/modules-load.d/export_layout.conf
