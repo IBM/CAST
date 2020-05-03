@@ -14,18 +14,21 @@ install(TARGETS randfile-mpi  COMPONENT burstbuffer-tools DESTINATION bb/tools)
 target_include_directories(randfile-mpi PRIVATE ${MPI_C_INCLUDE_PATH})
 target_link_libraries(randfile-mpi ${Boost_LIBRARIES} ${MPI_C_LIBRARIES})
 target_compile_definitions(randfile-mpi PRIVATE -DUSE_MPI=1 -DUSE_SC_LOGGER=1)
+set_target_properties(randfile-mpi PROPERTIES LINK_FLAGS "-pthread")
 
 add_executable(comparefiles-mpi comparefiles.cc)
 install(TARGETS comparefiles-mpi  COMPONENT burstbuffer-tools DESTINATION bb/tools)
 target_include_directories(comparefiles-mpi PRIVATE ${MPI_C_INCLUDE_PATH})
 target_link_libraries(comparefiles-mpi fsutil ${Boost_LIBRARIES} ${MPI_C_LIBRARIES})
 target_compile_definitions(comparefiles-mpi PRIVATE -DUSE_MPI=1 -DUSE_SC_LOGGER=1)
+set_target_properties(comparefiles-mpi PROPERTIES LINK_FLAGS "-pthread")
 
 add_executable(removefiles-mpi removefiles.cc)
 install(TARGETS removefiles-mpi  COMPONENT burstbuffer-tools DESTINATION bb/tools)
 target_include_directories(removefiles-mpi PRIVATE ${MPI_C_INCLUDE_PATH})
 target_link_libraries(removefiles-mpi fsutil ${Boost_LIBRARIES} ${MPI_C_LIBRARIES})
 target_compile_definitions(removefiles-mpi PRIVATE -DUSE_MPI=1 -DUSE_SC_LOGGER=1)
+set_target_properties(removefiles-mpi PROPERTIES LINK_FLAGS "-pthread")
 
 ENDIF(MPI_BIN)
 
