@@ -48,22 +48,25 @@ Setup from SSD
 Use hosts with defined server
     [Arguments]  ${server}
     bbcmd  getserver  --connected=${server}
-    @{_tmp}=  Split String  ${HOSTLIST}  ,
-    @{_hostlist}=  create list  @{_tmp}
 
-    set test variable  @{_hostlist}
+    @{_tmp}=  Split String  ${HOSTLIST}  ,
+    @{_tmphostlist}=  create list  @{_tmp}
+
+    set test variable  @{_tmphostlist}
     set test variable  @{newlist}
     For all ranks  append host to list  unless  serverList  == 'none'
-
-    ${tmp}=  Catenate  SEPARATOR=,  @{newlist}
-    set test variable  ${HOSTLIST}  ${tmp}
     
     #  Regenerate ranks
     ${numranks} =  Get Length	  ${newlist}
+    Pass Execution If  ${numranks} == 0  Backup server not available
     @{_ranklist} =  create list
-    :FOR  ${rank}  IN RANGE  ${numranks}    
-    \  append to list  ${_ranklist}  ${rank}
-    
+    FOR  ${rank}  IN RANGE  ${numranks}    
+     append to list  ${_ranklist}  ${rank}
+    END
+
+    ${tmp}=  Catenate  SEPARATOR=,  @{newlist}
+    set test variable  ${HOSTLIST}  ${tmp}
+
     ${tmp}=  Catenate  SEPARATOR=,  @{_ranklist}
     set test variable  ${RANKLIST}  ${tmp}
     Setup CMDLAUNCHER
@@ -88,7 +91,7 @@ Append rank to list
 Append host to list
      [Arguments]  ${rank}  ${op}  ${value}  ${cond}
      ${tmp}=  read_device_data  ${value}  ${rank}
-     set test variable  ${v}  @{_hostlist}[${rank}]
+     set test variable  ${v}  ${_tmphostlist}[${rank}]
      run keyword if  '${op}' == 'unless'  run keyword unless  '${tmp}' ${cond}  Append To List  ${newlist}  ${v}
      run keyword if  '${op}' == 'if'      run keyword if      '${tmp}' ${cond}  Append To List  ${newlist}  ${v}
      Log  list: ${newlist}

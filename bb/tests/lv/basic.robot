@@ -50,13 +50,14 @@ User can change directory permissions
 
 User can create logical volume
     [Tags]  unittest  lv
-     Start job
-     Run as root
-     :FOR  ${size}  IN  132M  1G  2G  100G  800G
-     \  Setup logical volume  ${MOUNTPT}  ${size}
-     \  Verify block  ${MOUNTPT}  ${size}  4M
-     \  Teardown logical volume  ${MOUNTPT}
-     [TEARDOWN]  Teardown logical volume  ${MOUNTPT}
+    Start job
+    Run as root
+    FOR  ${size}  IN  132M  1G  2G  100G  800G
+       Setup logical volume  ${MOUNTPT}  ${size}
+       Verify block  ${MOUNTPT}  ${size}  4M
+       Teardown logical volume  ${MOUNTPT}
+    END
+    [TEARDOWN]  Teardown logical volume  ${MOUNTPT}
 
 User can increase size of logical volume
     [Tags]  unittest  lv
@@ -92,12 +93,13 @@ User can increase size of logical no roption specified
 
 User cannot create logical volume with invalid size
     [Tags]  unittest  lv  badpath
-     Start job
-     Run as root
-     :FOR  ${size}  IN  -1G  0  1  1M  4M  7000G
-     \  Setup logical volume  ${MOUNTPT}  ${size}  -1
-     \  Teardown logical volume  ${MOUNTPT}
-     [TEARDOWN]  Teardown logical volume  ${MOUNTPT}
+    Start job
+    Run as root
+    FOR  ${size}  IN  -1G  0  1  1M  4M  7000G
+        Setup logical volume  ${MOUNTPT}  ${size}  -1
+        Teardown logical volume  ${MOUNTPT}
+    END
+    [TEARDOWN]  Teardown logical volume  ${MOUNTPT}
 
 API_User can create directory
     [Documentation]  Creates directory at mount point

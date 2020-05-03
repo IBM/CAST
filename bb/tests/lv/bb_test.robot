@@ -35,9 +35,10 @@ User can get transfers
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  IN  @{handles}
-     \  Transfer status is  ${handle}   BBFULLSUCCESS
-     \  Transfer has completed   ${handle}
+     FOR  ${handle}  IN  @{handles}
+          Transfer status is  ${handle}   BBFULLSUCCESS
+          Transfer has completed   ${handle}
+     END
      Teardown logical volume  ${MOUNTPT}
      [TEARDOWN]  Run Keywords  Remove Random files   ${MOUNTPT}
      ...   AND  Teardown logical volume  ${MOUNTPT}
@@ -84,10 +85,11 @@ Verify Transfer usage info for read
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  IN  @{handles}
-     \  Transfer status is  ${handle}   BBFULLSUCCESS
-     \  Transfer has completed   ${handle}
-
+     FOR  ${handle}  IN  @{handles}
+          Transfer status is  ${handle}   BBFULLSUCCESS
+          Transfer has completed   ${handle}
+     END
+     
      bbcmd  getusage  --mount=${MOUNTPT}
      ${bytes_read_after}=     read device data  burstBytesRead     0
      ${bytes_written_after}=  read device data  burstBytesWritten  0
@@ -117,10 +119,11 @@ Verify Transfer usage info for write
      set test variable  ${minsize}   1024 
      Run parameterized transfer
      @{handles}=  Get transfer handle list  
-     :FOR  ${handle}  IN  @{handles}
-     \  Transfer status is  ${handle}   BBFULLSUCCESS
-     \  Transfer has completed   ${handle}
-
+     FOR  ${handle}  IN  @{handles}
+          Transfer status is  ${handle}   BBFULLSUCCESS
+          Transfer has completed   ${handle}
+     END
+     
      bbcmd  getusage  --mount=${MOUNTPT}
      ${bytes_read_after}=     read device data  burstBytesRead     0
      ${bytes_written_after}=  read device data  burstBytesWritten  0

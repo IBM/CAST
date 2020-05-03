@@ -7,24 +7,26 @@ Library       String
 Run parameterized transfer
     [Arguments]
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  IN RANGE  ${numiter}
-     \  Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
-     \  ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist
-     \  Wait Until Keyword Succeeds  ${polltimeout}  1 second  transfer has completed  ${handle}
-     \  Transfer status is  ${handle}  BBFULLSUCCESS
-     \  Compare Random files  ${MOUNTPT}/filelist
-     \  Remove Random files   ${MOUNTPT}/filelist
+    FOR  ${tagid}  IN RANGE  ${numiter}
+       Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
+       ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist
+       Wait Until Keyword Succeeds  ${polltimeout}  1 second  transfer has completed  ${handle}
+       Transfer status is  ${handle}  BBFULLSUCCESS
+       Compare Random files  ${MOUNTPT}/filelist
+       Remove Random files   ${MOUNTPT}/filelist
+    END
 
 Run parameterized transfer with Special Chars
     [Arguments]   ${spC}  ${expect_rc}=0
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  IN RANGE  ${numiter}
-     \  Generate File List with Special Chars   ${source}  ${dest}  ${MOUNTPT}/filelist  ${spC}
-     \  ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist  ${expect_rc}
-     \  Run keyword if  ${expect_rc} == 0  Wait Transfer Complete and Check  ${handle}  ${MOUNTPT}/filelist
-     \  Run keyword if  ${expect_rc} == 0  Compare Random files  ${MOUNTPT}/filelist
-     \  Run keyword if  ${expect_rc} == 0  Remove Random files   ${MOUNTPT}/filelist
-     \  Run Keyword And Continue On Failure  Remove Random files   ${MOUNTPT}/filelist
+    FOR  ${tagid}  IN RANGE  ${numiter}
+        Generate File List with Special Chars   ${source}  ${dest}  ${MOUNTPT}/filelist  ${spC}
+        ${handle}=  Run a file transfer  ${tagid}  ${MOUNTPT}/filelist  ${expect_rc}
+        Run keyword if  ${expect_rc} == 0  Wait Transfer Complete and Check  ${handle}  ${MOUNTPT}/filelist
+        Run keyword if  ${expect_rc} == 0  Compare Random files  ${MOUNTPT}/filelist
+        Run keyword if  ${expect_rc} == 0  Remove Random files   ${MOUNTPT}/filelist
+        Run Keyword And Continue On Failure  Remove Random files   ${MOUNTPT}/filelist
+    END
 
 Wait Transfer Complete and Check
      [Arguments]  ${handle}  ${filelist}
@@ -41,11 +43,12 @@ Run a file transfer
 API_Run parameterized transfer
     [Arguments]
     [Documentation]  Runs $numiter iterations of generating random files
-     :FOR  ${tagid}  IN RANGE  ${numiter}
-     \  Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
-     \  API_Run a file transfer  ${MOUNTPT}/filelist
-     \  Compare Random files  ${MOUNTPT}/filelist
-     \  Remove Random files   ${MOUNTPT}/filelist
+    FOR  ${tagid}  IN RANGE  ${numiter}
+        Generate File List  ${source}  ${dest}  ${MOUNTPT}/filelist
+        API_Run a file transfer  ${MOUNTPT}/filelist
+        Compare Random files  ${MOUNTPT}/filelist
+        Remove Random files   ${MOUNTPT}/filelist
+    END
 
 API_Run a file transfer
     [Arguments]  ${filelist}  ${expect_rc}=0
@@ -149,19 +152,21 @@ Remove directories
     [Arguments]
     [Timeout]  30 seconds
     Run as root
-    :FOR  ${path}  IN  @{MOUNTDIRS}
-    \  Run Keyword And Continue On Failure  bbcmd  remove  --mount=${path}
-    \  bbcmd    rmdir    --path  ${path}
-    \  Status should be  0
-    \  Remove Values from List  ${MOUNTDIRS}  ${path}
+    FOR  ${path}  IN  @{MOUNTDIRS}
+        Run Keyword And Continue On Failure  bbcmd  remove  --mount=${path}
+        bbcmd    rmdir    --path  ${path}
+        Status should be  0
+        Remove Values from List  ${MOUNTDIRS}  ${path}
+    END
 
 Teardown Logical Volume
     [Arguments]  ${path}
     [Timeout]  600 seconds
     Run as root
-    :FOR  ${path}  IN  @{MOUNTLVS}
-    \  bbcmd  remove  --mount=${path}
-    \  Remove Values from List  ${MOUNTLVS}  ${path}
+    FOR  ${path}  IN  @{MOUNTLVS}
+        bbcmd  remove  --mount=${path}
+        Remove Values from List  ${MOUNTLVS}  ${path}
+    END
     Run Keyword And Continue On Failure  Remove directories
     bbcmd  removejobinfo
 
