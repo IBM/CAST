@@ -162,7 +162,7 @@ ssize_t ConnexSocket::getDataBufferToRead(char * pBuffer,size_t pBufflength,uint
     ssize_t l_TotalRead = 0;
     ssize_t l_NumBytes =  0;
     while ((size_t)l_TotalRead  < pBufflength) {
-        l_NumBytes = ::read(_sockfd,pBuffer+l_TotalRead ,pBufflength-l_TotalRead);
+        l_NumBytes = SockRead(pBuffer+l_TotalRead ,pBufflength-l_TotalRead);
         if (l_NumBytes==-1) {
             if (errno==EINTR)continue;
             if (errno==EAGAIN)continue;//if O_NONBLOCK, spin if any data was initially sent
@@ -278,6 +278,15 @@ int ConnexSocket::poll4DataIn() {
       return 0;
     }
 
+int ConnexSocket::SockRead(void* pDataBuffer, const size_t pDataBufferSize)
+{
+    return ::read(_sockfd, pDataBuffer, pDataBufferSize);
+}
+
+int ConnexSocket::SockWrite(const void* pDataBuffer, const size_t pDataBufferSize)
+{
+    return ::write(_sockfd, pDataBuffer, pDataBufferSize);
+}
 
 int ConnexSocket::read(txp::Msg* &oMsg, char* pDataBuffer, const size_t pDataBufferSize, const txp::DeserializeOption pDeserializeOption ) {
     int l_RC = 0;
@@ -291,21 +300,14 @@ int ConnexSocket::read(txp::Msg* &oMsg, char* pDataBuffer, const size_t pDataBuf
     if (l_RC >= 0) {
         l_RC = 0;
         char l_Header[HEADERLENGTH]={'\0'};
-        ssize_t l_NumBytes = ::read(_sockfd, l_Header, HEADERLENGTH);
-        //        if (NULL == _cSSL)
-        //   l_NumBytes = ::read(_sockfd, l_Header, HEADERLENGTH);
-        //else
-        //   l_NumBytes = SSL_read(_cSSL, l_Header, HEADERLENGTH);
+        ssize_t l_NumBytes = 0;
+        l_NumBytes = SockRead(l_Header, HEADERLENGTH);
 
         if (l_NumBytes >= 0) {
             l_TotalRead = l_NumBytes;
 
             while (l_TotalRead < HEADERLENGTH) {    //weird but possible
-                // if (NULL == _cSSL)
-                    //   l_NumBytes = ::read(_sockfd, l_Header+l_TotalRead, HEADERLENGTH-l_TotalRead );
-                //else
-                    //                    l_NumBytes = SSL_read(_cSSL, l_Header+l_TotalRead, HEADERLENGTH-l_TotalRead );
-                l_NumBytes = ::read(_sockfd, l_Header+l_TotalRead, HEADERLENGTH-l_TotalRead );
+                l_NumBytes = SockRead(l_Header+l_TotalRead, HEADERLENGTH-l_TotalRead);
                 if (l_NumBytes == -1) {
                     if (errno == EINTR) continue;
                     if (errno == EAGAIN) continue;      //  if O_NONBLOCK, spin if any data was initially sent
@@ -343,11 +345,7 @@ int ConnexSocket::read(txp::Msg* &oMsg, char* pDataBuffer, const size_t pDataBuf
                     l_MsgPtr->msgIdToChar(l_MsgPtr->getMsgId(), l_MsgId, sizeof(l_MsgId));
                     LOG(txp,debug) << "  TXP_RD:  ATTRS, " << l_MsgId << ", Msg#=" << l_MsgPtr->getMsgNumber() << ", RMsg#=" << l_MsgPtr->getRequestMsgNumber() << ", l_TotalMsgSize=" << l_TotalMsgSize << ", padLength=" << l_MsgPtr->getLengthOfPad() << ", RC=" << l_RC << ", errno=" << errno;
                     while (l_TotalRead < l_TotalMsgSize) {
-                        l_NumBytes = ::read(_sockfd, l_MsgPtr->getDataBufferPtr()+l_TotalRead, l_TotalMsgSize-l_TotalRead );
-                        //if (NULL == _cSSL)
-                        //                        l_NumBytes = ::read(_sockfd, l_MsgPtr->getDataBufferPtr()+l_TotalRead, l_TotalMsgSize-l_TotalRead );
-                        //else
-                        //   l_NumBytes = SSL_read(_cSSL, l_MsgPtr->getDataBufferPtr()+l_TotalRead, l_TotalMsgSize-l_TotalRead );
+                        l_NumBytes = SockRead(l_MsgPtr->getDataBufferPtr()+l_TotalRead, l_TotalMsgSize-l_TotalRead );
                         if (l_NumBytes == -1) {
                             if (errno == EINTR) continue;
                             if (errno == EAGAIN) continue;      //  if O_NONBLOCK, spin if any data was initially sent
@@ -474,21 +472,13 @@ ssize_t ConnexSocket::write(txp::Msg* pMsg) {
         if (l_RC >= 0) {
             l_RC = 0;
             char * l_Data = pMsg->getDataBufferPtr();
-            ssize_t l_NumBytes = ::write(_sockfd, l_Data, l_DataLen);
-            //            if (NULL == _cSSL)
-            //   l_NumBytes = ::write(_sockfd, l_Data, l_DataLen);
-            //else
-            //   l_NumBytes = SSL_write(_cSSL, l_Data, l_DataLen);
+            ssize_t l_NumBytes = SockWrite(l_Data, l_DataLen);
 
             if (l_NumBytes >= 0) {
                 l_TotalWritten = l_NumBytes;
                 if (l_NumBytes < l_DataLen) {
                     while ((!l_RC) && (l_TotalWritten < (unsigned)l_DataLen)) {
-                        //                        if (NULL == _cSSL)
-                        //   l_NumBytes = ::write(_sockfd, l_Data+l_TotalWritten, l_DataLen-l_TotalWritten);
-                        // else
-                        //   l_NumBytes = SSL_write(_cSSL, l_Data+l_TotalWritten, l_DataLen-l_TotalWritten);
-                        l_NumBytes = ::write(_sockfd, l_Data+l_TotalWritten, l_DataLen-l_TotalWritten);
+                        l_NumBytes = SockWrite(l_Data+l_TotalWritten, l_DataLen-l_TotalWritten);
                         if (l_NumBytes == -1) {
                             if (EINTR==errno) continue;
                             if (EAGAIN==errno) continue;    //  if O_NONBLOCK, spin if any data was initially sent
@@ -566,11 +556,7 @@ ssize_t ConnexSocket::writeWithBuffer(txp::Msg* pMsg, char * pBuffer, size_t pBu
                 //  Now, write the buffer...
                 ssize_t l_TotalBufferWritten = 0;
                 while ((!l_RC) && (l_TotalBufferWritten < (unsigned)pBufflength)) {
-                    //                    if (NULL == _cSSL)
-                    //   l_NumBytes = ::write(_sockfd, pBuffer+l_TotalBufferWritten, pBufflength-l_TotalBufferWritten);
-                    //else
-                    //  l_NumBytes = SSL_write(_cSSL, pBuffer+l_TotalBufferWritten, pBufflength-l_TotalBufferWritten);
-                    l_NumBytes = ::write(_sockfd, pBuffer+l_TotalBufferWritten, pBufflength-l_TotalBufferWritten);
+                    l_NumBytes = SockWrite(pBuffer+l_TotalBufferWritten, pBufflength-l_TotalBufferWritten);
                     if (l_NumBytes == -1) {
                         if (EINTR == errno) continue;
                         if (EAGAIN == errno) continue;  //  if O_NONBLOCK, spin if any data was initially sent

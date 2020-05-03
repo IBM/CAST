@@ -16,6 +16,7 @@
 #include "CnxSockSSL.h"
 #include "txp_flightlog.h"
 #include "txperror.h"
+#include <openssl/ssl.h>
 
 using namespace std;
 using namespace txp;
@@ -164,6 +165,16 @@ void CnxSockSSL::verifyCertificates()
     }
 
     return;
+}
+
+int CnxSockSSL::SockRead(void* pDataBuffer, const size_t pDataBufferSize)
+{
+    return SSL_read(_cSSL, pDataBuffer, pDataBufferSize);
+}
+
+int CnxSockSSL::SockWrite(const void* pDataBuffer, const size_t pDataBufferSize)
+{
+    return SSL_write(_cSSL, pDataBuffer, pDataBufferSize);
 }
 
 int CnxSockSSL::accept() {
