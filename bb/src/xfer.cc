@@ -3959,6 +3959,8 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                     queue<WorkID> l_Temp2;
                                     BBLV_Info* l_WorkItemLV_Info;
 
+                                    // NOTE: We may have dropped the local metadata lock above to process in-flight entries
+                                    //       so we need to re-resolve to the WrkQE...  It may already be gone...
                                     wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
                                     if (l_WrkQE)
                                     {
@@ -4022,6 +4024,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                                 l_WorkId.dump("info", "Failure when reloading work queue ");
                                             }
                                         }
+                                        LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << l_LVKey << " after the reload processing";
                                     }
 
                                     l_TransferQueueLocked = 0;
@@ -4030,8 +4033,6 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                     wrkqmgr.unlockWorkQueueMgr(pLVKey, "stageoutEnd - end process the work queue", &l_LocalMetadataUnlocked);
                                     lockTransferQueue(&l_LVKey, "stageoutEnd - end process the work queue");
                                     l_TransferQueueLocked = 1;
-
-                                    LOG(bb,info) << "stageoutEnd(): " << l_WrkQE->getWrkQ_Size() << " extents are now on the workqueue for " << l_LVKey << " after the reload processing";
 
                                     // Unload and reload is complete.
                                     //
@@ -4049,7 +4050,7 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                     //       We will just leave the excess posts there and the worker threads will
                                     //       discard those as no-ops.
 
-                                    // NOTE: We dropped the local metadata lock above to process the work queue entries
+                                    // NOTE: We dropped the local metadata lock above to unload and reload the workqueue
                                     //       so we need to re-resolve to the BBLV_Info...  It may already be gone...
                                     l_LV_Info = metadata.getLV_Info(&l_LVKey);
                                     if (l_LV_Info)
@@ -4095,7 +4096,15 @@ int stageoutEnd(const std::string& pConnectionName, const LVKey* pLVKey, const F
                                                 LOG(bb,warning) << "stageoutEnd(): Failure when attempting to remove remaining extents to be transferred for " << l_LVKey << ". Work item removal processing.";
                                                 l_WorkId.dump("info", "Failure when processing work items to remove ");
                                             }
-                                            wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
+
+                                            // NOTE: We dropped the local metadata lock above to unload and reload the workqueue
+                                            //       so we need to re-resolve to the BBLV_Info...  It may already be gone...
+                                            //       If it is already gone, no real harm in not updating the counter.
+                                            wrkqmgr.getWrkQE(&l_LVKey, l_WrkQE);
+                                            if (l_WrkQE)
+                                            {
+                                                wrkqmgr.incrementNumberOfWorkItemsProcessed(l_WrkQE, l_WorkId);
+                                            }
                                         }
                                     }
                                 }

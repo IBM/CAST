@@ -361,7 +361,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
         {
             // Attempt to create the jobstepid directory
             // NOTE: umask of 0027 yields permissions of 0750 for jobstepid directory
-            mkdir(jobstepid.c_str(), (mode_t)0777);
+            rc = mkdir(jobstepid.c_str(), (mode_t)0777);
 
             if (!rc)
             {
