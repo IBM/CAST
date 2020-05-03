@@ -37,17 +37,17 @@ if((bbgetrc($ra) != 0) || (bbgetrc($rp) != 0) || (bbgetrc($rb) != 0))
         print "bbProxy_might_be_down\n";
     }
 }
-elsif($ra->{"out"}{"serverList"} eq $rp->{"out"}{"serverList"})
+elsif(($ra->{"out"}{"serverList"} eq $rp->{"out"}{"serverList"}) && ($rp->{"out"}{"serverList"} ne "none"))
 {
     my $rawtext = " (" . $ra->{"out"}{"serverList"} . ")" if($raw);
     print "primary$rawtext\n";
 }
-elsif($ra->{"out"}{"serverList"} eq $rb->{"out"}{"serverList"})
+elsif(($ra->{"out"}{"serverList"} eq $rb->{"out"}{"serverList"}) && ($rb->{"out"}{"serverList"} ne "none"))
 {
     my $rawtext = " (" . $ra->{"out"}{"serverList"} . ")" if($raw);
     print "backup$rawtext\n";
 }
-elsif($ra->{"out"}{"serverList"} eq "")
+elsif(($ra->{"out"}{"serverList"} eq "") || ($ra->{"out"}{"serverList"} eq "none"))
 {
     print "no_connection\n";
 }
