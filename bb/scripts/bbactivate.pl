@@ -183,6 +183,10 @@ getNodeName();
 if($CFG{"shutdown"})
 {
     stopServices();
+    if($CFG{"bbServer"})
+    {
+        clearNVMf()   if($CFG{"sharednode"} == 0);
+    }
     exit(0);
 }
 
@@ -701,7 +705,7 @@ sub configureVolumeGroup
 sub clearNVMf
 {
     setprefix("Clearing NVMf connections: ");
-    my $out = safe_cmd("nvme list-subsys");
+    my $out = safe_cmd("nvme list-subsys", 1);
     foreach $line (split("\n", $out))
     {
         if(($line =~ /NQN=\S+/) && ($line !~ /PM1725a/i))
