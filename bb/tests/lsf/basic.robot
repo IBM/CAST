@@ -21,24 +21,28 @@ Basic BSCFS setup using LSF
 	bsub&wait  ${jsrun} df
 
 Load job queue with BB
-     [Tags]  lsf
-     using SSD  100
-     :FOR  ${i}   IN RANGE   1   10
-     \  bsub  job${i}  hostname
-     
-     :FOR  ${i}   IN RANGE   1   10
-     \  waitproc  job${i}  0
+    [Tags]  lsf
+    using SSD  100
+    FOR  ${i}   IN RANGE   1   10
+		bsub  job${i}  hostname
+    END
+
+    FOR  ${i}   IN RANGE   1   10
+		waitproc  job${i}  0
+	END
 
 Load job queue with BSCFS
      [Tags]  lsf
      using SSD  100
      using bscfs
 
-     :FOR  ${i}   IN RANGE   1   10
-     \  bsub  job${i}  hostname
-     
-     :FOR  ${i}   IN RANGE   1   10
-     \  waitproc  job${i}  0
+    FOR  ${i}   IN RANGE   1   10
+    	bsub  job${i}  hostname
+    END
+
+    FOR  ${i}   IN RANGE   1   10
+    	waitproc  job${i}  0
+	END
 
 Stage-in script does not exist
 	[Tags]  lsf
