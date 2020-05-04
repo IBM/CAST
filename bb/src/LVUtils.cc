@@ -247,7 +247,8 @@ int doInitializeFileSystem(const char* pVolumeGroupName, const char* pDevName, c
                 char* l_DevName = new char[l_Length];
                 snprintf(l_DevName, l_Length, "/%s/%s/%s", DEVICE_DIRECTORY, pVolumeGroupName, pDevName);
                 char l_Cmd[1024] = {'\0'};
-                snprintf(l_Cmd, sizeof(l_Cmd), "mkfs.xfs -f -b log=%d %s 2>&1;", pLogBlockSize, l_DevName);
+//                snprintf(l_Cmd, sizeof(l_Cmd), "mkfs.xfs -f -b log=%d %s 2>&1;", pLogBlockSize, l_DevName);
+                snprintf(l_Cmd, sizeof(l_Cmd), "mkfs.xfs -f -b size=%d %s 2>&1;", 65536, l_DevName);  // \todo fixup
                 LOG(bb,always) << "mkfs cmd= "<<l_Cmd;
 
                 for (auto& l_Line : runCommand(l_Cmd)) {

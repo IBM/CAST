@@ -246,6 +246,8 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
         virtual int connect2Remote() =0;
         virtual std::string getInfoString()=0;
         virtual int accept(txp::Connex* &pNewSock)=0;
+        virtual int SockRead(void* pDataBuffer, const size_t pDataBufferSize);
+        virtual int SockWrite(const void* pDataBuffer, const size_t pDataBufferSize);
 
         // Virtual functions
         virtual char * accessBuffer(txp::Msg* pMsg,  const size_t pDataBufferSize) {

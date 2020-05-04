@@ -48,7 +48,7 @@ Attempt opening connection as user fails
     Run as root
     Use hosts with defined server  backup
     Run as user
-    
+
     # Connect/Disconnect
     Open connection  backup  -1
     Restore rank list
@@ -163,9 +163,10 @@ Execute 100 Times - Open connection to backup server while performing transfer t
     Generate File List  ${PFSDIR}  ${MOUNTPT}  ${MOUNTPT}/filelist
     ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
 
-    :FOR  ${l_idx}   IN RANGE   1   100
-    \  Open connection  backup
-    \  Close connection  backup
+    FOR  ${l_idx}   IN RANGE   1   100
+        Open connection  backup
+        Close connection  backup
+    END
 
     Wait Until Keyword Succeeds  10 mins  1 second  transfer has completed  ${handle}
     Transfer status is  ${handle}  BBFULLSUCCESS
@@ -224,10 +225,11 @@ Execute 100 Times - Open connection to backup server while performing transfer f
     Generate File List  ${MOUNTPT}  ${PFSDIR}  ${MOUNTPT}/filelist
     ${handle}=  Run a file transfer  1  ${MOUNTPT}/filelist
 
-    :FOR  ${l_idx}   IN RANGE   1   100
-    \  Open connection  backup
-    \  Close connection  backup
-    
+    FOR  ${l_idx}   IN RANGE   1   100
+        Open connection  backup
+        Close connection  backup
+    END
+
     Wait Until Keyword Succeeds  10 mins  1 second  transfer has completed  ${handle}
     Transfer status is  ${handle}  BBFULLSUCCESS
     Cleanup transfer test
@@ -311,8 +313,9 @@ Connection establishment stress
     Use hosts with defined server  backup
     
     # Connect/Disconnect
-    :FOR  ${iteration}  IN RANGE  100
-    \    Open connection  backup
-    \	 Close connection  backup
+    FOR  ${iteration}  IN RANGE  100
+        Open connection  backup
+        Close connection  backup
+    END
     
     Restore rank list

@@ -90,8 +90,12 @@ uint64_t g_TimeBaseScale;
 
 uint64_t determineTimeBaseScale()
 {
-	uint64_t timebaseScale = 1;
-
+	static uint64_t timebaseScale = 0;
+    if(timebaseScale)
+    {
+        return timebaseScale;
+    }
+    timebaseScale = 1;
 #ifdef __linux__
 	FILE* f;
 	char* ptr;

@@ -136,39 +136,12 @@ TrackSyscallPtr getSysCallTracker()
 {
     return threadLocalTrackSyscallPtr; //thread local
 }
+ 
+extern uint64_t determineTimeBaseScale();
 
 uint64_t getTimeBaseScale()
 {
-	uint64_t timebaseScale = 1;
-#ifdef __linux__
-	FILE* f;
-	char* ptr;
-	char line[256];
-	f = fopen("/proc/cpuinfo", "r");
-	while(!feof(f))
-	{
-	    char* str = fgets(line, sizeof(line), f);
-	    if(str == NULL)
-  	        break;
-
-	    if((ptr = strstr(line, "cpu MHz")) != 0)  // x86
-	    {
-		    ptr = strchr(ptr, ':');
-		    ptr += 2;
-		    sscanf(ptr, "%ld", &timebaseScale);
-		    timebaseScale *= 1000000;
-	    }
-	    if((ptr = strstr(line, "timebase")) != 0) // powerpc
-	    {
-		    ptr = strchr(ptr, ':');
-		    ptr += 2;
-		    sscanf(ptr, "%ld", &timebaseScale);
-            //printf("timebaseScale=%ld\n",timebaseScale);
-	    }
-	}
-	fclose(f);
-
-#endif
+	uint64_t timebaseScale = determineTimeBaseScale();
     warnTicks = warnSeconds * timebaseScale;
     stuckTicks = stuckSeconds * timebaseScale;
     return timebaseScale;

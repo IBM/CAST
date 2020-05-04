@@ -82,6 +82,8 @@ namespace txp{
         virtual int connect2Remote();
         virtual int bindCnxSock();
         virtual int accept();
+        virtual int SockRead(void* pDataBuffer, const size_t pDataBufferSize);
+        virtual int SockWrite(const void* pDataBuffer, const size_t pDataBufferSize);
 
         inline int willDialRemote(int val=1){_dialRemote=val; return _dialRemote;}
         inline in_port_t getLocalPort(void) const

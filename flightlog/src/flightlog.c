@@ -94,6 +94,57 @@ int FL_AttachRegistry(FlightRecorderRegistryList_t** reglist, const char* filena
 	return rc;
 }
 
+static uint64_t getTimeBaseScale()
+{
+	static uint64_t timebaseScale = 0;
+    if(timebaseScale)
+    {
+        return timebaseScale;
+    }
+    timebaseScale = 1;
+#ifdef __linux__
+	FILE* f;
+	char* ptr;
+	char line[256];
+	f = fopen("/proc/cpuinfo", "r");
+	if(f == NULL)
+	{
+		printf("Unable to open /proc/cpuinfo, failing.  errno=%d", errno);
+		exit(-1);
+	}
+	while(!feof(f))
+	{
+	    char* str = fgets(line, sizeof(line), f);
+	    if(str == NULL)
+  	        break;
+
+	    if((ptr = strstr(line, "cpu MHz")) != 0)  // x86
+	    {
+		    ptr = strchr(ptr, ':');
+		    ptr += 2;
+		    sscanf(ptr, "%ld", &timebaseScale);
+		    timebaseScale *= 1000000;
+	    }
+	    if((ptr = strstr(line, "timebase")) != 0) // powerpc
+	    {
+		    ptr = strchr(ptr, ':');
+		    ptr += 2;
+		    sscanf(ptr, "%ld", &timebaseScale);
+	    }
+	}
+	fclose(f);
+#endif
+#ifdef __APPLE__
+		uint64_t speed = 0;
+		size_t   len = sizeof(speed);
+		mach_timebase_info_data_t info;
+		mach_timebase_info(&info);
+		sysctlbyname("hw.cpufrequency_max", &speed, &len, NULL, 0);
+		timebaseScale = speed / ((double)info.numer / (double)info.denom);
+#endif
+    return timebaseScale;
+}
+
 int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, const char* filename, const char* decoder, uint64_t length, FlightRecorderFormatter_t* fmt, uint64_t numids, uint64_t csum)
 {
         int rc = 0;
@@ -182,48 +233,7 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 		reg->bootid        = bootid;
 
 		// Registry Formatting data, not used by runtime:
-#ifdef __linux__
-		FILE *f;
-		char *ptr;
-		char line[256];
-		float tmpf;
-		f = fopen("/proc/cpuinfo", "r");
-		if(f == NULL)
-		{
-			printf("Unable to open /proc/cpuinfo, failing.  errno=%d", errno);
-			exit(-1);
-		}
-		while (!feof(f))
-		{
-			char *str = fgets(line, sizeof(line), f);
-			if (str == NULL)
-				break;
-
-			if ((ptr = strstr(line, "cpu MHz")) != 0) // x86
-			{
-				ptr = strchr(ptr, ':');
-				ptr += 2;
-				sscanf(ptr, "%g", &tmpf);
-				reg->timebaseScale = ((double)tmpf * 1000000.0);
-			}
-			if ((ptr = strstr(line, "timebase")) != 0) // powerpc
-			{
-				ptr = strchr(ptr, ':');
-				ptr += 2;
-				sscanf(ptr, "%g", &tmpf);
-				reg->timebaseScale = (double)tmpf;
-			}
-		}
-		fclose(f);
-#endif
-#ifdef __APPLE__
-		uint64_t speed = 0;
-		size_t   len = sizeof(speed);
-		mach_timebase_info_data_t info;
-		mach_timebase_info(&info);
-		sysctlbyname("hw.cpufrequency_max", &speed, &len, NULL, 0);
-		reg->timebaseScale = speed / ((double)info.numer / (double)info.denom);
-#endif
+		reg->timebaseScale = getTimeBaseScale();
 
 		uint64_t tb = 0;
 #ifdef __powerpc64__

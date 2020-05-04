@@ -48,7 +48,7 @@ class bbRobotLibrary(object):
             if self.jout['rc'] != 0:
                 return self.jout['error']['firstFailRank']
             return "none"
-        except ValueError, e:
+        except ValueError as e:
             return "none"
 
     def failing_details(self):
@@ -56,7 +56,7 @@ class bbRobotLibrary(object):
             err  = self.get_error_root()
             rank = self.failing_rank_is()
             return "Rank %s with status %s" % (rank, err['error']['text'])
-        except ValueError, e:
+        except ValueError as e:
             return "(failing_details_exception)"
 
     def status_should_be(self, expected_status):
@@ -116,7 +116,10 @@ class bbRobotLibrary(object):
             command.insert(2, "--target=" + ranklist)
         else:
             command.insert(2, "--contribid=0")
-
+            orighostlist = BuiltIn().replace_variables('${ORIG_HOSTLIST}')
+            if hostlist == '':
+                return
+            
         command.insert(2, "--jobid=" + str(jobid))
         command.insert(2, "--jobstepid=" + str(jobstepid))
 
@@ -130,9 +133,9 @@ class bbRobotLibrary(object):
         self._output = process.communicate()[0].strip()
         try:
             self.jout = json.loads(self._output)
-            print json.dumps(self.jout, indent=4, sort_keys=True)
+            print(json.dumps(self.jout, indent=4, sort_keys=True))
             print("non-JSON result: '%s'" % (self._output))
-        except ValueError, e:
+        except ValueError as e:
             print("non-JSON result: '%s'" % (self._output))
             self.jout = ""
             raise AssertionError("bbcmd returned non-JSON data")
