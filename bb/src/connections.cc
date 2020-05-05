@@ -429,7 +429,10 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
     txp::Attr_int32 resultcode(txp::resultCode, rc);
     response->addAttribute(&resultcode);
     if (rc) {addBBErrorToMsg(response);}
-    conn->write(response);
+    int rc_write=conn->write(response);
+    if (rc_write <= 0) {
+        conn->disconnect();
+    }
     delete msg;
     msg = NULL;
     delete response;
