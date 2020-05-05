@@ -42,7 +42,7 @@ LOG(bb,error) << "dlsym failed for string="<<symbol;
 }
 
 int NodeController_CSM::getcsmSymbols(const std::string& controllerPath){
-    void * _dlopen_csmi = dlopen(controllerPath.c_str(), RTLD_LAZY);
+    _dlopen_csmi = dlopen(controllerPath.c_str(), RTLD_LAZY);
     if (_dlopen_csmi){
         dlerror(); //clear error
         _csm_init_lib_vers_func = (csm_init_lib_vers_t)dlsym(_dlopen_csmi,"csm_init_lib_vers");
@@ -93,6 +93,7 @@ int NodeController_CSM::getcsmSymbols(const std::string& controllerPath){
 
 
 NodeController_CSM::NodeController_CSM():
+    _dlopen_csmi(NULL),
     _csm_init_lib_vers_func(NULL),       
     _csm_term_lib_func(NULL),            
     _csm_api_object_clear_func(NULL),    
@@ -320,6 +321,10 @@ NodeController_CSM::~NodeController_CSM()
     if(rc)
     {
 	    LOG(bb,error) << "Unable to shutdown CSM library.  rc=" << rc;
+    }
+    else if (_dlopen_csmi) {
+        rc = dlclose(_dlopen_csmi);
+        if (rc) LOG(bb,error) << "Unable to dlclose.  rc=" << rc;
     }
 };
 
