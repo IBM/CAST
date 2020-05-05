@@ -392,6 +392,7 @@ sub makeServerConfigFile
         next if($ess =~ /^#/);
         next if($ess !~ /\S/);
         chomp($ess);
+        $ess =~ s/\s*backup=.*//;
         my @backup      = split(/\s+/, $ess);
         push(@ESS, @backup);
     }
@@ -441,22 +442,37 @@ sub makeProxyConfigFile
         next if($ess =~ /^#/);
         next if($ess !~ /\S/);
         chomp($ess);
-        @backup      = split(/\s+/, $ess);
-        @backupnames = split(/\s+/, $ess);
-        push(@ESS, @backup);
-
-        foreach $name (@backupnames)
+        if($ess =~ /\S+\s+backup=\S+/)
         {
-            $name =~ s/\./_/g;
-            $name = "server$name";
+            my ($primary, $backup) = $ess =~ /(\S+)\s+backup=(\S+)/;
+            push(@ESS, $primary);
+            $backup =~ s/\./_/g;
+            $backup = "server$backup";
+            $BACKUP{$primary} = $backup;
+            
+            $primary =~ s/\./_/g;
+            $primary = "server$primary";
+            push(@ESSNAME, $primary);
         }
-        push(@ESSNAME, @backupnames);
-
-        if($#backup + 1 > 1)
+        else
         {
-            for($x = 0 ; $x < $#backup + 1 ; $x++)
+            my @backup      = split(/\s+/, $ess);
+            my @backupnames = split(/\s+/, $ess);
+            push(@ESS, @backup);
+
+            foreach $name (@backupnames)
             {
-                $BACKUP{ $backup[$x] } = $#ESS - $x;
+                $name =~ s/\./_/g;
+                $name = "server$name";
+            }
+            push(@ESSNAME, @backupnames);
+
+            if($#backup + 1 > 1)
+            {
+                for($x = 0 ; $x < $#backup + 1 ; $x++)
+                {
+                    $BACKUP{ $backup[$x] } = $ESSNAME[$#ESS - $x];
+                }
             }
         }
     }
@@ -493,8 +509,15 @@ sub makeProxyConfigFile
     if(exists $BACKUP{ $ESS[$primaryServer] })
     {
         my $backupServer = $BACKUP{ $ESS[$primaryServer] };
-        $json->{"bb"}{"proxy"}{"backupcfg"} = "bb." . $ESSNAME[$backupServer];
-        output("Backup: $ESS[$backupServer] (bb.proxy.backupcfg=bb.$ESSNAME[$backupServer])");
+        $json->{"bb"}{"proxy"}{"backupcfg"} = "bb.$backupServer";
+        output("Backup: bb.proxy.backupcfg=bb.$backupServer");
+
+        my %essnamehash = map { $_ => 1 } @ESSNAME;
+        if(!exists $essnamehash{$backupServer})
+        {
+            output("ESS $backupServer was not defined");
+            exit(6);
+        }
     }
 
     delete $json->{"bb"}{"server0"} if(!$CFG{"bbServer"});

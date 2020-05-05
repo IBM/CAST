@@ -48,7 +48,7 @@
   - name: build host list with backup
     lineinfile:
       dest: /tmp/serverlist 
-      line: "{{ipvar.stdout}}:9001 {{ipvarbackup.stdout}}:9001"
+      line: "{{ipvar.stdout}}:9001 backup={{ipvarbackup.stdout}}:9001"
       insertafter: EOF
     delegate_to: localhost
     when: backup is defined
