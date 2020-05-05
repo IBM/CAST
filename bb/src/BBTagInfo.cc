@@ -171,6 +171,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
         vector<uint32_t> l_ExpectContrib;
         while (l_Continue)
         {
+            rc = 0;
             l_Continue = false;
             uint32_t l_BumpCount = 0;
             if (l_Handle == UNDEFINED_HANDLE)
@@ -319,7 +320,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     else
     {
         rc = -1;
-        errorText << "Unexpected error occurred when attempting during the generation of a handle value.";
+        errorText << "Unexpected error occurred during the generation of a handle value.";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
@@ -389,6 +390,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
                 {
                     // Tolerate if the jobstepid directory already exists.  There exists a possible
                     // race condition between CNs when requesting handles.
+                    rc = 0;
                 }
             }
         }

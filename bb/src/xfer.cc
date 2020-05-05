@@ -3615,9 +3615,28 @@ int getHandle(const std::string& pConnectionName, LVKey* &pLVKey, BBJob pJob, co
                 BBTransferDef* l_TransferDef = 0;
                 uint32_t l_PerformOperationDummy = 0;
                 rc = queueTransfer(pConnectionName, pLVKey, pJob, pTag, l_TransferDef, (int32_t)(-1), pNumContrib, pContrib, pHandle, l_PerformOperationDummy, (vector<struct stat*>*)0);
-                if (rc) {
+                if (rc)
+                {
                     // NOTE:  errstate already filled in...
-                    errorText << "For " << l_JobStr.str() << ", handle " << pHandle << " could not be added to " << *pLVKey << " for the compute node.";
+                    stringstream l_ContribStr;
+                    uint32_t* l_ContribPtr = pContrib;
+                    l_ContribStr << "(";
+                    for (uint64_t i=0; i<pNumContrib; ++i)
+                    {
+                        if (i!=pNumContrib-1)
+                        {
+                            l_ContribStr << *l_ContribPtr << ",";
+                        }
+                        else
+                        {
+                            l_ContribStr << *l_ContribPtr;
+                        }
+                        ++l_ContribPtr;
+                    }
+                    l_ContribStr << ")";
+
+                    errorText << "An error occurred when attempting to add handle related information to the local metadata for job" << l_JobStr.str() \
+                              << ", tag " << pTag << ", contrib(s) " << l_ContribStr.str() << " to " << *pLVKey;
                     LOG_ERROR_AND_BAIL(errorText);
                 }
                 break;
