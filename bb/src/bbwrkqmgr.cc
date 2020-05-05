@@ -76,19 +76,20 @@ int isGpfsFile(const char* pFileName, bool& pValue)
             rc = statfs(l_Path.c_str(), &l_Statbuf);
         }
 
-        if (rc)
+        if (!rc)
+        {
+            if (l_Statbuf.f_type == GPFS_SUPER_MAGIC)
+            {
+                pValue = true;
+            }
+            FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
+        }
+        else
         {
             FL_Write(FLServer, StatfsFailedGpfs, "Statfs failed", 0, 0 ,0, 0);
             errorText << "Unable to statfs file " << l_Path.string();
             LOG_ERROR_TEXT_ERRNO(errorText, errno);
         }
-
-        if (l_Statbuf.f_type == GPFS_SUPER_MAGIC)
-        {
-            pValue = true;
-        }
-
-        FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
     }
     catch(ExceptionBailout& e) { }
     catch(exception& e)
@@ -1208,12 +1209,6 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
         // We need to open the prior async request file...
         l_SeqNbr -= 1;
     }
-    else
-    {
-        // Ensure that the last processed sequence number
-        // is the current async request file
-        asyncRequestFileSeqNbrLastProcessed = asyncRequestFileSeqNbr;
-    }
 
     int l_Retry = DEFAULT_RETRY_VALUE;
     while (l_Retry--)
@@ -1967,6 +1962,9 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                 }
             }
         }
+
+        // Set the last processed sequence number
+        asyncRequestFileSeqNbrLastProcessed = l_SeqNbr;
     }
     else
     {

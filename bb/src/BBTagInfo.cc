@@ -171,7 +171,6 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
         vector<uint32_t> l_ExpectContrib;
         while (l_Continue)
         {
-            rc = 0;
             l_Continue = false;
             uint32_t l_BumpCount = 0;
             if (l_Handle == UNDEFINED_HANDLE)
@@ -271,7 +270,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                                 // Error from incrBumpCount()
                                 rc = -1;
                                 errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
-                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                         }
                         break;
@@ -282,7 +281,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                             rc = -1;
                             errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
                                       << " but for a different contrib vector. Another tag value must be specified.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                         break;
 
@@ -298,7 +297,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                             // Some other error
                             rc = -1;
                             errorText << "Unexpected error occurred during the generation of a handle value";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     }
                 }
