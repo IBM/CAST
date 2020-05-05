@@ -13,6 +13,7 @@ set(CPACK_RPM_burstbuffer_PACKAGE_DESCRIPTION       "This RPM provides burst buf
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_SUMMARY           "Burst Buffer test cases" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_DESCRIPTION       "This RPM provides burst buffer testcases." PARENT_SCOPE)
 
+set(CPACK_RPM_ansibleburstbuffer_PACKAGE_ARCHITECTURE "noarch" PARENT_SCOPE)
 set(CPACK_RPM_ansibleburstbuffer_PACKAGE_SUMMARY           "Burst Buffer ansible_PACKAGE_SUMMARY" PARENT_SCOPE)
 set(CPACK_RPM_ansibleburstbuffer_PACKAGE_DESCRIPTION       "This RPM provides burst buffer ansible playbooks." PARENT_SCOPE)
 
