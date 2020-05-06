@@ -4,6 +4,7 @@ add_subdirectory(tools)
 add_subdirectory(tests)
 add_subdirectory(scripts)
 add_subdirectory(wrappers)
+add_subdirectory(ansible)
 
 #### RPM ####
 set(CPACK_RPM_burstbuffer_PACKAGE_SUMMARY           "Burst Buffer system software" PARENT_SCOPE)
@@ -11,6 +12,10 @@ set(CPACK_RPM_burstbuffer_PACKAGE_DESCRIPTION       "This RPM provides burst buf
 
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_SUMMARY           "Burst Buffer test cases" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_DESCRIPTION       "This RPM provides burst buffer testcases." PARENT_SCOPE)
+
+set(CPACK_RPM_burstbuffer-ansible_PACKAGE_ARCHITECTURE "noarch" PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-ansible_PACKAGE_SUMMARY           "Burst Buffer ansible_PACKAGE_SUMMARY" PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-ansible_PACKAGE_DESCRIPTION       "This RPM provides burst buffer ansible playbooks." PARENT_SCOPE)
 
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_SUMMARY           "Burst Buffer tools" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_DESCRIPTION       "This RPM provides various burst buffer tools used in BB development and test." PARENT_SCOPE)
@@ -26,6 +31,7 @@ Prefix: ${CMAKE_INSTALL_PREFIX}/bb/scripts
 set(CPACK_RPM_burstbuffer_PACKAGE_REQUIRES       "nvme-cli,nvmetcli,fuse,fuse-libs,util-linux,lvm2,coreutils,xfsprogs,openssh-clients,grep,perl-Sys-Syslog,perl-JSON,sysstat" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-ansible_PACKAGE_REQUIRES "ansible >= 2.9.6"   PARENT_SCOPE)
 
 # Burstbuffer needs to run a post-install script
 set(CPACK_RPM_burstbuffer_POST_INSTALL_SCRIPT_FILE  ${CMAKE_SOURCE_DIR}/bb/scripts/postinstall.sh PARENT_SCOPE)

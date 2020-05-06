@@ -60,7 +60,7 @@
 - hosts: all
   tasks:
   - name: remove RPMs
-    shell: yum erase -y ibm-burstbuffer*
+    shell: yum erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-mn ibm-burstbuffer-tests ibm-burstbuffer-tools
     args:
       warn: false # set warn=false to prevent warning
     any_errors_fatal: true
