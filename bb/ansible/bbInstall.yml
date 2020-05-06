@@ -21,7 +21,7 @@
 - hosts: launch
   tasks:
   - name: install BB RPMs on launch node
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[1tml]*rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
     args:
       warn: false # set warn=false to prevent warning       
 
@@ -33,7 +33,7 @@
     ignore_errors: yes
 
   - name: Install BB RPMs on ESS
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[01]*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-1*.rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
     args:
       warn: false # set warn=false to prevent warning
     when: bbserver_service_result.rc != 0
@@ -66,7 +66,7 @@
     ignore_errors: yes
 
   - name: install BB RPMs on Compute
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-*.rpm {{BBRPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[1t]*.rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
     args:
       warn: false # set warn=false to prevent warning 
     when: bbproxy_service_result.rc != 0
