@@ -57,6 +57,7 @@ typedef void (*free_csm_allocation_query_active_all_output_t_t)( csm_allocation_
 class NodeController_CSM : public NodeController
 {
   private:
+    void * _dlopen_csmi;
     csm_init_lib_vers_t      _csm_init_lib_vers_func;
     csm_term_lib_t           _csm_term_lib_func;
     csm_api_object_clear_t   _csm_api_object_clear_func;
