@@ -333,9 +333,9 @@ node_info:
       banks: 16
       bank_size:  8
     os:
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+      pretty_name: "Red Hat Enterprise Linux 8.1 (Ootpa)"
     kernel:
-      release: "4.14.0-43.el7a.ppc64le"
+      release: "4.18.0-147.5.1.el8_1.ppc64le"
     software:
         - ibm-csm: 1.8.0-2974 
     temp:
@@ -369,9 +369,9 @@ node_info:
       banks: 16
       bank_size:  32
     os:
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+      pretty_name: "Red Hat Enterprise Linux 8.1 (Ootpa)"
     kernel:
-      release: "4.14.0-43.el7a.ppc64le"
+      release: "4.18.0-147.5.1.el8_1.ppc64le"
     software:
         - ibm-csm: 1.8.0-2974 
     temp:
@@ -405,9 +405,9 @@ node_info:
       banks: 16
       bank_size:  32
     os:
-      pretty_name: "Red Hat Enterprise Linux Server 7.5 Beta (Maipo)"
+      pretty_name: "Red Hat Enterprise Linux 8.1 (Ootpa)"
     kernel:
-      release: "4.14.0-43.el7a.ppc64le"
+      release: "4.18.0-147.5.1.el8_1.ppc64le"
     software:
         - ibm-csm: 1.8.0-2974 
     temp:
