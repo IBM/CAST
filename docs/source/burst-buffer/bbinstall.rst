@@ -1,10 +1,18 @@
 Burst Buffer Installation
 =========================
 
+
+Preface
+-------
+The document has been updated to reflect installing into Red Hat Enterprise Linux v8.1.
+
+After the general outline of the install is a discussion of using supplied ansible playbooks to
+handle install, starting, stopping, and uninstalling  burst buffer across the involved computing nodes.
+
 Pre-requisites
 --------------
 
-Red Hat Enterprise Linux v7.6 or later for POWER9 installed on the nodes.
+Red Hat Enterprise Linux v8.1 or later for POWER9 installed on the nodes.
 
 * ibm-burstbuffer-1.x.y-z.ppc64le.rpm
 * ibm-burstbuffer-lsf-1.x.y-z.ppc64le.rpm
@@ -117,12 +125,14 @@ This nodelist could be generated via the xCAT commands:
 lsdef all | grep "Object name:" | cut -f 3 -d ' '
 
 
-The second file (esslist) contains a list of IP addresses and ports for each bbServer.  In the planned configuration, this would be the ESS I/O node VM IP address plus a well-known port (e.g., 9001).  To express ESS redundancy, place the two ESS’s I/O nodes within the same ESS should be placed on the same line.  E.g.,:
+The second file (esslist) contains a list of IP addresses and ports for each bbServer.  
+In the planned configuration, this would be the ESS I/O node VM IPv4 address plus a well-known port (e.g., 9001).  
+To express ESS redundancy, after "IPv4:port" add "backup=IPv4:port".  For example:
 
 .. code-block:: none
 
-	20.7.5.1:9001 20.7.5.2:9001
-	20.7.5.3:9001 20.7.5.4:9001
+20.7.5.100:9001 backup=20.7.5.101:9001
+20.7.5.101:9001 backup=20.7.5.100:9001
 
 
 Starting BB Services
@@ -273,3 +283,75 @@ By default, bbactivate will start the burst buffer health monitor.  This behavio
 .. code-block:: bash
 
 	/opt/ibm/bb/scripts/bbactivate --nohealth
+
+
+Ansible playbooks for burstbuffer
+*********************************
+
+Install ibm-burstbuffer-ansible RPM on the machine where ansible-playbook will be run.  The localhost needs to have connections 
+to all the nodes involved in the cluster.  
+Copy all the CAST RPMs into a directory in a parallel file system with the same mount across all the nodes in the cluster.
+
+Inventory
+---------  
+
+Need an ansible inventory of hosts naming nodes by grouping: 
+compute, where bbproxy daemon will reside with a local nvme drive and applications run;
+server, where bbserver daemon will run and conduct transfers between the compute nvme drive and GPFS;
+launch, where lsf jobs will be submitted and communication will take place with the compute node bbproxy daemons; and
+management, where management csm daemons reside.
+
+An example inventory file:
+[compute]
+c650f06p25
+c650f06p27 
+c650f06p29
+
+[server]
+gssio1vm-hs backup=gssio2vm-hs
+gssio2vm-hs backup=gssio1vm-hs
+
+[management]
+c650mnp03
+
+[launch]
+c650mnp03
+<EOF>
+
+Install by ansible-playbook
+---------------------------
+Advice is to do these in order:
+
+export RPMPATH=/gpfs/CAST/RPM
+export Inventory=/root/hosts
+export KEYFILE=/root/key.pem
+export CERTFILE=/root/cert.pem
+sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/nodelist.yml
+sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/bbserverIPlist.yml
+sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/csmInstall.yml
+sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/bbInstall.yml
+sudo ansible-playbook -f 16 -i $Inventory -e FQP_KEYFILE=$KEYFILE -e FQP_CERTFILE=$CERTFILE  /opt/ibm/bb/ansible/certificates.yml
+
+Activation by ansible-playbook
+------------------------------
+Advice is to do these in order:
+
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmStart.yml
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbStart.yml
+
+Stop by ansible-playbook
+------------------------
+Advice is to do these in order:
+
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmStop.yml
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbStop.yml
+
+Uninstall playbooks
+-------------------
+Advice is to do these in order:
+
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmUninstall.yml
+sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbUninstall.yml
+
+
+
