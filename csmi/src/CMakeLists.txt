@@ -98,17 +98,10 @@ if (EXISTS ${PYTHON_INCLUDE_DIRS} )
 
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
 
-    set(Boost_DEBUG ON)
-    set(Boost_DETAILED_FAILURE_MSG ON)
-    
     # The Boost Python Libraries:
     find_package( Boost COMPONENTS ${CSM_BOOST_PYTHON} REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
-    message("Boost_INCLUDE_DIR=${Boost_INCLUDE_DIR}")
-    message("Boost_LIBRARY_DIR_RELEASE=${Boost_LIBRARY_DIR_RELEASE}")
-    message("Boost_LIBRARY_DIR_DEBUG=${Boost_LIBRARY_DIR_DEBUG}")
-
     # Link the library
     #add_library(_csm_py SHARED ${csmi_python})
     #target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
