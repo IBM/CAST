@@ -62,7 +62,8 @@ enum LOCAL_ASYNC_REQUEST_PRIORITY
 {
     NONE           = 0,
     HIGH           = 10,    // BBCheckCycleActivities, BBLogIt, default priority
-    MEDIUM_HIGH    = 30,    // BBCleanContribId, BBCleanUpTagInfo, BBIO_Stats
+    MEDIUM_HIGH    = 30,    // BBCleanContribId, BBCleanUpTagInfo, BBHeartbeat,
+                            // BBIO_Stats
     MEDIUM         = 50,    // BBCounters, BBDumpHeartbeatData, BBDumpLocalAsync,
                             // BBDumpWrkQMgr, BBIB_Stats, BBSwapAsyncRequestFile
     MEDIUM_LOW     = 70,    // BBPruneMetadataBranch, BBRemoveAsyncRequestFile
@@ -874,6 +875,37 @@ class BBDumpWrkQMgr : public BBLocalRequest
      * \brief Destructor
      */
     virtual ~BBDumpWrkQMgr() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBHeartbeat : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBHeartbeat() :
+        BBLocalRequest("BBDumpHeartbeatData", MEDIUM_HIGH) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBHeartbeat() { };
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();

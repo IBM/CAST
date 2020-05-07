@@ -756,12 +756,9 @@ void Heartbeat_Controller::checkTimeToPerform()
 {
     if (timeToFire())
     {
-        // Tell the world this bbServer is still alive...
-        char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-        string l_CurrentTime = getHeartbeatCurrentTimeStr();
-        snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
-        AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
-        wrkqmgr.appendAsyncRequest(l_Request);
+        BBHeartbeat* l_Request = new BBHeartbeat();
+        g_LocalAsync.issueAsyncRequest(l_Request);
+        setTimerFired(1);
     }
 
     return;
@@ -1207,7 +1204,6 @@ void BBCheckCycleActivities::doit()
         g_RemoveAsyncRequestFile_Controller.checkTimeToPerform();
 
         // See if it is time to have a heartbeat for this bbServer
-        // NOTE: This controller executes the "heartbeat operation" directly inline
         g_Heartbeat_Controller.checkTimeToPerform();
     }
     catch(ExceptionBailout& e) { }
@@ -1594,6 +1590,30 @@ void BBDumpWrkQMgr::doit()
     end_logging();
 
     doitEnd(&g_Dump_WrkQMgr_Controller);
+
+    return;
+}
+
+void BBHeartbeat::doit()
+{
+    doitStart(&g_Heartbeat_Controller);
+
+    try
+    {
+        // Tell the world this bbServer is still alive...
+        char l_AsyncCmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
+        string l_CurrentTime = getHeartbeatCurrentTimeStr();
+        snprintf(l_AsyncCmd, sizeof(l_AsyncCmd), "heartbeat 0 0 0 0 0 None %s", l_CurrentTime.c_str());
+        AsyncRequest l_Request = AsyncRequest(l_AsyncCmd);
+        wrkqmgr.appendAsyncRequest(l_Request);
+    }
+    catch (ExceptionBailout& e) { }
+    catch (std::exception& e)
+    {
+        LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+    }
+
+    doitEnd(&g_Heartbeat_Controller);
 
     return;
 }
