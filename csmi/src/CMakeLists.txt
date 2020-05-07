@@ -83,22 +83,32 @@ file(GLOB csmi_python_boot
 # The Python Libraries:
 if(${EXPLICIT_PYTHON_VERSION})
     # RHEL 8
-    message("CSM python API build disabled")
+    find_package(PythonLibs 3.6)
+    set(CSM_BOOST_PYTHON python3)
 else()
     # RHEL 7
     find_package(PythonLibs 2.7)
+    set(CSM_BOOST_PYTHON python)
 endif()
 
 message("Python Include: ${PYTHON_INCLUDE_DIRS}")
+message("CSM Boost Python: ${CSM_BOOST_PYTHON}")
 if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("BUILDING PYTHON LIBRARIES")
 
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
+
+    set(Boost_DEBUG ON)
+    set(Boost_DETAILED_FAILURE_MSG ON)
     
     # The Boost Python Libraries:
-    find_package( Boost COMPONENTS python REQUIRED )
+    find_package( Boost COMPONENTS ${CSM_BOOST_PYTHON} REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
+    message("Boost_INCLUDE_DIR=${Boost_INCLUDE_DIR}")
+    message("Boost_LIBRARY_DIR_RELEASE=${Boost_LIBRARY_DIR_RELEASE}")
+    message("Boost_LIBRARY_DIR_DEBUG=${Boost_LIBRARY_DIR_DEBUG}")
+
     # Link the library
     #add_library(_csm_py SHARED ${csmi_python})
     #target_link_libraries( _csm_py ${Boost_LIBRARIES} csmi)
