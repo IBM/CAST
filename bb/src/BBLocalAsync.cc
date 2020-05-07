@@ -999,6 +999,9 @@ void Heartbeat_Controller::init(const double pTimerInterval)
     // Value(s) stored in seconds.
     wrkqmgr.setDeclareServerDeadCount(min( max( (uint64_t)(l_HeartbeatTimeInterval + 30), MINIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ), MAXIMUM_BBSERVER_DECLARE_SERVER_DEAD_VALUE ));
 
+    // NOTE: Pop this 'event' on next pass
+    fireNextCycle();
+
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a heartbeat rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
     LOG(bb,always) << "For failover situations, declare server dead time set to " << wrkqmgr.getDeclareServerDeadCount() << " seconds.";
