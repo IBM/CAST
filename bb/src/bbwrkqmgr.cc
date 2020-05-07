@@ -387,10 +387,6 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
                 {
                     // We crossed the boundary to a new async request file...  Start at offset zero...
                     l_CurrentOffsetToNextAsyncRequest = 0;
-                    if (l_TargetOffsetToNextAsyncRequest)
-                    {
-                        LOG(bb,info) << "Starting to process async requests from async request file sequence number " << l_CurrentAsyncRequestFileSeqNbr;
-                    }
                 }
                 while (l_CurrentOffsetToNextAsyncRequest < l_TargetOffsetToNextAsyncRequest)
                 {
@@ -401,8 +397,12 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
                     BBTagID l_TagId(BBJob(), l_Offset);
 
                     // Build/push the work item onto the HP work queue and post
-                    addHPWorkItem(&l_LVKey, l_TagId);
+                    if (!l_CurrentOffsetToNextAsyncRequest)
+                    {
+                        LOG(bb,info) << "Starting to process async requests from async request file sequence number " << l_CurrentAsyncRequestFileSeqNbr;
+                    }
                     l_CurrentOffsetToNextAsyncRequest += sizeof(AsyncRequest);
+                    addHPWorkItem(&l_LVKey, l_TagId);
                     ++l_NumberAdded;
                 }
                 l_FirstFile = false;
