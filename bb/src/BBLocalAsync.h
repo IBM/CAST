@@ -207,6 +207,11 @@ class BBController
         return fired;
     };
 
+    inline void fireNextCycle()
+    {
+        return setCount(poppedCount);
+    };
+
     inline uint64_t getCount()
     {
         return count;

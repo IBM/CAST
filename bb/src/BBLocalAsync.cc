@@ -861,7 +861,7 @@ void BBIB_Stats_Controller::init(const double pTimerInterval)
     }
 
     // NOTE: Pop this 'event' on next pass so we can determine the rcv/xmit delta values quicker
-    count = poppedCount;
+    fireNextCycle();
 
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement an IB stats dump rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
@@ -1076,7 +1076,7 @@ void SwapAsyncRequestFile_Controller::init(const double pTimerInterval)
     }
 
     // NOTE: Pop this 'event' on next pass so we check to see if it is time to swap to a new async request file immediately
-    count = poppedCount;
+    fireNextCycle();
 
     LOG(bb,always) << "Timer interval is set to " << pTimerInterval << " second(s) with a multiplier of " << poppedCount << " to implement a check for swapping async request file rate with " \
                    << pTimerInterval*poppedCount << " second intervals.";
@@ -2047,6 +2047,8 @@ void BBSwapAsyncRequestFile::doit()
                         delete [] l_AsyncRequestFileNamePtr;
                         l_AsyncRequestFileNamePtr = 0;
                         wrkqmgr.verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, l_SeqNbr, CREATE_NEW_FILE);
+                        // Send a heartbeat to get all servers to move to the new async request file
+                        g_Heartbeat_Controller.fireNextCycle();
                     }
                 }
                 else
