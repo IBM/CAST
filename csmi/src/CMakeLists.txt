@@ -2,7 +2,7 @@
 #
 #    csmi/src/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -79,23 +79,27 @@ file(GLOB csmi_python_boot
     "ras/src/lib_csm_ras_py.py"
 )
 
-# GENERAL NOTE: This section is under construction. commented out
-# Reason: python wasn't linking correctly
-# - wasn't critical path. we comment out to get a build up so IST can make an allocation and move fwd.
-
 # python
 # The Python Libraries:
-# find_package(PythonLibs 2.7 )
-# message("Python Include: ${PYTHON_INCLUDE_DIRS}")
-#if (EXISTS ${PYTHON_INCLUDE_DIRS} )
-# WORK AROUND COMMENT
-if (EXISTS ${PYTHON_INCLUDE_DISABLE_DIRS} )
+if(${EXPLICIT_PYTHON_VERSION})
+    # RHEL 8
+    find_package(PythonLibs 3.6)
+    set(CSM_BOOST_PYTHON python3)
+else()
+    # RHEL 7
+    find_package(PythonLibs 2.7)
+    set(CSM_BOOST_PYTHON python)
+endif()
+
+message("Python Include: ${PYTHON_INCLUDE_DIRS}")
+message("CSM Boost Python: ${CSM_BOOST_PYTHON}")
+if (EXISTS ${PYTHON_INCLUDE_DIRS} )
     message("BUILDING PYTHON LIBRARIES")
 
     include_directories( SYSTEM ${PYTHON_INCLUDE_DIRS} )
-    
+
     # The Boost Python Libraries:
-    find_package( Boost COMPONENTS python REQUIRED )
+    find_package( Boost COMPONENTS ${CSM_BOOST_PYTHON} REQUIRED )
     include_directories( SYSTEM ${Boost_INCLUDE_DIR} )
     
     # Link the library

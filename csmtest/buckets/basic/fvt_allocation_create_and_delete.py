@@ -1,10 +1,10 @@
-#!/usr/bin/python2
+#!/bin/sh
 # encoding: utf-8
 #================================================================================
 #
 #    allocation_create.py   
 #
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -14,6 +14,17 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
+
+# The beginning of this script is both valid shell and valid python,
+# such that the script starts with the shell and is reexecuted with
+# the right python.
+#
+# On RHEL 7, CSM uses a version of boost-python dependent on python2
+# On RHEL 8, CSM uses a version of boost-python dependent on python3
+# The intent is to run as python3 on RHEL8 and python2 on RHEL7
+#
+'''which' python3 > /dev/null 2>&1 && exec python3 "$0" "$@" || exec python2 "$0" "$@"
+'''
 
 import sys
 sys.path.append('/opt/ibm/csm/lib')
