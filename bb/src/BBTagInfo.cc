@@ -270,7 +270,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                                 // Error from incrBumpCount()
                                 rc = -1;
                                 errorText << "Unexpected error occurred during the generation of a handle value. Could not increment the bump count.";
-                                LOG_ERROR_TEXT_RC(errorText, rc);
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                             }
                         }
                         break;
@@ -281,7 +281,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                             rc = -1;
                             errorText << "Tag value " << pTag << " has already been used for jobid " << pJob.getJobId() << ", jobstepid " << pJob.getJobStepId() \
                                       << " but for a different contrib vector. Another tag value must be specified.";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                         break;
 
@@ -297,7 +297,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
                             // Some other error
                             rc = -1;
                             errorText << "Unexpected error occurred during the generation of a handle value";
-                            LOG_ERROR_TEXT_RC(errorText, rc);
+                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
                         }
                     }
                 }
@@ -319,7 +319,7 @@ int BBTagInfo::getTransferHandle(const LVKey* pLVKey, uint64_t& pHandle, BBTagIn
     else
     {
         rc = -1;
-        errorText << "Unexpected error occurred when attempting during the generation of a handle value.";
+        errorText << "Unexpected error occurred during the generation of a handle value.";
         LOG_ERROR_TEXT_RC(errorText, rc);
     }
 
@@ -361,7 +361,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
         {
             // Attempt to create the jobstepid directory
             // NOTE: umask of 0027 yields permissions of 0750 for jobstepid directory
-            mkdir(jobstepid.c_str(), (mode_t)0777);
+            rc = mkdir(jobstepid.c_str(), (mode_t)0777);
 
             if (!rc)
             {
@@ -389,6 +389,7 @@ int BBTagInfo::update_xbbServerAddData(const LVKey* pLVKey, const BBJob pJob)
                 {
                     // Tolerate if the jobstepid directory already exists.  There exists a possible
                     // race condition between CNs when requesting handles.
+                    rc = 0;
                 }
             }
         }
