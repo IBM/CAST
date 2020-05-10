@@ -53,8 +53,13 @@
   - name: Check bbproxy is running
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
-    any_errors_fatal: true  
-  
+    any_errors_fatal: true
+
+  - name: Waiting for bbProxy to start accepting bbcmd connections
+    wait_for:
+      path: /run/bb_socket
+
+
 - hosts: launch
   tasks:
   - name: start Burst Buffer on Launch node 
