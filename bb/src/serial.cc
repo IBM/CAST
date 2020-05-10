@@ -504,6 +504,7 @@ int nvmfConnectPath(const string& serial, const string& connectionKey)
         LOG(bb,always)  <<  "poll discovery of serial NOT found in list, serial="<<serial;
         errorText << "poll discovery of serial NOT found in list, serial="<<serial;
         LOG_ERROR_TEXT_ERRNO_AND_RAS(errorText, 0, bb.net.noNVMfDevices);
+        return -1;
     }
 
     return 0;
