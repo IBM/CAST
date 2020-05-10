@@ -46,7 +46,7 @@ FL_SetSize(FLAsyncRqst, 16384)
  * Static data
  */
 static int asyncRequestFile_ReadSeqNbr = 0;
-static FILE* asyncRequestFile_Read  = (FILE*)0;
+static FILE* asyncRequestFile_Read = (FILE*)0;
 static LVKey LVKey_Null = LVKey();
 
 
@@ -56,37 +56,47 @@ static LVKey LVKey_Null = LVKey();
 int isGpfsFile(const char* pFileName, bool& pValue)
 {
     ENTRY(__FILE__,__FUNCTION__);
-    int rc = 0;
+    int rc = -1;
     stringstream errorText;
 
-    pValue = false;
     struct statfs l_Statbuf;
 
-    bfs::path l_Path(pFileName);
-    rc = statfs(pFileName, &l_Statbuf);
-    while ((rc) && ((errno == ENOENT)))
+    pValue = false;
+    try
     {
-        l_Path = l_Path.parent_path();
-        if (l_Path.string() == "")
+        bfs::path l_Path(pFileName);
+        rc = statfs(pFileName, &l_Statbuf);
+        while ((rc) && (errno == ENOENT))
         {
-            break;
+            l_Path = l_Path.parent_path();
+            if (l_Path.string() == "")
+            {
+                break;
+            }
+            rc = statfs(l_Path.c_str(), &l_Statbuf);
         }
-        rc = statfs(l_Path.string().c_str(), &l_Statbuf);
-    }
 
-    if (rc)
+        if (!rc)
+        {
+            if (l_Statbuf.f_type == GPFS_SUPER_MAGIC)
+            {
+                pValue = true;
+            }
+            FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
+        }
+        else
+        {
+            FL_Write(FLServer, StatfsFailedGpfs, "Statfs failed", 0, 0 ,0, 0);
+            errorText << "Unable to statfs file " << l_Path.string();
+            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
     {
-        FL_Write(FLServer, StatfsFailedGpfs, "Statfs failed", 0, 0 ,0, 0);
-        errorText << "Unable to statfs file " << l_Path.string();
-        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
-
-    if((l_Statbuf.f_type == GPFS_SUPER_MAGIC))
-    {
-        pValue = true;
-    }
-
-    FL_Write(FLServer, Statfs_isGpfsFile, "rc=%ld, isGpfsFile=%ld, magic=%lx", rc, pValue, l_Statbuf.f_type, 0);
 
     EXIT(__FILE__,__FUNCTION__);
     return rc;
@@ -187,16 +197,6 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
 
   	becomeUser(0, 0);
 
-    MAINTENANCE_OPTION l_Maintenance = NO_MAINTENANCE;
-    char l_Cmd[AsyncRequest::MAX_DATA_LENGTH] = {'\0'};
-    int rc2 = sscanf(pRequest.getData(), "%s", l_Cmd);
-    if (rc2 == 1 && strstr(l_Cmd, "heartbeat"))
-    {
-        // NOTE:  Only perform async request file pruning maintenance
-        //        for a heartbeat operation, which is only every 5 minutes...
-        l_Maintenance = MINIMAL_MAINTENANCE;
-    }
-
     int l_Retry = DEFAULT_RETRY_VALUE;
     while (l_Retry--)
     {
@@ -207,7 +207,7 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
             stringstream errorText;
 
             int l_SeqNbr = 0;
-            FILE* fd = openAsyncRequestFile("ab", l_SeqNbr, l_Maintenance);
+            FILE* fd = openAsyncRequestFile("ab", l_SeqNbr);
             if (fd != NULL)
             {
                 char l_Buffer[sizeof(AsyncRequest)+1] = {'\0'};
@@ -304,6 +304,29 @@ void WRKQMGR::calcLastWorkQueueWithEntries()
     return;
 }
 
+void WRKQMGR::calcNextOffsetToProcess(int& pSeqNbr, uint64_t& pOffset)
+{
+    if (lastOffsetProcessed != START_PROCESSING_AT_OFFSET_ZERO)
+    {
+        pOffset += sizeof(AsyncRequest);
+        if (crossingAsyncFileBoundary(pSeqNbr, pOffset))
+        {
+            // Crossing into new async request file...
+            // Set offset to zero and bump the async request file sequence number.
+            pOffset = 0;
+            ++pSeqNbr;
+        }
+    }
+    else
+    {
+        // Special case when bbServer is started and creates a new async request file.
+        // pSeqNbr is passed in for the current async request file.
+        pOffset = 0;
+    }
+
+    return;
+}
+
 void WRKQMGR::calcThrottleMode()
 {
     int l_LocalMetadataUnlockedInd = 0;
@@ -359,12 +382,11 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
             getOffsetToNextAsyncRequest(l_CurrentAsyncRequestFileSeqNbr, l_CurrentOffsetToNextAsyncRequest);
             while (l_CurrentAsyncRequestFileSeqNbr <= l_AsyncRequestFileSeqNbr)
             {
-                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? MAXIMUM_ASYNC_REQUEST_FILE_SIZE : (uint64_t)l_OffsetToNextAsyncRequest);
+                l_TargetOffsetToNextAsyncRequest = (l_CurrentAsyncRequestFileSeqNbr < l_AsyncRequestFileSeqNbr ? findAsyncRequestFileSize(l_CurrentAsyncRequestFileSeqNbr) : (uint64_t)l_OffsetToNextAsyncRequest);
                 if (!l_FirstFile)
                 {
                     // We crossed the boundary to a new async request file...  Start at offset zero...
                     l_CurrentOffsetToNextAsyncRequest = 0;
-                    LOG(bb,info) << "Starting to process async requests from async request file sequence number " << l_CurrentAsyncRequestFileSeqNbr;
                 }
                 while (l_CurrentOffsetToNextAsyncRequest < l_TargetOffsetToNextAsyncRequest)
                 {
@@ -375,8 +397,12 @@ uint64_t WRKQMGR::checkForNewHPWorkItems()
                     BBTagID l_TagId(BBJob(), l_Offset);
 
                     // Build/push the work item onto the HP work queue and post
-                    addHPWorkItem(&l_LVKey, l_TagId);
+                    if (!l_CurrentOffsetToNextAsyncRequest)
+                    {
+                        LOG(bb,info) << "Starting to process async requests from async request file sequence number " << l_CurrentAsyncRequestFileSeqNbr;
+                    }
                     l_CurrentOffsetToNextAsyncRequest += sizeof(AsyncRequest);
+                    addHPWorkItem(&l_LVKey, l_TagId);
                     ++l_NumberAdded;
                 }
                 l_FirstFile = false;
@@ -492,6 +518,99 @@ int WRKQMGR::createAsyncRequestFile(const char* pAsyncRequestFileName)
         //        attempts to create it, all should still be OK with just the last reference dates
         //        being updated.  However, both bbServers will claim to have created the file.
         LOG(bb,info) << "WRKQMGR: New async request file " << pAsyncRequestFileName << " created";
+    }
+
+    return rc;
+}
+
+int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset)
+{
+    int rc = 0;
+
+    FILE* l_FilePtr = 0;
+    char l_AsyncRequestFileName[PATH_MAX+1] = {'\0'};
+    string l_DataStorePath = g_BBServer_Metadata_Path;
+
+    if (pOffset > ASYNC_REQUEST_FILE_SIZE_FOR_SWAP)
+    {
+        // Now, determine where the actual end of the async request file is...
+        uid_t l_Uid = getuid();
+        gid_t l_Gid = getgid();
+      	becomeUser(0, 0);
+
+        int l_Retry = DEFAULT_RETRY_VALUE;
+        while (l_Retry--)
+        {
+            rc = 0;
+            try
+            {
+                stringstream errorText;
+                snprintf(l_AsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), pSeqNbr);
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileName, __LINE__);
+                l_FilePtr = ::fopen(l_AsyncRequestFileName, "rb");
+                threadLocalTrackSyscallPtr->clearTrack();
+                if (l_FilePtr != NULL)
+                {
+                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, l_FilePtr, __LINE__);
+                    rc = ::fseek(l_FilePtr, 0, SEEK_END);
+                    threadLocalTrackSyscallPtr->clearTrack();
+                    FL_Write(FLAsyncRqst, SeekEndForCrossing, "Seeking the end of async request file having seqnbr %ld, rc %ld.", pSeqNbr, rc, 0, 0);
+                    if (!rc)
+                    {
+                        int64_t l_Offset = -1;
+                        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
+                        l_Offset = (int64_t)::ftell(l_FilePtr);
+                        threadLocalTrackSyscallPtr->clearTrack();
+                        if (l_Offset >= 0)
+                        {
+                            if (l_Offset <= (int64_t)pOffset)
+                            {
+                                rc = 1;
+                            }
+                            l_Retry = 0;
+                        }
+                        else
+                        {
+                            FL_Write(FLAsyncRqst, RtvEndOffsetForCrossingFail, "Failed ftell() request, sequence number %ld, errno %ld.", pSeqNbr, errno, 0, 0);
+                            errorText << "crossingAsyncFileBoundary(): Failed ftell() request, sequence number " << pSeqNbr \
+                                      << (l_Retry ? ". Request will be retried." : "");
+                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                            rc = -1;
+                        }
+                    }
+                    else
+                    {
+                        FL_Write(FLAsyncRqst, SeekEndFailForCrossing, "Failed fseek() request for end of file, sequence number %ld, ferror %ld.", pSeqNbr, ferror(l_FilePtr), 0, 0);
+                        errorText << "crossingAsyncFileBoundary(): Failed fseek() request for end of file, sequence number " << pSeqNbr \
+                                  << (l_Retry ? ". Request will be retried." : "");
+                        LOG_ERROR_TEXT_ERRNO(errorText, ferror(l_FilePtr));
+                        clearerr(l_FilePtr);
+                        rc = -1;
+                    }
+                }
+                else
+                {
+                    errorText << "crossingAsyncFileBoundary(): Failed open request, sequence number " << pSeqNbr \
+                              << (l_Retry ? ". Request will be retried." : "");
+                    LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                    rc = -1;
+                }
+            }
+            catch(exception& e)
+            {
+                LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+            }
+        }
+  	    becomeUser(l_Uid, l_Gid);
+  	}
+
+    if (rc < 0)
+    {
+        LOG(bb,error) << "crossingAsyncFileBoundary(): Failed to determine if offset " << pOffset << " for async request file sequence number " << pSeqNbr << " is crossing into the next async request file.";
+        endOnError();
+
+        // If we continue, just pass back a zero indicating the offset does not cross into the next async request file...
+        rc = 0;
     }
 
     return rc;
@@ -614,9 +733,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             }
 //                            LOG(bb,debug) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,debug) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                            LOG(bb,debug) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                            LOG(bb,debug) << "           Lst prc'd AsyncSeq#: " << asyncRequestFileSeqNbrLastProcessed << "  AsyncSeq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
                                           << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                          << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                                          << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InfltHP_Rqsts: " << inflightHP_Requests.size();
                             if (outOfOrderOffsets.size())
                             {
                                 LOG(bb,debug) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
@@ -650,9 +769,9 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
                             }
 //                            LOG(bb,info) << "     Declare Server Dead Count: " << declareServerDeadCount;
                             LOG(bb,info) << "          Last Queue Processed: " << lastQueueProcessed << "  Last Queue With Entries: " << lastQueueWithEntries;
-                            LOG(bb,info) << "          Async Seq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
+                            LOG(bb,info) << "           Lst prc'd AsyncSeq#: " << asyncRequestFileSeqNbrLastProcessed << "  AsyncSeq#: " << asyncRequestFileSeqNbr << "  LstOff: 0x" << hex << uppercase << setfill('0') \
                                          << setw(8) << lastOffsetProcessed << "  NxtOff: 0x" << setw(8) << offsetToNextAsyncRequest \
-                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InflightHP_Rqsts: " << inflightHP_Requests.size();
+                                         << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size() << "  #InfltHP_Rqsts: " << inflightHP_Requests.size();
                             if (outOfOrderOffsets.size())
                             {
                                 LOG(bb,info) << " Out of Order Offsets (in hex): " << l_OffsetStr.str();
@@ -699,7 +818,7 @@ void WRKQMGR::dump(const char* pSev, const char* pPostfix, DUMP_OPTION pDumpOpti
     return;
 }
 
-void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, const char* pPrefix)
+void WRKQMGR::dump(queue<WorkID>* pWrkQ, WRKQE* pWrkQE, const char* pSev, const char* pPrefix)
 {
     char l_Temp[64] = {'\0'};
 
@@ -715,7 +834,7 @@ void WRKQMGR::dump(queue<WorkID>* l_WrkQ, WRKQE* l_WrkQE, const char* pSev, cons
         strCpy(l_Temp, " queues exist: ", sizeof(l_Temp));
     }
 
-    l_WrkQE->dump(pSev, pPrefix);
+    pWrkQE->dump(pSev, pPrefix);
 
     if (l_WorkQueueMgrLocked)
     {
@@ -799,6 +918,93 @@ void WRKQMGR::endProcessingHP_Request(AsyncRequest& pRequest)
     }
 
     return;
+}
+
+uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
+{
+    int rc = 0;
+    int64_t l_Size = -1;
+
+    FILE* l_FilePtr = 0;
+    char l_AsyncRequestFileName[PATH_MAX+1] = {'\0'};
+    string l_DataStorePath = g_BBServer_Metadata_Path;
+
+    uid_t l_Uid = getuid();
+    gid_t l_Gid = getgid();
+
+    becomeUser(0, 0);
+
+    int l_Retry = DEFAULT_RETRY_VALUE;
+    while (l_Retry--)
+    {
+        rc = 0;
+        try
+        {
+            stringstream errorText;
+            snprintf(l_AsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), pSeqNbr);
+            threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fopensyscall, l_AsyncRequestFileName, __LINE__);
+            l_FilePtr = ::fopen(l_AsyncRequestFileName, "rb");
+            threadLocalTrackSyscallPtr->clearTrack();
+            if (l_FilePtr != NULL)
+            {
+                threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, l_FilePtr, __LINE__);
+                rc = ::fseek(l_FilePtr, 0, SEEK_END);
+                threadLocalTrackSyscallPtr->clearTrack();
+                FL_Write(FLAsyncRqst, SeekEndForSize, "Seeking the end of async request file having seqnbr %ld, rc %ld.", pSeqNbr, rc, 0, 0);
+                if (!rc)
+                {
+                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
+                    l_Size = (int64_t)::ftell(l_FilePtr);
+                    threadLocalTrackSyscallPtr->clearTrack();
+                    if (l_Size >= 0)
+                    {
+                        l_Retry = 0;
+                    }
+                    else
+                    {
+                        FL_Write(FLAsyncRqst, RtvEndOffsetForSize, "Failed ftell() request, sequence number %ld, errno %ld.", pSeqNbr, errno, 0, 0);
+                        errorText << "findAsyncRequestFileSize(): Failed ftell() request, sequence number " << pSeqNbr \
+                                  << (l_Retry ? ". Request will be retried." : "");
+                        LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        rc = -1;
+                    }
+                }
+                else
+                {
+                    FL_Write(FLAsyncRqst, SeekEndFailForSize, "Failed fseek() request for end of file, sequence number %ld, ferror %ld.", pSeqNbr, ferror(l_FilePtr), 0, 0);
+                    errorText << "findAsyncRequestFileSize(): Failed fseek() request for end of file, sequence number " << pSeqNbr \
+                              << (l_Retry ? ". Request will be retried." : "");
+                    LOG_ERROR_TEXT_ERRNO(errorText, ferror(l_FilePtr));
+                    clearerr(l_FilePtr);
+                    rc = -1;
+                }
+            }
+            else
+            {
+                errorText << "findAsyncRequestFileSize(): Failed open request, sequence number " << pSeqNbr \
+                             << (l_Retry ? ". Request will be retried." : "");
+                LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                rc = -1;
+            }
+        }
+        catch(exception& e)
+        {
+            LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
+        }
+    }
+
+  	becomeUser(l_Uid, l_Gid);
+
+    if (rc < 0)
+    {
+        LOG(bb,error) << "findAsyncRequestFileSize(): Failed to determine the current size for async request file sequence number " << pSeqNbr;
+        endOnError();
+
+        // If we continue, just pass back a zero indicating a file size of zero length...
+        l_Size = 0;
+    }
+
+    return (uint64_t)l_Size;
 }
 
 int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
@@ -1708,14 +1914,15 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
     //       file.  Otherwise, we would have a duplicate offset in the outOfOrderOffsets
     //       vector.
     //
-    // Determine the next offset to be marked as complete
+    // Determine the next offset to be marked as complete.
+    // Prime the values passed to calcNextOffsetToProcess() with
+    // the sequence number/offset of the last request processed.
+    // calcNextOffsetToProcess() will return the sequence number/offset
+    // to process next.
+    int l_SeqNbr = asyncRequestFileSeqNbrLastProcessed;
+    uint64_t l_TargetOffset = lastOffsetProcessed;
+    calcNextOffsetToProcess(l_SeqNbr, l_TargetOffset);
 
-    uint64_t l_TargetOffset = lastOffsetProcessed + sizeof(AsyncRequest);
-    if (crossingAsyncFileBoundary(l_TargetOffset))
-    {
-        // New async request file...  Offset will be zero
-        l_TargetOffset = 0;
-    }
     if (l_TargetOffset == pWorkItem.getTag())
     {
         // The work item just finished is for the next offset
@@ -1728,12 +1935,7 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
             l_AllDone = true;
             if (outOfOrderOffsets.size())
             {
-                l_TargetOffset = lastOffsetProcessed + sizeof(AsyncRequest);
-                if (crossingAsyncFileBoundary(l_TargetOffset))
-                {
-                    l_TargetOffset = 0;
-                }
-
+                calcNextOffsetToProcess(l_SeqNbr, l_TargetOffset);
                 if (g_LogAllAsyncRequestActivity)
                 {
                     LOG(bb,info) << "AsyncRequest -> manageWorkItemsProcessed(): TargetOffset 0x" << hex << uppercase << setfill('0') << setw(8) << l_TargetOffset << setfill(' ') << nouppercase << dec;
@@ -1760,6 +1962,9 @@ void WRKQMGR::manageWorkItemsProcessed(const WorkID& pWorkItem)
                 }
             }
         }
+
+        // Set the last processed sequence number
+        asyncRequestFileSeqNbrLastProcessed = l_SeqNbr;
     }
     else
     {
@@ -1825,47 +2030,7 @@ FILE* WRKQMGR::openAsyncRequestFile(const char* pOpenOption, int &pSeqNbr, const
                 }
                 else
                 {
-                    if (l_FilePtr != NULL)
-                    {
-                        setbuf(l_FilePtr, NULL);
-                        FL_Write(FLAsyncRqst, OpenAppend, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer returned is %p.", pSeqNbr, pMaintenanceOption, (uint64_t)(void*)l_FilePtr, 0);
-                        // Append mode...  Check the file size...
-                        threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::ftellsyscall, l_FilePtr, __LINE__);
-                        int64_t l_Offset = (int64_t)::ftell(l_FilePtr);
-                        threadLocalTrackSyscallPtr->clearTrack();
-                        if (l_Offset >= 0)
-                        {
-                            FL_Write(FLAsyncRqst, RtvEndOffset, "Check if it is time to create a new async request file. Current file has seqnbr %ld, ending offset %ld.", pSeqNbr, l_Offset, 0, 0);
-                            if (crossingAsyncFileBoundary(l_Offset))
-                            {
-                                // Time for a new async request file...
-                                delete [] l_AsyncRequestFileNamePtr;
-                                l_AsyncRequestFileNamePtr = 0;
-                                rc = verifyAsyncRequestFile(l_AsyncRequestFileNamePtr, pSeqNbr, CREATE_NEW_FILE);
-                                if (!rc)
-                                {
-                                    // Close the file...
-                                    FL_Write(FLAsyncRqst, CloseForNewFile, "Close async request file having seqnbr %ld using mode 'ab', maintenance option %ld. File pointer is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, pMaintenanceOption, 0);
-                                    ::fclose(l_FilePtr);
-                                    l_FilePtr = NULL;
-
-                                    // Iterate to open the new file...
-                                    l_AllDone = false;
-                                }
-                                else
-                                {
-                                    // Error case...  Just return this file...
-                                }
-                            }
-                        }
-                        else
-                        {
-                            FL_Write(FLAsyncRqst, RtvEndOffsetFail, "Failed ftell() request, sequence number %ld, errno %ld.", pSeqNbr, errno, 0, 0);
-                            errorText << "openAsyncRequestFile(): Failed ftell() request, sequence number " << pSeqNbr;
-                            LOG_ERROR_TEXT_ERRNO(errorText, errno);
-                        }
-                    }
-                    else
+                    if (l_FilePtr == NULL)
                     {
                         FL_Write(FLAsyncRqst, OpenAppendFailed, "Open async request file having seqnbr %ld using mode 'ab', maintenance option %ld failed.", pSeqNbr, pMaintenanceOption, 0, 0);
                         errorText << "Open async request file having seqnbr " << pSeqNbr << " using mode 'ab', maintenance option " << pMaintenanceOption << " failed.";
@@ -2018,7 +2183,7 @@ void WRKQMGR::processAllOutstandingHP_Requests(const LVKey* pLVKey)
                 {
                     FL_Write(FLDelay, OutstandingHP_Requests, "Processing all outstanding async requests. %ld of %ld work items processed.", (uint64_t)HPWrkQE->getNumberOfWorkItemsProcessed(), (uint64_t)l_NumberToProcess, 0, 0);
                     LOG(bb,info) << ">>>>> DELAY <<<<< processAllOutstandingHP_Requests(): HPWrkQE->getNumberOfWorkItemsProcessed() " << HPWrkQE->getNumberOfWorkItemsProcessed() \
-                                 << ", l_NumberToProcess " << l_NumberToProcess << ", Async Seq# " << asyncRequestFileSeqNbr << ", LstOff 0x" \
+                                 << ", l_NumberToProcess " << l_NumberToProcess << ", Last Processed Async Seq# " << asyncRequestFileSeqNbrLastProcessed << ", Async Seq# " << asyncRequestFileSeqNbr << ", LstOff 0x" \
                                  << hex << uppercase << setfill('0') << setw(8) << lastOffsetProcessed << ", NxtOff 0x" << setw(8) << offsetToNextAsyncRequest << setfill(' ') << nouppercase << dec \
                                  << "  #OutOfOrd " << outOfOrderOffsets.size();
                 }
@@ -2490,6 +2655,7 @@ void WRKQMGR::updateHeartbeatData(const string& pHostName, const string& pServer
     return;
 }
 
+#define ATTEMPTS 60
 int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, const MAINTENANCE_OPTION pMaintenanceOption)
 {
     int rc = 0;
@@ -2501,337 +2667,354 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     pAsyncRequestFileName = new char[PATH_MAX+1];
     string l_DataStorePath = g_BBServer_Metadata_Path;
-
     bfs::path datastore(l_DataStorePath);
-    bool l_AllDone = false;
-    bool l_DataStoreExists = true;
-    uint64_t l_AttemptsToCreateDataStore = 0;
-    while (!l_AllDone)
+    bool l_PerformDatastoreVerification = false;
+
+    try
     {
-        try
+        uint64_t l_AttemptsRemaining = ATTEMPTS;
+        while (l_AttemptsRemaining--)
         {
-            if (l_DataStoreExists)
+            rc = -1;
+            try
             {
-                // NOTE: We used to check for existance of datastore, but
+                // NOTE: We used to always check for existance of the datastore, but
                 //       that causes an expensive xstat64 operation for every
                 //       timer interval.  Therefore, we just monitor for exceptions
                 //       in this segment of code.
-                for (auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
+                if (!l_PerformDatastoreVerification)
                 {
-                    if (pathIsDirectory(asyncfile)) continue;
-
-                    int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
-                    // NOTE: If pSeqNbr is passed in, that is the file we want to open...
-                    if (l_Count == 1 && ((pSeqNbr && pSeqNbr == l_CurrentSeqNbr) || ((!pSeqNbr) && l_CurrentSeqNbr > l_SeqNbr)))
+                    for (auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
                     {
-                        l_SeqNbr = l_CurrentSeqNbr;
-                        strCpy(pAsyncRequestFileName, asyncfile.path().c_str(), PATH_MAX+1);
-                    }
-                }
-                l_AllDone = true;
-            }
-            else
-            {
-                if (l_AttemptsToCreateDataStore++)
-                {
-                    usleep(10000000);   // Already had one create of the datastore fail...  Delay 10 seconds...
-                }
-                bfs::create_directories(datastore);
-                l_DataStoreExists = true;
-                LOG(bb,info) << "WRKQMGR: Directory " << datastore << " created to house the cross bbServer metadata after exception trying access " << l_DataStorePath;
-            }
-        }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            if (l_DataStoreExists)
-            {
-                l_DataStoreExists = false;
-            }
-            else
-            {
-                rc = -1;
-                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-            }
-        }
-    }
+                        if (pathIsDirectory(asyncfile)) continue;
 
-    if (!rc)
-    {
-        try
-        {
-            if (!l_SeqNbr)
-            {
-                l_SeqNbr = 1;
-                snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
-                rc = createAsyncRequestFile(pAsyncRequestFileName);
-                if (rc)
-                {
-                    errorText << "Failure when attempting to create new cross bbserver async request file";
-                    bberror << err("error.filename", pAsyncRequestFileName);
-                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                }
-            }
-
-            if (!rc)
-            {
-                switch (pMaintenanceOption)
-                {
-                    case CREATE_NEW_FILE:
-                    {
-                        l_SeqNbr += 1;
-                        snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
-                        rc = createAsyncRequestFile(pAsyncRequestFileName);
-                        if (rc)
+                        int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
+                        // NOTE: If pSeqNbr is passed in, that is the file we want to open...
+                        if (l_Count == 1 && ((pSeqNbr && pSeqNbr == l_CurrentSeqNbr) || ((!pSeqNbr) && l_CurrentSeqNbr > l_SeqNbr)))
                         {
-                            errorText << "Failure when attempting to create new cross bbserver async request file";
-                            bberror << err("error.filename", pAsyncRequestFileName);
-                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            l_SeqNbr = l_CurrentSeqNbr;
+                            strCpy(pAsyncRequestFileName, asyncfile.path().c_str(), PATH_MAX+1);
                         }
                     }
-                    // Fall through...
+                    l_AttemptsRemaining = 0;
+                    rc = 0;
+                }
+                else
+                {
+                    //
+                    // Took an exception...  Perform datastore verification
+                    //
+                    int l_GpfsMountRequired = config.get("bb.requireMetadataOnParallelFileSystem", DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM);
 
-                    case START_BBSERVER:
-                    case FULL_MAINTENANCE:
+                    // If an exception was taken trying to access the datastore on the first iteration, continue.
+                    // Otherwise, delay for 10 seconds to see if we can work through a possible GPFS glitch...
+                    if (l_AttemptsRemaining != ATTEMPTS-2)
                     {
-                        if (pMaintenanceOption == START_BBSERVER)
+                        usleep(10000000);
+                    }
+
+                    // Start verification/creation of the datastore location
+                    //
+                    // First, verify the parent directory of the datastore
+                    if (!access(datastore.parent_path().c_str(), F_OK))
+                    {
+                        // We can access the parent directory of the datastore
+                        // NOTE: Even if a GPFS mount is not required, we still attempt to determine
+                        //       if the parent directory is a GPFS mount.  We want to perform the
+                        //       statfs to see if that errors out...
+                        bool l_GpfsMount = false;
+                        int rc2 = isGpfsFile(datastore.parent_path().c_str(), l_GpfsMount);
+                        if (!rc2)
                         {
-                            // Ensure that the bbServer metadata is on a parallel file system
-                            // NOTE:  We invoke isGpfsFile() even if we are not to enforce the condition so that
-                            //        we flightlog the statfs() result...
-                            bool l_GpfsMount = false;
-                            rc = isGpfsFile(pAsyncRequestFileName, l_GpfsMount);
-                            if (!rc)
+                            if (l_GpfsMount || (!l_GpfsMountRequired))
                             {
-                                if (!l_GpfsMount)
+                                // We can access the parent directory of the datastore and,
+                                // if required, it is a GPFS mount.
+                                // Now, verify the datastore directory...
+                                if (!access(datastore.c_str(), F_OK))
                                 {
-                                    if (config.get("bb.requireMetadataOnParallelFileSystem", DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM))
+                                    // We can access the datastore
+                                    bool l_GpfsMount = false;
+                                    rc2 = isGpfsFile(datastore.c_str(), l_GpfsMount);
+                                    if (!rc2)
                                     {
-                                        rc = -1;
-                                        errorText << "bbServer metadata is required to be on a parallel file system. Current data store path is " << l_DataStorePath \
-                                                  << ". Set bb.bbserverMetadataPath properly in the configuration.";
-                                        bberror << err("error.asyncRequestFile", pAsyncRequestFileName);
-                                        LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                                        if (l_GpfsMount || (!l_GpfsMountRequired))
+                                        {
+                                            // We can access the datastore and, if required, it is a GPFS mount.
+                                            // Access to the datastore seems to be OK.
+                                            // Iterate, attempting to verify the current async request file.
+                                            l_PerformDatastoreVerification = false;
+                                        }
+                                        else
+                                        {
+                                            // Datastore is not currently a GPFS mount and it is required...
+                                            // Simply iterate, delay, and try again...
+                                        }
                                     }
                                     else
                                     {
-                                        LOG(bb,info) << "WRKQMGR: bbServer metadata is NOT on a parallel file system, but is currently allowed";
+                                        // Error attempting to determine if the datastore directory is a GPFS mount.
+                                        // Most likely, a statfs could not be performed for the datastore directory.
+                                        // Simply iterate, delay, and try again...
                                     }
+                                }
+                                else
+                                {
+                                    // We cannot access the datastore directory.  Attempt to create it...
+                                    bfs::create_directories(datastore);
+                                    l_PerformDatastoreVerification = false;
+                                    LOG(bb,info) << "WRKQMGR: Directory " << datastore << " created to house the cross bbServer metadata after exception trying to access " << l_DataStorePath;
                                 }
                             }
                             else
                             {
-                                // bberror was filled in...
-                                BAIL;
-                            }
-
-                            // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
-                            rc = chown(l_DataStorePath.c_str(), 0, 0);
-                            if (rc)
-                            {
-                                errorText << "chown failed";
-                                bberror << err("error.path", l_DataStorePath.c_str());
-                                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                            }
-
-                            // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
-                            // NOTE:  root:root will insert jobid directories into this directory and then ownership
-                            //        of those jobid directories will be changed to the uid:gid of the mountpoint.
-                            //        The mode of the jobid directories are also created to be 0750.
-                            rc = chmod(l_DataStorePath.c_str(), 0755);
-                            if (rc)
-                            {
-                                errorText << "chmod failed";
-                                bberror << err("error.path", l_DataStorePath.c_str());
-                                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                            }
-
-                            // Verify the correct permissions for all individual directories in the
-                            // cross-bbServer metadata path.
-                            bfs::path l_Path = datastore.parent_path();
-                            while (l_Path.string().length())
-                            {
-                                if (((bfs::status(l_Path)).permissions() & (bfs::others_read|bfs::others_exe)) != (bfs::others_read|bfs::others_exe))
-                                {
-                                    rc = -1;
-                                    stringstream l_Temp;
-                                    l_Temp << "0" << oct << (bfs::status(l_Path)).permissions() << dec;
-                                    errorText << "Verification of permissions failed for bbServer metadata directory " << l_Path.c_str() \
-                                              << ". Requires read and execute for all users, but permissions are " \
-                                              << l_Temp.str() << ".";
-                                    bberror << err("error.path", l_Path.c_str()) << err("error.permissions", l_Temp.str());
-                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                                }
-                                l_Path = l_Path.parent_path();
-                            }
-                        }
-
-                        // Unconditionally perform a chown to root:root for the async request file.
-                        rc = chown(pAsyncRequestFileName, 0, 0);
-                        if (rc)
-                        {
-                            errorText << "chown failed";
-                            bberror << err("error.path", pAsyncRequestFileName);
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                        }
-
-                        // Unconditionally perform a chmod to 0700 for the async request file.
-                        // NOTE:  root is the only user of the async request file.
-                        rc = chmod(pAsyncRequestFileName, 0700);
-                        if (rc)
-                        {
-                            errorText << "chmod failed";
-                            bberror << err("error.path", pAsyncRequestFileName);
-                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
-                        }
-
-                        if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
-                        {
-                            HPWrkQE->lock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
-                            l_TransferQueueLocked = true;
-                        }
-
-                        // Log where this instance of bbServer will start processing async requests
-                        int l_AsyncRequestFileSeqNbr = 0;
-                        int64_t l_OffsetToNextAsyncRequest = 0;
-                        rc = findOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
-                        if (!rc)
-                        {
-                            if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
-                            {
-                                if (pMaintenanceOption == START_BBSERVER)
-                                {
-                                    setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
-                                    if (l_OffsetToNextAsyncRequest)
-                                    {
-                                        // Set the last offset processed to one entry less than the next offset set above.
-                                        lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
-                                    }
-                                    else
-                                    {
-                                        // Set the last offset processed to the maximum async request file size.
-                                        // NOTE: This will cause the first expected target offset to be zero in method
-                                        //       manageWorkItemsProcessed().
-                                        lastOffsetProcessed = MAXIMUM_ASYNC_REQUEST_FILE_SIZE;
-                                    }
-                                }
-                                LOG(bb,info) << "WRKQMGR: Current async request file " << pAsyncRequestFileName \
-                                             << hex << uppercase << setfill('0') << ", LstOff 0x" << setw(8) << lastOffsetProcessed \
-                                             << ", NxtOff 0x" << setw(8) << l_OffsetToNextAsyncRequest \
-                                             << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
-                            }
-                            else
-                            {
-                                rc = -1;
-                                errorText << "Failure when attempting to open the cross bbserver async request file, l_AsyncRequestFileSeqNbr = " \
-                                          << l_AsyncRequestFileSeqNbr << ", l_OffsetToNextAsyncRequest = " << l_OffsetToNextAsyncRequest;
-                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                // Parent directory is not currently a GPFS mount and it is required...
+                                // Simply iterate, delay, and try again...
                             }
                         }
                         else
                         {
-                            rc = -1;
-                            errorText << "Failure when attempting to open the cross bbserver async request file, rc = " << rc;
-                            LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
-                        }
-
-                        if (l_TransferQueueLocked)
-                        {
-                            HPWrkQE->unlock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
+                            // Error attempting to determine if the parent directory is a GPFS mount.
+                            // Most likely, a statfs could not be performed for the parent directory.
+                            // Simply iterate, delay, and try again...
                         }
                     }
-                    // Fall through...
-
-                    case MINIMAL_MAINTENANCE:
+                    else
                     {
-                        if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
-                        {
-                            HPWrkQE->lock((LVKey*)0, "verifyAsyncRequestFile - MINIMAL_MAINTENANCE");
-                            l_TransferQueueLocked = true;
-                        }
-
-                        bfs::path datastore(l_DataStorePath);
-                        for(auto& asyncfile : boost::make_iterator_range(bfs::directory_iterator(datastore), {}))
-                        {
-                            if(pathIsDirectory(asyncfile)) continue;
-
-                            if (asyncfile.path().filename().string() == XBBSERVER_ASYNC_REQUEST_BASE_FILENAME)
-                            {
-                                // Old style....  Simply delete it...
-                                rc = remove(asyncfile.path());
-                                if (!rc)
-                                {
-                                    LOG(bb,info) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() << " removed";
-                                }
-                                else
-                                {
-                                    LOG(bb,warning) << "WRKQMGR: Deprecated async request file " << asyncfile.path().c_str() \
-                                                    << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
-                                                    << ". Continuing...";
-                                }
-                                continue;
-                            }
-
-                            int l_Count = sscanf(asyncfile.path().filename().c_str(),"asyncRequests_%d", &l_CurrentSeqNbr);
-                            if (l_Count == 1 && l_CurrentSeqNbr < l_SeqNbr)
-                            {
-                                try
-                                {
-                                    // Old async file....  If old enough, delete it...
-                                    struct stat l_Statinfo;
-                                    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::statsyscall, asyncfile.path().c_str(), __LINE__);
-                                    int rc2 = stat(asyncfile.path().c_str(), &l_Statinfo);
-                                    threadLocalTrackSyscallPtr->clearTrack();
-                                    FL_Write(FLAsyncRqst, Stat, "Get stats for async request file having seqnbr %ld for aging purposes, rc %ld.", l_CurrentSeqNbr, rc2, 0, 0);
-                                    if (!rc2)
-                                    {
-                                        time_t l_CurrentTime = time(0);
-                                        if (difftime(l_CurrentTime, l_Statinfo.st_atime) > ASYNC_REQUEST_FILE_PRUNE_TIME)
-                                        {
-                                            rc = remove(asyncfile.path());
-                                            if (!rc)
-                                            {
-                                                LOG(bb,info) << "WRKQMGR: Async request file " << asyncfile.path() << " removed";
-                                            }
-                                            else
-                                            {
-                                                LOG(bb,warning) << "WRKQMGR: Async request file " << asyncfile.path().c_str() \
-                                                                << " could not be removed, errno=" << errno << ", "<< strerror(errno) \
-                                                                << ". Continuing...";
-                                            }
-                                        }
-                                    }
-                                }
-                                catch(exception& e)
-                                {
-                                    // NOTE:  It is possible for multiple bbServers to be performing maintenance at the same time.
-                                    //        Tolerate any exception and continue...
-                                }
-                            }
-                        }
-
-                        if (l_TransferQueueLocked)
-                        {
-                            HPWrkQE->unlock((LVKey*)0, "verifyAsyncRequestFile - MINIMAL_MAINTENANCE");
-                        }
+                        // We cannot access the parent directory of the datastore.
+                        // Simply iterate, delay, and try again...
                     }
-                    // Fall through...
-
-                    case FORCE_REOPEN:
-                    case NO_MAINTENANCE:
-                    default:
-                        break;
+                }
+            }
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
+            {
+                if (l_AttemptsRemaining)
+                {
+                    l_PerformDatastoreVerification = true;
+                }
+                else
+                {
+                    LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
                 }
             }
         }
-        catch(ExceptionBailout& e) { }
-        catch(exception& e)
-        {
-            rc = -1;
-            LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
-        }
 
-        LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
+        // When we get here, we trust that GPFS is stable.  Any GPFS failures below are not retried,
+        // as they may have been in the above processing.
+        if (!rc)
+        {
+            try
+            {
+                if (!l_SeqNbr)
+                {
+                    l_SeqNbr = 1;
+                    snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
+                    rc = createAsyncRequestFile(pAsyncRequestFileName);
+                    if (rc)
+                    {
+                        errorText << "Failure when attempting to create new cross bbserver async request file";
+                        bberror << err("error.filename", pAsyncRequestFileName);
+                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                    }
+                }
+
+                if (!rc)
+                {
+                    switch (pMaintenanceOption)
+                    {
+                        case CREATE_NEW_FILE:
+                        {
+                            l_SeqNbr += 1;
+                            snprintf(pAsyncRequestFileName, PATH_MAX+1, "%s/%s_%d", l_DataStorePath.c_str(), XBBSERVER_ASYNC_REQUEST_BASE_FILENAME.c_str(), l_SeqNbr);
+                            rc = createAsyncRequestFile(pAsyncRequestFileName);
+                            if (rc)
+                            {
+                                errorText << "Failure when attempting to create new cross bbserver async request file";
+                                bberror << err("error.filename", pAsyncRequestFileName);
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+                        }
+                        // Fall through...
+
+                        case START_BBSERVER:
+                        {
+                            if (pMaintenanceOption == START_BBSERVER)
+                            {
+                                // Ensure that the bbServer metadata is on a parallel file system
+                                // NOTE:  We invoke isGpfsFile() even if we are not to enforce the condition so that
+                                //        we flightlog the statfs() result...
+                                bool l_GpfsMount = false;
+                                rc = isGpfsFile(datastore.c_str(), l_GpfsMount);
+                                if (!rc)
+                                {
+                                    if (!l_GpfsMount)
+                                    {
+                                        if (config.get("bb.requireMetadataOnParallelFileSystem", DEFAULT_REQUIRE_BBSERVER_METADATA_ON_PARALLEL_FILE_SYSTEM))
+                                        {
+                                            rc = -1;
+                                            errorText << "bbServer metadata is required to be on a parallel file system. Current data store path is " << l_DataStorePath \
+                                                      << ". Set bb.bbserverMetadataPath properly in the configuration.";
+                                            bberror << err("error.asyncRequestFile", pAsyncRequestFileName);
+                                            LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, rc);
+                                        }
+                                        else
+                                        {
+                                            LOG(bb,info) << "WRKQMGR: bbServer metadata is NOT on a parallel file system, but is currently allowed";
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // bberror was filled in...
+                                    BAIL;
+                                }
+
+                                // Unconditionally perform a chown to root:root for the cross-bbServer metatdata root directory.
+                                rc = chown(l_DataStorePath.c_str(), 0, 0);
+                                if (rc)
+                                {
+                                    errorText << "chown failed";
+                                    bberror << err("error.path", l_DataStorePath.c_str());
+                                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                                }
+
+                                // Unconditionally perform a chmod to 0755 for the cross-bbServer metatdata root directory.
+                                // NOTE:  root:root will insert jobid directories into this directory and then ownership
+                                //        of those jobid directories will be changed to the uid:gid of the mountpoint.
+                                //        The mode of the jobid directories are also created to be 0750.
+                                rc = chmod(l_DataStorePath.c_str(), 0755);
+                                if (rc)
+                                {
+                                    errorText << "chmod failed";
+                                    bberror << err("error.path", l_DataStorePath.c_str());
+                                    LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                                }
+
+                                // Verify the correct permissions for all individual directories in the
+                                // cross-bbServer metadata path.
+                                bfs::path l_Path = datastore.parent_path();
+                                while (l_Path.string().length())
+                                {
+                                    if (((bfs::status(l_Path)).permissions() & (bfs::others_read|bfs::others_exe)) != (bfs::others_read|bfs::others_exe))
+                                    {
+                                        rc = -1;
+                                        stringstream l_Temp;
+                                        l_Temp << "0" << oct << (bfs::status(l_Path)).permissions() << dec;
+                                        errorText << "Verification of permissions failed for bbServer metadata directory " << l_Path.c_str() \
+                                                  << ". Requires read and execute for all users, but permissions are " \
+                                                  << l_Temp.str() << ".";
+                                        bberror << err("error.path", l_Path.c_str()) << err("error.permissions", l_Temp.str());
+                                        LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                    }
+                                    l_Path = l_Path.parent_path();
+                                }
+                            }
+                        }
+                        // Fall through...
+
+                        {
+                            // Unconditionally perform a chown to root:root for the async request file.
+                            rc = chown(pAsyncRequestFileName, 0, 0);
+                            if (rc)
+                            {
+                                errorText << "chown failed";
+                                bberror << err("error.path", pAsyncRequestFileName);
+                                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                            }
+
+                            // Unconditionally perform a chmod to 0700 for the async request file.
+                            // NOTE:  root is the only user of the async request file.
+                            rc = chmod(pAsyncRequestFileName, 0700);
+                            if (rc)
+                            {
+                                errorText << "chmod failed";
+                                bberror << err("error.path", pAsyncRequestFileName);
+                                LOG_ERROR_TEXT_ERRNO_AND_BAIL(errorText, errno);
+                            }
+
+                            if (HPWrkQE && (!HPWrkQE->transferQueueIsLocked()))
+                            {
+                                HPWrkQE->lock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
+                                l_TransferQueueLocked = true;
+                            }
+
+                            // Log where this instance of bbServer will start processing async requests
+                            int l_AsyncRequestFileSeqNbr = 0;
+                            int64_t l_OffsetToNextAsyncRequest = 0;
+                            rc = findOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                            if (!rc)
+                            {
+                                if (l_AsyncRequestFileSeqNbr > 0 && l_OffsetToNextAsyncRequest >= 0)
+                                {
+                                    if (pMaintenanceOption == START_BBSERVER)
+                                    {
+                                        setOffsetToNextAsyncRequest(l_AsyncRequestFileSeqNbr, l_OffsetToNextAsyncRequest);
+                                        asyncRequestFileSeqNbrLastProcessed = l_AsyncRequestFileSeqNbr;
+                                        if (l_OffsetToNextAsyncRequest)
+                                        {
+                                            // Set the last offset processed to one entry less than the next offset set above.
+                                            lastOffsetProcessed = l_OffsetToNextAsyncRequest - (uint64_t)sizeof(AsyncRequest);
+                                        }
+                                        else
+                                        {
+                                            // Set the last offset processed to the maximum async request file size.
+                                            // NOTE: This will cause the first expected target offset to be zero in method
+                                            //       manageWorkItemsProcessed().
+                                            lastOffsetProcessed = START_PROCESSING_AT_OFFSET_ZERO;
+                                        }
+                                    }
+                                    LOG(bb,info) << "WRKQMGR: Current async request file " << pAsyncRequestFileName \
+                                                 << hex << uppercase << setfill('0') << ", LstOff 0x" << setw(8) << lastOffsetProcessed \
+                                                 << ", NxtOff 0x" << setw(8) << l_OffsetToNextAsyncRequest \
+                                                 << setfill(' ') << nouppercase << dec << "  #OutOfOrd " << outOfOrderOffsets.size();
+                                }
+                                else
+                                {
+                                    rc = -1;
+                                    errorText << "Failure when attempting to open the cross bbserver async request file, AsyncRequestFileSeqNbr = " \
+                                              << l_AsyncRequestFileSeqNbr << ", OffsetToNextAsyncRequest = " << l_OffsetToNextAsyncRequest;
+                                    LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                                }
+                            }
+                            else
+                            {
+                                rc = -1;
+                                errorText << "Failure when attempting to open the cross bbserver async request file, rc = " << rc;
+                                LOG_ERROR_TEXT_RC_AND_BAIL(errorText, rc);
+                            }
+
+                            if (l_TransferQueueLocked)
+                            {
+                                HPWrkQE->unlock((LVKey*)0, "verifyAsyncRequestFile - FULL_MAINTENANCE");
+                            }
+                        }
+                        // Fall through...
+
+                        case FULL_MAINTENANCE:
+                        case MINIMAL_MAINTENANCE:
+                        case FORCE_REOPEN:
+                        case NO_MAINTENANCE:
+                        default:
+                            break;
+                    }
+                }
+            }
+            catch(ExceptionBailout& e) { }
+            catch(exception& e)
+            {
+                rc = -1;
+                LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
+            }
+
+            LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
+        }
+    }
+    catch(ExceptionBailout& e) { }
+    catch(exception& e)
+    {
+        rc = -1;
+        LOG_ERROR_RC_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e, rc);
     }
 
     if (rc)
@@ -2849,3 +3032,4 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     return rc;
 }
+#undef ATTEMPTS

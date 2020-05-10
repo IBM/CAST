@@ -807,7 +807,7 @@ bool isLocalFile(const string& filename) {
         fpath = fpath.parent_path();
         if(fpath.string() == "")
             break;
-        rc2 = statfs(fpath.string().c_str(), &statbuf);
+        rc2 = statfs(fpath.c_str(), &statbuf);
     }
 
     if(rc2)

@@ -61,12 +61,14 @@ extern uint64_t g_AsyncRemoveJobInfoNumberPerGroup;
 enum LOCAL_ASYNC_REQUEST_PRIORITY
 {
     NONE           = 0,
-    HIGH           = 10,
-    MEDIUM_HIGH    = 30,
-    MEDIUM         = 50,
-    MEDIUM_LOW     = 70,
-    LOW            = 90,
-    VERY_LOW       = 91
+    HIGH           = 10,    // BBCheckCycleActivities, BBLogIt, default priority
+    MEDIUM_HIGH    = 30,    // BBCleanContribId, BBCleanUpTagInfo, BBHeartbeat,
+                            // BBIO_Stats
+    MEDIUM         = 50,    // BBCounters, BBDumpHeartbeatData, BBDumpLocalAsync,
+                            // BBDumpWrkQMgr, BBIB_Stats, BBSwapAsyncRequestFile
+    MEDIUM_LOW     = 70,    // BBPruneMetadataBranch, BBRemoveAsyncRequestFile
+    LOW            = 90,    // BBPruneMetadata
+    VERY_LOW       = 91     // BBAsyncRemoveJobInfo
 };
 typedef enum LOCAL_ASYNC_REQUEST_PRIORITY LOCAL_ASYNC_REQUEST_PRIORITY;
 
@@ -204,6 +206,11 @@ class BBController
     inline int alreadyFired()
     {
         return fired;
+    };
+
+    inline void fireNextCycle()
+    {
+        return setCount(poppedCount);
     };
 
     inline uint64_t getCount()
@@ -500,6 +507,50 @@ class RemoteAsyncRequest_Controller : public BBController
     // Data members
 };
 
+class RemoveAsyncRequestFile_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    RemoveAsyncRequestFile_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~RemoveAsyncRequestFile_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
+class SwapAsyncRequestFile_Controller : public BBController
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    SwapAsyncRequestFile_Controller() :
+        BBController() {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~SwapAsyncRequestFile_Controller() { };
+
+    // Virtual methods
+    virtual void checkTimeToPerform();
+    virtual void init(const double pTimerInterval);
+
+    // Data members
+};
+
 class ThrottleBucket_Controller : public BBController
 {
   public:
@@ -590,13 +641,13 @@ class BBAsyncRemoveJobInfo : public BBLocalRequest
      */
     virtual ~BBAsyncRemoveJobInfo() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -621,13 +672,13 @@ class BBCheckCycleActivities : public BBLocalRequest
      */
     virtual ~BBCheckCycleActivities() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -659,6 +710,11 @@ class BBCleanUpContribId : public BBLocalRequest
 
     // Static methods
     static int64_t getLastRequestNumberProcessed();
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Inlined methods
 
@@ -692,13 +748,13 @@ class BBCleanUpTagInfo : public BBLocalRequest
      */
     virtual ~BBCleanUpTagInfo() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -727,13 +783,13 @@ class BBCounters : public BBLocalRequest
      */
     virtual ~BBCounters() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -758,13 +814,13 @@ class BBDumpHeartbeatData : public BBLocalRequest
      */
     virtual ~BBDumpHeartbeatData() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -789,13 +845,13 @@ class BBDumpLocalAsync : public BBLocalRequest
      */
     virtual ~BBDumpLocalAsync() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -820,13 +876,44 @@ class BBDumpWrkQMgr : public BBLocalRequest
      */
     virtual ~BBDumpWrkQMgr() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
 
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBHeartbeat : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBHeartbeat() :
+        BBLocalRequest("BBDumpHeartbeatData", MEDIUM_HIGH) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBHeartbeat() { };
+
     // Static methods
     static int64_t getLastRequestNumberProcessed();
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
 
     // Inlined methods
 
@@ -851,13 +938,13 @@ class BBIB_Stats : public BBLocalRequest
      */
     virtual ~BBIB_Stats() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -874,7 +961,7 @@ class BBIO_Stats : public BBLocalRequest
      * \brief Constructor
      */
     BBIO_Stats() :
-        BBLocalRequest("BBIO_Stats", MEDIUM) {
+        BBLocalRequest("BBIO_Stats", MEDIUM_HIGH) {
     };
 
     /**
@@ -882,13 +969,13 @@ class BBIO_Stats : public BBLocalRequest
      */
     virtual ~BBIO_Stats() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -914,13 +1001,13 @@ class BBLogIt : public BBLocalRequest
      */
     virtual ~BBLogIt() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -948,13 +1035,13 @@ class BBPruneMetadata : public BBLocalRequest
      */
     virtual ~BBPruneMetadata() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -982,13 +1069,13 @@ class BBPruneMetadataBranch : public BBLocalRequest
      */
     virtual ~BBPruneMetadataBranch() { };
 
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
     // Inlined virtual methods
 //    inline virtual int dumpOnAdd() { return 1; };
 //    inline virtual int dumpOnDelete() { return 1; };
 //    inline virtual int dumpOnRemove() { return 1; };
-
-    // Static methods
-    static int64_t getLastRequestNumberProcessed();
 
     // Inlined methods
 
@@ -998,6 +1085,68 @@ class BBPruneMetadataBranch : public BBLocalRequest
 
     // Data members
     std::string path;
+};
+
+class BBRemoveAsyncRequestFile : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBRemoveAsyncRequestFile() :
+        BBLocalRequest("BBRemoveAsyncRequestFile", MEDIUM_LOW) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBRemoveAsyncRequestFile() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
+};
+
+class BBSwapAsyncRequestFile : public BBLocalRequest
+{
+  public:
+    /**
+     * \brief Constructor
+     */
+    BBSwapAsyncRequestFile() :
+        BBLocalRequest("BBSwapAsyncRequestFile", MEDIUM) {
+    };
+
+    /**
+     * \brief Destructor
+     */
+    virtual ~BBSwapAsyncRequestFile() { };
+
+    // Static methods
+    static int64_t getLastRequestNumberProcessed();
+
+    // Inlined virtual methods
+//    inline virtual int dumpOnAdd() { return 1; };
+//    inline virtual int dumpOnDelete() { return 1; };
+//    inline virtual int dumpOnRemove() { return 1; };
+
+    // Inlined methods
+
+    // Virtual methods
+    virtual void doit();
+
+    // Data members
 };
 
 
@@ -1022,10 +1171,10 @@ class BBLocalAsync
     // Static data
     vector<BBAsyncRequestType> requestType = {
         BBAsyncRequestType(string("HIGH"), HIGH, (double)0),    // With 48 async threads, leaves 2 threads
-        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)18/(double)48),
+        BBAsyncRequestType(string("MEDIUM_HIGH"), MEDIUM_HIGH, (double)16/(double)48),
         BBAsyncRequestType(string("MEDIUM"), MEDIUM, (double)8/(double)48),
         BBAsyncRequestType(string("MEDIUM_LOW"), MEDIUM_LOW, (double)16/(double)48),
-        BBAsyncRequestType(string("LOW"), LOW, (double)2/(double)48),
+        BBAsyncRequestType(string("LOW"), LOW, (double)4/(double)48),
         BBAsyncRequestType(string("VERY_LOW"), VERY_LOW, (double)2/(double)48)
     };
 
