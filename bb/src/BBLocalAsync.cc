@@ -225,10 +225,12 @@ int64_t BBAsyncRequestData::getNumberOfWaitingRequests()
 
 int64_t BBAsyncRequestData::increment(int64_t& pNumber)
 {
+    lock();
     do
     {
         ++pNumber;
     } while (!pNumber);
+    unlock();
 
     return pNumber;
 }

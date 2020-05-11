@@ -121,7 +121,7 @@ class BBAsyncRequestData
         lastRequestNumberDispatched(0),
         lastRequestNumberProcessed(0),
         maximumConcurrentRunning(pMaximumConcurrentRunning),
-        mutex(PTHREAD_MUTEX_INITIALIZER) {
+        mutex(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP) {
     };
 
     /**
@@ -140,6 +140,9 @@ class BBAsyncRequestData
         return maximumConcurrentRunning;
     }
 
+    // NOTE: This is a recursive lock.  If this lock is obtained by the same thread
+    //       multiple times, no other lock should be acquired in-between.
+    //       increment() is the only case where we could obtain the lock twice.
     inline void lock()
     {
         pthread_mutex_lock(&mutex);
@@ -190,6 +193,7 @@ class BBController
      * \brief Constructor
      */
     BBController() :
+        mutex(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP),
         fired(0),
         count(0),
         poppedCount(0) { };
@@ -220,14 +224,21 @@ class BBController
 
     inline uint64_t incrCount()
     {
+        lock();
+
         do
         {
             ++count;
         } while (!count);
 
+        unlock();
+
         return count;
     };
 
+    // NOTE: This is a recursive lock.  If this lock is obtained by the same thread
+    //       multiple times, no other lock should be acquired in-between.
+    //       incrCount() is the only case where we could obtain the lock twice.
     inline void lock()
     {
         pthread_mutex_lock(&mutex);
@@ -1212,7 +1223,7 @@ class BBLocalAsync
     // Data members
     pthread_mutex_t             mutex;
     sem_t                       work;
-    map<LOCAL_ASYNC_REQUEST_PRIORITY, BBAsyncRequestData*>   requestData;
+    map<LOCAL_ASYNC_REQUEST_PRIORITY, BBAsyncRequestData*>  requestData;
 };
 
 #endif /* BB_BBLOCALASYNC_H_ */
