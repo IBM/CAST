@@ -282,17 +282,18 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
       // Send some debug info into the log
       LOG( csmnet, error ) << "SSL_get_error: rc=" << rc;
 
+      // since we already pulled the first error, we need to add the error to the prefix for the full error string
+      std::string err_str = " SSL_Read: " + SSLPrintError( rlen );
+
       // Process the error
       switch( rc )
       {
-          // since we already pulled the first error, we need to add the error to the prefix for the full error string
-          std::string err_str = " SSL_Read: " + SSLPrintError( rlen );
-
           // There are a whole lot of return values.
           // the full docs can be seen at: https://www.openssl.org/docs/man1.1.1/man3/SSL_get_error.html
 
           // seems unlikely, but we better cover this case
           case SSL_ERROR_NONE: 
+          {
             // The TLS/SSL I/O operation completed. 
             // This result code is returned if and only if return value of the SSL_read was > 0.
             // but because we are in a failure case of rlen <= 0, then we should NEVER get into this case...
@@ -300,7 +301,9 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
             LOG( csmnet, error ) << "Unknown logic. SSL_read() reports a failure, but SSL_get_error() reports no error.";
             throw csm::network::ExceptionEndpointDown( "Receive Error" );
             break;
+          }
           case SSL_ERROR_ZERO_RETURN:
+          {
             // The TLS/SSL peer has closed the connection for writing by sending the close_notify alert. 
             // No more data can be read. 
             // Note that SSL_ERROR_ZERO_RETURN does not necessarily indicate that the underlying transport has been closed.
@@ -308,7 +311,9 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
             LOG( csmnet, error ) << "The TLS/SSL peer has closed the connection for writing by sending the close_notify alert. No more data can be read.";
             throw csm::network::ExceptionEndpointDown( "Receive Error" );
             break;
+          }
           case SSL_ERROR_WANT_READ:
+          {
             // The operation did not complete and can be retried later.
 
             // I beleive here we have a case of a potential loop to be added to our code.
@@ -326,13 +331,15 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
             // But after my reading of the man page, I think there could be room for improvement here. 
 
             return 0;
-
+          }
           default:
+          {
             // Use info above to call a CSM ccustom error report. 
             throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, err_str ) );
             // Before when we had the BIO read write... the error message was a simple text "receive error" as seen below.
             // throw csm::network::ExceptionEndpointDown( "Receive Error" );
             break;
+          }
       }
     }
 
