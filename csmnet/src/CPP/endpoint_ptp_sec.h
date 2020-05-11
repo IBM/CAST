@@ -144,7 +144,9 @@ protected:
 
     SSL_set_bio(newssl, newbio, newbio);
 
+    /* Do the SSL Handshake */
     int rc = SSL_accept( newssl );
+    LOG( csmnet, debug ) << "SSL_accept rc: " << rc;
     if( rc != 1 )
     {
       std::string err_str = SSLExtractError( rc, " SSL ACCEPT: " );
@@ -153,6 +155,48 @@ protected:
       throw csm::network::ExceptionEndpointDown(err_str, rc);
     }
 
+    // SSL get peer cert
+    // non blocking?
+
+    // This part of the code is the "server"
+    // Handels incoming connections
+
+    // The following checks are in case a SSL cert fails in some way.
+    // By doing these checks, we can fail in a more graceful and informative way. 
+    
+    X509 *peer_cert = SSL_get_peer_certificate(newssl);
+    if(peer_cert == nullptr)
+    {
+      close( newsock );
+      // todo: cleanup newssl
+      throw csm::network::ExceptionEndpointDown("SSL Peer Certificate unavailable but required.");
+    }
+
+    long SGVR_rc = SSL_get_verify_result(newssl);
+
+    LOG( csmnet, debug ) << "SSL_get_verify_result return code: " << SGVR_rc;
+
+    if( SGVR_rc != X509_V_OK )
+    {
+      close( newsock );
+      // todo: cleanup newssl
+      throw csm::network::ExceptionEndpointDown("SSL verification failed." );
+    }
+    else
+    {
+      rc = 0;
+    }
+
+    // Debug prints to help with SSL issues.
+    // Print out connection details
+    LOG( csmnet, debug ) << "SSL_get_version: " << SSL_get_version(newssl);
+    LOG( csmnet, debug ) << "SSL_get_cipher: " << SSL_get_cipher(newssl);
+
+    // The reference count of the X509 object is incremented by one, 
+    // so that it will not be destroyed when the session containing the peer certificate is freed. 
+    // The X509 object must be explicitly freed using X509_free().
+    X509_free(peer_cert);
+    
     EndpointClass *ret = nullptr;
     if( newsock >= 0 )
     {

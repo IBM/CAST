@@ -178,7 +178,17 @@ csm::network::EndpointPTP_sec_base::SendMsgWrapper( const struct msghdr *aMsg, c
     spos += aMsg->msg_iov[n].iov_len;
   }
 
-  int rc = BIO_write( _BIO, _SendBuffer, totalLen );
+  // RH 8 - CSM 1.8 - Lars and Nick fix
+
+  // Before RH8, we had a BIO write here. When we switched to RH8, SSL coms between daemons broke.
+  // we beleived that the SSL cert wasn't 100% verified or handeled correctly.
+  // By calling SSL_write() instead of BIO_write(), it seemed like the connection and verification was handled properly and cleanly.
+  // leaving this comment and original code here in case a future version creates a similar problem. 
+  // This may help guide a future support debug. 
+
+  //int rc = BIO_write( _BIO, _SendBuffer, totalLen );
+
+  int rc = SSL_write( _SSLStruct, _SendBuffer, totalLen );
 
   if( rc < 0 )
   {
@@ -193,7 +203,7 @@ csm::network::EndpointPTP_sec_base::SendMsgWrapper( const struct msghdr *aMsg, c
     }
   }
 
-  LOG(csmnet, debug) << "PTP::SendMsg: "
+  LOG(csmnet, debug) << "PTP_sec::SendMsg: "
       << " total_len=" << aMsg->msg_iov[0].iov_len + aMsg->msg_iov[1].iov_len
       << " rc=" << rc << " errno=" << errno;
 
@@ -231,7 +241,7 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
   rlen = _RecvBufferState.Recv( aMsg );
   if( rlen > 0 )
   {
-    LOG(csmnet, debug) << " RecvMsg from Buffer: "
+    LOG(csmnet, debug) << "PTP_sec:: RecvMsg from Buffer: "
         << " rlen=" << rlen
         << " CSMData=" << aMsg;
     rc = rlen;
@@ -240,14 +250,90 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
   {
     void *buffer = _RecvBufferState.GetRecvBufferPtr();
     int space = _RecvBufferState.GetRecvSpace();
-    rlen = BIO_read( _BIO, buffer, space );
+
+
+    // RH 8 - CSM 1.8 - Lars and Nick fix
+
+    // Before RH8, we had a BIO read here. When we switched to RH8, SSL coms between daemons broke.
+    // We beleived that the SSL cert wasn't 100% verified or handeled correctly.
+    // By calling SSL_read() instead of BIO_read(), it seemed like the connection and verification was handled properly and cleanly.
+    // leaving this comment and original code here in case a future version creates a similar problem. 
+    // This may help guide a future support debug. 
+
+    //rlen = BIO_read( _BIO, buffer, space );
+
+    rlen = SSL_read( _SSLStruct, buffer, space );
+    // Send some debug info into the log
+    LOG( csmnet, debug ) << "SSL_read: return length=" << rlen << " Anything >= 0 is good. The read operation was successful.";
+
+    // when rlen >= 0, then The read operation was successful. 
+    // The return value is the number of bytes actually read from the TLS/SSL connection.
 
     if( rlen <= 0 )
     {
-      if (BIO_should_retry( _BIO ) )
-        return 0;
-      else
-        throw csm::network::ExceptionEndpointDown( "Receive Error" );
+      // The read operation was not successful, 
+      // because either the connection was closed, an error occurred, or action must be taken by the calling process. 
+      // Call SSL_get_error(3) with the return value ret to find out the reason.
+
+      // Old documentation indicated a difference between 0 and -1, and that -1 was retryable. 
+      // You should instead call SSL_get_error() to find out if it's retryable.
+      rc = SSL_get_error(_SSLStruct, rlen);
+
+      // Send some debug info into the log
+      LOG( csmnet, error ) << "SSL_get_error: rc=" << rc;
+
+      // Process the error
+      switch( rc )
+      {
+          // since we already pulled the first error, we need to add the error to the prefix for the full error string
+          std::string err_str = " SSL_Read: " + SSLPrintError( rlen );
+
+          // There are a whole lot of return values.
+          // the full docs can be seen at: https://www.openssl.org/docs/man1.1.1/man3/SSL_get_error.html
+
+          // seems unlikely, but we better cover this case
+          case SSL_ERROR_NONE: 
+            // The TLS/SSL I/O operation completed. 
+            // This result code is returned if and only if return value of the SSL_read was > 0.
+            // but because we are in a failure case of rlen <= 0, then we should NEVER get into this case...
+            LOG( csmnet, error ) << "SSL_ERROR_NONE";
+            LOG( csmnet, error ) << "Unknown logic. SSL_read() reports a failure, but SSL_get_error() reports no error.";
+            throw csm::network::ExceptionEndpointDown( "Receive Error" );
+            break;
+          case SSL_ERROR_ZERO_RETURN:
+            // The TLS/SSL peer has closed the connection for writing by sending the close_notify alert. 
+            // No more data can be read. 
+            // Note that SSL_ERROR_ZERO_RETURN does not necessarily indicate that the underlying transport has been closed.
+            LOG( csmnet, error ) << "SSL_ERROR_ZERO_RETURN";
+            LOG( csmnet, error ) << "The TLS/SSL peer has closed the connection for writing by sending the close_notify alert. No more data can be read.";
+            throw csm::network::ExceptionEndpointDown( "Receive Error" );
+            break;
+          case SSL_ERROR_WANT_READ:
+            // The operation did not complete and can be retried later.
+
+            // I beleive here we have a case of a potential loop to be added to our code.
+            // we can keep retrying until we make a successful read, or stop after X attempts.
+
+            // fall into default
+
+            // logically this would be the same path as:
+            /*
+            if (BIO_should_retry( _BIO ) )
+              return 0;
+            */
+
+            // So I'll also return 0.
+            // But after my reading of the man page, I think there could be room for improvement here. 
+
+            return 0;
+
+          default:
+            // Use info above to call a CSM ccustom error report. 
+            throw csm::network::ExceptionEndpointDown( SSLExtractError( rc, err_str ) );
+            // Before when we had the BIO read write... the error message was a simple text "receive error" as seen below.
+            // throw csm::network::ExceptionEndpointDown( "Receive Error" );
+            break;
+      }
     }
 
     _RecvBufferState.Update( rlen );
@@ -255,7 +341,7 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
     if( rc == 0 )
       return 0;
 
-    LOG(csmnet, debug) << " RecvMsg: "
+    LOG(csmnet, debug) << "PTP_sec:: RecvMsg: "
         << " rcvd=" << rlen
         << " msgrc=" << rc << " errno=" << errno << " buf_empty=" << _RecvBufferState.IsEmpty()
         << " CSMData=" << aMsg;
@@ -297,14 +383,22 @@ void csm::network::EndpointPTP_sec_base::SetupSSLContext( const csm::network::SS
 
   if( _LocalAddr->GetAddrType() == csm::network::AddressType::CSM_NETWORK_TYPE_AGGREGATOR )
   {
-    _gSSLContext = SSL_CTX_new( SSLv23_method() );
+    // We had "SSLv23_method" pre RH8. 
+    // Lars suggest that we change to TLS. I'm not sure why, but he knows more about it than me. 
+    // Leaving here incase it breaks again in the future and we have to debug around this. 
+    // This might be a note of different methods to investigate. 
+
+    //_gSSLContext = SSL_CTX_new( SSLv23_method() );
+    _gSSLContext = SSL_CTX_new( TLS_method() );
   }
   else
   {
     if( IsServerEndpoint() )
-      _gSSLContext = SSL_CTX_new( SSLv23_server_method() );
+      //_gSSLContext = SSL_CTX_new( SSLv23_server_method() );
+      _gSSLContext = SSL_CTX_new( TLS_server_method() );
     else
-      _gSSLContext = SSL_CTX_new( SSLv23_client_method() );
+      //_gSSLContext = SSL_CTX_new( SSLv23_client_method() );
+      _gSSLContext = SSL_CTX_new( TLS_client_method() );
   }
 
   if( _gSSLContext == nullptr )
@@ -355,8 +449,16 @@ void csm::network::EndpointPTP_sec_base::SetupSSLContext( const csm::network::SS
   if( SSL_CTX_check_private_key( _gSSLContext ) != 1 )
     throw csm::network::Exception( "Error while checking SSL-keys." );
 
-  SSL_CTX_set_verify( _gSSLContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr );
-  SSL_CTX_set_verify_depth( _gSSLContext, 1 );
+  // Check to see how to set up peer verification
+  // servers and clients need to verify differently. 
+  int verifyer_flags = SSL_VERIFY_PEER;
+  if( IsServerEndpoint() )
+  {
+    verifyer_flags |= SSL_VERIFY_CLIENT_ONCE | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+  }  
+   SSL_CTX_set_verify( _gSSLContext, verifyer_flags, nullptr );
+   SSL_CTX_set_verify_depth( _gSSLContext, 1 );
+   SSL_CTX_set_mode( _gSSLContext, SSL_MODE_AUTO_RETRY );
 }
 
 int
@@ -441,15 +543,46 @@ csm::network::EndpointPTP_sec_base::SSLConnectPrep()
     }
   }
 
-  if( SSL_get_verify_result( _SSLStruct ) != X509_V_OK )
-    throw csm::network::ExceptionEndpointDown( "SSL verification failed." );
-  else
-    rc = 0;
-
   current_setting &= (~O_NONBLOCK);
   rc = fcntl( bsock, F_SETFL, current_setting );
   if( rc )
+  {
     throw csm::network::ExceptionEndpointDown("fcntl: NONBLOCK");
+  }
+
+  // SSL get peer cert
+  // non blocking?
+
+  // This part of the code is the "client"
+  // Handels when we try to go out and get verified, and dealing with responses.
+
+  // The following checks are in case a SSL cert fails in some way.
+  // By doing these checks, we can fail in a more graceful and informative way. 
+  
+  X509 *peer_cert = SSL_get_peer_certificate(_SSLStruct);
+  if(peer_cert == nullptr)
+  {
+    throw csm::network::ExceptionEndpointDown("SSL Peer Certificate unavailable but required.");
+  }
+
+  long SGVR_rc = SSL_get_verify_result(_SSLStruct);
+
+  LOG( csmnet, debug ) << "SSL_get_verify_result return code: " << SGVR_rc;
+
+  if( SGVR_rc != X509_V_OK )
+  {
+    throw csm::network::ExceptionEndpointDown( "SSL verification failed." );
+  }
+  else
+  {
+    rc = 0;
+  }
+
+  // The reference count of the X509 object is incremented by one, 
+  //so that it will not be destroyed when the session containing the peer certificate is freed. 
+  //The X509 object must be explicitly freed using X509_free().
+  X509_free(peer_cert);
+  
 
   return rc;
 }
