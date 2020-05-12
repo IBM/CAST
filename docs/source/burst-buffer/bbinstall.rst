@@ -9,6 +9,26 @@ The document has been updated to reflect installing into Red Hat Enterprise Linu
 After the general outline of the install is a discussion of using supplied ansible playbooks to
 handle install, starting, stopping, and uninstalling  burst buffer across the involved computing nodes.
 
+When updating, clear the common metadata directory in the shared file system. A section with more details
+describes this.
+
+Clear Metadata Directory on Updates
+-----------------------------------
+When updating the burst buffer installation and after the bbserver service is stopped,
+clear the metadata directory in the parallel file system
+
+The metadata directory is "--metadata=<directory in parallel file system> as used in the bbactivate
+script.  Searching for metadata in /etc/ibm/bb.cfg on the nodes with bbserver would show the path.
+For example:
+grep meta /etc/ibm/bb.cfg 
+         "metadata" : "/gpfs/gpfs0/bbmetadata",
+      "bbserverMetadataPath" : "/gpfs/gpfs0/bbmetadata",
+where "metadata" is the value passed on bbactivate
+and "bbserverMetadataPath" is the bbserver services' parallel file system path. 
+
+
+
+
 Pre-requisites
 --------------
 
