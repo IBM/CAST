@@ -188,26 +188,67 @@ csm::network::EndpointPTP_sec_base::SendMsgWrapper( const struct msghdr *aMsg, c
 
   //int rc = BIO_write( _BIO, _SendBuffer, totalLen );
 
-  int rc = SSL_write( _SSLStruct, _SendBuffer, totalLen );
+  int rlen = SSL_write( _SSLStruct, _SendBuffer, totalLen );
+  // Send some debug info into the log
+  LOG( csmnet, debug ) << "SSL_write: return length=" << rlen << " Anything > 0 is good. The read operation was successful.";
 
-  if( rc < 0 )
+  // when rlen > 0, then The write operation was successful. 
+  // The return value is the number of bytes actually written to the TLS/SSL connection.
+
+  // for return code used later. 
+  int rc = 0;
+
+  if(rlen <= 0)
   {
-    rc = errno;
+    //The write operation was not successful, because either the connection was closed, an error occurred or action must be taken by the calling process. 
+    //Call SSL_get_error() with the return value ret to find out the reason.
+
+    //SSLv2 (deprecated) does not support a shutdown alert protocol, so it can only be detected, whether the underlying connection was closed. 
+    //It cannot be checked, why the closure happened.
+
+    //Old documentation indicated a difference between 0 and -1, and that -1 was retryable. 
+    //You should instead call SSL_get_error() to find out if it's retryable.
+
+    rc = SSL_get_error(_SSLStruct, rlen);
+
+    // Send some debug info into the log
+    LOG( csmnet, error ) << "SSL_get_error: rc=" << rc;
+
+    // since we already pulled the first error, we need to add the error to the prefix for the full error string
+    std::string err_str = " SSL_Write: " + SSLPrintError( rlen );
+
+    // Process the error
     switch( rc )
     {
-      case ENOTCONN:
-        throw csm::network::ExceptionEndpointDown("Send: Socket not connected.");
+      // There are a whole lot of return values.
+      // the full docs can be seen at: https://www.openssl.org/docs/man1.1.1/man3/SSL_get_error.html
+
+      // seems unlikely, but we better cover this case
+      case SSL_ERROR_NONE: 
+      {
+        // The TLS/SSL I/O operation completed. 
+        // This result code is returned if and only if return value of the SSL_read was > 0.
+        // but because we are in a failure case of rlen <= 0, then we should NEVER get into this case...
+        LOG( csmnet, error ) << "SSL_ERROR_NONE";
+        LOG( csmnet, error ) << "Unknown logic. SSL_read() reports a failure, but SSL_get_error() reports no error.";
+        throw csm::network::ExceptionEndpointDown( "Receive Error" );
         break;
+      }
+      // There was a case for a "ENOTCONN" in the BIO write code, but that error doesnt exist in the "SSL_get_error" context
       default:
+      {
+        // original default exception CSM throws
+        // Prints the error code returned from SSL_get_error to the CSM logs and throws an exception. 
         throw csm::network::ExceptionSend("sendmsg errno=" + std::to_string(rc) );
+      }
     }
   }
 
   LOG(csmnet, debug) << "PTP_sec::SendMsg: "
       << " total_len=" << aMsg->msg_iov[0].iov_len + aMsg->msg_iov[1].iov_len
-      << " rc=" << rc << " errno=" << errno;
+      << " rlen=" << rlen << " errno=" << errno;
 
-  return rc;
+  return rlen;
 }
 
 ssize_t csm::network::EndpointPTP_sec_base::Send( const csm::network::Message &aMsg )
