@@ -1,0 +1,41 @@
+###########################################################
+#     csmDB.yml
+#
+#     Copyright IBM Corporation 2020 All Rights Reserved
+#
+#     This program is licensed under the terms of the Eclipse Public License
+#     v1.0 as published by the Eclipse Foundation and available at
+#     http://www.eclipse.org/legal/epl-v10.html
+#
+#     U.S. Government Users Restricted Rights:  Use, duplication or disclosure
+#     restricted by GSA ADP Schedule Contract with IBM Corp.
+###########################################################
+#  sudo ansible-playbook -i hosts  <this.yml>
+
+#check reachability of management nodes
+- hosts: management
+  tasks:
+  any_errors_fatal: true 
+    
+- hosts:  management
+  tasks:
+  - name: compute nodes for in service--make csv, remove last comma, remove blanks
+    shell: tr  '\n' ',' < /etc/ibm/nodelist |sed 's/.$/\n/' |sed 's/ //g'
+    register: inservicelist_csv
+
+  - debug:
+      msg: "inservicelist_csv stdout={{inservicelist_csv.stdout}}"
+  
+  - name: Wipe the CSM database
+    shell:  yes | /opt/ibm/csm/db/csm_db_script.sh -d csmdb
+    register: csmdutility_service_result
+    ignore_errors: yes
+
+  - name: CSM database and regenerate
+    shell: /opt/ibm/csm/db/csm_db_script.sh -n csmdb
+    any_errors_fatal: true 
+
+  - name: mark nodes in CSM as IN_SERVICE
+    shell: /opt/ibm/csm/bin/csm_node_attributes_update -n "{{inservicelist_csv.stdout}}" -s IN_SERVICE
+    any_errors_fatal: true 
+     
