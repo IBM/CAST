@@ -316,11 +316,6 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
           {
             // The operation did not complete and can be retried later.
 
-            // I beleive here we have a case of a potential loop to be added to our code.
-            // we can keep retrying until we make a successful read, or stop after X attempts.
-
-            // fall into default
-
             // logically this would be the same path as:
             /*
             if (BIO_should_retry( _BIO ) )
@@ -328,7 +323,10 @@ csm::network::EndpointPTP_sec_base::Recv( csm::network::Message &aMsg )
             */
 
             // So I'll also return 0.
-            // But after my reading of the man page, I think there could be room for improvement here. 
+            
+            // Lars: return 0 is the correct behavior for the endpoint::recv call because 
+            // it means that currently there's not more data to receive so we shouldn't block on another recv call 
+            // and instead see if any other endpoint has inbound data or any outbound work is to be done.
 
             return 0;
           }
