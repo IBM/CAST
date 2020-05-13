@@ -2,7 +2,7 @@
 
     csmnet/src/CPP/endpoint_ptp_sec.cc
 
-  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -429,22 +429,36 @@ void csm::network::EndpointPTP_sec_base::SetupSSLContext( const csm::network::SS
 
   if( _LocalAddr->GetAddrType() == csm::network::AddressType::CSM_NETWORK_TYPE_AGGREGATOR )
   {
-    // We had "SSLv23_method" pre RH8. 
-    // Lars suggest that we change to TLS. I'm not sure why, but he knows more about it than me. 
-    // Leaving here incase it breaks again in the future and we have to debug around this. 
-    // This might be a note of different methods to investigate. 
-
-    //_gSSLContext = SSL_CTX_new( SSLv23_method() );
-    _gSSLContext = SSL_CTX_new( TLS_method() );
+    #ifdef TLS_method
+      // Use the recommended TLS_method if it is available (RHEL 8)
+      _gSSLContext = SSL_CTX_new( TLS_method() );
+    #else
+      // Otherwise fallback to the old behavior and use SSLv23_method (RHEL 7)
+      _gSSLContext = SSL_CTX_new( SSLv23_method() );
+    #endif
   }
   else
   {
     if( IsServerEndpoint() )
-      //_gSSLContext = SSL_CTX_new( SSLv23_server_method() );
-      _gSSLContext = SSL_CTX_new( TLS_server_method() );
+    {
+      #ifdef TLS_server_method
+        // Use the recommended TLS_server_method if it is available (RHEL 8)
+        _gSSLContext = SSL_CTX_new( TLS_server_method() );
+      #else
+        // Otherwise fallback to the old behavior and use SSLv23_server_method (RHEL 7)
+        _gSSLContext = SSL_CTX_new( SSLv23_server_method() );
+      #endif
+    }
     else
-      //_gSSLContext = SSL_CTX_new( SSLv23_client_method() );
-      _gSSLContext = SSL_CTX_new( TLS_client_method() );
+    {
+      #ifdef TLS_client_method
+        // Use the recommended TLS_client_method if it is available (RHEL 8)
+        _gSSLContext = SSL_CTX_new( TLS_client_method() );
+      #else
+        // Otherwise fallback to the old behavior and use SSLv23_client_method (RHEL 7)
+        _gSSLContext = SSL_CTX_new( SSLv23_client_method() );
+      #endif
+    }
   }
 
   if( _gSSLContext == nullptr )
