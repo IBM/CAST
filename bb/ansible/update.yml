@@ -78,9 +78,7 @@
   import_playbook: "{{playbook_dir}}/certificates.yml"   
 - name: Include csm start     
   import_playbook: "{{playbook_dir}}/csmStart.yml" 
-  when: CSMRPMDIR is defined
-- name: Clear & regen csm db for nodes, in-service nodes     
-  import_playbook: "{{playbook_dir}}/csmDB.yml"    
+  when: CSMRPMDIR is defined 
 - name: Include bb start      
   import_playbook: "{{playbook_dir}}/bbStart.yml"  
    
