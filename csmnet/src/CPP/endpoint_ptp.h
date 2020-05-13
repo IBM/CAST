@@ -279,6 +279,11 @@ protected:
       VersionMsg::ConvertToBytes( VersionMsg::Get() ) );
 
     LOG( csmnet, debug ) << "ConnectPost: Sending version message to peer: " << _RemoteAddr->Dump() << ": " << Msg;
+
+    // Sending the version message. 
+    // Version verification
+    // This is the daemon to daemon com check that says "Hey. I'm running csm 1.8, What version are you running?"
+    // Note: Message is sent in the if statement
     if( Send( Msg ) <= 0 )
     {
       throw csm::network::ExceptionFatal("Failed to send version message. Can't continue.");

@@ -107,9 +107,15 @@ csm::network::Endpoint* csm::network::MultiEndpoint::NewEndpoint( const csm::net
       break;
     case CSM_NETWORK_TYPE_AGGREGATOR:
       if( std::dynamic_pointer_cast<csm::network::EndpointOptionsPTP<csm::network::AddressAggregator>>(aOptions)->HasSSLInfo() )
+      {
+        LOG( csmnet, trace ) << "MultiEndpoint::NewEndpoint(): AGG attempting to connect sec";
         nEP = new csm::network::EndpointAggregator_sec( aAddr, aOptions );
+        LOG( csmnet, trace ) << "MultiEndpoint::NewEndpoint(): AGG sec complete";
+      }
       else
+      {
         nEP = new csm::network::EndpointAggregator_plain( aAddr, aOptions );
+      }
       break;
     case CSM_NETWORK_TYPE_UNKNOWN:
     case CSM_NETWORK_TYPE_ABSTRACT:
