@@ -32,6 +32,8 @@
 
 #define EXPECTED_NUMBER_OF_ARGUMENTS 3
 
+#define API_PARAMETER_INPUT_TYPE csm_diag_run_end_input_t
+
 ///< For use as the usage variable in the input parsers.
 #define USAGE help
 
@@ -92,12 +94,11 @@ int main(int argc, char *argv[])
 	int opt;
 	int indexptr = 0;
 	int parameterCounter = 0;
-	
+
 	/*Set up data*/
-	csm_diag_run_end_input_t runEndData;
-	
-	csmutil_logging(debug, "%s-%d:", __FILE__, __LINE__);
-	csmutil_logging(debug, "  runEndData address: %p", &runEndData);
+	API_PARAMETER_INPUT_TYPE* input = NULL;
+	/* CSM API initialize and malloc function*/
+    csm_init_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 	
 	/*check optional args*/
 	while ((opt = getopt_long(argc, argv, "hv:i:r:s:", longopts, &indexptr)) != -1) {
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
 
 				if( optarg[0] == 't' || optarg[0] == '1' || optarg[0] == 'f' || optarg[0] == '0')
                 {
-					runEndData.inserted_ras = optarg[0];
+					input->inserted_ras = optarg[0];
 				}
                 else
                 {
@@ -129,13 +130,13 @@ int main(int argc, char *argv[])
             }
 			case 'r':
                 csm_optarg_test( "-r, --run_id", optarg, USAGE )
-                csm_str_to_int64( runEndData.run_id, optarg, arg_check, "-r, --run_id", USAGE) ;
+                csm_str_to_int64( input->run_id, optarg, arg_check, "-r, --run_id", USAGE) ;
 				parameterCounter++;
 				break;
 			case 's':
                 csm_optarg_test( "-s, --status", optarg, USAGE )
-                strncpy(runEndData.status, optarg,16);
-				runEndData.status[15] = '\0';
+                strncpy(input->status, optarg,16);
+				input->status[15] = '\0';
 				parameterCounter++;
 				break;
 			default:
@@ -171,16 +172,17 @@ int main(int argc, char *argv[])
 	//This will print out the contents of the struct that we will pass to the api
 	csmutil_logging(debug, "%s-%d:", __FILE__, __LINE__);
 	csmutil_logging(debug, "  csm_diag_run_end_input_t contains the following:");
-	csmutil_logging(debug, "    run_id:         %"PRId64, runEndData.run_id);
-	csmutil_logging(debug, "    diag_status:    %s", runEndData.status);
-	csmutil_logging(debug, "    inserted_ras:   %c", runEndData.inserted_ras);
+	csmutil_logging(debug, "    run_id:         %"PRId64, input->run_id);
+	csmutil_logging(debug, "    diag_status:    %s", input->status);
+	csmutil_logging(debug, "    inserted_ras:   %c", input->inserted_ras);
 	
-	return_value = csm_diag_run_end(&csm_obj, &runEndData);
+	return_value = csm_diag_run_end(&csm_obj, input);
     switch(return_value)
     {
         case CSMI_SUCCESS:
 			// this is only need in debug mode. commenting until we implement the debug print we discussed. 
             // printf("csm_diag_run_end has completed successfully!\n");
+        	printf("---\n# csm_diag_run_end has completed successfully!\n...\n");
             break;
 
         default:

@@ -73,6 +73,9 @@ int csm_diag_run_end(csm_api_object **csm_obj, API_PARAMETER_INPUT_TYPE* input)
         return CSMERR_INVALID_PARAM;
     }
 
+    // Clamp the inserted_ras boolean.
+    input->inserted_ras = input->inserted_ras ? CSM_TRUE : CSM_FALSE;
+
     // EARLY RETURN
     // Construct the buffer.
     csm_serialize_struct(API_PARAMETER_INPUT_TYPE, input, &buffer, &buffer_length);
