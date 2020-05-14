@@ -182,6 +182,7 @@ int main(int argc, char *argv[])
         case CSMI_SUCCESS:
 			// this is only need in debug mode. commenting until we implement the debug print we discussed. 
             // printf("csm_diag_run_end has completed successfully!\n");
+        	printf("---\n# csm_diag_run_end has completed successfully!\n...\n");
             break;
 
         default:
