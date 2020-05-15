@@ -56,13 +56,10 @@ int csm_diag_run_query_details(
     // Create a csm_api_object and sets its csmi cmd and the destroy function
     create_csm_api_object(csm_obj, expected_cmd, csmi_diag_run_query_details_destroy);
     
-    if( !input ||
-        (input->run_id < 0)
+    if( !input )
     {
         if( !input ){
             csmutil_logging(error, "Invalid parameter: input parameter was null." );
-        }else if(input->run_id < 0){
-            csmutil_logging(error, "Invalid parameter: 'run_id' can not be less than 0." );
         }else{
             csmutil_logging(error,  "Invalid parameter: default unknown error.");
         }
