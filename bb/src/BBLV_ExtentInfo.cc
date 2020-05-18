@@ -812,47 +812,80 @@ int BBLV_ExtentInfo::setSuspended(const LVKey* pLVKey, const string& pHostName, 
 
     if (!stageOutStarted())
     {
+        // First resolve to the BBLV_Info for the LVKey
+        BBLV_Info* l_LV_Info = metadata.getLV_Info(pLVKey);
+
+        // Perform setSuspended() for the work queue
         rc = wrkqmgr.setSuspended(pLVKey, pLocal_Metadata_Lock_Released, pValue);
-        switch (rc)
+
+        // If the metadata lock was released above and the rc indicates that
+        // we will touch BBLV_ExtentInfo.flags below, we need to first verify
+        // that the BBLV_Info for this LVKey still exists
+        if (pLocal_Metadata_Lock_Released == LOCAL_METADATA_LOCK_RELEASED)
         {
-            // NOTE: Even if the work queue had the suspend bit on (rc=2), we still unconditionally set the suspend
-            //       bit in BBLV_ExtentInfo flags as in the restart case when registering LVKeys from the "old server"
-            //       the work queues are constructed with the suspend bit on.
-            case 0:
-            case 2:
+            switch(rc)
             {
-                if ((((flags & BBLV_Suspended) == 0) && pValue) || ((flags & BBLV_Suspended) && (!pValue)))
+                case  0:
+                case  2:
+                case -2:
                 {
-                    LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", " << *pLVKey << ", jobid " << pJobId \
-                                 << " -> Changing from: " << ((flags & BBLV_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                    l_LV_Info = metadata.getLV_Info(pLVKey);
                 }
-                SET_FLAG(BBLV_Suspended, pValue);
-            }
-            break;
-
-            case -2:
-            {
-                // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
-                //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
-                SET_FLAG(BBLV_Suspended, pValue);
-
-                string l_Temp = "resume";
-                if (pValue)
-                {
-                    // Connection being suspended
-                    l_Temp = "suspend";
-                }
-                LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", jobid " << pJobId \
-                             << ", work queue not present for " << *pLVKey << ". Tolerated condition for a " << l_Temp << " operation.";
-            }
-            break;
-
-            default:
-                LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
-                             << " received for hostname " << pHostName << ", jobid " << pJobId << ", " << *pLVKey \
-                             << " when attempting the suspend or resume operation on the work queue.";
-                rc = -1;
                 break;
+
+                default:
+                    break;
+            }
+        }
+
+        if (l_LV_Info)
+        {
+            // BBLV_Info still exists for the LVKey
+            switch (rc)
+            {
+                // NOTE: Even if the work queue had the suspend bit on (rc=2), we still unconditionally set the suspend
+                //       bit in BBLV_ExtentInfo flags as in the restart case when registering LVKeys from the "old server"
+                //       the work queues are constructed with the suspend bit on.
+                case 0:
+                case 2:
+                {
+                    if ((((flags & BBLV_Suspended) == 0) && pValue) || ((flags & BBLV_Suspended) && (!pValue)))
+                    {
+                        LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", " << *pLVKey << ", jobid " << pJobId \
+                                     << " -> Changing from: " << ((flags & BBLV_Suspended) ? "true" : "false") << " to " << (pValue ? "true" : "false");
+                    }
+                    SET_FLAG(BBLV_Suspended, pValue);
+                }
+                break;
+
+                case -2:
+                {
+                    // NOTE: For failover cases, it is possible for a setSuspended() request to be issued to this bbServer before any request
+                    //       has 'used' the LVKey and required the work queue to be present.  We simply tolerate the condition...
+                    SET_FLAG(BBLV_Suspended, pValue);
+
+                    string l_Temp = "resume";
+                    if (pValue)
+                    {
+                        // Connection being suspended
+                        l_Temp = "suspend";
+                    }
+                    LOG(bb,info) << "BBLV_Info::setSuspended(): For hostname " << pHostName << ", jobid " << pJobId \
+                                 << ", work queue not present for " << *pLVKey << ". Tolerated condition for a " << l_Temp << " operation.";
+                }
+                break;
+
+                default:
+                    LOG(bb,info) << "BBLV_Info::setSuspended(): Unexpected return code " << rc \
+                                 << " received for hostname " << pHostName << ", jobid " << pJobId << ", " << *pLVKey \
+                                 << " when attempting the suspend or resume operation on the work queue.";
+                    rc = -1;
+                    break;
+            }
+        }
+        else
+        {
+            // BBLV_Info no longer exists...  Simply return...
         }
     }
     else
