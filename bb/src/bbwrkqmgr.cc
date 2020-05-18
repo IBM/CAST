@@ -202,6 +202,10 @@ int WRKQMGR::appendAsyncRequest(AsyncRequest& pRequest)
     {
         rc = 0;
         l_Size = 0;
+        if (l_Retry < DEFAULT_RETRY_VALUE-1)
+        {
+            usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
+        }
         try
         {
             stringstream errorText;
@@ -527,7 +531,7 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
 {
     int rc = 0;
 
-    FILE* l_FilePtr = 0;
+    FILE* l_FilePtr = NULL;
     char l_AsyncRequestFileName[PATH_MAX+1] = {'\0'};
     string l_DataStorePath = g_BBServer_Metadata_Path;
 
@@ -542,6 +546,10 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
         while (l_Retry--)
         {
             rc = 0;
+            if (l_Retry < DEFAULT_RETRY_VALUE-1)
+            {
+                usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
+            }
             try
             {
                 stringstream errorText;
@@ -551,6 +559,7 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
                 threadLocalTrackSyscallPtr->clearTrack();
                 if (l_FilePtr != NULL)
                 {
+                    FL_Write(FLAsyncRqst, OpenReadForCrossing, "Open async request file having seqnbr %ld using mode 'rb'. File pointer returned is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
                     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, l_FilePtr, __LINE__);
                     rc = ::fseek(l_FilePtr, 0, SEEK_END);
                     threadLocalTrackSyscallPtr->clearTrack();
@@ -563,6 +572,7 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
                         threadLocalTrackSyscallPtr->clearTrack();
                         if (l_Offset >= 0)
                         {
+                            FL_Write(FLAsyncRqst, RtvEndOffsetForCrossing, "Async request file having seqnbr %ld has ending offset %ld.", pSeqNbr, l_Offset, 0, 0);
                             if (l_Offset <= (int64_t)pOffset)
                             {
                                 rc = 1;
@@ -575,18 +585,22 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
                             errorText << "crossingAsyncFileBoundary(): Failed ftell() request, sequence number " << pSeqNbr \
                                       << (l_Retry ? ". Request will be retried." : "");
                             LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                            clearerr(l_FilePtr);
                             rc = -1;
                         }
                     }
                     else
                     {
-                        FL_Write(FLAsyncRqst, SeekEndFailForCrossing, "Failed fseek() request for end of file, sequence number %ld, ferror %ld.", pSeqNbr, ferror(l_FilePtr), 0, 0);
+                        FL_Write(FLAsyncRqst, SeekEndForCrossingFail, "Failed fseek() request for end of file, sequence number %ld, ferror %ld.", pSeqNbr, ferror(l_FilePtr), 0, 0);
                         errorText << "crossingAsyncFileBoundary(): Failed fseek() request for end of file, sequence number " << pSeqNbr \
                                   << (l_Retry ? ". Request will be retried." : "");
                         LOG_ERROR_TEXT_ERRNO(errorText, ferror(l_FilePtr));
                         clearerr(l_FilePtr);
                         rc = -1;
                     }
+                    FL_Write(FLAsyncRqst, CloseReadForCrossing, "Close for async request file having seqnbr, file pointer %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
+                    ::fclose(l_FilePtr);
+                    l_FilePtr = NULL;
                 }
                 else
                 {
@@ -601,6 +615,14 @@ int WRKQMGR::crossingAsyncFileBoundary(const int pSeqNbr, const uint64_t pOffset
                 LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
             }
         }
+
+        if (l_FilePtr)
+        {
+            FL_Write(FLAsyncRqst, CloseReadForCrossingOnExit, "Close for async request file having seqnbr, file pointer %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
+            ::fclose(l_FilePtr);
+            l_FilePtr = NULL;
+        }
+
   	    becomeUser(l_Uid, l_Gid);
   	}
 
@@ -925,7 +947,7 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
     int rc = 0;
     int64_t l_Size = -1;
 
-    FILE* l_FilePtr = 0;
+    FILE* l_FilePtr = NULL;
     char l_AsyncRequestFileName[PATH_MAX+1] = {'\0'};
     string l_DataStorePath = g_BBServer_Metadata_Path;
 
@@ -938,6 +960,10 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
     while (l_Retry--)
     {
         rc = 0;
+        if (l_Retry < DEFAULT_RETRY_VALUE-1)
+        {
+            usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
+        }
         try
         {
             stringstream errorText;
@@ -947,6 +973,7 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
             threadLocalTrackSyscallPtr->clearTrack();
             if (l_FilePtr != NULL)
             {
+                FL_Write(FLAsyncRqst, OpenReadForSize, "Open async request file having seqnbr %ld using mode 'rb'. File pointer returned is %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
                 threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::fseeksyscall, l_FilePtr, __LINE__);
                 rc = ::fseek(l_FilePtr, 0, SEEK_END);
                 threadLocalTrackSyscallPtr->clearTrack();
@@ -958,14 +985,16 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
                     threadLocalTrackSyscallPtr->clearTrack();
                     if (l_Size >= 0)
                     {
+                        FL_Write(FLAsyncRqst, RtvEndOffsetForSize, "Async request file having seqnbr %ld has ending offset %ld.", pSeqNbr, l_Size, 0, 0);
                         l_Retry = 0;
                     }
                     else
                     {
-                        FL_Write(FLAsyncRqst, RtvEndOffsetForSize, "Failed ftell() request, sequence number %ld, errno %ld.", pSeqNbr, errno, 0, 0);
+                        FL_Write(FLAsyncRqst, RtvEndOffsetForSizeFail, "Failed ftell() request, sequence number %ld, errno %ld.", pSeqNbr, errno, 0, 0);
                         errorText << "findAsyncRequestFileSize(): Failed ftell() request, sequence number " << pSeqNbr \
                                   << (l_Retry ? ". Request will be retried." : "");
                         LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        clearerr(l_FilePtr);
                         rc = -1;
                     }
                 }
@@ -978,6 +1007,9 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
                     clearerr(l_FilePtr);
                     rc = -1;
                 }
+                FL_Write(FLAsyncRqst, CloseReadForSize, "Close for async request file having seqnbr, file pointer %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
+                ::fclose(l_FilePtr);
+                l_FilePtr = NULL;
             }
             else
             {
@@ -991,6 +1023,13 @@ uint64_t WRKQMGR::findAsyncRequestFileSize(const int pSeqNbr)
         {
             LOG_ERROR_WITH_EXCEPTION(__FILE__, __FUNCTION__, __LINE__, e);
         }
+    }
+
+    if (l_FilePtr)
+    {
+        FL_Write(FLAsyncRqst, CloseReadForSizeOnExit, "Close for async request file having seqnbr, file pointer %p.", pSeqNbr, (uint64_t)(void*)l_FilePtr, 0, 0);
+        ::fclose(l_FilePtr);
+        l_FilePtr = NULL;
     }
 
   	becomeUser(l_Uid, l_Gid);
@@ -1024,6 +1063,10 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     while (l_Retry--)
     {
         rc = 0;
+        if (l_Retry < DEFAULT_RETRY_VALUE-1)
+        {
+            usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
+        }
         try
         {
             stringstream errorText;
@@ -1053,6 +1096,7 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
                         errorText << "findOffsetToNextAsyncRequest(): Failed ftell() request, sequence number " << pSeqNbr \
                                   << (l_Retry ? ". Request will be retried." : "");
                         LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        clearerr(fd);
                         rc = -1;
                     }
                 }
@@ -1214,6 +1258,10 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
     while (l_Retry--)
     {
         rc = 0;
+        if (l_Retry < DEFAULT_RETRY_VALUE-1)
+        {
+            usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
+        }
         try
         {
             stringstream errorText;
@@ -1244,6 +1292,7 @@ int WRKQMGR::getAsyncRequest(WorkID& pWorkItem, AsyncRequest& pRequest)
                                   << pWorkItem.getTag() << ". Read " << l_Size << " bytes, expected " << sizeof(AsyncRequest) << " bytes." \
                                   << (l_Retry ? " Request will be retried." : "");
                         LOG_ERROR_TEXT_ERRNO(errorText, errno);
+                        clearerr(fd);
                         rc = -1;
                     }
                 }
