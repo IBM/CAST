@@ -140,8 +140,6 @@ int main(int argc, char *argv[])
 	}
 
 	return_value = csm_jsrun_cmd(&csm_obj, input);
-	/* Use CSM API free to release arguments. We no longer need them. */
-	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 
 	if (return_value == CSMI_SUCCESS ) 
     {
@@ -154,6 +152,9 @@ int main(int argc, char *argv[])
 
         csm_print_node_errors(csm_obj)
 	}
+	// Free after because the SUCESS case uses input-allocation_id
+	/* Use CSM API free to release arguments. We no longer need them. */
+	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 
 	// it's the csmi library's responsibility to free internal space
 	csm_api_object_destroy(csm_obj);
