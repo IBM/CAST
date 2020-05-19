@@ -17,6 +17,10 @@ set(CPACK_RPM_burstbuffer-ansible_PACKAGE_ARCHITECTURE "noarch" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-ansible_PACKAGE_SUMMARY           "Burst Buffer ansible_PACKAGE_SUMMARY" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-ansible_PACKAGE_DESCRIPTION       "This RPM provides burst buffer ansible playbooks." PARENT_SCOPE)
 
+set(CPACK_RPM_burstbuffer-fvt-ansible_PACKAGE_ARCHITECTURE "noarch" PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-fvt-ansible_PACKAGE_SUMMARY           "Burst Buffer ansible_PACKAGE_SUMMARY" PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-fvt-ansible_PACKAGE_DESCRIPTION       "This RPM provides burst buffer ansible playbooks." PARENT_SCOPE)
+
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_SUMMARY           "Burst Buffer tools" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_DESCRIPTION       "This RPM provides various burst buffer tools used in BB development and test." PARENT_SCOPE)
 
@@ -32,6 +36,7 @@ set(CPACK_RPM_burstbuffer_PACKAGE_REQUIRES       "nvme-cli,nvmetcli,fuse,fuse-li
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-ansible_PACKAGE_REQUIRES "ansible >= 2.9.6"   PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-fvt-ansible_PACKAGE_REQUIRES "ibm-burstbuffer-ansible >= 1.8"   PARENT_SCOPE)
 
 # Burstbuffer needs to run a post-install script
 set(CPACK_RPM_burstbuffer_POST_INSTALL_SCRIPT_FILE  ${CMAKE_SOURCE_DIR}/bb/scripts/postinstall.sh PARENT_SCOPE)
