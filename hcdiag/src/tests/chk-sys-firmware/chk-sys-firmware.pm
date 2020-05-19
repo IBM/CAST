@@ -115,7 +115,7 @@ sub checkFirmware {
    #   errors on no match at all
    #
    # check the firmware levels.
-   for my $node (sort keys $firmware) {
+   for my $node (sort keys %$firmware) {
       my $fnode = $firmware->{$node};
       my $err=0;
       my $nodeCfg = $Clustconf->findNodeCfg($node);
@@ -206,7 +206,7 @@ sub checkFirmware {
          $errNodes->{$node} = $node;
       }
    }
-   my @errNodesArray=sort(keys($errNodes));
+   my @errNodesArray=sort(keys(%$errNodes));
    return(\@errNodesArray, $errs);
 }
 
