@@ -52,13 +52,13 @@
     - debug:
          msg: stop CSM and burstbuffer
 - name: Include stop of CSM        
-  import_playbook: csmStop.yml 
+  import_playbook: "{{playbook_dir}}/csmStop.yml" 
 - name: Include stop of bb       
-  import_playbook: bbStop.yml
+  import_playbook: "{{playbook_dir}}/../ansible/bbStop.yml"
 - name: Include uninstall of CSM       
-  import_playbook: csmUninstall.yml  
+  import_playbook: "{{playbook_dir}}/csmUninstall.yml"  
 - name: Include bb uninstall       
-  import_playbook: bbUninstall.yml    
+  import_playbook: "{{playbook_dir}}/../ansible/bbUninstall.yml"   
 
 #section for installing RPMs, starting daemons
 - hosts: localhost
@@ -66,20 +66,20 @@
     - debug:
          msg: install csm and bb
 - name: Build/install node list
-  import_playbook: "{{playbook_dir}}/nodelist.yml"
+  import_playbook: "{{playbook_dir}}/../ansible/nodelist.yml"
 - name: Build/install esslist
-  import_playbook: "{{playbook_dir}}/bbserverIPlist.yml"
+  import_playbook: "{{playbook_dir}}/../ansible/bbserverIPlist.yml"
 - name: Include csm install     
   import_playbook: "{{playbook_dir}}/csmInstall.yml"
   when: CSMRPMDIR is defined
 - name: Include bb install      
-  import_playbook: "{{playbook_dir}}/bbInstall.yml"
+  import_playbook: "{{playbook_dir}}/../ansible/bbInstall.yml"
 - name: certificate setup     
-  import_playbook: "{{playbook_dir}}/certificates.yml"   
+  import_playbook: "{{playbook_dir}}/../ansible/certificates.yml"   
 - name: Include csm start     
   import_playbook: "{{playbook_dir}}/csmStart.yml" 
   when: CSMRPMDIR is defined 
 - name: Include bb start      
-  import_playbook: "{{playbook_dir}}/bbStart.yml"  
+  import_playbook: "{{playbook_dir}}/../ansible/bbStart.yml"  
    
 
