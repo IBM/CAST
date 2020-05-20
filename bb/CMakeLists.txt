@@ -5,6 +5,7 @@ add_subdirectory(tests)
 add_subdirectory(scripts)
 add_subdirectory(wrappers)
 add_subdirectory(ansible)
+add_subdirectory(fvt-ansible)
 
 #### RPM ####
 set(CPACK_RPM_burstbuffer_PACKAGE_SUMMARY           "Burst Buffer system software" PARENT_SCOPE)
