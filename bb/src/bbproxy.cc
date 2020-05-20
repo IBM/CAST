@@ -4891,6 +4891,18 @@ int bb_main(std::string who)
     /* Perform any clean-up of existing logical volumes */
     logicalVolumeCleanup();
 
+    /* Seize /dev/export_layout so rmmod fails on in-use while daemon is running */
+    int inuse_fd = -1;
+    if(config.get(process_whoami+".use_export_layout", false)){
+        inuse_fd=open("/dev/export_layout", O_RDWR | O_CLOEXEC, 0);
+        if (inuse_fd<0){
+            LOG(bb,always) << "/dev/export_layout failure errno=" << errno;
+            throw runtime_error(string("Check export_layout module installation.  Open failed with errno=") + to_string(errno));
+        }
+          
+    }
+      
+
     rc = setupUnixConnections(process_whoami);
     if(rc)
     {
