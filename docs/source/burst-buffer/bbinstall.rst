@@ -74,7 +74,6 @@ On each ESS I/O Node VM (or equivalent), install these RPMs:
 
 * ibm-burstbuffer-1.x.y-z.ppc64le.rpm 
 * ibm-flightlog-1.x.y-z.ppc64le.rpm 
-* ibm-csm-core-1.x.y-z.ppc64le.rpm
 
 
 The NVMe driver must be built with RDMA-enabled.  Mellanox MOFED driver can do this via:
