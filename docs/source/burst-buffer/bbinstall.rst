@@ -348,29 +348,19 @@ export KEYFILE=/root/key.pem
 export CERTFILE=/root/cert.pem
 sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/nodelist.yml
 sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/bbserverIPlist.yml
-sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/csmInstall.yml
 sudo ansible-playbook -f 16 -i $Inventory -e BBRPMDIR=$RPMPATH -e CSMRPMDIR=$RPMPATH  /opt/ibm/bb/ansible/bbInstall.yml
 sudo ansible-playbook -f 16 -i $Inventory -e FQP_KEYFILE=$KEYFILE -e FQP_CERTFILE=$CERTFILE  /opt/ibm/bb/ansible/certificates.yml
 
 Activation by ansible-playbook
 ------------------------------
-Advice is to do these in order:
-
-sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmStart.yml
 sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbStart.yml
 
 Stop by ansible-playbook
 ------------------------
-Advice is to do these in order:
-
-sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmStop.yml
 sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbStop.yml
 
 Uninstall playbooks
 -------------------
-Advice is to do these in order:
-
-sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/csmUninstall.yml
 sudo ansible-playbook -f 16 -i $Inventory   /opt/ibm/bb/ansible/bbUninstall.yml
 
 
