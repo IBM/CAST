@@ -143,10 +143,16 @@ The first file (nodelist) is a list of the xCAT names for all compute nodes – 
 This nodelist could be generated via the xCAT commands:
 lsdef all | grep "Object name:" | cut -f 3 -d ' '
 
-
 The second file (esslist) contains a list of IP addresses and ports for each bbServer.  
-In the planned configuration, this would be the ESS I/O node VM IPv4 address plus a well-known port (e.g., 9001).  
-To express ESS redundancy, after "IPv4:port" add "backup=IPv4:port".  For example:
+In the planned configuration, this would be the ESS I/O node VM IP address plus a well-known port (e.g., 9001).  
+To express ESS redundancy, place the two ESS’s I/O nodes within the same ESS should be placed on the same line.  E.g.,
+
+.. code-block:: none
+
+        20.7.5.1:9001 20.7.5.2:9001
+        20.7.5.3:9001 20.7.5.4:9001
+
+The esslist can also explicitly list the primary node first and then its backup.  E.g.,
 
 .. code-block:: none
 
