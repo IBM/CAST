@@ -57,9 +57,9 @@
 #endif
 
 #if (LINUX_VERSION_CODE >=  KERNEL_VERSION(4,18,0))
-#define EXP_VERSION "1.8.1.R8"
+#define EXP_VERSION "1.8.1.2.R8"
 #else
-#define EXP_VERSION "1.8.1.R7"
+#define EXP_VERSION "1.8.1.2.R7"
 #endif 
 
 MODULE_LICENSE("GPL");
@@ -235,6 +235,7 @@ static int export_layout_open(struct inode *inodep, struct file *filep)
 	if (!t)
 		return -ENOMEM;
 	filep->private_data = t;
+        try_module_get(THIS_MODULE);
 	return 0;
 }
 
@@ -266,6 +267,7 @@ static int export_layout_release(struct inode *inodep, struct file *filep)
     	    printk(KERN_DEBUG "%s: completed fd=%d pid=%d mainpid=%d\n", __func__, t->fd, current->pid,current->tgid);
 	}
 	kfree(t);
+        module_put(THIS_MODULE);
 	return 0;
 }
 
