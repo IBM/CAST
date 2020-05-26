@@ -67,7 +67,10 @@
 #define BBI_Trim_Anchor                               0x0000000000400000
 #define BBI_CP_Transfer                               0x0000000000800000
 
-// NOTE: Low order seventh and eighth nibbles of Extent.flags and xbbServer metadata (ContribIdFile) (not defined)
+// NOTE: Low order seventh nibble of Extent.flags (not maintained for ContribIdFile)
+#define BBI_Sparse_File                               0x0000000001000000
+
+// NOTE: Low order eighth nibble of Extent.flags and xbbServer metadata (ContribIdFile) (not defined)
 
 // NOTE: Low order ninth nibble of BBTagInfo.flags and xbbServer metadata (HandleFile)
 // NOTE: For stop transfers, this bit is unconditionally turned off because one or more contribids

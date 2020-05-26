@@ -510,13 +510,14 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
 
             unlockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
 
+            filehandle* srcfile_ptr = NULL;
             if ((!l_TransferDef->stopped()) && (!l_TransferDef->canceled()) && (!l_TransferDef->failed()))
             {
                 uint16_t l_BundleId = l_Extent->getBundleID();
                 BBIO* l_IO = l_TransferDef->iomap[l_BundleId];
                 if (l_IO)
                 {
-                    // Perform any necessary syncing of the data for the target file
+                    // Perform any necessary syncing and/or allocating of the total file size for the target file
                     l_LocalMetadataUnlocked = unlockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Last extent for file transfer, before fsync");
 
                     try
@@ -554,6 +555,40 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                             l_TransferDef->postProcessSync(l_Extent->targetindex, l_Time);
                             FL_Write(FLTInf2, FSYNC_PFSCMP, "Performed PFS fsync.  Target index=%ld", l_Extent->targetindex,0,0,0);
                             LOG(bb,debug) << "Final PFS fsync end: targetindex=" << l_Extent->targetindex;
+                            if (l_Extent->flags & BBI_Sparse_File)
+                            {
+                                // NOTE: BBI_Sparse_File is only set for normal files...
+                                // NOTE: ftruncate is not supported via BBIO.  Therefore, the ftruncate
+                                //       is performed directly via the target filehandle.
+                                findFilehandle(srcfile_ptr, pTagId.getJobId(), l_Handle, l_ContribId, l_Extent->sourceindex);
+                                if (srcfile_ptr)
+                                {
+                                    filehandle* dstfile_ptr = l_IO->getFileHandle(l_Extent->targetindex);
+                                    if (dstfile_ptr)
+                                    {
+                                        LOG(bb,info) << "Final PFS ftruncate start: targetindex=" << l_Extent->targetindex << ", transdef=" << l_TransferDef
+                                                     << ", handle=" << l_Handle << ", contribid=" << l_ContribId << ", size transferred=" << l_TransferDef->getSizeTransferred(l_Extent->sourceindex)
+                                                     << ", source file size=" << srcfile_ptr->getsize();
+                                        FL_Write(FLTInf2, FTRUNC_PFS, "Performing PFS ftruncate.  Target index=%ld, size=%ld", l_Extent->targetindex, srcfile_ptr->getsize(),0,0);
+                                        // NOTE: We accumulate any ftruncate time for sparse files in with the fsync time...
+                                        l_TransferDef->preProcessSync(l_Time);
+                                        dstfile_ptr->setsize(srcfile_ptr->getsize());
+                                        l_TransferDef->postProcessSync(l_Extent->targetindex, l_Time);
+                                        FL_Write(FLTInf2, FTRUNC_PFSCMP, "Performed PFS ftruncate.  Target index=%ld", l_Extent->targetindex,0,0,0);
+                                        LOG(bb,info) << "Final PFS ftruncate end: targetindex=" << l_Extent->targetindex;
+                                    }
+                                    else
+                                    {
+                                        // Not expected...  Just continue...
+                                        LOG(bb,error) << "removeFromInFlight: Could not retrieve the target file handle for extent " << l_Extent;
+                                    }
+                                }
+                                else
+                                {
+                                    // Not expected...  Just continue...
+                                    LOG(bb,error) << "removeFromInFlight: Could not retrieve the source file handle for extent " << l_Extent;
+                                }
+                            }
                         }
                     }
                     catch (ExceptionBailout& e) { }
@@ -574,6 +609,20 @@ void BBLV_Info::removeFromInFlight(const string& pConnectionName, const LVKey* p
                     LOG(bb,error) << "removeFromInFlight: Could not retrieve the BBIO object for extent " << l_Extent;
                 }
             }
+
+            if (srcfile_ptr)
+            {
+                // We use a 'dummy' file handle to store the source file stats.  It is only set for
+                // the stage-out of normal files.  We resolve to the file handle in those cases above.
+                // Clean up that file handle now...
+                removeFilehandle(srcfile_ptr, pTagId.getJobId(), l_Handle, l_ContribId, l_Extent->sourceindex);
+                if (srcfile_ptr)
+                {
+                    delete srcfile_ptr;
+                    srcfile_ptr = NULL;
+                }
+            }
+
             // Update the status for the file in xbbServer data
             l_LocalMetadataLocked = lockLocalMetadataIfNeeded(pLVKey, "removeFromInFlight - Last extent for file transfer");
             lockTransferQueue(pLVKey, "removeFromInFlight - Last extent for file transfer");
