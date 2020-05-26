@@ -61,3 +61,16 @@
     command: /bin/systemctl start csmd-compute.service
     when: csmdcompute_service_result.rc != 0  
     any_errors_fatal: true 
+
+- hosts:  management
+  tasks:
+  - name: compute nodes for in service--make csv, remove last comma, remove blanks
+    shell: tr  '\n' ',' < /etc/ibm/nodelist |sed 's/.$/\n/' |sed 's/ //g'
+    register: inservicelist_csv
+
+  - debug:
+      msg: "inservicelist_csv stdout={{inservicelist_csv.stdout}}"
+  
+  - name: mark nodes in CSM as IN_SERVICE
+    shell: /opt/ibm/csm/bin/csm_node_attributes_update -n "{{inservicelist_csv.stdout}}" -s IN_SERVICE
+    any_errors_fatal: true   

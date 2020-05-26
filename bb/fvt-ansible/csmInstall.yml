@@ -48,6 +48,17 @@
   - name: install BB RAS
     shell: yes | /opt/ibm/csm/db/csm_db_ras_type_script.sh -l csmdb /opt/ibm/bb/scripts/bbras.csv
     ignore_errors: yes
+  
+  - name:  Removes the csm database csmdb from the system 
+    shell:  yes | /opt/ibm/csm/db/csm_db_script.sh -d csmdb
+    register: csmdutility_service_result
+    ignore_errors: yes
+    when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
+ 
+  - name: Create a new csm database csmdb with tables and populated data 
+    shell: /opt/ibm/csm/db/csm_db_script.sh -n csmdb
+    any_errors_fatal: true
+    when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
     
 - hosts: launch
   tasks:
