@@ -4843,7 +4843,7 @@ int registerHandlers()
     return 0;
 }
 
-
+static  int inuse_fd = -1;
 char LVM_SUPPRESS[] = "LVM_SUPPRESS_FD_WARNINGS=1";  // note: ownership of this string is moved to ENV during putenv() call.
 int setupUnixConnections(string whoami);
 int bb_main(std::string who)
@@ -4892,7 +4892,6 @@ int bb_main(std::string who)
     logicalVolumeCleanup();
 
     /* Seize /dev/export_layout so rmmod fails on in-use while daemon is running */
-    int inuse_fd = -1;
     if(config.get(process_whoami+".use_export_layout", false)){
         inuse_fd=open("/dev/export_layout", O_RDWR | O_CLOEXEC, 0);
         if (inuse_fd<0){
@@ -4925,6 +4924,7 @@ int bb_exit(std::string who)
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
 
 //    printf("bb_exit: who = %s\n", who.c_str());
+    close(inuse_fd);
     if (!who.empty() )
     {
         try
