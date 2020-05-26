@@ -4924,7 +4924,7 @@ int bb_exit(std::string who)
     ENTRY_NO_CLOCK(__FILE__,__FUNCTION__);
 
 //    printf("bb_exit: who = %s\n", who.c_str());
-    close(inuse_fd);
+    if (inuse_fd>=0) close(inuse_fd);
     if (!who.empty() )
     {
         try
