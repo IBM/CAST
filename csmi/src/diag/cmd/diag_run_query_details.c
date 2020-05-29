@@ -30,10 +30,11 @@
 /*Needed for infrastructure logging*/
 #include "csmutil/include/csmutil_logging.h"
 
-#define EXPECTED_NUMBER_OF_ARGUMENTS 1
+#define API_PARAMETER_INPUT_TYPE csm_diag_run_query_details_input_t
+#define API_PARAMETER_OUTPUT_TYPE csm_diag_run_query_details_output_t
 
 ///< For use as the usage variable in the input parsers.
-#define USAGE help
+#define USAGE csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input); help
 
 struct option longopts[] = {
   {"help",          no_argument,       0, 'h'},
@@ -83,15 +84,22 @@ int main(int argc, char *argv[])
 	csm_api_object *csm_obj = NULL;
 	/*Helper Variables*/
 	int return_value = 0;
+	int requiredParameterCounter = 0;
+	int optionalParameterCounter = 0;
+	const int NUMBER_OF_REQUIRED_ARGUMENTS = 1;
+	const int MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS = 0;
 	/*Variables for checking cmd line args*/
 	int opt;
+	char *arg_check = NULL; ///< Used in verifying the long arg values.
+	/* getopt_long stores the option index here. */
 	int indexptr = 0;
-	int parameterCounter = 0;
-    char *arg_check = NULL; ///< Used in verifying the long arg values.
-	
-	/*Set up data for API call*/
-    csm_diag_run_query_details_input_t args;
-    args.run_id = 0;
+
+	/*Set up data to call API*/
+	API_PARAMETER_INPUT_TYPE* input = NULL;
+	/* CSM API initialize and malloc function*/
+	csm_init_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
+
+	API_PARAMETER_OUTPUT_TYPE* output = NULL;
 
 	/*check optional args*/
 	while ((opt = getopt_long(argc, argv, "hv:r:", longopts, &indexptr)) != -1) {
@@ -105,8 +113,8 @@ int main(int argc, char *argv[])
 				break;
 			case 'r':
                 csm_optarg_test( "-r, --run_id", optarg, USAGE )
-                csm_str_to_int64( args.run_id,  optarg, arg_check, "-r, --run_id", USAGE );
-				parameterCounter++;
+                csm_str_to_int64( input->run_id,  optarg, arg_check, "-r, --run_id", USAGE );
+				requiredParameterCounter++;
 				break;
 			default:
 				csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -122,12 +130,14 @@ int main(int argc, char *argv[])
 	
 	/*Collect mandatory args*/
 	/*Check to see if expected number of arguments is correct.*/
-	if(parameterCounter < EXPECTED_NUMBER_OF_ARGUMENTS){
-		/*We don't have the correct number of arguments passed in. We expecting EXPECTED_NUMBER_OF_ARGUMENTS.*/
+	if(requiredParameterCounter < NUMBER_OF_REQUIRED_ARGUMENTS || optionalParameterCounter < MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS){
+		/*We don't have the correct number of needed arguments passed in.*/
 		csmutil_logging(error, "%s-%d:", __FILE__, __LINE__);
-		csmutil_logging(error, "  Missing operand(s). Encountered %i parameter(s). Expected %i mandatory parameter(s).", parameterCounter, EXPECTED_NUMBER_OF_ARGUMENTS);
-		USAGE();
-        return CSMERR_MISSING_PARAM;
+		csmutil_logging(error, "  Missing operand(s).");
+		csmutil_logging(error, "    Encountered %i required parameter(s). Expected %i required parameter(s).", requiredParameterCounter, NUMBER_OF_REQUIRED_ARGUMENTS);
+		csmutil_logging(error, "    Encountered %i optional parameter(s). Expected at least %i optional parameter(s).", optionalParameterCounter, MINIMUM_NUMBER_OF_OPTIONAL_ARGUMENTS);
+        USAGE();
+		return CSMERR_MISSING_PARAM;
 	}
 	
 	/* Success required to be able to communicate between library and daemon - csmi calls must be made inside the frame created by csm_init_lib() and csm_term_lib()*/
@@ -138,10 +148,11 @@ int main(int argc, char *argv[])
 		return return_value;           
 	}
 
-    csm_diag_run_query_details_output_t * output = NULL;
-
     // Run the query.
-	return_value = csm_diag_run_query_details( &csm_obj, &args, &output );
+	return_value = csm_diag_run_query_details( &csm_obj, input, &output );
+	/* Use CSM API free to release arguments. We no longer need them. */
+	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
+
     switch(return_value)
     {
         case CSMI_SUCCESS:

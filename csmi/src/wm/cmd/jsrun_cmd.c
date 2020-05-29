@@ -84,10 +84,14 @@ int main(int argc, char *argv[])
 	int               return_value;
 	int               indexptr = 0;
     
-    API_PARAMETER_INPUT_TYPE input;    
-    input.allocation_id = 0;
-    input.kv_pairs      = NULL;
-    input.jsm_path      = NULL;
+    /*Set up data to call API*/
+	API_PARAMETER_INPUT_TYPE* input = NULL;
+	/* CSM API initialize and malloc function*/
+	csm_init_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
+
+    input->allocation_id = 0;
+    input->kv_pairs      = NULL;
+    input->jsm_path      = NULL;
 
 	csm_api_object   *csm_obj = NULL;
 	char             *arg_check = NULL; ///< Used in verifying the long arg values.
@@ -103,16 +107,16 @@ int main(int argc, char *argv[])
 			case 'a':      
             {
                 csm_optarg_test( "-a, --allocation", optarg, USAGE )
-                csm_str_to_int64(input.allocation_id, optarg, arg_check, "-a, --allocation", USAGE)
+                csm_str_to_int64(input->allocation_id, optarg, arg_check, "-a, --allocation", USAGE)
 				break;      
             }
             case 'k':
                 csm_optarg_test( "-k, --kv_pairs", optarg, USAGE );
-                input.kv_pairs = strdup(optarg);
+                input->kv_pairs = strdup(optarg);
                 break;
             case 'p':
                 csm_optarg_test( "-p, --jsm_path", optarg, USAGE );
-                input.jsm_path = strdup(optarg);
+                input->jsm_path = strdup(optarg);
                 break;
 			default:      
                 csmutil_logging(error, "unknown arg: '%c'\n", opt);
@@ -121,7 +125,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (input.allocation_id <= 0)
+	if (input->allocation_id <= 0)
     {
 		USAGE();
         return CSMERR_INVALID_PARAM;
@@ -135,11 +139,11 @@ int main(int argc, char *argv[])
 		return return_value;
 	}
 
-	return_value = csm_jsrun_cmd(&csm_obj, &input);
+	return_value = csm_jsrun_cmd(&csm_obj, input);
 
 	if (return_value == CSMI_SUCCESS ) 
     {
-	    printf("---\n# Allocation Id: %ld successfully started\n...\n", input.allocation_id);
+	    printf("---\n# Allocation Id: %ld successfully started\n...\n", input->allocation_id);
 	}
 	else 
     {
@@ -148,6 +152,9 @@ int main(int argc, char *argv[])
 
         csm_print_node_errors(csm_obj)
 	}
+	// Free after because the SUCESS case uses input-allocation_id
+	/* Use CSM API free to release arguments. We no longer need them. */
+	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 
 	// it's the csmi library's responsibility to free internal space
 	csm_api_object_destroy(csm_obj);

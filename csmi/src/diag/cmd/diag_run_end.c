@@ -190,6 +190,9 @@ int main(int argc, char *argv[])
                 argv[0], return_value,  csm_api_object_errmsg_get(csm_obj));
             break;
     }
+
+    //Use CSM API free to release arguments. We no longer need them.
+	csm_free_struct_ptr(API_PARAMETER_INPUT_TYPE, input);
 	
     csm_api_object_destroy(csm_obj);
 
