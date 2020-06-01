@@ -3045,11 +3045,23 @@ int queueTagInfo(const std::string& pConnectionName, LVKey* pLVKey, BBLV_Info* p
                                             mode_t l_Mode = 0;
                                             if (e.flags & BBI_TargetPFS)
                                             {
-                                                // NOTE: bbProxy filled in the stats for the source files that reside on the SSD.
-                                                //       We obtain the mode from those source file stats to pass on the open in case
+                                                // NOTE: bbProxy filled in the stats for the source files that reside on the SSD
+                                                if (e.isRegularExtent())
+                                                {
+                                                    // Create a filehandle for the source file to house the stats...
+                                                    // NOTE: These stats are necessary so we can later check the size transferred
+                                                    //       verses the size of the source file.  For sparse files, the size
+                                                    //       transfrerred will be less and we then perform a final ftruncate()
+                                                    //       to allocate the total file size.
+                                                    filehandle* srcfile_ptr = new filehandle(pTransferDef->files[e.sourceindex]);
+                                                    addFilehandle(srcfile_ptr, pJob.getJobId(), pHandle, (uint32_t)pContribId, e.sourceindex);
+                                                    // Copy the stats for the source file
+                                                    srcfile_ptr->updateStats((*pStats)[e.sourceindex]);
+                                                }
+
+                                                // NOTE: We obtain the mode from those source file stats to pass on the open in case
                                                 //       the PFS file needs to be created.
-                                                // NOTE: The index is pfs_idx-1 because the sourceindex immediately precedes the target index.
-                                                l_Mode = ((*pStats)[pfs_idx-1])->st_mode;
+                                                l_Mode = ((*pStats)[e.sourceindex])->st_mode;
                                             }
 
                                             rc = l_IO->open(pfs_idx, e.flags, pTransferDef->files[pfs_idx], l_Mode);

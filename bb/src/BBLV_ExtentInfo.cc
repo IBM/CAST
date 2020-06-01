@@ -75,6 +75,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
         vector<Extent> l_NewList;
         size_t l_StatSize = 0;
         size_t l_AccumulatedLength = 0;
+        size_t l_AccumulatedLength2 = 0;
         size_t l_LastExtentLength = 0;
         for (std::vector<Extent>::size_type i = 0; i < pTransferDef->extents.size(); ++i)
         {
@@ -82,7 +83,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
             {
                 if (l_PrevSourceIndex != (int32_t)pTransferDef->extents[i].sourceindex)
                 {
-                    tmp.flags |= BBI_Last_Extent;
+                    processLastExtent(tmp, l_AccumulatedLength+l_AccumulatedLength2, pStats);
                 }
                 l_NewList.push_back(tmp);
             }
@@ -115,7 +116,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
             {
                 uint64_t l_LBA_Start = tmp.lba.start;
                 uint64_t l_Start = tmp.start;
-                size_t l_AccumulatedLength2 = 0;
+                l_AccumulatedLength2 = 0;
                 bool l_PushExtent = false;
                 while (l_Length)
                 {
@@ -160,7 +161,7 @@ int BBLV_ExtentInfo::addExtents(const LVKey* pLVKey, const uint64_t pHandle, con
                 }
             }
         }
-        tmp.flags |= BBI_Last_Extent;
+        processLastExtent(tmp, l_AccumulatedLength+l_AccumulatedLength2, pStats);
         l_NewList.push_back(tmp);
 
         if (!rc)
@@ -605,6 +606,23 @@ int BBLV_ExtentInfo::moreInFlightExtentsForTransferDefinition(const uint64_t pHa
     }
 
     return rc;
+}
+
+void BBLV_ExtentInfo::processLastExtent(Extent& pExtent, size_t pAccumulatedLength, vector<struct stat*>* pStats) {
+    pExtent.flags |= BBI_Last_Extent;
+    if ((pExtent.flags & BBI_TargetPFS) && pExtent.isRegularExtent() &&
+        (pAccumulatedLength < (size_t)((*pStats)[pExtent.sourceindex])->st_size))
+    {
+        // NOTE: Anytime we will transfer less bytes than the source file on the SSD
+        //       we turn on the sparse file indicator.  This will cause a final
+        //       ftruncate for the target file of the source file size.  We wouldn't
+        //       have to do the ftruncate if we actually transferred bytes right
+        //       up to the end of the file, but we don't currently optimize for
+        //       that case.
+        pExtent.flags |= BBI_Sparse_File;
+    }
+
+    return;
 }
 
 void BBLV_ExtentInfo::removeExtent(const Extent* pExtent) {

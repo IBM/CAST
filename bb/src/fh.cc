@@ -595,7 +595,7 @@ int filehandle::setsize(size_t newsize)
     if(rc)
     {
         LOG(bb,error) << filename << " fstat failed.  errno=" << errno;
-        throw runtime_error(string("fstat failed in filehandke::setsize.  errno=") + to_string(errno));
+        throw runtime_error(string("fstat failed in filehandle::setsize.  errno=") + to_string(errno));
     }
     LOG(bb,debug) << "Target file " << filename << ", fstat size=" << getsize() << ", fd=" << fd;
 
