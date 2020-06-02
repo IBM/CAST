@@ -2,7 +2,7 @@
 --
 --   csm_create_tables.sql
 --
--- © Copyright IBM Corporation 2015-2019. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2020. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,12 +15,12 @@
 
 --===============================================================================
 --   usage:             run ./csm_db_script.sh <----- to create the csm_db with tables
---   current_version:   18.0
+--   current_version:   19.0
 --   create:            12-14-2015
---   last modified:     04-14-2020
+--   last modified:     06-01-2020
 --   change log:
---   18.0   Removed the indexes related to the ctid from the history tables as it's not recognized and needed in postgreSQl 10.6
---          Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
+--   19.0   Removed the indexes related to the ctid from the history tables as it's not recognized and needed in postgreSQl 10.6
+--   18.0   Added core_blink (boolean) field to the csm_allocation and csm_allocation_history tables with comments.
 --          Added in type and fw_version to the csm_switch_inventory and csm_inventory_history tables with comments.
 --          Additional descriptions that have been updated include the following fields in the csm_step_history table:
 --              cpu_stats            - 'statistics gathered from the CPU for the step.';

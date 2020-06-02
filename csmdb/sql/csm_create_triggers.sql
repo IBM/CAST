@@ -2,7 +2,7 @@
 --
 --   csm_create_triggers.sql
 --
--- © Copyright IBM Corporation 2015-2019. All Rights Reserved
+-- © Copyright IBM Corporation 2015-2020. All Rights Reserved
 --
 --   This program is licensed under the terms of the Eclipse Public License
 --   v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,11 @@
 
 --===============================================================================
 --   usage:                 run ./csm_db_script.sh <----- to create the csm_db with triggers
---   current_version:       18.0
+--   current_version:       19.0
 --   create:                06-22-2016
---   last modified:         05-20-2019
+--   last modified:         06-01-2020
 --   change log:
+--     19.0   - Moving this version to sync with DB schema version
 --     18.0   - Moving this version to sync with DB schema version
 --            - Updated the fn_csm_switch_attributes_query_details function
 --            - Updated the fn_csm_switch_inventory_history_dump function (added in type and fw_version)
