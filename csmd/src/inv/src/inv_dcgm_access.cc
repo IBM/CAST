@@ -118,7 +118,7 @@ csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
      rc = (*dcgmDisconnect_ptr)(dcgm_handle);
      if (rc != DCGM_ST_OK)
      {
-        LOG(csmd, error) << "Error: dcgmDisconnect returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmd, error) << "Error: dcgmDisconnect returned " << rc;
      } else {
         LOG(csmd, debug) << "dcgmDisconnect was successful";
      }
@@ -126,7 +126,7 @@ csm::daemon::INV_DCGM_ACCESS::~INV_DCGM_ACCESS()
      rc = (*dcgmShutdown_ptr)();
      if (rc != DCGM_ST_OK)
      {
-	LOG(csmd, error) << "Error: dcgmShutdown returned \"" << errorString(rc) << "(" << rc << ")\"";
+	LOG(csmd, error) << "Error: dcgmShutdown returned " << rc;
      } else {
         LOG(csmd, debug) << "dcgmShutdown was successful";
      }
@@ -219,7 +219,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     rc = (*dcgmInit_ptr)();
     if (rc != DCGM_ST_OK)
     {
-	LOG(csmd, error) << "Error: dcgmInit returned \"" << errorString(rc) << "(" << rc << ")\"";
+	LOG(csmd, error) << "Error: dcgmInit returned " << rc;
         dcgm_init_flag = false;
         return;
     } else {
@@ -231,7 +231,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     free( ipAddress) ;
     if (rc != DCGM_ST_OK)
     {
-        LOG(csmd, error) << "Error: dcgmConnect returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmd, error) << "Error: dcgmConnect returned " << rc;
         dcgm_init_flag = false;
         return;
     } else {
@@ -241,7 +241,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     rc = (*dcgmGetAllDevices_ptr)(dcgm_handle, gpu_ids, &dcgm_gpu_count);
     if (rc != DCGM_ST_OK)
     {
-	LOG(csmd, error) << "Error: dcgmGetAllDevices returned \"" << errorString(rc) << "(" << rc << ")\"";
+	LOG(csmd, error) << "Error: dcgmGetAllDevices returned " << rc;
         dcgm_init_flag = false;
         return;
     } else {
@@ -325,7 +325,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
       max_keep_age, max_keep_samples);
     if (rc != DCGM_ST_OK)
     {
-        LOG(csmenv, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmenv, error) << "Error: dcgmWatchFields returned " << rc;
         dcgm_init_flag = false;
         return;
     }
@@ -338,7 +338,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     rc = (*dcgmWatchJobFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, update_frequency, max_keep_age, max_keep_samples);
     if (rc != DCGM_ST_OK)
     {
-        LOG(csmenv, error) << "Error: dcgmWatchJobFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmenv, error) << "Error: dcgmWatchJobFields returned " << rc;
         dcgm_init_flag = false;
         return;
     }
@@ -373,7 +373,7 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
     if (rc != DCGM_ST_OK)
     {
-        LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned " << rc;
         dcgm_init_flag = false;
         return;
     }
@@ -704,7 +704,7 @@ bool csm::daemon::INV_DCGM_ACCESS::GetGPUsAttributes(){
     if (rc != DCGM_ST_OK)
     {
 	// the get gpu attributes for this gpu failed
-        LOG(csmd, error) << "Error: dcgmGetDeviceAttributes for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
+        LOG(csmd, error) << "Error: dcgmGetDeviceAttributes for gpu_id=" << gpu_ids[i] << " returned " << rc;
         return false;
 
     }
@@ -747,7 +747,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
       rc = (*dcgmWatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_allocation_field_group_handle, update_frequency, max_keep_age, max_keep_samples);
       if (rc != DCGM_ST_OK)
       {
-         LOG(csmenv, error) << "Error: dcgmWatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+         LOG(csmenv, error) << "Error: dcgmWatchFields returned " << rc;
          return false;
       }
       else 
@@ -761,7 +761,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
       rc = (*dcgmUpdateAllFields_ptr)(dcgm_handle, 1);
       if (rc != DCGM_ST_OK)
       {
-         LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+         LOG(csmenv, error) << "Error: dcgmUpdateAllFields returned " << rc;
          return false;
       }
 
@@ -774,7 +774,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
          rc = (*dcgmGetLatestValuesForFields_ptr)(dcgm_handle, gpu_ids[i], CSM_ALLOCATION_FIELDS, CSM_ALLOCATION_FIELD_COUNT, csm_allocation_field_values);
          if (rc != DCGM_ST_OK)
          {
-            LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
+            LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned " << rc;
             return false;
          }
          else
@@ -807,7 +807,7 @@ bool csm::daemon::INV_DCGM_ACCESS::ReadAllocationFields()
       rc = (*dcgmUnwatchFields_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_allocation_field_group_handle);
       if (rc != DCGM_ST_OK)
       {
-         LOG(csmenv, error) << "Error: dcgmUnwatchFields returned \"" << errorString(rc) << "(" << rc << ")\"";
+         LOG(csmenv, error) << "Error: dcgmUnwatchFields returned " << rc;
       }
       else 
       {
@@ -852,7 +852,7 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
          csm_environmental_field_values);
       if (rc != DCGM_ST_OK)
       {
-         LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned \"" << errorString(rc) << "(" << rc << ")\"";
+         LOG(csmenv, error) << "Error: dcgmGetLatestValuesForFields for gpu_id=" << gpu_ids[i] << " returned " << rc;
          return false;
       }
       else
@@ -954,7 +954,7 @@ bool csm::daemon::INV_DCGM_ACCESS::StartAllocationStats(const int64_t &i_allocat
    rc = (*dcgmJobStartStats_ptr)(dcgm_handle, (dcgmGpuGrp_t) DCGM_GROUP_ALL_GPUS, csm_job_stats_name);
    if (rc != DCGM_ST_OK)
    {
-      LOG(csmenv, error) << "Error: dcgmJobStartStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      LOG(csmenv, error) << "Error: dcgmJobStartStats returned " << rc;
       return false;
    }
    else 
@@ -987,7 +987,7 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
    rc = (*dcgmJobStopStats_ptr)(dcgm_handle, csm_job_stats_name);
    if (rc != DCGM_ST_OK)
    {
-      LOG(csmenv, error) << "Error: dcgmJobStopStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      LOG(csmenv, error) << "Error: dcgmJobStopStats returned " << rc;
       return false;
    }
    else 
@@ -1001,7 +1001,7 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
    rc = (*dcgmJobGetStats_ptr)(dcgm_handle, csm_job_stats_name, &dcgm_job_stats);
    if (rc != DCGM_ST_OK)
    {
-      LOG(csmenv, error) << "Error: dcgmJobGetStats returned \"" << errorString(rc) << "(" << rc << ")\"";
+      LOG(csmenv, error) << "Error: dcgmJobGetStats returned " << rc;
       return false;
    }
    else 
@@ -1075,7 +1075,7 @@ bool csm::daemon::INV_DCGM_ACCESS::StopAllocationStats(const int64_t &i_allocati
    rc = (*dcgmJobRemove_ptr)(dcgm_handle, csm_job_stats_name);
    if (rc != DCGM_ST_OK)
    {
-      LOG(csmenv, error) << "Error: dcgmJobRemove returned \"" << errorString(rc) << "(" << rc << ")\"";
+      LOG(csmenv, error) << "Error: dcgmJobRemove returned " << rc;
       return false;
    }
    else 
@@ -1121,7 +1121,7 @@ bool csm::daemon::INV_DCGM_ACCESS::CreateCsmFieldGroup(const uint32_t field_coun
    rc = (*dcgmFieldGroupCreate_ptr)(dcgm_handle, field_count, fields, field_group_name, field_group_handle);
    if (rc != DCGM_ST_OK)
    {
-      LOG(csmenv, error) << "Error: dcgmFieldGroupCreate returned \"" << errorString(rc) << "(" << rc << ")\"";
+      LOG(csmenv, error) << "Error: dcgmFieldGroupCreate returned " << rc;
       return false;
    }
    else 
