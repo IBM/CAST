@@ -1,9 +1,9 @@
 #!/bin/bash
 #--------------------------------------------------------------------------------
 #
-#    csm_db_schema_version_upgrade_18_0.sh
+#    csm_db_schema_version_upgrade_19_0.sh
 #
-#  © Copyright IBM Corporation 2019. All Rights Reserved
+#  © Copyright IBM Corporation 2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -17,9 +17,9 @@
 #--------------------------------------------------------------------------------
 #   usage:              ./csm_db_schema_version_upgrade_18_0.sh
 #   current_version:    01.0
-#   migration_version:  18.0 # <--------example version after the DB upgrade
-#   create:             04-29-2019
-#   last modified:      06-03-2019
+#   migration_version:  19.0 # <--------example version after the DB upgrade
+#   create:             06-01-2020
+#   last modified:      06-01-2020
 #--------------------------------------------------------------------------------
 
 #set -x
@@ -72,14 +72,16 @@ upgrade_16_0="16.0"
 upgrade_16_1="16.1"
 upgrade_16_2="16.2"
 upgrade_17_0="17.0"
-required_pre_migration="17.0"
-migration_db_version="18.0"
+upgrade_18_0="18.0"
+required_pre_migration="18.0"
+migration_db_version="19.0"
 
-from_15_0="$upgrade_15_1, $upgrade_16_0, $upgrade_16_1, $upgrade_16_2, and $upgrade_17_0"
-from_15_1="$upgrade_16_0, $upgrade_16_1, $upgrade_16_2, and $upgrade_17_0"
-from_16_0="$upgrade_16_1, $upgrade_16_2, and $upgrade_17_0"
-from_16_1="$upgrade_16_2, and $upgrade_17_0"
-from_16_2="$upgrade_17_0"
+from_15_0="$upgrade_15_1, $upgrade_16_0, $upgrade_16_1, $upgrade_16_2, $upgrade_17_0, and $upgrade_18_0"
+from_15_1="$upgrade_16_0, $upgrade_16_1, $upgrade_16_2, $upgrade_17_0 and $upgrade_18_0"
+from_16_0="$upgrade_16_1, $upgrade_16_2, $upgrade_17_0 and $upgrade_18_0"
+from_16_1="$upgrade_16_2, $upgrade_17_0, and $upgrade_18_0"
+from_16_2="$upgrade_17_0 and $upgrade_18_0"
+from_17_0="$upgrade_18_0"
 
 csm_db_schema_csv="csm_db_schema_version_data.csv"
 csm_db_schema_version_comp=`awk -F ',' ' NR==2 {print substr($0,0,4)}' $cur_path/$csm_db_schema_csv 2>>/dev/null`
@@ -97,6 +99,7 @@ dbu_16_0="$migration_dir/csm_db_schema_updates_16_0_ms.sql"
 dbu_16_2="$migration_dir/csm_db_schema_updates_16_2_ms.sql"
 dbu_17_0="$migration_dir/csm_db_schema_updates_17_0_ms.sql"
 dbu_18_0="$migration_dir/csm_db_schema_updates_18_0_ms.sql"
+dbu_19_0="$migration_dir/csm_db_schema_updates_19_0_ms.sql"
 
 drop_nd="DROP TYPE IF EXISTS node_details;"
 drop_sd="DROP TYPE IF EXISTS switch_details;"
@@ -159,6 +162,12 @@ THE_END`
 function db_prev_ver_17_0 () {
 db_prev_ver_upgrades_17_0=`psql -v ON_ERROR_STOP=1 -t -U $csmdb_user -d $dbname << THE_END 2>&1
 \i $dbu_17_0
+THE_END`
+}
+
+function db_prev_ver_18_0 () {
+db_prev_ver_upgrades_18_0=`psql -v ON_ERROR_STOP=1 -t -U $csmdb_user -d $dbname << THE_END 2>&1
+\i $dbu_18_0
 THE_END`
 }
 
@@ -401,8 +410,8 @@ fi
 if [[ $(bc <<< "${version}") < "$ga_version" ]]; then
     echo "[Error   ] The database migration script does not support versions below $ga_version"
     LogMsg "[Error   ] The database migration script does not support versions below $ga_version"
-    echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2, 17.0"
-    LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2, 17.0"
+    echo "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2, 17.0, 18.0"
+    LogMsg "[Info    ] Required DB schema version 15.0, 15.1, 16.0, 16.1, 16.2, 17.0, 18.0"
     LogMsg "${line2_log}"
     LogMsg "[End     ] Exiting $0 script"
     echo "${line1_out}"
@@ -544,7 +553,7 @@ fi
 # in the directory
 #------------------------------------------------------------------------
 
-if [ ! -f $dtf ] && [ -f $dbu_16_0 ] && [ -f $dbu_16_2 ] && [ -f $dbu_17_0 ] && [ -f $dbu_18_0  ]; then 2>>/dev/null
+if [ ! -f $dtf ] && [ -f $dbu_16_0 ] && [ -f $dbu_16_2 ] && [ -f $dbu_17_0 ] && [ -f $dbu_18_0  ] && [ -f $dbu_19_0  ]; then 2>>/dev/null
     echo "[Error   ] Cannot perform action because the migration files may not exist."
     LogMsg "[Error   ] Cannot perform action because the migration files may not exist."
     LogMsg "${line2_log}"
@@ -591,6 +600,10 @@ if [[ $(bc <<< "${version}") < "$migration_db_version" ]]; then
         LogMsg "[Info    ] This includes versions $from_16_2"
         echo "[Warning ] Do you want to continue [y/n]?:"
     elif [[ $(bc <<< "${version}") == 17.0 ]]; then
+        echo "[Info    ] This includes version $from_17_0"
+        LogMsg "[Info    ] This includes versions $from_17_0"
+        echo "[Warning ] Do you want to continue [y/n]?:"
+    elif [[ $(bc <<< "${version}") == 18.0 ]]; then
         echo "[Warning ] This will migrate $dbname database to schema version $migration_db_version. Do you want to continue [y/n]?:"
     fi
 #----------------------------------------------------------
@@ -651,6 +664,7 @@ case $version in
         db_prev_ver_16_0 2>&1
         db_prev_ver_16_2 2>&1
         db_prev_ver_17_0 2>&1
+        db_prev_ver_18_0 2>&1
     
     #------ This checks to see if the db "type" exists if not then it will create it.------#
     if [[ "${db_16_2_check}" -eq 0 ]]; then
@@ -677,6 +691,7 @@ case $version in
         db_prev_ver_16_0 2>&1
         db_prev_ver_16_2 2>&1
         db_prev_ver_17_0 2>&1
+        db_prev_ver_18_0 2>&1
     
     #------ This checks to see if the db "type" exists if not then it will create it.------#
     if [[ "${db_16_2_check}" -eq 0 ]]; then
@@ -702,6 +717,7 @@ case $version in
     $upgrade_16_0) #db_version 16.0
         db_prev_ver_16_2 2>&1
         db_prev_ver_17_0 2>&1
+        db_prev_ver_18_0 2>&1
     
     #------ This checks to see if the db "type" exists if not then it will create it.------#
     if [[ "${db_16_2_check}" -eq 0 ]]; then
@@ -727,6 +743,7 @@ case $version in
     $upgrade_16_1) #db_version 16.1
         db_prev_ver_16_2 2>&1
         db_prev_ver_17_0 2>&1
+        db_prev_ver_18_0 2>&1
     
     #------ This checks to see if the db "type" exists if not then it will create it.------#
     if [[ "${db_16_2_check}" -eq 0 ]]; then
@@ -751,19 +768,65 @@ case $version in
     ;;
     $upgrade_16_2) #db_version 16.2
         db_prev_ver_17_0 2>&1
+        db_prev_ver_18_0 2>&1
+    
+    #------ This checks to see if the db "type" exists if not then it will create it.------#
+    if [[ "${db_16_2_check}" -eq 0 ]]; then
+        db_prev_ver_16_2_type 2>&1
+    fi
+    
+    #------ This checks the return code of the upgrade process if there is a DB error message then this is captured in the log file.------#
+    if [[ $? -ne 0 ]]; then
+         echo "$(db_prev_ver_16_2_type)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+        echo "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        exit 0
+    else
+        echo "[Info    ] ${line4_out}"
+        echo "[Info    ] Migration from $version to $required_pre_migration [Complete]"
+        LogMsg "${line2_log}"
+        LogMsg "[Info    ] Migration from $version to $required_pre_migration [Complete]"
+        LogMsg "${line2_log}"
+    fi
+    ;;
+    $upgrade_17_0) #db_version 17.0
+        db_prev_ver_18_0 2>&1
+    
+    #------ This checks to see if the db "type" exists if not then it will create it.------#
+    if [[ "${db_16_2_check}" -eq 0 ]]; then
+        db_prev_ver_16_2_type 2>&1
+    fi
+    
+    #------ This checks the return code of the upgrade process if there is a DB error message then this is captured in the log file.------#
+    if [[ $? -ne 0 ]]; then
+         echo "$(db_prev_ver_16_2_type)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+        echo "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
+        LogMsg "${line2_log}"
+        LogMsg "[End     ] Exiting $0 script"
+        exit 0
+    else
+        echo "[Info    ] ${line4_out}"
+        echo "[Info    ] Migration from $version to $required_pre_migration [Complete]"
+        LogMsg "${line2_log}"
+        LogMsg "[Info    ] Migration from $version to $required_pre_migration [Complete]"
+        LogMsg "${line2_log}"
+    fi
     ;;
 esac
     
 #------ This checks the return code of the upgrade process if there is a DB error message then this is captured in the log file.------#
 if [[ $? -ne 0 ]]; then
-    echo "$(db_prev_ver_15_1)" "$(db_prev_ver_16_0)" "$(db_prev_ver_16_1)" "$(db_prev_ver_16_2)" "$(db_prev_ver_17_0)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
+    echo "$(db_prev_ver_15_1)" "$(db_prev_ver_16_0)" "$(db_prev_ver_16_1)" "$(db_prev_ver_16_2)" "$(db_prev_ver_17_0)" "$(db_prev_ver_18_0)" |& awk '/^ERROR:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Error   ] DB Message: "'"$0}' >>"${logfile}"
     echo "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
     LogMsg "[Error   ] Cannot perform the upgrade process to $required_pre_migration"
     LogMsg "${line2_log}"
     LogMsg "[End     ] Exiting $0 script"
     exit 0
 else
-     echo "$db_prev_ver_upgrades_action_16_0" "$db_prev_ver_upgrades_action_16_2" "$db_prev_ver_upgrades_17_0" |& awk '/^psql:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Info    ] DB Message: "'"$0}' >>"${logfile}"
+     echo "$db_prev_ver_upgrades_action_16_0" "$db_prev_ver_upgrades_action_16_2" "$db_prev_ver_upgrades_17_0" "$(db_prev_ver_18_0)" |& awk '/^psql:.*$/{$1=""; gsub(/^[ \t]+|[ \t]+$/,""); print "'"$(date '+%Y-%m-%d %H:%M:%S') ($current_user) [Info    ] DB Message: "'"$0}' >>"${logfile}"
 fi
 
 #----------------------------------------------------------
@@ -775,7 +838,7 @@ string2="$now1 ($current_user) [Error   ]"
 string3="$db_query_2"
 
 db_query_2=`psql -v ON_ERROR_STOP=1 -q -t -U $csmdb_user -d $dbname << THE_END 2>&1
-\i $dbu_18_0
+\i $dbu_19_0
 \i $trigger_version
 
 UPDATE csm_db_schema_version

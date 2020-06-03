@@ -2485,9 +2485,9 @@ Functions and Triggers
 
 CSM DB Schema (pdf)
 -------------------
-(CSM DB schema version 18.0):
+(CSM DB schema version 19.0):
 
-.. image:: https://user-images.githubusercontent.com/6536949/58822248-1530f800-8605-11e9-8267-4ec42f0dfef3.jpg
+.. image:: https://user-images.githubusercontent.com/6536949/83457321-3f431300-a42f-11ea-9e5e-e6e893f5112f.jpeg
               :width: 600px
               :height: 500px
               :scale: 100%
