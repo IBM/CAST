@@ -36,7 +36,10 @@
 # CSM GA version:
 # datacenter-gpu-manager-1.4.0-1.ppc64le 
 # datacenter-gpu-manager-1.4.1-1.ppc64le
-set(REQUIRED_DCGM_VERSION "datacenter-gpu-manager-1.6")
+# set(REQUIRED_DCGM_VERSION "datacenter-gpu-manager-1.6")
+# CSM 1.8 version:
+# datacenter-gpu-manager-2.0.4-1.ppc64le
+set(REQUIRED_DCGM_VERSION "datacenter-gpu-manager")
 
 # Check if DCGM is installed
 execute_process(COMMAND "/usr/bin/rpm" "-q" "datacenter-gpu-manager"
