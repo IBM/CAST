@@ -204,7 +204,7 @@ def main():
     ''' Parse the user and system flags supplied to this script. '''
     logger.info( "Prolog script begin." )
 
-    time.sleep(125)    
+    time.sleep(245)    
 
     #: The return code of this script.
     ret_code = 0
