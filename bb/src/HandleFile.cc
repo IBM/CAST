@@ -588,7 +588,6 @@ int HandleFile::get_xbbServerHandleTransferKeys(string& pTransferKeys, const uin
             if(!accessDir(jobstep.path().string()) ) continue;
             bfs::path handledir = jobstep / l_HandleBucketName / l_HandleStr;
             bfs::path handlefile = handledir / ("^" + l_HandleStr);
-            HandleFile* l_HandleFile = 0;
             rc = loadHandleFile(l_HandleFile, handlefile.c_str());
             if (!rc)
             {

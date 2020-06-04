@@ -1063,6 +1063,15 @@ int WRKQMGR::findOffsetToNextAsyncRequest(int &pSeqNbr, int64_t &pOffset)
     while (l_Retry--)
     {
         rc = 0;
+        // NOTE: It is possible that the work queue manager lock or the HP work queue
+        //       lock may be held and we sleep for 6 seconds.  We do not release them
+        //       here, as we do not want to open up windows where we would have to
+        //       re-resolve to metadata objects.
+        //
+        //       It is a very rare case where we would have to sleep here.  If we
+        //       sleep, any processing performed by other threads would not likely cause
+        //       the finding of the offset to the next async request to be any more successful.
+        //       The most likely case where we would go to sleep is some type of glitch in gpfs.
         if (l_Retry < DEFAULT_RETRY_VALUE-1)
         {
             usleep((useconds_t)6000000);     // Retrying...  Delay 6 seconds...
