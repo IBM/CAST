@@ -2730,10 +2730,13 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
 
     try
     {
+        bool l_LogMessage = false;
+        bool l_WarningMessageLogged = false;
         uint64_t l_AttemptsRemaining = ATTEMPTS;
         while (l_AttemptsRemaining--)
         {
             rc = -1;
+            l_LogMessage = false;
             try
             {
                 // NOTE: We used to always check for existance of the datastore, but
@@ -2807,6 +2810,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                         {
                                             // Datastore is not currently a GPFS mount and it is required...
                                             // Simply iterate, delay, and try again...
+                                            l_LogMessage = true;
                                         }
                                     }
                                     else
@@ -2814,6 +2818,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                                         // Error attempting to determine if the datastore directory is a GPFS mount.
                                         // Most likely, a statfs could not be performed for the datastore directory.
                                         // Simply iterate, delay, and try again...
+                                        l_LogMessage = true;
                                     }
                                 }
                                 else
@@ -2828,6 +2833,7 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             {
                                 // Parent directory is not currently a GPFS mount and it is required...
                                 // Simply iterate, delay, and try again...
+                                l_LogMessage = true;
                             }
                         }
                         else
@@ -2835,12 +2841,24 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
                             // Error attempting to determine if the parent directory is a GPFS mount.
                             // Most likely, a statfs could not be performed for the parent directory.
                             // Simply iterate, delay, and try again...
+                            l_LogMessage = true;
                         }
                     }
                     else
                     {
                         // We cannot access the parent directory of the datastore.
                         // Simply iterate, delay, and try again...
+                        l_LogMessage = true;
+                    }
+
+                    if (l_LogMessage)
+                    {
+                        // Log a console message every 30 seconds...
+                        if (!((l_AttemptsRemaining+2)%3))
+                        {
+                            LOG(bb,warning) << "WRKQMGR::verifyAsyncRequestFile(): Could not verify the GPFS metadata location at " << datastore << ". Additional attempts will be made for another " << l_AttemptsRemaining*10 << " seconds...";
+                            l_WarningMessageLogged = true;
+                        }
                     }
                 }
             }
@@ -2864,6 +2882,11 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
         {
             try
             {
+                if (l_WarningMessageLogged)
+                {
+                    LOG(bb,info) << "WRKQMGR::verifyAsyncRequestFile(): Metadata location at " << datastore << " was successfully verified";
+                }
+
                 if (!l_SeqNbr)
                 {
                     l_SeqNbr = 1;
@@ -3066,6 +3089,13 @@ int WRKQMGR::verifyAsyncRequestFile(char* &pAsyncRequestFileName, int &pSeqNbr, 
             }
 
             LOG(bb,debug) << "verifyAsyncRequestFile(): File: " << pAsyncRequestFileName << ", SeqNbr: " << l_SeqNbr << ", Option: " << pMaintenanceOption;
+        }
+        else
+        {
+            // rc already set
+            FL_Write(FLError, bad_metadata, "WRKQMGR::verifyAsyncRequestFile(): Failure occurred related to the metadata or it's location.",0,0,0,0);
+            errorText << "WRKQMGR::verifyAsyncRequestFile(): A previous failure occurred related to the metadata or it's location at " << datastore << ". See previous messages.";
+            LOG_ERROR_TEXT_AND_RAS(errorText, bb.critical.general_error)
         }
     }
     catch(ExceptionBailout& e) { }
