@@ -2921,7 +2921,7 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
     {
         if (rc != -2)
         {
-            LOG(bb, error) << "Failure occurred during StartTransfer.  Removing any opened files for jobid=" << pJobId << "  handle=" << pHandle << "  contrib=" << pContribId;
+            LOG(bb, error) << "Failure occurred during StartTransfer.  Closing any opened files for jobid=" << pJobId << "  handle=" << pHandle << "  contrib=" << pContribId;
         }
 
         FileHandleRegistryLock();
