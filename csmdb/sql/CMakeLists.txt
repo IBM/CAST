@@ -2,7 +2,7 @@
 #
 #    csmdb/sql/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -23,7 +23,7 @@ file(GLOB INSTALL_PROGRAMS
   "csm_db_stats.sh"
   "csm_db_connections_script.sh"
   "csm_db_ras_type_script.sh"
-  "csm_db_schema_version_upgrade_18_0.sh"
+  "csm_db_schema_version_upgrade_19_0.sh"
   "csm_db_backup_script_v1.sh"
   "csm_db_history_archive.py"
   "csm_db_history_delete.py"
