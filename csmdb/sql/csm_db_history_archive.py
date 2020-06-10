@@ -4,7 +4,7 @@
 #   
 #    csm_db_history_archive.py
 # 
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2019. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -17,9 +17,9 @@
 
 #================================================================================
 # usage             ./csm_db_history_archive.py
-# current_version   2.1
+# current_version   2.0
 # date_created:     10-12-2018
-# date_modified:    06-03-2020
+# date_modified:    02-14-2019
 #================================================================================
 
 import psycopg2
@@ -157,17 +157,11 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     (result,) = cursor.fetchall()
     
     ## Update the flagged tables.
-    cursor.execute("WITH m_update AS ( \
-         UPDATE {0} SET archive_history_time  = 'now()' \
-         FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
-         AND {0}.archive_history_time IS NULL \
-         AND {0}.{1} = temp_{0}.{1} \
-         RETURNING * \
-         ) \
-         UPDATE temp_{0} \
-         SET archive_history_time  = 'now()' \
-         FROM m_update".format(table_name,time))
-
+    cursor.execute("UPDATE {0} SET archive_history_time = 'now()' \
+        FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
+        AND {0}.archive_history_time IS NULL \
+        AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
+    
     ## Drop the id from the temp table.
     cursor.execute("ALTER TABLE temp_{0} DROP COLUMN id".format(table_name))
 
