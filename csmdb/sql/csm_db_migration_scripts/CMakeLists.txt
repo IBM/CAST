@@ -2,7 +2,7 @@
 #
 #    csmdb/sql/csm_db_migration_scripts/CMakeLists.txt
 #
-#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -28,5 +28,6 @@ file(GLOB INSTALL_FILES
   "csm_db_schema_updates_16_2_ms.sql"
   "csm_db_schema_updates_17_0_ms.sql"
   "csm_db_schema_updates_18_0_ms.sql"
+  "csm_db_schema_updates_19_0_ms.sql"
 )
 install(FILES ${INSTALL_FILES} COMPONENT ${DB_RPM_NAME} DESTINATION ${DB_BASE_NAME}/${SUBDIR})
