@@ -64,8 +64,17 @@
 
 - hosts:  management
   tasks:
+  - name: Copy nodelist from local host done by nodelist.yml to management node
+    copy:
+        src: /tmp/nodelist
+        dest: /tmp/nodelist-csm
+        owner: root
+        group: root
+        mode: '0644'
+    any_errors_fatal: true 
+
   - name: compute nodes for in service--make csv, remove last comma, remove blanks
-    shell: tr  '\n' ',' < /etc/ibm/nodelist |sed 's/.$/\n/' |sed 's/ //g'
+    shell: tr  '\n' ',' < /tmp/nodelist-csm |sed 's/.$/\n/' |sed 's/ //g'
     register: inservicelist_csv
 
   - debug:
