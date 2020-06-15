@@ -20,6 +20,8 @@ set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 if(${EXPLICIT_PYTHON_VERSION})
    set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python2-psycopg2 >= 2.5.1")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-dateutil >= 2.6.1")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-elasticsearch >= 7.0.5")
 else()
    set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python-psycopg2 >= 2.5.1")
 endif()
