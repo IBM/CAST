@@ -2,7 +2,7 @@
 #   
 #    buckets/BDS/python_scripts.sh
 # 
-#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -44,12 +44,12 @@ echo "------------------------------------------------------------" >> ${LOG}
 
 #Test Case 0 Setup Compute Nodes to "IN_SERVICE":
 ${FVT_PATH}/tools/update_computes_in_service.sh > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Set Compute Nodes to (IN_SERVICE): Calling update_computes_in_service"
+check_return_flag_value $? 0 "Set Compute Nodes to (IN_SERVICE): Calling update_computes_in_service"
 
 rm -f ${TEMP_LOG}
 #Test Case 1 setup:
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "PRE SETUP: Calling csm_allocation_create"
+check_return_flag_value $? 0 "PRE SETUP: Calling csm_allocation_create"
 
 # Grab & Store Allocation ID from csm_allocation_create.log
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
@@ -61,7 +61,7 @@ echo "allocation_id: " $allocation_id >> ${LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobsRunning.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 1 : Calling findJobsRunning.py "
+check_return_flag_value $? 0 "Test Case 1 : Calling findJobsRunning.py "
 
 # Grab & Store number of jobs found from findJobsRunning.py.
 # we will need later for logical tests
@@ -72,9 +72,9 @@ rm -f ${TEMP_LOG}
 
 # Clean Up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Clean up allocation"
+check_return_flag_value $? 0 "Clean up allocation"
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Validating no active allocations"
+check_return_flag_value $? 4 "Validating no active allocations"
 
 rm -f ${TEMP_LOG}
 
@@ -82,7 +82,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobKeys.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 2 : Calling findJobKeys.py "
+check_return_flag_value $? 0 "Test Case 2 : Calling findJobKeys.py "
 
 rm -f ${TEMP_LOG}
 
@@ -90,7 +90,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobMetrics.py -f "host" > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 3 : Calling findJobMetrics.py "
+check_return_flag_value $? 0 "Test Case 3 : Calling findJobMetrics.py "
 
 rm -f ${TEMP_LOG}
 
@@ -98,7 +98,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobMetrics.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 2 "Test Case 3a: Calling findJobMetrics.py without required fields"
+check_return_flag_value $? 2 "Test Case 3a: Calling findJobMetrics.py without required fields"
 
 rm -f ${TEMP_LOG}
 
@@ -106,7 +106,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobsInRange.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 4 : Calling findJobsInRange.py "
+check_return_flag_value $? 0 "Test Case 4 : Calling findJobsInRange.py "
 
 rm -f ${TEMP_LOG}
 
@@ -114,7 +114,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobTimeRange.py -a 1 > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 5 : Calling findJobTimeRange.py "
+check_return_flag_value $? 0 "Test Case 5 : Calling findJobTimeRange.py "
 
 rm -f ${TEMP_LOG}
 
@@ -122,7 +122,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findJobTimeRange.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 2 "Test Case 5a: Calling findJobTimeRange.py without either allocation_id or job_id"
+check_return_flag_value $? 2 "Test Case 5a: Calling findJobTimeRange.py without either allocation_id or job_id"
 
 rm -f ${TEMP_LOG}
 
@@ -130,7 +130,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findUserJobs.py -u "root" > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 6 : Calling findUserJobs.py "
+check_return_flag_value $? 0 "Test Case 6 : Calling findUserJobs.py "
 
 rm -f ${TEMP_LOG}
 
@@ -138,7 +138,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findUserJobs.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 2 "Test Case 6a: Calling findUserJobs.py without required field -u user"
+check_return_flag_value $? 2 "Test Case 6a: Calling findUserJobs.py without required field -u user"
 
 rm -f ${TEMP_LOG}
 
@@ -146,7 +146,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findWeightedErrors.py --errormap "/opt/ibm/csm/bigdata/python/sampleWeightedErrorMap.json" > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 0 "Test Case 7 : Calling findWeightedErrors.py "
+check_return_flag_value $? 0 "Test Case 7 : Calling findWeightedErrors.py "
 
 rm -f ${TEMP_LOG}
 
@@ -154,7 +154,7 @@ rm -f ${TEMP_LOG}
 # switch to csm path later
 /opt/ibm/csm/bigdata/python/findWeightedErrors.py > ${TEMP_LOG} 2>&1
 #echo ${CSM_PATH}
-check_return_exit $? 2 "Test Case 7a: Calling findWeightedErrors.py without --errormap required field"
+check_return_flag_value $? 2 "Test Case 7a: Calling findWeightedErrors.py without --errormap required field"
 
 rm -f ${TEMP_LOG}
 
