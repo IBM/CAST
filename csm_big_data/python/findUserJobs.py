@@ -155,7 +155,7 @@ def main(args):
         print("{0:>{1}} : {2}".format("node", max_width, "common count"))
         
         node_count=int(args.commonnodes)
-        for key,value in sorted( node_collisions.iteritems(), key=lambda (k,v): (v,k), reverse=False):
+        for key,value in sorted( node_collisions.iteritems(), key=lambda k_v: (k_v[1],k_v[0]), reverse=False):
             if int(value) > node_count:
                 collision_found = True
                 print("{0:>{1}} : {2}".format(key, max_width, value))
