@@ -317,7 +317,7 @@ def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=
 
     query={ "bool" : { "should" : [] } }
     
-    if allocation_id > 0 : 
+    if int(allocation_id) > 0 : 
         query={ 
             "bool" : { 
                 "should" : [ 
@@ -325,7 +325,7 @@ def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=
                 ] 
             } 
         }
-    elif primary_job_id > 0 and secondary_job_id >= 0:
+    elif int(primary_job_id) > 0 and int(secondary_job_id) >= 0:
         query={ 
             "bool" : { 
                 "should" : [ 
