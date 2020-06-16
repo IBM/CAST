@@ -1,8 +1,8 @@
 #================================================================================
 #
-#    csm_big_data/castBDS.cmake
+#    csm_big_data/setupRPM.cmake
 #
-#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -20,10 +20,12 @@ set( CPACK_RPM_csm-bds_PRE_UNINSTALL_SCRIPT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/csm_big_data/rpmscripts/cast-bds.pre.uninstall" )
 if(${EXPLICIT_PYTHON_VERSION})
    set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python2-psycopg2 >= 2.5.1")
-   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-dateutil >= 2.6.1")
-   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-elasticsearch >= 7.0.5")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-dateutil >= 1.5")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python3-elasticsearch >= 1.9.0")
 else()
    set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python-psycopg2 >= 2.5.1")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python-dateutil >= 1.5")
+   set(CPACK_RPM_csm-bds_PACKAGE_REQUIRES "python-elasticsearch >= 1.9.0")
 endif()
 
 # Setup Kibana RPM
