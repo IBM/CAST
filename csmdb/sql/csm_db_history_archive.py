@@ -19,7 +19,7 @@
 # usage             ./csm_db_history_archive.py
 # current_version   2.1
 # date_created:     10-12-2018
-# date_modified:    06-03-2020
+# date_modified:    06-15-2020
 #================================================================================
 
 import psycopg2
@@ -160,7 +160,7 @@ def dump_table( db, user, table_name, count, target_dir, is_ras=False ):
     (result,) = cursor.fetchall()
   
     ## Update the flagged tables.
-    cursor.execute("UPDATE {0} SET archive_history_time  = 'now()' \
+    cursor.execute("UPDATE {0} SET archive_history_time  = temp_{0}.archive_history_time \
          FROM temp_{0} WHERE temp_{0}.id = {0}.ctid \
          AND {0}.archive_history_time IS NULL \
          AND {0}.{1} = temp_{0}.{1}".format(table_name,time))
