@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = 'logstash-filter-csm-event-correlator'
   s.version         = "0.1.0"
-  s.licenses = ["Eclipse Public License v1.0"]
+  s.licenses = ["EPL-1.0"]
   s.summary = "A filter for generating RAS events in response to log patterns."
   s.description     = "This gem is a Logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/logstash-plugin install gemname. This gem is not a stand-alone program"
   s.authors = ["John Dunham"]

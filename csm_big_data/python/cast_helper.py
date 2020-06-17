@@ -1,10 +1,10 @@
-#!/usr/bin/python2
+#!/bin/sh
 # encoding: utf-8
 #================================================================================
 #
 #    cast_helper.py
 #
-#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -14,6 +14,15 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 #================================================================================
+
+# The beginning of this script is both valid shell and valid python,
+# such that the script starts with the shell and is reexecuted with
+# the right python.
+#
+# The intent is to run as python3 on RHEL8 and python2 on RHEL7
+#
+'''which' python3 > /dev/null 2>&1 && exec python3 "$0" "$@" || exec python2 "$0" "$@"
+'''
 
 '''
 .. module:: cast_helper
@@ -30,6 +39,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 from elasticsearch import exceptions
 from datetime import datetime
+from functools import reduce
    
 TARGET_ENV='CAST_ELASTIC'
 
@@ -307,7 +317,7 @@ def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=
 
     query={ "bool" : { "should" : [] } }
     
-    if allocation_id > 0 : 
+    if int(allocation_id) > 0 : 
         query={ 
             "bool" : { 
                 "should" : [ 
@@ -315,7 +325,7 @@ def search_job( es, allocation_id=0, primary_job_id=0, secondary_job_id=0, size=
                 ] 
             } 
         }
-    elif primary_job_id > 0 and secondary_job_id >= 0:
+    elif int(primary_job_id) > 0 and int(secondary_job_id) >= 0:
         query={ 
             "bool" : { 
                 "should" : [ 

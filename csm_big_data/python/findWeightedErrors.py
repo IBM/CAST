@@ -1,10 +1,10 @@
-#!/usr/bin/python2
+#!/bin/sh
 # encoding: utf-8
 #================================================================================
 #
 #    findWeightedErrors.py
 #
-#    © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -15,10 +15,17 @@
 #
 #================================================================================
 
+# The beginning of this script is both valid shell and valid python,
+# such that the script starts with the shell and is reexecuted with
+# the right python.
+#
+# The intent is to run as python3 on RHEL8 and python2 on RHEL7
+#
+'''which' python3 > /dev/null 2>&1 && exec python3 "$0" "$@" || exec python2 "$0" "$@"
+'''
 
 import argparse
 import json
-import sets
 import sys
 import os
 
@@ -235,8 +242,8 @@ def main(args):
 
     print(" ")
     # Print the results.
-    for category, response in sorted(results.iteritems(), 
-            key=lambda (k, v): cast.deep_get( v, "hits", "max_score" ), reverse=True ):
+    for category, response in sorted(results.iteritems(),
+            key=lambda k_v1: cast.deep_get( k_v1[1], "hits", "max_score" ), reverse=True ):
 
         # Get aggregations. 
         aggregations = response.get("aggregations", [])
@@ -249,7 +256,7 @@ def main(args):
         if aggregations is not None:
             # Sort aggregations by document count.
             for (aggregation,value) in sorted(aggregations.iteritems(), 
-                    key=lambda (k, v): v.get("doc_count"), reverse=True):
+                    key=lambda k_v2: k_v2[1].get("doc_count"), reverse=True):
                 print("  \"{0}\" : {1}".format( aggregation, value.get("doc_count") ) ) 
 
         if args.verbose:
