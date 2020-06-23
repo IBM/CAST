@@ -62,6 +62,9 @@
     when: csmdcompute_service_result.rc != 0  
     any_errors_fatal: true 
 
+  - pause:
+      seconds: 10  
+
 - hosts:  management
   tasks:
   - name: Copy nodelist from local host done by nodelist.yml to management node
