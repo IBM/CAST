@@ -208,9 +208,12 @@ int FL_CreateRegistry(FlightRecorderRegistry_t** reghandle, const char* name, co
 #ifdef __linux__
 	char buffer[1024];
 	FILE* fdbootid = fopen("/proc/sys/kernel/random/boot_id", "r");
-	fgets(buffer, sizeof(buffer), fdbootid);
-	bootid = strtoul(buffer, NULL, 16);
-	fclose(fdbootid);
+	if(fdbootid != NULL)
+	{
+		fgets(buffer, sizeof(buffer), fdbootid);
+		bootid = strtoul(buffer, NULL, 16);
+		fclose(fdbootid);
+	}
 #endif
 
 	if(doRegistrySetup == 0)

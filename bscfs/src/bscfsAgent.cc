@@ -296,11 +296,20 @@ int main (int argc, char **argv)
 	fprintf(stderr, "Error loading configuration\n");
 	exit(-1);
     }
-    std::string filelogpath = config.get("bb.bscfsagent.log.fileLog", "none");
-    if(filelogpath == std::string("BBPATH"))
+    try 
     {
-        config.put("bb.bscfsagent.log.fileLog", std::string(bscfs_data.bb_path) + std::string("/bscfs.log"));
+        std::string filelogpath = config.get("bb.bscfsagent.log.fileLog", "none");
+        if(filelogpath == std::string("BBPATH"))
+        {
+            config.put("bb.bscfsagent.log.fileLog", std::string(bscfs_data.bb_path) + std::string("/bscfs.log"));
+        }
     }
+    catch(std::exception& e)
+    {
+        LOG(bscfsagent,error) << "Exception getting fileLog config: " << e.what();
+        exit(-1);
+    }
+
     initializeLogging("bb.bscfsagent.log", config);
     LOG(bscfsagent,info)
 	<< "\nbscfsAgent starting, with these parameters:"
@@ -319,13 +328,14 @@ int main (int argc, char **argv)
 	<< "\n";
 
     std::string fl;
-    try {
-	fl = config.get("bb.bscfsagent.flightlog", "none");
+    try 
+    {
+        fl = config.get("bb.bscfsagent.flightlog", "none");
     }
     catch(std::exception& e)
     {
-	LOG(bscfsagent,error) << "Exception getting flightlog config: " << e.what();
-	exit(-1);
+        LOG(bscfsagent,error) << "Exception getting flightlog config: " << e.what();
+        exit(-1);
     }
     int rc = FL_CreateAll(fl.c_str());
     if (rc != 0) {
