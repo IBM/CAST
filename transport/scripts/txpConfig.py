@@ -268,9 +268,9 @@ ATTRIBUTE_NAMES =  ('arg',
 # NOTE:  The developer must ensure that the attribute name being added is NOT in the
 #        ATTRIBUTE_NAMES_NOT_SUPPORTED list.
 ATTRIBUTE_NAMES_TO_ADD =   {
-                                'synccount':222,
-                                'synctime':223,
-                                'timeBaseScale':224,
+                                'synccount':4096,
+                                'synctime':4097,
+                                'timeBaseScale':4098,
                            }
 
 # NOTE:  Add new CORAL message ids to either the end of the CORAL_ section or the end of the BB_ section
