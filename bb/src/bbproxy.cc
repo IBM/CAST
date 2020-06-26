@@ -3660,7 +3660,12 @@ void msgin_all_file_transfers_complete(txp::Id id, const string& pConnectionName
     // for the job associated with a logical volume...
 
     uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
-    uint64_t l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    uint64_t l_TimeBaseScale = 1;
+    if (msg->retrieveAttrs()->find(txp::timeBaseScale) != msg->retrieveAttrs()->end() )
+    {
+        l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    }
+    
     Uuid lv_uuid = Uuid((char*)(msg->retrieveAttrs()->at(txp::uuid)->getDataPtr()));
     char l_DevName[1024] = {'\0'};
     getLogicalVolumeDevName(lv_uuid, l_DevName, sizeof(l_DevName));
@@ -3685,7 +3690,12 @@ void msgin_all_file_transfers_complete_for_contribid(txp::Id id, const string& p
     uint32_t l_ContribId = ((txp::Attr_uint32*)msg->retrieveAttrs()->at(txp::contribid))->getData();
     uint64_t l_TotalProcessingTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalProcessingTime))->getData();
     uint64_t l_TotalTransferSize = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::totalTransferSize))->getData();
-    uint64_t l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    uint64_t l_TimeBaseScale = 1;
+    if (msg->retrieveAttrs()->find(txp::timeBaseScale) != msg->retrieveAttrs()->end() )
+    {
+        l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    }
+
     BBSTATUS l_Status = (BBSTATUS)((txp::Attr_int64*)msg->retrieveAttrs()->at(txp::status))->getData();
     char l_StatusStr[64] = {'\0'};
     getStrFromBBStatus(l_Status, l_StatusStr, sizeof(l_StatusStr));
@@ -3748,9 +3758,13 @@ void msgin_file_transfer_complete_for_file(txp::Id id, const string& pConnection
     uint64_t l_ReadTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::readtime))->getData();
     uint64_t l_WriteCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writecount))->getData();
     uint64_t l_WriteTime = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::writetime))->getData();
-    uint64_t l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    uint64_t l_TimeBaseScale = 1;
     uint64_t l_SyncCount = 0;
     uint64_t l_SyncTime = 0;
+    if (msg->retrieveAttrs()->find(txp::timeBaseScale) != msg->retrieveAttrs()->end() )
+    {
+        l_TimeBaseScale = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::timeBaseScale))->getData();
+    }
     if (msg->retrieveAttrs()->find(txp::synccount) != msg->retrieveAttrs()->end() ){
        l_SyncCount = ((txp::Attr_uint64*)msg->retrieveAttrs()->at(txp::synccount))->getData();
     }
