@@ -745,6 +745,7 @@ RDMACMfship::waitForConnectRequest()
          lidStruct* dataArea =  (lidStruct * )conn->private_data;
          if (_dlidList) {
             delete [] _dlidList;
+            _dlidList = NULL;
          }
          _dlidNum = dataArea->numLids;
          LOG(txp,always)<<"dataArea.numLids="<<dataArea->numLids;
@@ -1042,6 +1043,7 @@ if (conn->private_data_len){
          lidStruct* dataArea =  (lidStruct * )conn->private_data;
          if (_dlidList) {
             delete [] _dlidList;
+            _dlidList = NULL;
          }
          _dlidNum = dataArea->numLids;
          LOG(txp,always)<<"dataArea.numLids="<<dataArea->numLids;
