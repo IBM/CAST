@@ -41,17 +41,26 @@
         return 0;
     }
 
-    int GrabStderr::getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const{
+    int GrabStderr::getStdErrBuffer(char* pBuffer,const size_t pBuffSize) const
+    {
         pBuffer[0]=0;
         int rc=this->error();
         if (rc) return rc; //-errno
-        if (stderrPipeFD[0] != -1){
-            int buffEnd=read(stderrPipeFD[0],pBuffer,pBuffSize-1);
-            if (buffEnd != -1) {
+        if (stderrPipeFD[0] != -1)
+        {
+            int buffEnd=read(stderrPipeFD[0],pBuffer,pBuffSize-2);
+            pBuffer[pBuffSize-1] = 0;
+            if (buffEnd >= 0) 
+            {
                 pBuffer[buffEnd]=0;
                 return buffEnd;
             }
-            else return -errno;
+            else
+            {
+                if(errno==0) 
+                    return -999;
+                return -errno;
+            }
         }
         return 0;
     }
