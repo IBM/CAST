@@ -136,7 +136,7 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__SOURCEROOT__='\"${CMAKE_SOURCE_DIR}\"'")
 
 # Define __FILENAME__ which gets evaluated to the short file name ("main.cc") for each source file
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(<F)\"'")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMPI_SKIP_MPICXX=1 -D__FILENAME__='\"$(<F)\"'")
 
 if(${VERBOSE_COMPILE})
   add_definitions(-v)
