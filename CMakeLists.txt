@@ -44,7 +44,12 @@ execute_process(
   OUTPUT_VARIABLE tmp_COMMITDATE
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
+execute_process(
+  COMMAND rpm -qa
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE RPMLIST
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 message("GIT commit: ${tmp_GITCOMMITID}")
 message("Build time: ${tmp_BUILDTIME}")
@@ -100,7 +105,7 @@ list(REMOVE_ITEM TOPLEVELS ${DOUT})
 set(CMAKE_C_FLAGS   "-g -Wall -Werror -m64 -fPIC")
 set(CMAKE_CXX_FLAGS "-g -Wall -Werror -m64 -fPIC -std=c++11")
 
-if(${CMAKE_SYSTEM} STRGREATER "Linux-4.15")
+if(RPMLIST MATCHES "boost-python3")
   set(EXPLICIT_PYTHON_VERSION 1)
 else()
   set(EXPLICIT_PYTHON_VERSION 0)
