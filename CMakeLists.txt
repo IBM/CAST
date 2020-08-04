@@ -3,7 +3,7 @@ project (ibm)
 
 set(BUILDID_RELEASE    1)
 set(BUILDID_CUMULFIXID 8)
-set(BUILDID_EFIXID     0)
+set(BUILDID_EFIXID     1)
 
 execute_process(
   COMMAND git rev-list --count HEAD
