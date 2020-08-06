@@ -2,7 +2,7 @@
 
     csmi/src/wm/cmd/allocation_step_end.c
 
-  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
 	
 	/*Set up test data*/
     API_PARAMETER_INPUT_TYPE input;
+	csm_init_struct(API_PARAMETER_INPUT_TYPE, input);
 	csm_init_struct_ptr(csmi_allocation_step_history_t, input.history);
 	
 	/*Variables for checking cmd line args*/
