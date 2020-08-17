@@ -2,7 +2,7 @@
    
     csmd/src/inv/src/inv_ssd_inventory.cc
 
-  © Copyright IBM Corporation 2017-2019. All Rights Reserved
+  © Copyright IBM Corporation 2017-2020. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -96,8 +96,10 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
     fields.push_back("model");
     
     // size in 512 byte blocks:
-    // cat /sys/class/nvme/nvme0/nvme0n1/size
-    // 3125627568
+    // RHEL7: cat /sys/class/nvme/nvme0/nvme0n1/size
+    //        3125627568
+    // RHEL8: cat /sys/class/nvme/nvme0/nvme0c0n1/size
+    //        3125627568
     // Note: this is always the count of 512 byte blocks irrespective of the actual block size in use.
     //
     // size in bytes:
@@ -105,7 +107,10 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
     // SIZE="1600321314816"
     //
     // 3125627568 * 512 = 1600321314816
+    // Try to find the size information using both the RHEL7 and RHEL8 naming conventions, use whichever is found
+    bool found_size(false);
     fields.push_back("nvme0n1/size");
+    fields.push_back("nvme0c0n1/size");
  
     // Attempt to collect the value associated with each field for each ssd
     for (std::list<string>::iterator field_itr = fields.begin(); field_itr != fields.end(); field_itr++) 
@@ -129,7 +134,7 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
       {
         setSsdInventoryValue(*field_itr, value, ssd_inventory[i].device_name, CSM_SSD_DEVICE_NAME_MAX, verbose);
       }
-      else if (*field_itr == "nvme0n1/size")
+      else if ((*field_itr == "nvme0n1/size") || (*field_itr == "nvme0c0n1/size"))
       {
         int64_t blocks(0);
         istringstream blocks_in(value);        
@@ -149,10 +154,11 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
             LOG(csmd, debug) << "size (in bytes) = " << size;
           }
           ssd_inventory[i].size = size;
+          found_size = true;
         }
         else
         {
-          LOG(csmd, error) << "Error: could not determine size";
+          LOG(csmd, debug) << *field_itr << " not found, trying alternate name";
         }
       }
       else
@@ -160,6 +166,11 @@ bool GetSsdInventory(csm_ssd_inventory_t ssd_inventory[CSM_SSD_MAX_DEVICES], uin
         LOG(csmd, error) << "Error: unhandled field " << *field_itr;
       }
     } 
+
+    if (found_size == false)
+    {
+      LOG(csmd, error) << "Error: could not determine SSD size";
+    }
 
     // Get the pci_bus_id information
     // ls -l /sys/class/nvme/nvme0/
