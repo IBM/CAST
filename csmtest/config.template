@@ -21,6 +21,7 @@ export AGGREGATOR_B=
 export COMPUTE_NODES=
 export SINGLE_COMPUTE=
 export UFM_ADDR=
+export XCATMN_IP=
 export LOGSTASH=
 
 # Users
