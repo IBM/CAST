@@ -28,7 +28,7 @@ fi
 LOG=${LOG_PATH}/buckets/basic/bb.log
 TEMP_LOG=${LOG_PATH}/buckets/basic/bb_tmp.log
 FLAG_LOG=${LOG_PATH}/buckets/basic/bb_flags.log
-SQL_FILE=${SQL_DIR}/ssd.sql
+#SQL_FILE=${SQL_DIR}/ssd.sql
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
@@ -44,7 +44,7 @@ date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
 # Test Case 1: Adding ssd dummy data in to csmdb
-su -c "psql -d csmdb -f ${SQL_FILE}" postgres > ${TEMP_LOG} 2>&1
+su -c "psql -d csmdb -c \"INSERT INTO csm_ssd (serial_number, node_name, update_time, size, wear_lifespan_used, wear_total_bytes_written, wear_total_bytes_read, wear_percent_spares_remaining) VALUES('ssd_01','${SINGLE_COMPUTE}','now',500,1,1,1,1) ;\"" postgres > ${TEMP_LOG}
 su -c "psql -d csmdb -c 'select * from csm_ssd ;'" postgres | grep ssd_01 >> ${TEMP_LOG}
 check_return_exit $? 0 "Test Case 1: Adding ssd dummy data in to csmdb"
 
