@@ -119,7 +119,7 @@ fi
 ping -c1 $XCATMN > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then 
-    echo "[Error   ] The XCATMN address: $XCATMN is not reacable or is not defined properly."
+    echo "[Error   ] The XCATMN address: $XCATMN is not reachable or is not defined properly."
     echo "[Info    ] Please check the $FVT_PATH/csm_test.cfg for details."
     echo "${line1_out}"
     exit 0
