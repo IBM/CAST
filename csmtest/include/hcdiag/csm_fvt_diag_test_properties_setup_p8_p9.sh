@@ -212,7 +212,7 @@ fi
 # Check to ensure the return count is not -gt 1.
 # Find the pattern in the test.properties file to replace.
 #-------------------------------------------------------------
-smt_set=`xdsh $COMPUTE_NODES "/usr/sbin/ppc64_cpu --smt | cut -d '=' -f2" | xcoll | grep -v csm_comp | grep -v ==================================== | grep -v "No route to host" | awk 'NR>1 {print last} {last=$0}'`
+smt_set=`xdsh $COMPUTE_NODES "/usr/sbin/ppc64_cpu --smt | cut -d '=' -f2" | xcoll | grep -v csm_comp | grep -v ==================================== | grep -v "No route to host" | grep -v compute | awk 'NR>1 {print last} {last=$0}'`
 wc_smt_set=$(echo -n $smt_set | wc -w)
 smt_tp_file=`grep -A 3 "\[tests.chk-smt\\b" $ORIG_FILE | awk 'FNR == 4 {print}' | awk '{ print $3}'`
 
