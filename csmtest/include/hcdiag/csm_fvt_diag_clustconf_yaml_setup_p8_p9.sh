@@ -26,7 +26,7 @@ function usage () {
 echo "#--------------------------------------------------------------------------------"
 echo "# Helper script for setting up some of the specific"
 echo "# CSM FVT Regression related to the HCDiag test cases for the clustconf.yaml file."
-echo "# This script is designed to be executed on an XCAT managment node within the"
+echo "# This script is designed to be executed on an XCAT management node within the"
 echo "# /CAST/csmtest/include/hcdiag directory."
 echo "# *** The XCAT daemon also has to be active.***"
 echo "# XCATMN variable also needs to be defined in the /CAST/csmtest/csm_test.cfg file"
