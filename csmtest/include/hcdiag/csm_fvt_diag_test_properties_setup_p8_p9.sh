@@ -157,21 +157,21 @@ FILE=$TEMP_DIR/test.properties
 xdsh $XCATMN "systemctl is-active xcatd" > /dev/null 2>&1
 
     if [ $? -ne 0 ]; then
-            #echo "${line1_out}"
-            echo "[Error   ] XCAT daemon is not running."
-            echo "${line1_out}"
-	    echo "[Info    ] 1. Make sure XCAT is installed. (Check the xCAT version: lsxcatd -a)"
-            echo "[Info    ] 2. Check the service of the XCAT daemon on the XCAT management node."
-	    echo "[Info    ]    run: systemctl status xcatd"
-	    echo "[Info    ] 3. If the XCAT daemon is down, then the user can try to start the service."
-            echo "[Info    ]    run: systemctl start xcatd"
-            echo "[Info    ] 4. If none of the solutions above work then:"
-            echo "[Info    ]    a. try installing XCAT"
-            echo "[Info    ]    b. contact a system admin"
-            echo "[Info    ]    c. contact an XCAT team member."
-            echo "${line1_out}"
-            rm -rf $TEMP_DIR/*
-            exit 0
+        #echo "${line1_out}"
+        echo "[Error   ] XCAT daemon is not running."
+        echo "${line1_out}"
+        echo "[Info    ] 1. Make sure XCAT is installed. (Check the xCAT version: lsxcatd -a)"
+        echo "[Info    ] 2. Check the service of the XCAT daemon on the XCAT management node."
+        echo "[Info    ]    run: systemctl status xcatd"
+        echo "[Info    ] 3. If the XCAT daemon is down, then the user can try to start the service."
+        echo "[Info    ]    run: systemctl start xcatd"
+        echo "[Info    ] 4. If none of the solutions above work then:"
+        echo "[Info    ]    a. try installing XCAT"
+        echo "[Info    ]    b. contact a system admin"
+        echo "[Info    ]    c. contact an XCAT team member."
+        echo "${line1_out}"
+        rm -rf $TEMP_DIR/*
+        exit 0
     fi
 
 #------------------------------------------
