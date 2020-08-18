@@ -28,7 +28,7 @@ echo "#-------------------------------------------------------------------------
 echo "# Helper script to allow XCAT commands to be executable on non"
 echo "# XCAT management nodes (CSM MASTER NODE)"
 echo "# *** The XCAT daemon also has to be active.***"
-echo "# XCATMN & XCATMN_IP variable also needs to be defined in the"
+echo "# XCATMN variable also needs to be defined in the"
 echo "# /CAST/csmtest/csm_test.cfg file"
 echo "# This script is to be executed by the root user"
 echo "#--------------------------------------------------------------------------------"
@@ -116,10 +116,10 @@ fi
 # Check to see if the IP Adress is available in the
 # csm_test.cfg file.
 #------------------------------------------------------------
-ping -c1 $XCATMN_IP > /dev/null 2>&1
+ping -c1 $XCATMN > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then 
-    echo "[Error   ] The XCATMN_IP address: $XCATMN_IP is not reacable or is not defined properly."
+    echo "[Error   ] The XCATMN address: $XCATMN is not reacable or is not defined properly."
     echo "[Info    ] Please check the $FVT_PATH/csm_test.cfg for details."
     echo "${line1_out}"
     exit 0
@@ -228,7 +228,7 @@ for i in ${xcatArray[@]}
 do
     echo "[Info    ] Creating the ${i}.sh script"
     echo "#! /bin/bash" > $DEST_DIR/$i
-    echo "ssh root@$XCATMN_IP \"$i \$@\"" >> $DEST_DIR/$i
+    echo "ssh root@$XCATMN \"$i \$@\"" >> $DEST_DIR/$i
     chmod 755 $DEST_DIR/$i
 done
 
@@ -289,7 +289,7 @@ for node in $NODES; do
    fi
 done
 TXT
-sed -i "s/root@10.7.0.221/root@$XCATMN_IP/" $DEST_DIR/xdcp
+sed -i "s/root@10.7.0.221/root@$XCATMN/" $DEST_DIR/xdcp
 chmod 755 $DEST_DIR/xdcp
 
 #--------------------------------
