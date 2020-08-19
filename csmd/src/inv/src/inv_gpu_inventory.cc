@@ -154,22 +154,22 @@ bool GetGpuInventory(csm_gpu_inventory_t gpu_inventory[CSM_GPU_MAX_DEVICES], uin
         //LOG(csmd, debug) << "Copying data for gpu_id " << gpu_ids[i] << " to gpu_inventory.";
         gpu_inventory[gpu_count].gpu_id = gpu_ids[i];
         
-        strncpy(gpu_inventory[gpu_count].device_name, gpu_attributes[i].identifiers.deviceName, CSM_GPU_DEVICE_NAME_MAX);
+        strncpy(gpu_inventory[gpu_count].device_name, gpu_attributes[i].identifiers.deviceName, CSM_GPU_DEVICE_NAME_MAX-1);
         gpu_inventory[gpu_count].device_name[CSM_GPU_DEVICE_NAME_MAX-1] = '\0';
 
-        strncpy(gpu_inventory[gpu_count].pci_bus_id, gpu_attributes[i].identifiers.pciBusId, CSM_GPU_PCI_BUS_ID_MAX);
+        strncpy(gpu_inventory[gpu_count].pci_bus_id, gpu_attributes[i].identifiers.pciBusId, CSM_GPU_PCI_BUS_ID_MAX-1);
         gpu_inventory[gpu_count].pci_bus_id[CSM_GPU_PCI_BUS_ID_MAX-1] = '\0';
         
-        strncpy(gpu_inventory[gpu_count].serial_number, gpu_attributes[i].identifiers.serial, CSM_GPU_SERIAL_NUMBER_MAX);
+        strncpy(gpu_inventory[gpu_count].serial_number, gpu_attributes[i].identifiers.serial, CSM_GPU_SERIAL_NUMBER_MAX-1);
         gpu_inventory[gpu_count].serial_number[CSM_GPU_SERIAL_NUMBER_MAX-1] = '\0';
         
-        strncpy(gpu_inventory[gpu_count].uuid, gpu_attributes[i].identifiers.uuid, CSM_GPU_UUID_MAX);
+        strncpy(gpu_inventory[gpu_count].uuid, gpu_attributes[i].identifiers.uuid, CSM_GPU_UUID_MAX-1);
         gpu_inventory[gpu_count].uuid[CSM_GPU_UUID_MAX-1] = '\0';
         
-        strncpy(gpu_inventory[gpu_count].vbios, gpu_attributes[i].identifiers.vbios, CSM_GPU_VBIOS_MAX);
+        strncpy(gpu_inventory[gpu_count].vbios, gpu_attributes[i].identifiers.vbios, CSM_GPU_VBIOS_MAX-1);
         gpu_inventory[gpu_count].vbios[CSM_GPU_VBIOS_MAX-1] = '\0';
         
-        strncpy(gpu_inventory[gpu_count].inforom_image_version, gpu_attributes[i].identifiers.inforomImageVersion, CSM_GPU_INFOROM_IMAGE_VERSION_MAX);
+        strncpy(gpu_inventory[gpu_count].inforom_image_version, gpu_attributes[i].identifiers.inforomImageVersion, CSM_GPU_INFOROM_IMAGE_VERSION_MAX-1);
         gpu_inventory[gpu_count].inforom_image_version[CSM_GPU_INFOROM_IMAGE_VERSION_MAX-1] = '\0';
 
         strncpy(gpu_inventory[gpu_count].hbm_memory, (std::to_string(gpu_attributes[i].memoryUsage.fbTotal)).c_str(), CSM_GPU_HBM_MEMORY_SIZE_MAX);
