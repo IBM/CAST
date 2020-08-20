@@ -177,30 +177,28 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     dcgm_gpu_count = 0; 
 
     // load symbols into function pointers
-    // Try to load /usr/lib64/libdcgm.so.1 first
-    libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so.1", RTLD_LAZY);
-    if ( libdcgm_ptr == nullptr )
+    // Try to load using the library name /usr/lib64/libdcgm.so.2, then /usr/lib64/libdcgm.so.1, and finally /usr/lib64/libdcgm.so
+    std::list<std::string> paths = { "/usr/lib64/libdcgm.so.2", "/usr/lib64/libdcgm.so.1", "/usr/lib64/libdcgm.so" };
+    for ( const std::string & path : paths )
     {
-        LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so.1 returned: " << dlerror();
-        
-        // Fall back to trying to load /usr/lib64/libdcgm.so
-        libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so", RTLD_LAZY);
-        if ( libdcgm_ptr == nullptr )
+        libdcgm_ptr = dlopen(path.c_str(), RTLD_LAZY);
+        if ( libdcgm_ptr != nullptr )
         {
-            LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so returned: " << dlerror();
-            LOG(csmd, warning) << "Couldn't load libdcgm.so, CSM GPU functions are disabled.";
-            dlopen_flag = true;
-            dcgm_init_flag = false;
-            return;
+            LOG(csmd, info) << "dlopen() successfully loaded " << path;
+            break;
         }
         else
         {
-            LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so";
+            LOG(csmd, info) << "dlopen() " << path << " returned: " << dlerror();
         }
-    } 
-    else 
+    }
+        
+    if ( libdcgm_ptr == nullptr )
     {
-        LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so.1";
+        LOG(csmd, warning) << "Couldn't load libdcgm.so, CSM GPU functions are disabled.";
+        dlopen_flag = true;
+        dcgm_init_flag = false;
+        return;
     }
 
     // Attempt to dynamically load the symbols needed for the DCGM functions CSM uses
