@@ -2,7 +2,7 @@
 
     csmd/src/inv/src/inv_dcgm_access.cc
 
-  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -65,26 +65,6 @@ uint16_t csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELDS[] =
    DCGM_FI_DEV_MEM_COPY_UTIL,                     // GPU memory utilization
    DCGM_FI_DEV_ENC_UTIL,                          // GPU encoder utilization
    DCGM_FI_DEV_DEC_UTIL,                          // GPU decoder utilizatioin
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L0,               // GPU NVLINK bandwidth counter for line 0
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L1,               // GPU NVLINK bandwidth counter for line 1
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L2,               // GPU NVLINK bandwidth counter for line 2
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L3,               // GPU NVLINK bandwidth counter for line 3
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L0,    // GPU NV link flow control CRC error for lane 0
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L1,    // GPU NV link flow control CRC error for lane 1
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L2,    // GPU NV link flow control CRC error for lane 2
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L3,    // GPU NV link flow control CRC error for lane 3
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L0,    // GPU NV link data CRC error for lane 0
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L1,    // GPU NV link data CRC error for lane 1
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L2,    // GPU NV link data CRC error for lane 2
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L3,    // GPU NV link data CRC error for lane 3
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L0,      // GPU NV link replay error counter for lane 0
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L1,      // GPU NV link replay error counter for lane 1
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L2,      // GPU NV link replay error counter for lane 2
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L3,      // GPU NV link replay error counter for lane 3
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L0,    // GPU NV link recovery error for lane 0
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L1,    // GPU NV link recovery error for lane 1
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L2,    // GPU NV link recovery error for lane 2
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L3,    // GPU NV link recovery error for lane 3
    DCGM_FI_DEV_POWER_VIOLATION,                   // GPU power violation in usecs
    DCGM_FI_DEV_THERMAL_VIOLATION,                 // GPU thermal power violation in usecs
    DCGM_FI_DEV_SYNC_BOOST_VIOLATION               // GPU boost sync violation in usecs
