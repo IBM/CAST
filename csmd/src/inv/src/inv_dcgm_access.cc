@@ -2,7 +2,7 @@
 
     csmd/src/inv/src/inv_dcgm_access.cc
 
-  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 
     This program is licensed under the terms of the Eclipse Public License
     v1.0 as published by the Eclipse Foundation and available at
@@ -65,26 +65,6 @@ uint16_t csm::daemon::INV_DCGM_ACCESS::CSM_ENVIRONMENTAL_FIELDS[] =
    DCGM_FI_DEV_MEM_COPY_UTIL,                     // GPU memory utilization
    DCGM_FI_DEV_ENC_UTIL,                          // GPU encoder utilization
    DCGM_FI_DEV_DEC_UTIL,                          // GPU decoder utilizatioin
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L0,               // GPU NVLINK bandwidth counter for line 0
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L1,               // GPU NVLINK bandwidth counter for line 1
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L2,               // GPU NVLINK bandwidth counter for line 2
-   DCGM_FI_DEV_NVLINK_BANDWIDTH_L3,               // GPU NVLINK bandwidth counter for line 3
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L0,    // GPU NV link flow control CRC error for lane 0
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L1,    // GPU NV link flow control CRC error for lane 1
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L2,    // GPU NV link flow control CRC error for lane 2
-   DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_L3,    // GPU NV link flow control CRC error for lane 3
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L0,    // GPU NV link data CRC error for lane 0
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L1,    // GPU NV link data CRC error for lane 1
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L2,    // GPU NV link data CRC error for lane 2
-   DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_L3,    // GPU NV link data CRC error for lane 3
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L0,      // GPU NV link replay error counter for lane 0
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L1,      // GPU NV link replay error counter for lane 1
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L2,      // GPU NV link replay error counter for lane 2
-   DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_L3,      // GPU NV link replay error counter for lane 3
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L0,    // GPU NV link recovery error for lane 0
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L1,    // GPU NV link recovery error for lane 1
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L2,    // GPU NV link recovery error for lane 2
-   DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_L3,    // GPU NV link recovery error for lane 3
    DCGM_FI_DEV_POWER_VIOLATION,                   // GPU power violation in usecs
    DCGM_FI_DEV_THERMAL_VIOLATION,                 // GPU thermal power violation in usecs
    DCGM_FI_DEV_SYNC_BOOST_VIOLATION               // GPU boost sync violation in usecs
@@ -177,30 +157,28 @@ void csm::daemon::INV_DCGM_ACCESS::Init()
     dcgm_gpu_count = 0; 
 
     // load symbols into function pointers
-    // Try to load /usr/lib64/libdcgm.so.1 first
-    libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so.1", RTLD_LAZY);
-    if ( libdcgm_ptr == nullptr )
+    // Try to load using the library name /usr/lib64/libdcgm.so.2, then /usr/lib64/libdcgm.so.1, and finally /usr/lib64/libdcgm.so
+    std::list<std::string> paths = { "/usr/lib64/libdcgm.so.2", "/usr/lib64/libdcgm.so.1", "/usr/lib64/libdcgm.so" };
+    for ( const std::string & path : paths )
     {
-        LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so.1 returned: " << dlerror();
-        
-        // Fall back to trying to load /usr/lib64/libdcgm.so
-        libdcgm_ptr = dlopen("/usr/lib64/libdcgm.so", RTLD_LAZY);
-        if ( libdcgm_ptr == nullptr )
+        libdcgm_ptr = dlopen(path.c_str(), RTLD_LAZY);
+        if ( libdcgm_ptr != nullptr )
         {
-            LOG(csmd, warning) << "dlopen() /usr/lib64/libdcgm.so returned: " << dlerror();
-            LOG(csmd, warning) << "Couldn't load libdcgm.so, CSM GPU functions are disabled.";
-            dlopen_flag = true;
-            dcgm_init_flag = false;
-            return;
+            LOG(csmd, info) << "dlopen() successfully loaded " << path;
+            break;
         }
         else
         {
-            LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so";
+            LOG(csmd, info) << "dlopen() " << path << " returned: " << dlerror();
         }
-    } 
-    else 
+    }
+        
+    if ( libdcgm_ptr == nullptr )
     {
-        LOG(csmd, info) << "dlopen() successfully loaded libdcgm.so.1";
+        LOG(csmd, warning) << "Couldn't load libdcgm.so, CSM GPU functions are disabled.";
+        dlopen_flag = true;
+        dcgm_init_flag = false;
+        return;
     }
 
     // Attempt to dynamically load the symbols needed for the DCGM functions CSM uses
@@ -877,28 +855,49 @@ bool csm::daemon::INV_DCGM_ACCESS::CollectGpuData(std::list<boost::property_tree
          for (uint32_t j = 0; j < CSM_ENVIRONMENTAL_FIELD_COUNT; j++)
          {
             if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
-                 (csm_environmental_field_values[j].fieldType == DCGM_FT_INT64) &&
-                 (! DCGM_INT64_IS_BLANK(csm_environmental_field_values[j].value.i64) ) ) 
+                 (csm_environmental_field_values[j].fieldType == DCGM_FT_INT64) )
             {
-               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
-                                  << " (INT64), value: " << csm_environmental_field_values[j].value.i64;
-               insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.i64));
+               if ( DCGM_INT64_IS_BLANK(csm_environmental_field_values[j].value.i64) )
+               {
+                  LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                       << " (INT64) is blank, ignoring this field!";
+               }
+               else
+               {
+                  LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                     << " (INT64), value: " << csm_environmental_field_values[j].value.i64;
+                  insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.i64));
+               }
             }
             else if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
-                      (csm_environmental_field_values[j].fieldType == DCGM_FT_DOUBLE) &&
-                      (! DCGM_FP64_IS_BLANK(csm_environmental_field_values[j].value.dbl) ) ) 
+                      (csm_environmental_field_values[j].fieldType == DCGM_FT_DOUBLE) )
             {
-               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j] 
-                                  << " (FP64), value: " << csm_environmental_field_values[j].value.dbl;
-               insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.dbl));
+               if ( DCGM_FP64_IS_BLANK(csm_environmental_field_values[j].value.dbl) )
+               {
+                  LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                       << " (FP64) is blank, ignoring this field!";
+               }
+               else
+               {
+                  LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                     << " (FP64), value: " << csm_environmental_field_values[j].value.dbl;
+                  insert_gpu_field(csm_environmental_field_names[j], std::to_string(csm_environmental_field_values[j].value.dbl));
+               }
             }
             else if ( (csm_environmental_field_values[j].status == DCGM_ST_OK) &&
-                      (csm_environmental_field_values[j].fieldType == DCGM_FT_STRING) &&
-                      (! DCGM_STR_IS_BLANK(csm_environmental_field_values[j].value.str) ) )
+                      (csm_environmental_field_values[j].fieldType == DCGM_FT_STRING) )
             {
-               LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
-                                  << " (STR), value: " << csm_environmental_field_values[j].value.str;
-               insert_gpu_field(csm_environmental_field_names[j], csm_environmental_field_values[j].value.str);
+               if ( DCGM_STR_IS_BLANK(csm_environmental_field_values[j].value.str) )
+               {
+                  LOG(csmenv, warning) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                       << " (STR) is blank, ignoring this field!";
+               }
+               else
+               {
+                  LOG(csmenv, debug) << "GPU " << i << " " << csm_environmental_field_names[j]
+                                     << " (STR), value: " << csm_environmental_field_values[j].value.str;
+                  insert_gpu_field(csm_environmental_field_names[j], csm_environmental_field_values[j].value.str);
+               }
             }
             else
             {
