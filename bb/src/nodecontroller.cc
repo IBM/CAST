@@ -227,11 +227,13 @@ int NodeController::bbcmd(  vector<uint32_t> ranklist,
     for(const auto& rank: ranklist)
     {
         std::istringstream result_stream(ts[rank].out);
+        LOG(bb,info) << "result_stream=" << string(ts[rank].out) ;
 
         try
         {
             boost::property_tree::ptree pt;
             boost::property_tree::read_json(result_stream, pt);
+            LOG(bb,info) << "property tree done for rank=" << rank ;
             for(auto& e : pt)
             {
                 output.boost::property_tree::ptree::put_child(to_string(rank) + "." + e.first, e.second);
@@ -241,6 +243,8 @@ int NodeController::bbcmd(  vector<uint32_t> ranklist,
         {
             output.put(to_string(rank) + ".rc", -1);
             output.put(to_string(rank) + ".error.text", ts[rank].out);
+            output.put(to_string(rank) + ".exception.text", e.what() );
+            
         }
         rank_rc = output.get(to_string(rank) + "." + "rc", 0);
         if(rank_rc)
