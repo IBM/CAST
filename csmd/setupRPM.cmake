@@ -2,7 +2,7 @@
 #
 #    csmd/setupRPM.cmake
 #
-#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -37,6 +37,7 @@ endif()
 
 # ibm-csm-hcdiag rpm settings
 set(CPACK_RPM_csm-hcdiag_PACKAGE_ARCHITECTURE "noarch")
+set(CPACK_RPM_csm-hcdiag_PACKAGE_REQUIRES "perl-YAML")
 
 # ibm-csm-tools rpm settings
 set(CPACK_RPM_csm-tools_PACKAGE_ARCHITECTURE "noarch")
