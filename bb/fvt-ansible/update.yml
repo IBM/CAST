@@ -47,14 +47,16 @@
     any_errors_fatal: true    
 
 #section for stopping daemons, removing RPMs, cleaning up
+- name:  Include stop of LSF
+  import_playbook: "{{playbook_dir}}/lsfStop.yml"
 - hosts: localhost
   tasks:
     - debug:
          msg: stop CSM and burstbuffer
+- name: Include stop of bb 
+  import_playbook: "{{playbook_dir}}/../ansible/bbStop.yml"
 - name: Include stop of CSM        
   import_playbook: "{{playbook_dir}}/csmStop.yml" 
-- name: Include stop of bb       
-  import_playbook: "{{playbook_dir}}/../ansible/bbStop.yml"
 - name: Include uninstall of CSM       
   import_playbook: "{{playbook_dir}}/csmUninstall.yml"  
 - name: Include bb uninstall       
@@ -81,5 +83,7 @@
   when: CSMRPMDIR is defined 
 - name: Include bb start      
   import_playbook: "{{playbook_dir}}/../ansible/bbStart.yml"  
+- name:  Include start lsf
+  import_playbook: "{{playbook_dir}}/lsfStart.yml"
    
 
