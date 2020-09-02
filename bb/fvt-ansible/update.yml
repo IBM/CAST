@@ -53,10 +53,10 @@
   tasks:
     - debug:
          msg: stop CSM and burstbuffer
+- name: Include stop of bb 
+  import_playbook: "{{playbook_dir}}/../ansible/bbStop.yml"
 - name: Include stop of CSM        
   import_playbook: "{{playbook_dir}}/csmStop.yml" 
-- name: Include stop of bb       
-  import_playbook: "{{playbook_dir}}/../ansible/bbStop.yml"
 - name: Include uninstall of CSM       
   import_playbook: "{{playbook_dir}}/csmUninstall.yml"  
 - name: Include bb uninstall       
