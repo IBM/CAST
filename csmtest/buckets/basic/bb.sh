@@ -28,7 +28,7 @@ fi
 LOG=${LOG_PATH}/buckets/basic/bb.log
 TEMP_LOG=${LOG_PATH}/buckets/basic/bb_tmp.log
 FLAG_LOG=${LOG_PATH}/buckets/basic/bb_flags.log
-SQL_FILE=${SQL_DIR}/ssd.sql
+#SQL_FILE=${SQL_DIR}/ssd.sql
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
@@ -43,10 +43,23 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
-# Test Case 1: Adding ssd dummy data in to csmdb
-su -c "psql -d csmdb -f ${SQL_FILE}" postgres > ${TEMP_LOG} 2>&1
-su -c "psql -d csmdb -c 'select * from csm_ssd ;'" postgres | grep ssd_01 >> ${TEMP_LOG}
-check_return_exit $? 0 "Test Case 1: Adding ssd dummy data in to csmdb"
+#---------------------------------------------------------------------------------------
+# Check to see if any data was collected during inventory related to the ssd table.
+#    1. select the data in the db.
+#	a. If there is data in the table then use the specific record for the test.
+#    2. If the record does not exist then create the dummy data into the ssd table.
+#---------------------------------------------------------------------------------------
+su -c "psql -d csmdb -c 'select * from csm_ssd ;'" postgres | grep ${SINGLE_COMPUTE} > /dev/null
+if [ $? -ne 0 ]; then
+    # Test Case 1: Adding ssd dummy data in to csmdb
+    su -c "psql -d csmdb -c \"INSERT INTO csm_ssd (serial_number, node_name, update_time, size, wear_lifespan_used, wear_total_bytes_written, wear_total_bytes_read, wear_percent_spares_remaining) VALUES('ssd_01','${SINGLE_COMPUTE}','now',500,1,1,1,1) ;\"" postgres > ${TEMP_LOG}
+    su -c "psql -d csmdb -c 'select * from csm_ssd ;'" postgres | grep ssd_01 >> ${TEMP_LOG}
+    check_return_exit $? 0 "Test Case 1: Adding ssd dummy data in to csmdb"
+else
+    # Test Case 1: Checking ssd data in the csmdb if already populated from the inventory collection
+    su -c "psql -d csmdb -c 'select * from csm_ssd ;'" postgres | grep ${SINGLE_COMPUTE} >> ${TEMP_LOG}
+    check_return_exit $? 0 "Test Case 1: Checking ssd data in the csmdb if already populated from the inventory collection"
+fi
 
 # Test Case 2: Calling csm_bb_vg_create
 ${CSM_PATH}/csm_bb_vg_create -a 500 -n ${SINGLE_COMPUTE} -s ssd_01 -c t -S 500 -t 500 -V vg_01 > ${TEMP_LOG} 2>&1
@@ -139,7 +152,11 @@ ${CSM_PATH}/csm_bb_vg_delete -n ${SINGLE_COMPUTE} -V vg_01 > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 17: Calling csm_bb_vg_delete"
 
 rm -f ${TEMP_LOG}
-su -c "psql -d csmdb -c 'DELETE FROM csm_ssd ;'" postgres > /dev/null
+#--------------------------------------------------------------------
+# Ensure we only delete that record if it exits.
+# example: node_name and where size = 500 and serial_number='ssd_01'
+#--------------------------------------------------------------------
+su -c "psql -d csmdb -c \"DELETE FROM csm_ssd where node_name='${SINGLE_COMPUTE}'AND size=500 AND serial_number='ssd_01';\"" postgres > /dev/null
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "           Basic Burst Buffer  Bucket Passed" >> ${LOG}
