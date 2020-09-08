@@ -8,6 +8,7 @@ export CAST_PATH=
 export LOG_PATH=
 export CSM_PATH=
 export INSTALL_DIR=
+export OLD_RPMS=
 export RPM_DIR=
 export BIG_DATA_DIR=
 export SQL_DIR=
