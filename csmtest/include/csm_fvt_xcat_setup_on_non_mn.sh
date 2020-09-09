@@ -252,7 +252,7 @@ if [ $# -lt 3 ]; then
    exit 1
 fi
 
-NODES=`ssh root@10.7.0.221 "nodels $1"`
+NODES=`ssh root@$XCATMN "nodels $1"`
 shift
 
 # Check to see if there are any options passed
@@ -299,10 +299,10 @@ echo "[Info    ] Creating the xdsh.sh script"
 echo "#! /bin/bash" > $DEST_DIR/xdsh
 echo "printf -v args '%q ' \"\${@}\"" >> $DEST_DIR/xdsh
 echo "" >> $DEST_DIR/xdsh
-echo "ssh root@10.7.0.221 xdsh \"\$args\"" >> $DEST_DIR/xdsh
+echo "ssh root@$XCATMN xdsh \"\$args\"" >> $DEST_DIR/xdsh
 echo "" >> $DEST_DIR/xdsh
 echo "" >> $DEST_DIR/xdsh
-echo "#ssh root@10.7.0.221 \"xdsh \$@\"" >> $DEST_DIR/xdsh
+echo "#ssh root@$XCATMN \"xdsh \$@\"" >> $DEST_DIR/xdsh
 chmod 755 $DEST_DIR/xdsh
 
 #-----------------------------------------------------------------------------
