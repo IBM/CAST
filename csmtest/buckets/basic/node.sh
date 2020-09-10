@@ -58,73 +58,101 @@ echo "------------------------------------------------------------" >> ${LOG}
 
 # Test Case 1: csm_node_resources_query_all and checking ready=n
 ${CSM_PATH}/csm_node_resources_query_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 1: csm_node_resources_query_all"
+check_return_exit $? 0 "Test Case 1:   csm_node_resources_query_all"
 check_all_output "ready: .* n"
-check_return_flag_value $? 0 "Test Case 1: check node_ready=n"
+check_return_flag_value $? 0 "Test Case 1:   check node_ready=n"
 
 rm -f ${TEMP_LOG}
 # Test Case 2: csm_node_resources_query on 1 node
 ${CSM_PATH}/csm_node_resources_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 2: Calling csm_node_resources_query on 1 node"
+check_return_exit $? 0 "Test Case 2:   Calling csm_node_resources_query on 1 node"
 
 rm -f ${TEMP_LOG}
 # Test Case 3: csm_node_resources_query on all nodes
 ${CSM_PATH}/csm_node_resources_query -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 3: csm_node_resources_query on all nodes"
+check_return_exit $? 0 "Test Case 3:   csm_node_resources_query on all nodes"
 
 rm -f ${TEMP_LOG}
 # Test Case 4: csm_node_attributes_query on 1 node
 ${CSM_PATH}/csm_node_attributes_query -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 4: Calling csm_node_attributes_query on 1 node"
+check_return_exit $? 0 "Test Case 4:   Calling csm_node_attributes_query on 1 node"
 
 rm -f ${TEMP_LOG}
 # Test Case 5: csm_node_attribute_query on all nodes
 ${CSM_PATH}/csm_node_attributes_query -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 5: Calling csm_node_attributes_query on all nodes"
+check_return_exit $? 0 "Test Case 5:   Calling csm_node_attributes_query on all nodes"
 
 rm -f ${TEMP_LOG}
 # Test Case 6: csm_node_attribtes_update to state=IN_SERVICE on all nodes
 ${CSM_PATH}/csm_node_attributes_update -n ${COMPUTE_NODES} -s IN_SERVICE > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 6: Calling csm_node_attributes_update to state=IN_SERVICE on all nodes" 
+check_return_exit $? 0 "Test Case 6:   Calling csm_node_attributes_update to state=IN_SERVICE on all nodes" 
 
 rm -f ${TEMP_LOG}
 # Test Case 7: csm_node_attributes_query on all nodes and check for state=IN_SERVICE
 ${CSM_PATH}/csm_node_attributes_query -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 7: Calling csm_node_attributes_query on all nodes"
+check_return_exit $? 0 "Test Case 7:   Calling csm_node_attributes_query on all nodes"
 check_all_output "state: .* IN_SERVICE"
-check_return_flag_value $? 0 "Test Case 7: Checking for state=IN_SERVICE"
+check_return_flag_value $? 0 "Test Case 7:   Checking for state=IN_SERVICE"
 
 rm -f ${TEMP_LOG}
 # Test Case 8: csm_node_query_state_history on 1 node and check for IN_SERVICE and CSM API
 ${CSM_PATH}/csm_node_query_state_history -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 8: Calling csm_node_query_state_history on 1 node"
+check_return_exit $? 0 "Test Case 8:   Calling csm_node_query_state_history on 1 node"
 check_all_output "IN_SERVICE" "CSM API"
-check_return_flag_value $? 0 "Test Case 8: Checking for state=IN_SERVICE and CSM_API"
+check_return_flag_value $? 0 "Test Case 8:   Checking for state=IN_SERVICE and CSM_API"
 
 rm -f ${TEMP_LOG}
 # Test Case 9: csm_node_attributes_query_details on 1 node
 ${CSM_PATH}/csm_node_attributes_query_details -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 9: Calling csm_node_attributes_query_details on 1 node"
+check_return_exit $? 0 "Test Case 9:   Calling csm_node_attributes_query_details on 1 node"
 
 rm -f ${TEMP_LOG}
 # Test Case 10: csm_node_attributes_query_details on all nodes (error expected)
 ${CSM_PATH}/csm_node_attributes_query_details -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 10: csm_node_attributes_query_details on all nodes (error expected)"
+check_return_exit $? 4 "Test Case 10:  csm_node_attributes_query_details on all nodes (error expected)"
+
+rm -f ${TEMP_LOG}
+# Test Case 10a: csm_node_attributes_query_details on all nodes and checking if ssd size
+COMPUTE_NODES_2=`echo $COMPUTE_NODES | awk '{gsub(/,/," ");print}'`
+for COMPUTE in $COMPUTE_NODES_2; do
+    # Check if the SSD size is available
+    ssd_count=`/opt/ibm/csm/bin/csm_node_attributes_query_details -n $COMPUTE | grep "ssds_count" | awk '{print $2}' | sed '/^$/d'`
+
+    # If the SSD count is greater than 0 then gather the size
+    if [ $ssd_count -gt 0 ]; then
+	ssd_size=`/opt/ibm/csm/bin/csm_node_attributes_query_details -n $COMPUTE | grep -A 20 "ssds" | grep size | awk '{print $2}'`
+			# If the SSD size is less than 0 then it should fail out.
+	    if [ $ssd_size -lt 0 ]; then
+		echo $ssd_size > ${TEMP_LOG} 2>&1
+		ssd_results=`cat ${TEMP_LOG}`
+		check_return_exit $? 1 "Test Case 10a: csm_node_attributes_query_details on ${COMPUTE} check ssd size - ${ssd_results}"
+	    else
+		# If the SSD size is greater than 0 then it should gather the size.
+		echo $ssd_size > ${TEMP_LOG} 2>&1
+		ssd_results=`cat ${TEMP_LOG}`
+		check_return_exit $? 0 "Test Case 10a: csm_node_attributes_query_details on ${COMPUTE} check ssd size - ${ssd_results}"
+	    fi
+    else
+	# If there are no SSDs present, then report and skipp the test.
+	#check_return_error $? 0 "Test Case 10a: csm_node_attributes_query_details on ${COMPUTE} check ssd size - No SSDs (SKIPPED)"
+	check_return_error_skip $? 0 "Test Case 10a: csm_node_attributes_query_details on ${COMPUTE} check ssd size - No SSDs"
+    fi
+done
 
 rm -f ${TEMP_LOG}
 # Test Case 11: csm_node_attributes_query_history on 1 node
 ${CSM_PATH}/csm_node_attributes_query_history -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 11: Calling csm_node_attributes_query_history on 1 node"
+check_return_exit $? 0 "Test Case 11:  Calling csm_node_attributes_query_history on 1 node"
 
 rm -f ${TEMP_LOG}
 # Test Case 12: csm_node_attributes_query_history on all nodes (expected error)
 ${CSM_PATH}/csm_node_attributes_query_history -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 12: Calling csm_node_attributes_query_history on all nodes (error expected)"
+check_return_exit $? 4 "Test Case 12:  Calling csm_node_attributes_query_history on all nodes (error expected)"
 
 rm -f ${TEMP_LOG}
 # Test Case 13: csm_node_delete
 ${CSM_PATH}/csm_node_delete -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 13: calling csm_node_delete"
+check_return_exit $? 0 "Test Case 13:  calling csm_node_delete"
 
 echo "RECOVERING ${SINGLE_COMPUTE}..." >> ${LOG}
 xdsh ${SINGLE_COMPUTE} "systemctl stop csmd-compute"
