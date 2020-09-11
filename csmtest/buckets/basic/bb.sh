@@ -62,7 +62,8 @@ else
 fi
 
 # Test Case 2: Calling csm_bb_vg_create
-${CSM_PATH}/csm_bb_vg_create -a 500 -n ${SINGLE_COMPUTE} -s ssd_01 -c t -S 500 -t 500 -V vg_01 > ${TEMP_LOG} 2>&1
+ssd_serial_number=$(/opt/ibm/csm/bin/csm_node_attributes_query_details -n "${SINGLE_COMPUTE}" | egrep -A 10 ssds_count | grep serial_number | awk '{print $3}')
+${CSM_PATH}/csm_bb_vg_create -a 500 -n ${SINGLE_COMPUTE} -s $ssd_serial_number -c t -S 500 -t 500 -V vg_01 > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: Calling csm_bb_vg_create"
 
 # Test Case 3: Calling csm_bb_vg_query using vg name
