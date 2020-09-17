@@ -57,15 +57,17 @@ sub output
 
 sub safe_cmd
 {
-    my($cmd, $ignoreFailure) = @_;
+    my($cmd, $flags) = @_;
     my $timeout = 60;
+    my $getstderr = " 2>&1";
+    $getstderr = "" if($flags =~ /NOSTDERR/);
 
     output("Running command: $cmd");
     
     alarm($timeout);
     eval
     {
-        $rc = `$cmd 2>&1`;
+        $rc = `$cmd$getstderr`;
     };
     alarm(0);
 
@@ -76,7 +78,7 @@ sub safe_cmd
     
     if(($? != 0) || ($@ =~ /alarm timeout/i))
     {
-        if($ignoreFailure)
+        if($flags =~ /IGNORE/i)
         {
             output("Command '$cmd' had exit status $?");
         }
@@ -91,13 +93,13 @@ sub safe_cmd
 
 sub cmd
 {
-    my($cmd, $ignoreFailure) = @_;
+    my($cmd, $flags) = @_;
     if($CFG{"dryrun"})
     {
         output("Would-run command: $cmd");
         return 0;
     }
-    return safe_cmd($cmd, $ignoreFailure);
+    return safe_cmd($cmd, $flags);
 }
 
 sub cat
@@ -377,7 +379,7 @@ sub makeServerConfigFile
     return if(!$CFG{"bbServer"});
 
     my $ipaddr;
-    $ipaddr = safe_cmd("ip addr show dev bond0 | grep \"inet \"", 1);
+    $ipaddr = safe_cmd("ip addr show dev bond0 | grep \"inet \"", "IGNORE");
     if($ipaddr eq "")
     {
         my $interfacename = $CFG{"interfacename"};
@@ -688,14 +690,14 @@ sub configureVolumeGroup
     my $bbvgname = $cfgfile->{"bb"}{"proxy"}{"volumegroup"};
     
     cmd("vgscan --cache");
-    my $vgdata = safe_cmd("vgdisplay $bbvgname", 1);
+    my $vgdata = safe_cmd("vgdisplay $bbvgname", "IGNORE");
     if($vgdata !~ /VG Name/)
     {
         cmd("vgcreate -y $bbvgname /dev/nvme0n1");
     }
     
     setprefix("Removing stale LVs: ");
-    my $lvdata = safe_cmd("lvs --reportformat json $bbvgname");
+    my $lvdata = safe_cmd("lvs --reportformat json $bbvgname", "NOSTDERR");
     my $json = decode_json($lvdata);
     
     foreach $rep (@{ $json->{"report"} })
@@ -708,13 +710,13 @@ sub configureVolumeGroup
             {
                 my $dmpath = "/dev/mapper/$vgname-$lvname";
                 my $swappath = abs_path($dmpath);
-                my $isswap = safe_cmd("grep '$swappath ' /proc/swaps", 1);
+                my $isswap = safe_cmd("grep '$swappath ' /proc/swaps", "IGNORE");
                 if($isswap =~ /\S/)
                 {
                     output("Volume group $vgname, logical volume $lvname ($dmpath -> $swappath) was referenced in /proc/swaps.  Skipping");
                     next;
                 }
-                my $ismounted = safe_cmd("grep '$dmpath ' /proc/mounts", 1);
+                my $ismounted = safe_cmd("grep '$dmpath ' /proc/mounts", "IGNORE");
                 output("Mounted $vgname-$lvname at: $ismounted");
                 if(($ismounted !~ /\S/) && ($lvname =~ /bb_/))
                 {
@@ -728,7 +730,7 @@ sub configureVolumeGroup
 sub clearNVMf
 {
     setprefix("Clearing NVMf connections: ");
-    my $out = safe_cmd("nvme list-subsys", 1);
+    my $out = safe_cmd("nvme list-subsys", "IGNORE");
     foreach $line (split("\n", $out))
     {
         if(($line =~ /NQN=\S+/) && ($line !~ /PM1725a/i))
