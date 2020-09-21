@@ -60,7 +60,7 @@
 - hosts: all
   tasks:
   - name: remove RPMs
-    shell: yum erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-mn ibm-burstbuffer-tests ibm-burstbuffer-tools
+    shell: dnf erase -y ibm-burstbuffer ibm-burstbuffer-lsf ibm-burstbuffer-mn ibm-burstbuffer-tests ibm-burstbuffer-tools
     args:
       warn: false # set warn=false to prevent warning
     any_errors_fatal: true
@@ -76,7 +76,7 @@
     
 
   - name: remove ibm flightlog RPM if no csm-core installed
-    shell: yum erase -y ibm-flightlog 
+    shell: dnf erase -y ibm-flightlog 
     args:
       warn: false # set warn=false to prevent warning
     when: csmcore_result.rc != 0
@@ -85,7 +85,7 @@
 - hosts: compute 
   tasks:
   - name: remove export_layout.ko
-    shell: yum erase -y ibm-export_layout*
+    shell: dnf erase -y ibm-export_layout
     args:
       warn: false # set warn=false to prevent warning
     ignore_errors: yes    

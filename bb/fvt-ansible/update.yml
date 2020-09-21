@@ -26,20 +26,22 @@
     - debug: 
          msg: "cwd is {{pwd_info.stdout}} playbook_dir is {{playbook_dir}}" 
     - debug:
-         msg: "BBRPMDIR={{BBRPMDIR}}"
-    - debug:
-        msg:  "CSMRPMDIR={{CSMRPMDIR}}"
-    - debug:
         msg:  "BBMETADATA={{BBMETADATA}}"
+    - debug:
+        msg:  "CASTREPO={{CASTREPO}}"
+
+- hosts: all
+  tasks:
+    - name: Setup CAST yum repository
+      copy: 
+        content: "{{ CASTREPO }}" 
+        dest:    /etc/yum/vars/castrepo
+      any_errors_fatal: true
+
+    - name: Clear dnf cache
+      command:  dnf clean all
 
 #check for BB RPMDIR early before doing upgrade
-- hosts: server compute launch
-  tasks:
-  - name: check all nodes for RPM directory
-    command: ls -d  {{BBRPMDIR}} 
-    register: bbrpmdir_check
-    any_errors_fatal: true
-
 - hosts: server
   tasks:
   - name: check server node for BBMETADATA 
@@ -73,14 +75,14 @@
   import_playbook: "{{playbook_dir}}/../ansible/bbserverIPlist.yml"
 - name: Include csm install     
   import_playbook: "{{playbook_dir}}/csmInstall.yml"
-  when: CSMRPMDIR is defined
+  when: useCSM
 - name: Include bb install      
   import_playbook: "{{playbook_dir}}/../ansible/bbInstall.yml"
 - name: certificate setup     
   import_playbook: "{{playbook_dir}}/../ansible/certificates.yml"   
 - name: Include csm start     
   import_playbook: "{{playbook_dir}}/csmStart.yml" 
-  when: CSMRPMDIR is defined 
+  when: useCSM
 - name: Include bb start      
   import_playbook: "{{playbook_dir}}/../ansible/bbStart.yml"  
 - name:  Include start lsf

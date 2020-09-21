@@ -12,16 +12,10 @@
 ###########################################################
 #  sudo ansible-playbook -i hosts  <this.yml>
 
-- hosts: all
-  tasks:
-  - name: check all nodes for RPM directory
-    command: ls -d  {{BBRPMDIR}} 
-    any_errors_fatal: true
-
 - hosts: launch
   tasks:
   - name: install BB RPMs on launch node
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[1tml]*rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
+    shell: "dnf install -y ibm-burstbuffer"
     args:
       warn: false # set warn=false to prevent warning       
 
@@ -33,14 +27,11 @@
     ignore_errors: yes
 
   - name: Install BB RPMs on ESS
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-1*.rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
+    shell: "dnf install -y ibm-burstbuffer"
     args:
       warn: false # set warn=false to prevent warning
     when: bbserver_service_result.rc != 0
     any_errors_fatal: true
-
-  - name: systemctl daemon-reload on ESS
-    command: systemctl daemon-reload  
 
 - hosts: compute
   tasks:
@@ -50,7 +41,7 @@
     ignore_errors: yes
 
   - name: install export RPM on Compute
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-export_layout*.rpm"
+    shell: "dnf install -y ibm-export_layout"
     args:
       warn: false # set warn=false to prevent warning 
     when: export_layout_loaded.rc != 0
@@ -66,7 +57,7 @@
     ignore_errors: yes
 
   - name: install BB RPMs on Compute
-    shell: "yum localinstall -y {{BBRPMDIR}}/ibm-burstbuffer-[1t]*.rpm {{BBRPMDIR}}/ibm-flightlog-1*.rpm"
+    shell: "dnf install -y ibm-burstbuffer ibm-burstbuffer-tools ibm-burstbuffer-tests"
     args:
       warn: false # set warn=false to prevent warning 
     when: bbproxy_service_result.rc != 0
