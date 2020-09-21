@@ -51,7 +51,7 @@ sub output
     foreach $line (split("\n", $out))
     {
         print "$outputprefix$line\n";
-        syslog($level, $line) if($setupSyslog);
+        syslog($level, "$outputprefix$line") if($setupSyslog);
     }
 }
 
@@ -800,6 +800,9 @@ sub filterLVM
     my $lvmetc = cat("/etc/lvm/lvm.conf");
     my $search  = '# global_filter = \[ \"a\|.*\/\|\" \]';  # RHEL7 default
     my $replace = 'global_filter = [ ' . $adddevices . '"r|/dev/nvme*n*|" ]';
+    $lvmetc =~ s/$search/$replace/oe;
+
+    $search  = '# global_filter = \[ \"a\|.*\|\" ]';  # RHEL8 default
     $lvmetc =~ s/$search/$replace/oe;
     
     writeConfiguration("/etc/lvm/lvm.conf", $lvmetc);
