@@ -12,6 +12,11 @@
 ###########################################################
 #  sudo ansible-playbook -i hosts  <this.yml>
 
+#check reachability of all hosts
+- hosts: all
+  tasks:
+  any_errors_fatal: true 
+
 - hosts: launch
   tasks:
   - name: install BB RPMs on launch node
