@@ -12,12 +12,6 @@
 ###########################################################
 #  sudo ansible-playbook -i hosts  <this.yml>
 
-- hosts: all
-  tasks:
-  - name: check all nodes for CSM RPM directory
-    command: ls -d  {{CSMRPMDIR}} 
-    any_errors_fatal: true
-
 #check reachability of all hosts
 - hosts: all
   tasks:
@@ -36,7 +30,7 @@
     ignore_errors: yes
 
   - name: install csm RPMs on MN
-    shell: "yum localinstall -y --skip-broken {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-csm-db*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm {{CSMRPMDIR}}/ibm-burstbuffer-mn*.rpm"
+    shell: "dnf install -y ibm-csm-core ibm-csm-api ibm-csm-db ibm-burstbuffer-mn"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdmaster_service_result.rc != 0  and  csmdaggregator_service_result.rc != 0
@@ -68,7 +62,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on launch
-    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "dnf install -y ibm-csm-core ibm-csm-api"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdutility_service_result.rc != 0    
@@ -81,7 +75,7 @@
     ignore_errors: yes
 
   - name: install CSM RPMs on compute
-    shell: "yum localinstall -y {{CSMRPMDIR}}/ibm-csm-core*.rpm {{CSMRPMDIR}}/ibm-csm-api*.rpm {{CSMRPMDIR}}/ibm-flightlog-[01]*.rpm"
+    shell: "dnf install -y ibm-csm-core ibm-csm-api ibm-flightlog"
     args:
       warn: false # set warn=false to prevent warning 
     when: csmdcompute_service_result.rc != 0    

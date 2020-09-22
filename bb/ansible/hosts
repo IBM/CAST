@@ -1,7 +1,5 @@
 [all:vars]
-BBRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
-CSMRPMDIR=/u/tgooding/workspace/castbuild/work/rpms
-SMPIRPMDIR=/u/tgooding/install
+useCSM=False
 
 BBMETADATA=/gpfs/gpfs0/bbmetadata
 BSCFSWORK=/u/tgooding/bscfswork
