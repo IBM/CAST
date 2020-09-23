@@ -249,6 +249,9 @@ fi
 xdcp csm_comp -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
 xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
+# Set up the pam modules on the CSM compute nodes
+xdsh csm_comp "if [ -e /usr/lib64/security/libcsmpam.so ] ; then sed -i '/libcsmpam.so/s/^#*//g' /etc/pam.d/sshd ; fi"
+
 # Start Daemons
 systemctl start csmd-master
 xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
