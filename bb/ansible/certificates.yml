@@ -48,7 +48,7 @@
         dest: /etc/ibm/key.pem
         owner: root
         group: root
-        mode: '0644'
+        mode: '0600'
         backup: no
       any_errors_fatal: true  
 
