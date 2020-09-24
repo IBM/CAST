@@ -44,15 +44,23 @@ echo "------------------------------------------------------------" >> ${LOG}
 
 # Test Case 1: csm_allocation_query_active_all (failure expected)
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 1: Calling csm_allocation_query_active_all (failure expected)"
+check_return_exit $? 4 "Test Case 1:   Calling csm_allocation_query_active_all (failure expected)"
 
 rm -f ${TEMP_LOG}
 # Test Case 2: csm_allocation_create
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 2: Calling csm_allocation_create"
+check_return_exit $? 0 "Test Case 2:   Calling csm_allocation_create"
 
 # Grab & Store Allocation ID from csm_allocation_create.log
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
+
+# Test Case 2a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
+xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 2a:  SSH to node in the allocation, does get put into the CSM system cgroup"
+
+# Test Case 2b: SSH to a compute node in the allocation, does not get put into the allocation cgroup?
+xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep allocation" > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 1 "Test Case 2b:  SSH to node in the allocation, does not get put into the allocation cgroup"
 
 rm -f ${TEMP_LOG}
 
@@ -68,72 +76,80 @@ check_return_flag_value $? 0 "Test Case 2.2: Validating cgroup assigned system c
 
 # Test Case 3: csm_allocation_query_active_all (success)
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 3: csm_allocation_query_active_all success"
+check_return_exit $? 0 "Test Case 3:   csm_allocation_query_active_all success"
 
 rm -f ${TEMP_LOG}
 # Test Case 4: csm_allocation_update_state staging out
 ${CSM_PATH}/csm_allocation_update_state -a ${allocation_id} -s "staging-out" > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 4: Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 4:   Calling csm_allocation_update_state -s staging-out on Allocation ID = ${allocation_id}"
 
 rm -f ${TEMP_LOG}
 # Test Case 5: csm_allocation_query
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 5: Calling csm_allocation_query"
+check_return_exit $? 0 "Test Case 5:   Calling csm_allocation_query"
 
 rm -f ${TEMP_LOG}
 # Test Case 6: csm_allocation_resources_query
 ${CSM_PATH}/csm_allocation_resources_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 6: Calling csm_allocation_resources_query"
+check_return_exit $? 0 "Test Case 6:   Calling csm_allocation_resources_query"
 
 rm -f ${TEMP_LOG}
 # Test Case 7: csm_allocation_delete
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 7: Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 7:   Calling csm_allocation_delete on Allocation ID = ${allocation_id}"
 
 rm -f ${TEMP_LOG}
 # Test Case 8: csm_allocation_query_active_all (failure after delete)
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Test Case 8: Calling csm_allocation_query_active_all (failure after delete)"
+check_return_exit $? 4 "Test Case 8:   Calling csm_allocation_query_active_all (failure after delete)"
 
 rm -f ${TEMP_LOG}
 # Test Case 9: csm_allocation_query_details
 ${CSM_PATH}/csm_allocation_query_details -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 9: Calling csm_allocation_query_details on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 9:   Calling csm_allocation_query_details on Allocation ID = ${allocation_id}"
 
 # Test Case 10: check csm_allocation_query_details for state=complete
 check_all_output "complete"
-check_return_flag_value $? 0 "Test Case 10: Checking csm_allocation_query_details for state=complete"
+check_return_flag_value $? 0 "Test Case 10:  Checking csm_allocation_query_details for state=complete"
 
 rm -f ${TEMP_LOG}
 # Test Case 11: csm_allocation_update_history
 ${CSM_PATH}/csm_allocation_update_history -a ${allocation_id} -c "test_comment" > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 11: Calling csm_allocation_update_history on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 11:  Calling csm_allocation_update_history on Allocation ID = ${allocation_id}"
 
 rm -f ${TEMP_LOG}
 # Test Case 12: check csm_allocation_query return and output for test_comment
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Test Case 12: Calling csm_allocation_query on Allocation ID = ${allocation_id}"
+check_return_exit $? 0 "Test Case 12:  Calling csm_allocation_query on Allocation ID = ${allocation_id}"
 check_all_output "test_comment"
-check_return_flag_value $? 0 "Test Case 12: Checking allocation history table updated with test_comment..."
+check_return_flag_value $? 0 "Test Case 12:  Checking allocation history table updated with test_comment..."
 
 # Test Case 13: csm_allocation_create with launch node input
 # Get utility node name
 utility_node=`nodels utility | head -1`
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -l ${utility_node} > ${TEMP_LOG} 2>&1
-check_return_flag_value $? 0 "Test Case 13: csm_allocation_create with launch node input"
+check_return_flag_value $? 0 "Test Case 13:  csm_allocation_create with launch node input"
 
 # Test Case 13: Validate launch node in csm_allocation_query
 # Get allocation ID
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "launch_node_name:               ${utility_node}"
-check_return_flag_value $? 0 "Test Case 13: Validate launch node in csm_allocation_query"
+check_return_flag_value $? 0 "Test Case 13:  Validate launch node in csm_allocation_query"
+
+# Test Case 13a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
+xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 13a:  SSH to node in the allocation, does get put into the CSM system cgroup"
+
+# Test Case 13b: SSH to a compute node in the allocation, does not get put into the allocation cgroup?
+xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep allocation" > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 1 "Test Case 13b:  SSH to node in the allocation, does not get put into the allocation cgroup"
 
 # Clean Up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1
-check_return_exit $? 0 "Clean up allocation"
+check_return_exit $? 0 "               Clean up allocation"
 ${CSM_PATH}/csm_allocation_query_active_all > ${TEMP_LOG} 2>&1
-check_return_exit $? 4 "Validating no active allocations"
+check_return_exit $? 4 "               Validating no active allocations"
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "           Basic Allocation Bucket Passed" >> ${LOG}

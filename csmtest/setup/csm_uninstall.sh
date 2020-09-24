@@ -44,6 +44,10 @@ compute_node_list=`nodels csm_comp`
 # Get list of utility nodes
 utility_node_list=`nodels utility`
 
+# Comment out any entries for libcsmpam.so in /etc/pam.d/sshd
+xdsh all "sed -i '/libcsmpam.so/s/^#*/#/g' /etc/pam.d/sshd"
+sleep 1
+
 # Stop CSM daemons on Master
 systemctl is-active csmd-master > /dev/null
 if [ $? -eq 0 ]
