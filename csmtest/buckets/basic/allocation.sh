@@ -54,13 +54,13 @@ check_return_exit $? 0 "Test Case 2:   Calling csm_allocation_create"
 # Grab & Store Allocation ID from csm_allocation_create.log
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
-# Test Case 1a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
+# Test Case 2a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
-check_return_flag_value $? 0 "Test Case 1a:  SSH to node in the allocation, does get put into the CSM system cgroup"
+check_return_flag_value $? 0 "Test Case 2a:  SSH to node in the allocation, does get put into the CSM system cgroup"
 
-# Test Case 1b: SSH to a compute node in the allocation, does it get put into the allocation cgroup?
+# Test Case 2b: SSH to a compute node in the allocation, does not get put into the allocation cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep allocation" > ${TEMP_LOG} 2>&1
-check_return_flag_value $? 1 "Test Case 1b:  SSH to node in the allocation, does not get put into the allocation cgroup"
+check_return_flag_value $? 1 "Test Case 2b:  SSH to node in the allocation, does not get put into the allocation cgroup"
 
 rm -f ${TEMP_LOG}
 
@@ -137,13 +137,13 @@ ${CSM_PATH}/csm_allocation_query -a ${allocation_id} > ${TEMP_LOG} 2>&1
 check_all_output "launch_node_name:               ${utility_node}"
 check_return_flag_value $? 0 "Test Case 13:  Validate launch node in csm_allocation_query"
 
-# Test Case 1a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
+# Test Case 13a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
-check_return_flag_value $? 0 "Test Case 1a:  SSH to node in the allocation, does get put into the CSM system cgroup"
+check_return_flag_value $? 0 "Test Case 13a:  SSH to node in the allocation, does get put into the CSM system cgroup"
 
-# Test Case 1b: SSH to a compute node in the allocation, does it get put into the allocation cgroup?
+# Test Case 13b: SSH to a compute node in the allocation, does not get put into the allocation cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep allocation" > ${TEMP_LOG} 2>&1
-check_return_flag_value $? 1 "Test Case 1b:  SSH to node in the allocation, does not get put into the allocation cgroup"
+check_return_flag_value $? 1 "Test Case 13b:  SSH to node in the allocation, does not get put into the allocation cgroup"
 
 # Clean Up allocation
 ${CSM_PATH}/csm_allocation_delete -a ${allocation_id} > ${TEMP_LOG} 2>&1

@@ -80,7 +80,7 @@ check_return_exit $? 0 "Test Case 4:  (Section A) Calling csm_allocation_update_
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 4a: (Section A) SSH to node in the allocation, does get put into the CSM system cgroup"
 
-# Test Case 4b: SSH to a compute node in the allocation, does it get put into the allocation cgroup?
+# Test Case 4b: SSH to a compute node in the allocation, does not get put into the allocation cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep allocation" > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 1 "Test Case 4b: (Section A) SSH to node in the allocation, does not get put into the allocation cgroup"
 
@@ -341,7 +341,7 @@ check_return_exit $? 0 "Test Case 1:  (Section E) Create first allocation"
 # Grab & Store Allocation ID from csm_allocation_create.log
 allocation_id=`grep allocation_id ${TEMP_LOG} | awk -F': ' '{print $2}'`
 
-# Test Case 1a: SSH to a compute node in the allocation, does not get put into the CSM system cgroup?
+# Test Case 1a: SSH to a compute node in the allocation, does get put into the CSM system cgroup?
 xdsh ${SINGLE_COMPUTE} "cat /proc/self/cgroup | egrep csm_system" > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 1a: (Section E) SSH to node in the allocation, does get put into the CSM system cgroup"
 
