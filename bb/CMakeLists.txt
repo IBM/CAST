@@ -36,7 +36,7 @@ Prefix: ${CMAKE_INSTALL_PREFIX}/bb/scripts
 set(CPACK_RPM_burstbuffer_PACKAGE_REQUIRES       "nvme-cli,nvmetcli,fuse,fuse-libs,util-linux,lvm2,coreutils,xfsprogs,openssh-clients,grep,perl-Sys-Syslog,perl-JSON,sysstat" PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tests_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-tools_PACKAGE_REQUIRES "ibm_smpi > 10.1"   PARENT_SCOPE)
-set(CPACK_RPM_burstbuffer-ansible_PACKAGE_REQUIRES "ansible >= 2.9.6"   PARENT_SCOPE)
+set(CPACK_RPM_burstbuffer-ansible_PACKAGE_REQUIRES "ansible >= 2.9.5"   PARENT_SCOPE)
 set(CPACK_RPM_burstbuffer-fvt-ansible_PACKAGE_REQUIRES "ibm-burstbuffer-ansible >= 1.8"   PARENT_SCOPE)
 
 # Burstbuffer needs to run a post-install script
