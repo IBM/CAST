@@ -35,7 +35,7 @@ LABEL maintainer="Tom Gooding"
 
 RUN yum -y install epel-release
 
-ENV DEVRPMS gcc gcc-c++ git perl-XML-Simple cmake3 openssl-devel wget which zlib-devel rpm-devel rpm-build libuuid-devel bzip2-devel fuse fuse-devel fuse-libs perl-JSON kernel-devel libquadmath-devel libibverbs-devel postgresql-devel pam-devel initscripts graphviz doxygen rubygems java hostname iputils
+ENV DEVRPMS createrepo gcc gcc-c++ git perl-XML-Simple cmake3 openssl-devel wget which zlib-devel rpm-devel rpm-build libuuid-devel bzip2-devel fuse fuse-devel fuse-libs perl-JSON kernel-devel libquadmath-devel libibverbs-devel postgresql-devel pam-devel initscripts graphviz doxygen rubygems java hostname iputils
 
 ENV RHEL7RPMS python-devel 
 
