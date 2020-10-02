@@ -2,7 +2,7 @@
 #   
 #    tools/complete_fvt.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -106,6 +106,7 @@ run_bucket "basic" "switch_inventory"
 run_bucket "basic" "inventory_collection"
 run_bucket "basic" "compute_node"
 run_bucket "advanced" "allocation"
+run_bucket "advanced" "allocation_metrics_test"
 run_bucket "error_injection" "allocation"
 run_bucket "error_injection" "bb"
 run_bucket "error_injection" "node"
