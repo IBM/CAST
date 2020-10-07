@@ -465,7 +465,6 @@ extern int BB_RestartTransfers(const char* pHostName, const uint64_t pHandle, ui
      * \par Description
      *  
      * 
-     * \param[in] name The name of the bbserver
      *  \return Error code
      *  \retval 0 Success
      *  \retval -1 Failure

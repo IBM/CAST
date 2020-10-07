@@ -248,8 +248,10 @@ The getdeviceusage command takes the device index and returns NVMe specific data
  
  The NVMe device index to be queried on the compute node.
  
+getfileinfo
+===========
 
-
+Returns active file transfers for a bbproxy daemon.  Requires super user credentials.
 
 gethandle
 =========
