@@ -30,6 +30,16 @@
       command: ls -l {{FQP_CERTFILE}} 
       any_errors_fatal: true     
  
+- hosts: server compute
+  tasks:
+    - name: Create /etc/ibm directory if it does not exist
+      file:   
+        path: /etc/ibm
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
 - hosts: server
   tasks:
     - name: Copy private key to bbserver nodes
@@ -38,8 +48,8 @@
         dest: /etc/ibm/key.pem
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: '0600'
+        backup: no
       any_errors_fatal: true  
 
 - hosts: server compute
@@ -51,6 +61,6 @@
         owner: root
         group: root
         mode: '0644'
-        backup: yes  
+        backup: no  
     any_errors_fatal: true        
 
