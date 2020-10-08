@@ -193,6 +193,9 @@ The NVMe device index to be queried on the compute node.
 
 =back
 
+=head2 getfileinfo
+
+Returns active file transfers for a bbproxy daemon.  Requires super user credentials.
 
 =head2 gethandle
 
