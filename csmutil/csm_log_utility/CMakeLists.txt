@@ -17,12 +17,19 @@ add_subdirectory(Helper_Files)
 add_subdirectory(Logs)
 add_subdirectory(Reports)
 
-
+# non executable files
 file(GLOB INSTALL_SCRIPTS
     "ReadMe.md"
-    "API_Statistics.py"
 )
 
 install(FILES ${INSTALL_SCRIPTS} COMPONENT csm-tools DESTINATION csm/tools)
 
-# CPACK_RPM settings for the csm-tools rpm are managed in csmd/setupRPM.cmake 
+# Files that should be executable when shipped
+
+file(GLOB INSTALL_PROGRAMS
+  "API_Statistics.py"
+)
+
+install(PROGRAMS ${INSTALL_PROGRAMS} COMPONENT csm-tools DESTINATION csm/tools)
+
+# CPACK_RPM settings for the csm-tools rpm are managed in csmd/setupRPM.cmake

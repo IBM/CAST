@@ -14,9 +14,9 @@
 #================================================================================
 
 # This file is used to override rpm defaults defined in scripts/setupRPM.cmake
-# when non-default behavior is needed for csm rpms 
+# when non-default behavior is needed for csm rpms
 
-# Note: when shipping libraries to a new directory location via cmake "install ...", 
+# Note: when shipping libraries to a new directory location via cmake "install ...",
 # the new directory must be added to the CMAKE_INSTALL_RPATH in scripts/setupRPATH.cmake
 
 # ibm-csm-core rpm settings
@@ -41,4 +41,8 @@ set(CPACK_RPM_csm-hcdiag_PACKAGE_REQUIRES "perl-YAML")
 
 # ibm-csm-tools rpm settings
 set(CPACK_RPM_csm-tools_PACKAGE_ARCHITECTURE "noarch")
-set(CPACK_RPM_csm-tools_PACKAGE_REQUIRES "numpy")
+if(${EXPLICIT_PYTHON_VERSION})
+    set(CPACK_RPM_csm-tools_PACKAGE_REQUIRES "python2-numpy")
+else()
+    set(CPACK_RPM_csm-tools_PACKAGE_REQUIRES "numpy")
+endif()

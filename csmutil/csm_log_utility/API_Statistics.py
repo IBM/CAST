@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 import os
 import errno
 import subprocess
@@ -47,7 +48,7 @@ args = parser.parse_args()
 if(args.directory_path):
     logs_path = args.directory_path
 else:
-    logs_path = "/var/log/ibm/csm"   
+    logs_path = "/var/log/ibm/csm"
 
 #---------- Takes in user Command Line Arguments----------
 # Format: YYYY-MM-DD HH:MM::SS
@@ -118,7 +119,7 @@ for subdirectory in subdirs:
             filename = subdirectory + "/" + file
             if ("compute" in filename or "aggregator" in filename or "master" in filename or "utility" in filename) and ".log" in filename and 'Error' not in filename and '.txt' not in filename:
             # if 'log.old.5' in filename and 'txt' not in filename:
-            	file_list.append(filename)
+              file_list.append(filename)
 
 print file_list
 
