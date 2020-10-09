@@ -39,7 +39,7 @@ ENV DEVRPMS createrepo gcc gcc-c++ git perl-XML-Simple cmake3 openssl-devel wget
 
 ENV RHEL7RPMS python-devel 
 
-ENV RHEL8RPMS make rsync python2 python2-devel boost boost-devel boost-python3-devel
+ENV RHEL8RPMS make rsync python2 python2-devel python3-devel boost boost-devel boost-python3-devel
 
 ##########
 # Basic development environment
