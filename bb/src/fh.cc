@@ -418,6 +418,11 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
 
     FL_Write(FLProxy, OpenFile, "Open for filehandle",(uint64_t)oflag,(uint64_t)mode,0,0);
 #if (BBSERVER || BBPROXY)
+    int stat_rc=0;
+    if (O_CREAT & oflag) {
+        struct stat l_stat;
+        stat_rc = stat(filename.c_str(), &l_stat);
+    }
     threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::opensyscall, filename.c_str(),__LINE__);
     BB_GetTime(l_Time);
 #endif
@@ -432,6 +437,12 @@ filehandle::filehandle(const string& fn, int oflag, mode_t mode) :
         LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=0" \
                      << std::oct << mode << std::dec << ", time=" << (double)l_Time/(double)g_TimeBaseScale << " seconds";
         FL_Write(FLProxy, OpenFile_OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld ticks=%ld",(uint64_t)fd,oflag,mode,l_Time);
+        if ( stat_rc  ){
+            int rc_chmod = chmod(filename.c_str(), mode);
+            if (rc_chmod){
+                LOG(bb,info) << "chmod for file=" << filename << " errno=" << errno << " (" << strerror(errno) << ")";
+            }
+        }
 #else
         LOG(bb,info) << "Opened file " << filename << " as fd=" << fd << " with flag=" << oflag << ", mode=0" << std::oct << mode << std::dec;
         FL_Write(FLProxy, OpenFile__OK, "Open for filehandle successful fd=%ld oflag=%ld mode=%ld",(uint64_t)fd,oflag,mode,0);
