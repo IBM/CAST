@@ -146,7 +146,7 @@ Alternativly the user can choose another location to write to if they have appro
  [Info    ] Backup directory:            |  /var/lib/pgsql/backups/
  [Info    ] Log directory:               |  /tmp/csm_db_backup_script.log
  [Info    ] Backing up DB:               |  csmdb
- [Info    ] DB_Version:                  |  17.0
+ [Info    ] DB_Version:                  |  19.0
  [Info    ] DB User Name:                |  postgres
  [Info    ] Script User:                 |  postgres
  [Info    ] Script Stats:                |  [ 509kiB] [0:00:00] [2.38MiB/s]

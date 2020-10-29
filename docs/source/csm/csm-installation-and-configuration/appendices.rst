@@ -10,7 +10,7 @@ Please ensure the following steps have been completed on the xCAT Management nod
 
 1. xCAT has been installed and the basic configuration has been completed.
 2. Section 2.2 has been completed and the cast-boost rpms are currently accessible at ``${HOME}/rpmbuild/RPMS/ppc64le``.
-3. The ``ibm-flightlog-1.5.0-*.ppc64le`` is present on the xCAT Management node.
+3. The ``ibm-flightlog-1.8.2-*.ppc64le`` is present on the xCAT Management node.
 4. Install ``createrepo`` for building the other packages directory.
 
 After verifying the above steps have been completed do the following:
@@ -59,9 +59,9 @@ After verifying the above steps have been completed do the following:
 
   $ vi /install/post/otherpkgs/rhels7.5/ppc64le/csm.pkglist
 	    cast-boost/cast-boost-*
-        csm/ibm-flightlog-1.5.0-*.ppc64le
-        csm/ibm-csm-core-1.5.0-*.ppc64le
-        csm/ibm-csm-api-1.5.0-*.ppc64le
+        csm/ibm-flightlog-1.8.2-*.ppc64le
+        csm/ibm-csm-core-1.8.2-*.ppc64le
+        csm/ibm-csm-api-1.8.2-*.ppc64le
 
   $ chdef -t osimage rhels7.5-ppc64le-diskless-compute otherpkglist=/install/post/otherpkgs/rhels7.5/ppc64le/csm.pkglist
 

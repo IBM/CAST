@@ -12,7 +12,7 @@ The CSM REST daemon (csmrestd) is optional and is not required for normal cluste
 Packaging and Installation
 --------------------------
 
-All required binaries, configuration files, and example scripts are packaged in ``ibm-csm-restd-1.5.0-*.ppc64le.rpm``.
+All required binaries, configuration files, and example scripts are packaged in ``ibm-csm-restd-1.8.2-*.ppc64le.rpm``.
 To install and configure csmrestd, please refer to :ref:`CSM_INSTALLATION_AND_CONFIGURATION`.
 
 Creating a CSM RAS event via the REST API

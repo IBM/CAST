@@ -38,7 +38,7 @@ On the management node create the csmdb schema by running the csm_db_script.sh. 
   [Complete] csmdb database functions and triggers created.
   [Complete] csmdb table data loaded successfully into csm_db_schema_version
   [Complete] csmdb table data loaded successfully into csm_ras_type
-  [Info    ] csmdb DB schema version (17.0)
+  [Info    ] csmdb DB schema version (19.0)
   --------------------------------------------------------------------------------------------
   # 
 
@@ -239,55 +239,73 @@ Run CSM infrastructure health check on the login / launch node to verify the inf
 
 .. code-block:: bash
   
-  # /opt/ibm/csm/bin/csm_infrastructure_health_check -v
-  Starting. Contacting local daemon...
-  Connected. Checking infrastructure... (this may take a moment. Please be patient...)
-  
-  ###### RESPONSE FROM THE LOCAL DAEMON #######
-  MASTER: c650mnp06 (bounced=0; version=1.5.0)
-  	DB_free_conn_size: 10
-  	DB_locked_conn_pool_size: 0
-  	Timer_test: success
-  	DB_sql_query_test: success
-  	Multicast_test: success
-  	Network_vchannel_test: success
-  	User_permission_test: success
-  	UniqueID_test: success
-  
-  Aggregators:1
-      AGGREGATOR: c650f02p05 (bounced=0; version=1.5.0)
-  	Active_primary: 4
-  	Unresponsive_primary: 0
-  	Active_secondary: 0
-  	Unresponsive_secondary: 0
-  
-  	Primary Nodes:
-  		Active: 4
-  			COMPUTE: c650f02p17 (bounced=0; version=1.5.0; link=PRIMARY)
-  			COMPUTE: c650f02p13 (bounced=1; version=1.5.0; link=PRIMARY)
-  			COMPUTE: c650f02p11 (bounced=0; version=1.5.0; link=PRIMARY)
-  			COMPUTE: c650f02p09 (bounced=0; version=1.5.0; link=PRIMARY)
-  		Unresponsive: 0
-  
-  	Secondary Nodes:
-  		Active: 0
-  		Unresponsive: 0
-  
-  
-    Unresponsive Aggregators: 0
-  
-  Utility Nodes:1
-      UTILITY: c650f02p07 (bounced=0; version=1.5.0)
-  
-    Unresponsive Utility Nodes: 0
-  
-  Local_daemon: MASTER: c650mnp06 (bounced=0; version=1.5.0)
-  	Status:
-  #############################################
-  
-  Finished. Cleaning up...
-  Test complete: rc=0
-  #
+ # /opt/ibm/csm/bin/csm_infrastructure_health_check -v
+ Starting. Contacting local daemon...
+ Connected. Checking infrastructure... (this may take a moment. Please be patient...)
+
+ ###### RESPONSE FROM THE LOCAL DAEMON #######
+ MASTER: c650f99p06 (bounced=0; version=1.8.2)
+        DB_free_conn_size: 10
+        DB_locked_conn_pool_size: 0
+        Timer_test: success
+        DB_sql_query_test: success
+        Multicast_test: success
+        Network_vchannel_test: success
+        User_permission_test: success
+        UniqueID_test: success
+
+ Aggregators:2
+    AGGREGATOR: c650f99p06 (bounced=1; version=1.8.2)
+        Active_primary: 2
+        Unresponsive_primary: 0
+        Active_secondary: 2
+        Unresponsive_secondary: 0
+
+        Primary Nodes:
+                Active: 2
+                        COMPUTE: c650f99p18 (bounced=1; version=1.8.2; link=PRIMARY)
+                        COMPUTE: c650f99p26 (bounced=1; version=1.8.2; link=SECONDARY)
+                Unresponsive: 0
+
+        Secondary Nodes:
+                Active: 2
+                        COMPUTE: c650f99p36 (bounced=1; version=1.8.2; link=SECONDARY)
+                        COMPUTE: c650f99p28 (bounced=1; version=1.8.2; link=SECONDARY)
+                Unresponsive: 0
+
+    AGGREGATOR: c650f99p30 (bounced=1; version=1.8.2)
+        Active_primary: 2
+        Unresponsive_primary: 0
+        Active_secondary: 2
+        Unresponsive_secondary: 0
+
+        Primary Nodes:
+                Active: 2
+                        COMPUTE: c650f99p36 (bounced=1; version=1.8.2; link=PRIMARY)
+                        COMPUTE: c650f99p28 (bounced=1; version=1.8.2; link=PRIMARY)
+                Unresponsive: 0
+
+        Secondary Nodes:
+                Active: 2
+                        COMPUTE: c650f99p18 (bounced=1; version=1.8.2; link=SECONDARY)
+                        COMPUTE: c650f99p26 (bounced=1; version=1.8.2; link=PRIMARY)
+                Unresponsive: 0
+
+
+  Unresponsive Aggregators: 0
+
+ Utility Nodes:1
+    UTILITY: c650f99p16 (bounced=1; version=1.8.2)
+
+  Unresponsive Utility Nodes: 0
+
+ Local_daemon: MASTER: c650f99p06 (bounced=0; version=1.8.2)
+        Status:
+ #############################################
+
+ Finished. Cleaning up...
+ Test complete: rc=0
+ #
 
 Note that is some cases the list and status of nodes might not be 100% accurate if there were infrastructure changes immediately before or during the test. This usually results in timeout warnings and a rerun of the test should return an updated status.
 
@@ -300,7 +318,7 @@ Use CSM API command line ``csm_node_attributes_update`` to update the compute no
 
 .. code-block:: bash
 
-  $ /opt/ibm/csm/bin/csm_node_attributes_update –s IN_SERVICE -n c650f02p09
+  $ /opt/ibm/csm/bin/csm_node_attributes_update –s IN_SERVICE -n c650f99p28
 
 CSM REST Daemon Installation and Configuration
 ----------------------------------------------
@@ -313,7 +331,7 @@ Install the ibm-csm-restd rpm if it is not already installed:
 
 .. code-block:: bash
 
-  $ rpm -ivh ibm-csm-restd-1.5.0-*.ppc64le.rpm
+  $ rpm -ivh ibm-csm-restd-1.8.2-*.ppc64le.rpm
 
 
 Copy the default configuration file from /opt/ibm/csm/share/etc to /etc/ibm/csm:

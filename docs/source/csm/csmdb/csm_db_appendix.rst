@@ -179,7 +179,6 @@ csm_node_history
  Size       | 5000+ rows (Based on hardware changes)          |
  Index      | ix_csm_node_history_a on (history_time)         |
             | ix_csm_node_history_b on (node_name)            |
-            | ix_csm_node_history_c on (ctid)                 |
             | ix_csm_node_history_d on (archive_history_time) |
 =========== ================================================= ==========================
  
@@ -226,7 +225,6 @@ csm_node_history (DB table overview)
  Indexes:
      "ix_csm_node_history_a" btree (history_time)
      "ix_csm_node_history_b" btree (node_name)
-     "ix_csm_node_history_c" btree (ctid)
      "ix_csm_node_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -243,7 +241,6 @@ csm_node_state_history
  Size       | (Based on how often a node ready status changes)      |
  Index      | ix_csm_node_ready_history_a on (history_time)         |
             | ix_csm_node_ready_history_b on (node_name, ready)     |
-            | ix_csm_node_ready_history_c on (ctid)                 |
             | ix_csm_node_ready_history_d on (archive_history_time) |
 =========== ======================================================= ==========================  
 
@@ -263,7 +260,6 @@ csm_node_state_history (DB table overview)
  Indexes:
      "ix_csm_node_state_history_a" btree (history_time)
      "ix_csm_node_state_history_b" btree (node_name, state)
-     "ix_csm_node_state_history_c" btree (ctid)
      "ix_csm_node_state_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -320,7 +316,6 @@ csm_processor_socket_history
             | is changed or its failure rate)                          |
  Index      | ix_csm_processor_history_a on (history_time)             |
             | ix_csm_processor_history_b on (serial_number, node_name) |
-            | ix_csm_processor_history_c on (ctid)                     |
             | ix_csm_processor_history_d on (archive_history_time)     |
 =========== ========================================================== ==============
 
@@ -342,7 +337,6 @@ csm_processor_socket_history (DB table overview)
  Indexes:
      "ix_csm_processor_socket_history_a" btree (history_time)
      "ix_csm_processor_socket_history_b" btree (serial_number, node_name)
-     "ix_csm_processor_socket_history_c" btree (ctid)
      "ix_csm_processor_socket_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -407,7 +401,6 @@ csm_gpu_history
  Index      | ix_csm_gpu_history_a on (history_time)         |
             | ix_csm_gpu_history_b on (serial_number)        |
             | ix_csm_gpu_history_c on (node_name, gpu_id)    |
-            | ix_csm_gpu_history_d on (ctid)                 |
             | ix_csm_gpu_history_e on (archive_history_time) |
 =========== ================================================ ==========================   
 
@@ -435,7 +428,6 @@ csm_gpu_history (DB table overview)
      "ix_csm_gpu_history_a" btree (history_time)
      "ix_csm_gpu_history_b" btree (serial_number)
      "ix_csm_gpu_history_c" btree (node_name, gpu_id)
-     "ix_csm_gpu_history_d" btree (ctid)
      "ix_csm_gpu_history_e" btree (archive_history_time)
  Has OIDs: no
  
@@ -509,7 +501,6 @@ csm_ssd_history
  Size       | 5000+ rows                                         |
  Index      | ix_csm_ssd_history_a on (history_time)             |
             | ix_csm_ssd_history_b on (serial_number, node_name) |
-            | ix_csm_ssd_history_c on (ctid)                     |
             | ix_csm_ssd_history_d on (archive_history_time)     |
 =========== ==================================================== ==========================
 
@@ -539,7 +530,6 @@ csm_ssd_history (DB table overview)
  Indexes:
      "ix_csm_ssd_history_a" btree (history_time)
      "ix_csm_ssd_history_b" btree (serial_number, node_name)
-     "ix_csm_ssd_history_c" btree (ctid)
      "ix_csm_ssd_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -556,7 +546,6 @@ csm_ssd_wear_history
  Size       | 5000+ rows                                              |
  Index      | ix_csm_ssd_wear_history_a on (history_time)             |
             | ix_csm_ssd_wear_history_b on (serial_number, node_name) |
-            | ix_csm_ssd_wear_history_c on (ctid)                     |
             | ix_csm_ssd_wear_history_d on (archive_history_time)     |
 =========== ========================================================= ==========================
 
@@ -581,7 +570,6 @@ csm_ssd_wear_history (DB table overview)
  Indexes:
      "ix_csm_ssd_wear_history_a" btree (history_time)
      "ix_csm_ssd_wear_history_b" btree (serial_number, node_name)
-     "ix_csm_ssd_wear_history_c" btree (ctid)
      "ix_csm_ssd_wear_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -641,7 +629,6 @@ csm_hca_history
  Size       | (Based on how many are changed out)                |
  Index      | ix_csm_hca_history_a on (history_time)             |
             | ix_csm_hca_history_b on (node_name, serial_number) |
-            | ix_csm_hca_history_c on (ctid)                     |
             | ix_csm_hca_history_d on (archive_history_time)     |
 =========== ==================================================== ==========================
 
@@ -668,7 +655,6 @@ csm_hca_history (DB table overview)
  Indexes:
      "ix_csm_hca_history_a" btree (history_time)
      "ix_csm_hca_history_b" btree (node_name, serial_number)
-     "ix_csm_hca_history_c" btree (ctid)
      "ix_csm_hca_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -723,7 +709,6 @@ csm_dimm_history
  Size       | (Based on how many are changed out)                 |
  Index      | ix_csm_dimm_history_a on (history_time)             |
             | ix_csm_dimm_history_b on (node_name, serial_number) |
-            | ix_csm_dimm_history_c on (ctid)                     |
             | ix_csm_dimm_history_d on (archive_history_time)     |
 =========== ===================================================== ==========================  
 
@@ -745,7 +730,6 @@ csm_dimm_history (DB table overview)
  Indexes:
      "ix_csm_dimm_history_a" btree (history_time)
      "ix_csm_dimm_history_b" btree (node_name, serial_number)
-     "ix_csm_dimm_history_c" btree (ctid)
      "ix_csm_dimm_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -846,7 +830,6 @@ csm_allocation_history
  Size       | (Depending on customers work load (100,000+ rows))    |
  Index      | ix_csm_allocation_history_a on (history_time)         |
             | ix_csm_allocation_history_b on (allocation_id)        |
-            | ix_csm_allocation_history_c on (ctid)                 |
             | ix_csm_allocation_history_d on (archive_history_time) |
 =========== ======================================================= ==========================
 
@@ -899,7 +882,6 @@ csm_allocation_history (DB table overview)
  Indexes:
      "ix_csm_allocation_history_a" btree (history_time)
      "ix_csm_allocation_history_b" btree (allocation_id)
-     "ix_csm_allocation_history_c" btree (ctid)
      "ix_csm_allocation_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -977,7 +959,6 @@ csm_step_history
             | ix_csm_step_history_c on (allocation_id, end_time)       |
             | ix_csm_step_history_d on (end_time)                      |
             | ix_csm_step_history_e on (step_id)                       |
-            | ix_csm_step_history_f on (ctid)                          |
             | ix_csm_step_history_g on (archive_history_time)          |
 =========== ========================================================== ==========================
 
@@ -1022,7 +1003,6 @@ csm_step_history (DB table overview)
      "ix_csm_step_history_c" btree (allocation_id, end_time)
      "ix_csm_step_history_d" btree (end_time)
      "ix_csm_step_history_e" btree (step_id)
-     "ix_csm_step_history_f" btree (ctid)
      "ix_csm_step_history_g" btree (archive_history_time)
  Has OIDs: no
 
@@ -1107,7 +1087,6 @@ csm_allocation_node_history
  Size       | 1-5000 rows                                                |
  Index      | ix_csm_allocation_node_history_a on (history_time)         |
             | ix_csm_allocation_node_history_b on (allocation_id)        |
-            | ix_csm_allocation_node_history_c on (ctid)                 |
             | ix_csm_allocation_node_history_d on (archive_history_time) |
 =========== ============================================================ ==========================
 
@@ -1140,7 +1119,6 @@ csm_allocation_node_history (DB table overview)
  Indexes:
      "ix_csm_allocation_node_history_a" btree (history_time)
      "ix_csm_allocation_node_history_b" btree (allocation_id)
-     "ix_csm_allocation_node_history_c" btree (ctid)
      "ix_csm_allocation_node_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1157,7 +1135,6 @@ csm_allocation_state_history
  Size       | 1-5000 rows (one per allocation)                            |
  Index      | ix_csm_allocation_state_history_a on (history_time)         |
             | ix_csm_allocation_state_history_b on (allocation_id)        |
-            | ix_csm_allocation_state_history_c on (ctid)                 |
             | ix_csm_allocation_state_history_d on (archive_history_time) |
 =========== ============================================================= ==========================
 
@@ -1177,7 +1154,6 @@ csm_allocation_state_history (DB table overview)
  Indexes:
      "ix_csm_allocation_state_history_a" btree (history_time)
      "ix_csm_allocation_state_history_b" btree (allocation_id)
-     "ix_csm_allocation_state_history_c" btree (ctid)
      "ix_csm_allocation_state_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1237,7 +1213,6 @@ csm_step_node_history
  Index      | ix_csm_step_node_history_a on (history_time)           |
             | ix_csm_step_node_history_b on (allocation_id)          |
             | ix_csm_step_node_history_c on (allocation_id, step_id) |
-            | ix_csm_step_node_history_d on (ctid)                   |
             | ix_csm_step_node_history_e on (archive_history_time)   |
 =========== ======================================================== ==========================
 
@@ -1258,7 +1233,6 @@ csm_step_node_history (DB table overview)
      "ix_csm_step_node_history_a" btree (history_time)
      "ix_csm_step_node_history_b" btree (allocation_id)
      "ix_csm_step_node_history_c" btree (allocation_id, step_id)
-     "ix_csm_step_node_history_d" btree (ctid)
      "ix_csm_step_node_history_e" btree (archive_history_time)
  Has OIDs: no
 
@@ -1376,7 +1350,6 @@ csm_ras_event_action
             | ix_csm_ras_event_action_d on (time_stamp, msg_id)        |
             | ix_csm_ras_event_action_e on (time_stamp, location_name) |
             | ix_csm_ras_event_action_f on (master_time_stamp)         |
-            | ix_csm_ras_event_action_g on (ctid)                      |
             | ix_csm_ras_event_action_h on (archive_history_time)      |
 =========== ========================================================== ==========================
 
@@ -1407,7 +1380,6 @@ csm_ras_event_action (DB table overview)
      "ix_csm_ras_event_action_d" btree (time_stamp, msg_id)
      "ix_csm_ras_event_action_e" btree (time_stamp, location_name)
      "ix_csm_ras_event_action_f" btree (master_time_stamp)
-     "ix_csm_ras_event_action_g" btree (ctid)
      "ix_csm_ras_event_action_h" btree (archive_history_time)
  Foreign-key constraints:
      "csm_ras_event_action_msg_id_seq_fkey" FOREIGN KEY (msg_id_seq) REFERENCES csm_ras_type_audit(msg_id_seq)
@@ -1474,7 +1446,6 @@ csm_diag_run_history
  Index      | ix_csm_diag_run_history_a on (history_time)         |
             | ix_csm_diag_run_history_b on (run_id)               |
             | ix_csm_diag_run_history_c on (allocation_id)        |
-            | ix_csm_diag_run_history_d on (ctid)                 |
             | ix_csm_diag_run_history_e on (archive_history_time) |
 =========== ===================================================== ==========================  
 
@@ -1500,7 +1471,6 @@ csm_diag_run_history (DB table overview)
      "ix_csm_diag_run_history_a" btree (history_time)
      "ix_csm_diag_run_history_b" btree (run_id)
      "ix_csm_diag_run_history_c" btree (allocation_id)
-     "ix_csm_diag_run_history_d" btree (ctid)
      "ix_csm_diag_run_history_e" btree (archive_history_time)
  Has OIDs: no
   
@@ -1558,7 +1528,6 @@ csm_diag_result_history
  Size       | 1000+ rows                                             |
  Index      | ix_csm_diag_result_history_a on (history_time)         |
             | ix_csm_diag_result_history_b on (run_id)               |
-            | ix_csm_diag_result_history_c on (ctid)                 |
             | ix_csm_diag_result_history_d on (archive_history_time) |
 =========== ======================================================== ==========================
 
@@ -1583,7 +1552,6 @@ csm_diag_result_history (DB table overview)
  Indexes:
      "ix_csm_diag_result_history_a" btree (history_time)
      "ix_csm_diag_result_history_b" btree (run_id)
-     "ix_csm_diag_result_history_c" btree (ctid)
      "ix_csm_diag_result_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1655,7 +1623,6 @@ csm_lv_history
  Size       | 5000+ rows (depending on step usage)          |
  Index      | ix_csm_lv_history_a on (history_time)         |
             | ix_csm_lv_history_b on (logical_volume_name)  |
-            | ix_csm_lv_history_c on (ctid)                 |
             | ix_csm_lv_history_d on (archive_history_time) |
 =========== =============================================== ==========================  
 
@@ -1689,7 +1656,6 @@ csm_lv_history (DB table overview)
  Indexes:
      "ix_csm_lv_history_a" btree (history_time)
      "ix_csm_lv_history_b" btree (logical_volume_name)
-     "ix_csm_lv_history_c" btree (ctid)
      "ix_csm_lv_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1706,7 +1672,6 @@ csm_lv_update_history
  Size       | 5000+ rows (depending on step usage)                 |
  Index      | ix_csm_lv_update_history_a on (history_time)         |
             | ix_csm_lv_update_history_b on (logical_volume_name)  |
-            | ix_csm_lv_update_history_c on (ctid)                 |
             | ix_csm_lv_update_history_d on (archive_history_time) |
 =========== ====================================================== ========================
 
@@ -1729,7 +1694,6 @@ csm_lv_update_history (DB table overview)
  Indexes:
      "ix_csm_lv_update_history_a" btree (history_time)
      "ix_csm_lv_update_history_b" btree (logical_volume_name)
-     "ix_csm_lv_update_history_c" btree (ctid)
      "ix_csm_lv_update_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1786,7 +1750,6 @@ csm_vg_ssd_history
  Size       | 5000+ rows (depending on step usage)              |
  Index      | ix_csm_vg_ssd_history_a on (history_time)         |
             | ix_csm_vg_ssd_history_b on (vg_name, node_name)   |
-            | ix_csm_vg_ssd_history_c on (ctid)                 |
             | ix_csm_vg_ssd_history_d on (archive_history_time) |
 =========== =================================================== ==========================
 
@@ -1808,7 +1771,6 @@ csm_vg_ssd_history (DB table overview)
  Indexes:
      "ix_csm_vg_ssd_history_a" btree (history_time)
      "ix_csm_vg_ssd_history_b" btree (vg_name, node_name)
-     "ix_csm_vg_ssd_history_c" btree (ctid)
      "ix_csm_vg_ssd_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1874,7 +1836,6 @@ csm_vg_history
  Size       | 5000+ rows (depending on step usage)          |
  Index      | ix_csm_vg_history_a on (history_time)         |
             | ix_csm_vg_history_b on (vg_name, node_name)   |
-            | ix_csm_vg_history_c on (ctid)                 |
             | ix_csm_vg_history_d on (archive_history_time) |
 =========== =============================================== ==========================
 
@@ -1898,7 +1859,6 @@ csm_vg_history (DB table overview)
  Indexes:
      "ix_csm_vg_history_a" btree (history_time)
      "ix_csm_vg_history_b" btree (vg_name, node_name)
-     "ix_csm_vg_history_c" btree (ctid)
      "ix_csm_vg_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -1986,7 +1946,6 @@ csm_switch_history
  Size       | (Based on failure rate/ or how often changed out)        |
  Index      | ix_csm_switch_history_a on (history_time)                |
             | ix_csm_switch_history_b on (serial_number, history_time) |
-            | ix_csm_switch_history_c on (ctid)                        |
             | ix_csm_switch_history_d on (archive_history_time)        |
 =========== ========================================================== ==========================
 
@@ -2031,7 +1990,6 @@ csm_switch_history (DB table overview)
  Indexes:
      "ix_csm_switch_history_a" btree (history_time)
      "ix_csm_switch_history_b" btree (switch_name, history_time)
-     "ix_csm_switch_history_c" btree (ctid)
      "ix_csm_switch_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -2099,7 +2057,6 @@ csm_ib_cable_history
             | or configuration)                                   |
  Index      | ix_csm_ib_cable_history_a on (history_time)         |
             | ix_csm_ib_cable_history_b on (serial_number)        |
-            | ix_csm_ib_cable_history_c on (ctid)                 |
             | ix_csm_ib_cable_history_d on (archive_history_time) |
 =========== ===================================================== ==========================
 
@@ -2133,7 +2090,6 @@ csm_ib_cable_history (DB table overview)
  Indexes:
      "ix_csm_ib_cable_history_a" btree (history_time)
      "ix_csm_ib_cable_history_b" btree (serial_number)
-     "ix_csm_ib_cable_history_c" btree (ctid)
      "ix_csm_ib_cable_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -2205,7 +2161,6 @@ csm_switch_inventory_history
  Size       | 25,000+ rows (Based on switch topolog and or configuration) |
  Index      | ix_csm_switch_inventory_history_a on (history_time)         |
             | ix_csm_switch_inventory_history_b on (name)                 |
-            | ix_csm_switch_inventory_history_c on (ctid)                 |
             | ix_csm_switch_inventory_history_d on (archive_history_time) |
 =========== ============================================================= ==========================  
 
@@ -2241,7 +2196,6 @@ csm_switch_inventory_history (DB table overview)
  Indexes:
      "ix_csm_switch_inventory_history_a" btree (history_time)
      "ix_csm_switch_inventory_history_b" btree (name)
-     "ix_csm_switch_inventory_history_c" btree (ctid)
      "ix_csm_switch_inventory_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -2302,7 +2256,6 @@ csm_config_history
  Size       | 1-100 rows                                        |
  Index      | ix_csm_config_history_a on (history_time)         |
             | ix_csm_config_history_b on (csm_config_id)        |
-            | ix_csm_config_history_c on (ctid)                 |
             | ix_csm_config_history_d on (archive_history_time) |
 =========== =================================================== ==========================   
 
@@ -2329,7 +2282,6 @@ csm_config_history (DB table overview)
  Indexes:
      "ix_csm_config_history_a" btree (history_time)
      "ix_csm_config_history_b" btree (csm_config_id)
-     "ix_csm_config_history_c" btree (ctid)
      "ix_csm_config_history_d" btree (archive_history_time)
  Has OIDs: no
 
@@ -2416,7 +2368,6 @@ csm_db_schema_version_history
  Size       | 1-100 rows (Based on CSM DB changes/updates)                 |
  Index      | ix_csm_db_schema_version_history_a on (history_time)         |
             | ix_csm_db_schema_version_history_b on (version)              |
-            | ix_csm_db_schema_version_history_c on (ctid)                 |
             | ix_csm_db_schema_version_history_d on (archive_history_time) |
 =========== ============================================================== ==========================
 
@@ -2436,7 +2387,6 @@ csm_db_schema_version_history (DB table overview)
  Indexes:
      "ix_csm_db_schema_version_history_a" btree (history_time)
      "ix_csm_db_schema_version_history_b" btree (version)
-     "ix_csm_db_schema_version_history_c" btree (ctid)
      "ix_csm_db_schema_version_history_d" btree (archive_history_time)
  Has OIDs: no
 
