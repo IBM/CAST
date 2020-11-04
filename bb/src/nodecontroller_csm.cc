@@ -178,7 +178,7 @@ NodeController_CSM::NodeController_CSM():
     vg.ssd_info[0]    = &ssdinfo;
 
     LOG(bb,info) << "Trying to create volume group:  ssd=" << nvmssd << "  vgfree=" << vgfree 
-                 << "  vgtotal=" << vgtotal << " volumeGroup="<< volumeGroup;
+                 << "  vgtotal=" << vgtotal << " volumeGroup="<< volumeGroup << "hostname=" << myhostname;
     rc = _csm_bb_vg_create_func(&csmhandle, &vg);
     LOG(bb,info) << "csm_bb_vg_create() rc=" << rc;
 
@@ -369,6 +369,8 @@ int NodeController_CSM::lvcreate(const string& lvname, enum LVState state, size_
     csmi_allocation_t allocinfo;
     char statechar;
 
+    string volumeGroup = config.get(process_whoami+".volumegroup", "bb");
+
     LOG(bb,info) << "Created logical volume for Uuid '" << lvname << "'  size=" << current_size << "  state=" << state << "  mountpath=" << mountpath << "   fstype=" << fstype;
 
     convertState(state, statechar);
@@ -379,7 +381,7 @@ int NodeController_CSM::lvcreate(const string& lvname, enum LVState state, size_
     bbargs.logical_volume_name = (char*)lvname.c_str();
     bbargs.node_name           = (char*)myhostname.c_str();
     bbargs.allocation_id       = allocinfo.allocation_id;
-    bbargs.vg_name             = (char*)config.get(process_whoami+".volumegroup", "bb").c_str();
+    bbargs.vg_name             = (char*)volumeGroup.c_str();
     bbargs.state               = statechar;
     bbargs.current_size        = current_size;
     bbargs.file_system_mount   = (char*)mountpath.c_str();
