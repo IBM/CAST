@@ -82,6 +82,11 @@ int NodeController_CSM::getcsmSymbols(const std::string& controllerPath){
         if(!_csm_allocation_query_active_all_func)handleSymError("csm_allocation_query_active_all");
         free_csm_allocation_query_active_all_output_t_func = (free_csm_allocation_query_active_all_output_t_t)dlsym(_dlopen_csmi,"free_csm_allocation_query_active_all_output_t");
         if(!free_csm_allocation_query_active_all_output_t_func)handleSymError("free_csm_allocation_query_active_all_output_t");
+
+        _init_csm_bb_vg_create_input_t_func = (init_csm_bb_vg_create_input_type)dlsym(_dlopen_csmi,"init_csm_bb_vg_create_input_t");
+        if(!_init_csm_bb_vg_create_input_t_func)handleSymError("init_csm_bb_vg_create_input_t");
+        _init_csmi_bb_vg_ssd_info_t_func = (init_csmi_bb_vg_ssd_info_type)dlsym(_dlopen_csmi,"init_csmi_bb_vg_ssd_info_t");
+        if(!_init_csmi_bb_vg_ssd_info_t_func)handleSymError("init_csmi_bb_vg_ssd_info_t");
     }
     else{
         LOG(bb,error) << "dlopen failed for controller path="<<controllerPath;
@@ -107,6 +112,8 @@ NodeController_CSM::NodeController_CSM():
     _csm_allocation_query_func(NULL),
     _csm_allocation_query_active_all_func(NULL),
     free_csm_allocation_query_active_all_output_t_func(NULL),
+    _init_csm_bb_vg_create_input_t_func(NULL),
+    _init_csmi_bb_vg_ssd_info_t_func(NULL),
     csmhandle(NULL)
 {
     //csm_allocation_query_t   _csm_allocation_query_func;
@@ -147,10 +154,16 @@ NodeController_CSM::NodeController_CSM():
 
     ssize_t vgfree, vgtotal;
     csm_bb_vg_create_input_t vg;
+    vg._metadata=CSM_VERSION_ID; 
+    _init_csm_bb_vg_create_input_t_func(&vg);
     csmi_bb_vg_ssd_info_t ssdinfo;
+    ssdinfo._metadata=CSM_VERSION_ID; 
+    _init_csmi_bb_vg_ssd_info_t_func(&ssdinfo);
+
     string nvmssd = getNVMeDeviceInfo(getNVMeByIndex(0), "sn");
 
-    getVGSize(config.get(process_whoami+".volumegroup", "bb"), vgfree, vgtotal);
+    string volumeGroup = config.get(process_whoami+".volumegroup", "bb");
+    getVGSize( volumeGroup, vgfree, vgtotal);
 
     ssdinfo.ssd_serial_number = (char*)nvmssd.c_str();
     ssdinfo.ssd_allocation    = vgtotal;
@@ -158,13 +171,14 @@ NodeController_CSM::NodeController_CSM():
     vg.node_name      = (char*)myhostname.c_str();
     vg.total_size     = vgtotal;
     vg.available_size = vgfree;
-    vg.vg_name        = (char*)config.get(process_whoami+".volumegroup", "bb").c_str();
+    vg.vg_name        = (char*)volumeGroup.c_str();
     vg.scheduler      = true;
     vg.ssd_info_count = 1;
     vg.ssd_info       = (csmi_bb_vg_ssd_info_t**)malloc(vg.ssd_info_count * sizeof(csmi_bb_vg_ssd_info_t*));
     vg.ssd_info[0]    = &ssdinfo;
 
-    LOG(bb,info) << "Trying to create volume group:  ssd=" << nvmssd << "  vgfree=" << vgfree << "  vgtotal=" << vgtotal;
+    LOG(bb,info) << "Trying to create volume group:  ssd=" << nvmssd << "  vgfree=" << vgfree 
+                 << "  vgtotal=" << vgtotal << " volumeGroup="<< volumeGroup;
     rc = _csm_bb_vg_create_func(&csmhandle, &vg);
     LOG(bb,info) << "csm_bb_vg_create() rc=" << rc;
 

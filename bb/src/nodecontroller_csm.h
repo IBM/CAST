@@ -33,6 +33,10 @@ typedef int (*csm_bb_vg_create_t)(csm_api_object **handle, csm_bb_vg_create_inpu
 typedef int (*csm_bb_lv_create_t)(csm_api_object **handle, csm_bb_lv_create_input_t* input);
 typedef int (*csm_bb_lv_delete_t)(csm_api_object **handle, csm_bb_lv_delete_input_t* input);
 typedef int (*csm_bb_lv_update_t)(csm_api_object **handle, csm_bb_lv_update_input_t* input);
+//csmi/include/csmi_type_bb_funct.h:369:void init_csm_bb_vg_create_input_t( csm_bb_vg_create_input_t *target );
+typedef void (*init_csm_bb_vg_create_input_type)(csm_bb_vg_create_input_t *target);
+//csmi/include/csmi_type_bb_funct.h:121:void init_csmi_bb_vg_ssd_info_t( csmi_bb_vg_ssd_info_t *target );
+typedef void (*init_csmi_bb_vg_ssd_info_type)(csmi_bb_vg_ssd_info_t  *target);
 
 
 typedef int (*csm_bb_cmd_t)(csm_api_object **handle, csm_bb_cmd_input_t* input, csm_bb_cmd_output_t** output);
@@ -71,6 +75,8 @@ class NodeController_CSM : public NodeController
     csm_allocation_query_t   _csm_allocation_query_func;
     csm_allocation_query_active_all_t _csm_allocation_query_active_all_func;
     free_csm_allocation_query_active_all_output_t_t free_csm_allocation_query_active_all_output_t_func;
+    init_csm_bb_vg_create_input_type _init_csm_bb_vg_create_input_t_func;
+    init_csmi_bb_vg_ssd_info_type _init_csmi_bb_vg_ssd_info_t_func;
     csm_api_object* csmhandle;
     std::string myhostname;
     std::map< std::pair<uint64_t,uint32_t>, csmi_allocation_t* > job2allocationmap;
