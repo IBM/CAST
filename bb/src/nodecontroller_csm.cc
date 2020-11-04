@@ -178,7 +178,7 @@ NodeController_CSM::NodeController_CSM():
     vg.ssd_info[0]    = &ssdinfo;
 
     LOG(bb,info) << "Trying to create volume group:  ssd=" << nvmssd << "  vgfree=" << vgfree 
-                 << "  vgtotal=" << vgtotal << " volumeGroup="<< volumeGroup << "hostname=" << myhostname;
+                 << "  vgtotal=" << vgtotal << " volumeGroup="<< volumeGroup << " hostname=" << myhostname;
     rc = _csm_bb_vg_create_func(&csmhandle, &vg);
     LOG(bb,info) << "csm_bb_vg_create() rc=" << rc;
 
