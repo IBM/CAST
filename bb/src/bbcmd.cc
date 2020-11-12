@@ -1014,6 +1014,13 @@ int main(int orig_argc, const char** orig_argv)
     int rc = -999;
     stringstream errorText;
 
+    string argString=orig_argv[0];
+    string l_Space=" ";
+    for(int argIndex=1; argIndex < orig_argc; argIndex++)
+    {
+        argString += l_Space + string(orig_argv[argIndex]);
+    }
+
     int argc_cmd;
     int contribid = UNDEFINED_CONTRIBID;
     string command;
@@ -1211,6 +1218,7 @@ int main(int orig_argc, const char** orig_argv)
         config = curConfig.getTree();
 
         initializeLogging("bb.cmd.log", config);
+        LOG(bb,info) << "Original args=" << argString ;
 
         // NOTE:  The final support for send_to requires a proxy running on the FEN that forwards the request to the correct
         //        bbproxy server.  That has not been provided yet...
