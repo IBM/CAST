@@ -1211,6 +1211,14 @@ int main(int orig_argc, const char** orig_argv)
         config = curConfig.getTree();
 
         initializeLogging("bb.cmd.log", config);
+        //int orig_argc, const char** orig_argv
+        string received = orig_argv[0];
+        string space = " ";
+        for(int i=1;i<orig_argc;i++){
+            string tmp = orig_argv[i];
+            received+=space+tmp;
+        }
+        LOG(bb,info)<<"Received line\n"<<received;
 
         // NOTE:  The final support for send_to requires a proxy running on the FEN that forwards the request to the correct
         //        bbproxy server.  That has not been provided yet...

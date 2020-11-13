@@ -40,12 +40,15 @@ enum LVState
 // Control System abstraction class
 //
 class NodeController
-{
+{ private:
+    std::string _hostname;
+    std::string _xcatname;
   public:
     /**
      * \brief Destructor
      */
     NodeController();
+    void getXCATname();
     virtual ~NodeController();
 
     virtual int gethostname(std::string& pHostName);

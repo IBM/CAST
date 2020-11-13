@@ -26,8 +26,25 @@ using namespace std;
 NodeController  defaultcontroller;
 NodeController* activecontroller = &defaultcontroller;
 
+void NodeController::getXCATname(){
+    auto lines = runCommand("grep '^NODE=' /opt/xcat/xcatinfo");
+    if(lines.size() != 1)
+    {
+        return;
+    }
+    auto toks  = buildTokens(lines[0], "=");
+    if(toks.size() != 2)
+    {
+       return;
+    }
+    _xcatname = toks[1];
+    LOG(bb,info) << "xCAT nodename=" << _xcatname;
+    return;
+}
+
 NodeController::NodeController()
 {
+  
 };
 
 NodeController::~NodeController()
@@ -36,24 +53,18 @@ NodeController::~NodeController()
 
 int NodeController::gethostname(std::string& pHostName)
 {
-    // \todo - Fix this...  @DLH
-    // So, if CSM is around, nodecontroller_csm provides the hostname as known by xcat.
-    // This works great for bbProxy.  However, CSM isn't available on ESS (i.e., the bbServers).
-    // Therefore, for now we simply use the system call gethostname() to get a hostname
-    // when invoked on bbServer via this base class.
-    //
-    // Also need to figure out what we will do for the hostname that is used in the utils
-    // library for tstate.h that is used for bberror.  (Hostname is used as top level branch
-    // within the property tree.)
-    //
-    // Probably would be nice for all of the above to use the hostnames as known by xcat...
-
-    char l_HostName[64] = {'\0'};
-    ::gethostname(l_HostName, sizeof(l_HostName));
-
-    pHostName = l_HostName;
-
-    return 0;
+  if (_hostname.length()==0)  {
+    getXCATname();
+    if (_xcatname.length()>0) _hostname=_xcatname;
+    else{
+      char l_HostName[64] = {'\0'};
+      ::gethostname(l_HostName, sizeof(l_HostName));
+      _hostname = l_HostName;
+    }
+  }
+  
+  pHostName = _hostname;
+  return 0;
 }
 
 int NodeController::gethostlist(string& hostlist)
