@@ -235,7 +235,6 @@ int getActiveFileTransfers()
            if (tmPTR){
               strftime(mtime, sizeof(mtime), "%FT%TZ", tmPTR);
            }
-           else;
         }
         else{
             strcpy(mtime,"UNKNOWN");
