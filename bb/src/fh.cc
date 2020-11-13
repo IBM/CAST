@@ -217,6 +217,7 @@ int getActiveFileTransfers()
 {
     string prefix;
     struct stat statbuf;
+    struct tm tmholder;
 
     char mtime[256];
 
@@ -228,8 +229,17 @@ int getActiveFileTransfers()
         prefix += string(".") + to_string(index) + string(".");
 
 #define MKDATA(suffix, value) bberror << err( (prefix + string(suffix)).c_str(), value);
-        fhentry.second->getstats(statbuf);
-        strftime(mtime, sizeof(mtime), "%FT%TZ", gmtime(&statbuf.st_mtime));
+        int l_getstats_rc = fhentry.second->getstats(statbuf);
+        if (!l_getstats_rc ) {//zero return code
+           struct tm * tmPTR = gmtime_r(&statbuf.st_mtime, &tmholder);
+           if (tmPTR){
+              strftime(mtime, sizeof(mtime), "%FT%TZ", tmPTR);
+           }
+           else;
+        }
+        else{
+            strcpy(mtime,"UNKNOWN");
+        }
 
         MKDATA("name",      fhentry.second->getfn());
         MKDATA("size",      fhentry.second->getsize());
