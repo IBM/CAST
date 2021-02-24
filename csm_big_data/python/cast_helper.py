@@ -4,7 +4,7 @@
 #
 #    cast_helper.py
 #
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -137,7 +137,7 @@ def convert_timestamp( timestamp ):
         new_timestamp=datetime.strftime(datetime.now(), "%s000")
 
     
-    return new_timestamp
+    return int(new_timestamp)
 
 def build_time_range(start_time, end_time,  
     start_field="data.begin_time", end_field="data.history.end_time"):

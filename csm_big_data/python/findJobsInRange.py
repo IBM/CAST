@@ -4,7 +4,7 @@
 #
 #    findJobsInRange.py
 #
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -67,6 +67,7 @@ def main(args):
 
     (range, match_min) =  cast.build_time_range(args.starttime, args.endtime)
 
+    print(range, match_min)
     bool_query={ "should" : range, "minimum_should_match" : match_min }
 
     if args.hosts:
@@ -110,7 +111,7 @@ def main(args):
     total_hits    = cast.deep_get(tr_res, "hits","total")
     hits_displayed= len(hits)
 
-    print("# Search found {0} jobs running, displaying {1} jobs:\n".format(total_hits, len(hits)))
+    print("# Search found {0} jobs running, displaying {1} jobs:\n".format(total_hits['value'], len(hits)))
 
     # Display the results of the search.
     if hits_displayed > 0:
@@ -120,9 +121,10 @@ def main(args):
         for hit in hits:
             data=cast.deep_get(hit, "_source", "data")
             if data:
+                condition = cast.deep_get(data, "history","end_time")
                 print(print_fmt.format(
                     data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
-                    data.get("begin_time"), cast.deep_get(data, "history","end_time"), 
+                    data.get("begin_time"), cast.deep_get(data, "history","end_time") if (condition!=None) else " ", 
                     data.get("user_name")))
         
 

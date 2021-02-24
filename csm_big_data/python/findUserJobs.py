@@ -4,7 +4,7 @@
 #
 #    findUserJobs.py
 #
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -129,9 +129,10 @@ def main(args):
         data=cast.deep_get(hit,"_source","data")
         
         if data:
+            condition = cast.deep_get(data, "history","end_time")
             print( print_fmt.format(
                 data.get("allocation_id"), data.get("primary_job_id"), data.get("secondary_job_id"),
-                data.get("begin_time"), cast.deep_get(data, "history","end_time"),
+                data.get("begin_time"), cast.deep_get(data, "history","end_time") if (condition!=None) else " ",
                 data.get("state")))
             
             # Generate a counter. 

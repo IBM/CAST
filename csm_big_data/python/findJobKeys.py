@@ -4,7 +4,7 @@
 #
 #    findJobKeys.py
 #
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -97,7 +97,7 @@ def main(args):
     if total_hits == None:
         print("# Sorry. Could not find any matching results.")
         return 0
-    if total_hits != 1:
+    if total_hits['value'] != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
