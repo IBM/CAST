@@ -2,7 +2,7 @@
 #   
 #    buckets/basic/hc_diag.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -30,6 +30,10 @@ LOG=${LOG_PATH}/buckets/basic/hcdiag.log
 TEMP_LOG=${LOG_PATH}/buckets/basic/hcdiag_temp.log
 FLAG_LOG=${LOG_PATH}/buckets/basic/hcdiag_flags.log
 HC_DIAG_PATH=/opt/ibm/csm/hcdiag
+CLUST_CONF_DIR=/tmp/csm_fvt_hcdiag_backup/clustconf_yaml_backup
+TEST_PROP_DIR=/tmp/csm_fvt_hcdiag_backup/test_properties_backup
+CLUST_CONF_FILE=clustconf.yaml.org.*
+TEST_PROP_FILE=test.properties*
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
@@ -44,6 +48,18 @@ echo "------------------------------------------------------------" >> ${LOG}
 date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
+#---------------------------------------------------------
+# Setup the clustconf.yaml with the environment details
+#---------------------------------------------------------
+# 1. Run the setup script to set up the compute node
+# 2. Run the test properties script for P8 or P9 nodes
+#---------------------------------------------------------
+${FVT_PATH}/include/hcdiag/csm_fvt_diag_clustconf_yaml_setup_p8_p9.sh >> ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 0: clustconf.yaml setup"
+
+${FVT_PATH}/include/hcdiag/csm_fvt_diag_test_properties_setup_p8_p9.sh >> ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 0: test.properties setup"
+
 # Copy included test.properties and clustconf.yaml over to active test.properties
 echo "y" | cp ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
 xdcp ${COMPUTE_NODES} ${FVT_PATH}/include/hcdiag/test.properties ${HC_DIAG_PATH}/etc/
@@ -51,7 +67,7 @@ echo "y" | cp ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
 xdcp ${COMPUTE_NODES} ${FVT_PATH}/include/hcdiag/clustconf.yaml ${HC_DIAG_PATH}/etc/
 
 # Test Case 1: ppping
-${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+retry_process -c 1 -m 3 -d 2 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test ppping --target ${COMPUTE_NODES} >> ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 1: ppping"
 
 # Get run id from temp log
@@ -162,6 +178,24 @@ ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${
 check_return_flag_value $? 0 "Test Case 27: chk-temp"
 
 rm -f ${TEMP_LOG}
+
+# Clean up the scripts if exists (default configuration templates)
+# Clean up and replace the clustconf.yaml file
+if [ -f  ${CLUST_CONF_DIR}/${CLUST_CONF_FILE} ] ; then
+    \cp -rf ${CLUST_CONF_DIR}/${CLUST_CONF_FILE} ${FVT_PATH}/include/hcdiag/clustconf.yaml
+    check_return_flag_value $? 0 "Cleanup     : clustconf.yaml file"
+    #rm -f /tmp/csm_fvt_hcdiag_backup/clustconf_yaml_backup/clustconf.yaml.org.*
+    rm -f ${CLUST_CONF_DIR}/${CLUST_CONF_FILE}
+else
+    RC=0
+fi
+
+# Clean up and replace the test.properties file
+if [ -f  ${TEST_PROP_DIR}/${TEST_PROP_FILE} ] ; then
+    \cp -rf ${TEST_PROP_DIR}/${TEST_PROP_FILE} ${FVT_PATH}/include/hcdiag/test.properties
+    check_return_flag_value $? 0 "Cleanup     : test.properties file"
+    rm -f ${TEST_PROP_DIR}/${TEST_PROP_FILE}
+fi
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "                hcdiag Bucket COMPLETED" >> ${LOG}

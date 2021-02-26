@@ -2,7 +2,7 @@
 #
 #    csm_fvt_diag_test_properties_setup_p8_p9.sh
 #
-#  © Copyright IBM Corporation 2020. All Rights Reserved
+#  © Copyright IBM Corporation 2020-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -279,7 +279,7 @@ else
     echo "[Info    ] 1. The newly generated test.properties file will replace the existing one."
     echo "[Info    ] 2. The previous test.properties file will saved to the following dir: $BACKUP_DIR"
     mv $TEMP_DIR/test.properties.* $BACKUP_DIR
-    mv $BACKUP_FILE $FVT_PATH/include/hcdiag/test.properties
+    mv $TEMP_DIR/test.properties $FVT_PATH/include/hcdiag/test.properties
 fi
 
 echo "${line1_out}"
