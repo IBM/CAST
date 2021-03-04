@@ -2,7 +2,7 @@
 #
 #    csm_fvt_diag_clustconf_yaml_setup_p8_p9.sh
 #
-#  © Copyright IBM Corporation 2020. All Rights Reserved
+#  © Copyright IBM Corporation 2020-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -155,7 +155,7 @@ if ls $TEMP_DIR/clustconf* >/dev/null 2>&1;then
     rm -rf $TEMP_DIR/clustconf*;
 fi
 
-BACKUP_FILE="$TEMP_DIR/clustconf.yaml"
+BACKUP_FILE="$TEMP_DIR/clustconf.yaml.org"
 MOVE_FILE=`cp $ORIG_FILE $BACKUP_FILE.$(date +%s)`
 
 FILE=$TEMP_DIR/clustconf.yaml

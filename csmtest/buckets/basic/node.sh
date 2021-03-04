@@ -2,7 +2,7 @@
 #   
 #    buckets/basic/node.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -154,20 +154,26 @@ rm -f ${TEMP_LOG}
 ${CSM_PATH}/csm_node_delete -n ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 13:  calling csm_node_delete"
 
-echo "RECOVERING ${SINGLE_COMPUTE}..." >> ${LOG}
+#------------------------------------
+# Recovering a single compute node
+# Stopping the csm compute daemon
+#------------------------------------
 xdsh ${SINGLE_COMPUTE} "systemctl stop csmd-compute"
-sleep 5
-xdsh ${SINGLE_COMPUTE} "systemctl start csmd-compute"
-sleep 5
-${CSM_PATH}/csm_node_resources_query_all | grep ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 14:  RECOVERING ${SINGLE_COMPUTE} stopping csmd-compute"
+
+# Starting the csm compute daemon 
+retry_process -c 1 -m 5 -d 2 xdsh ${SINGLE_COMPUTE} "systemctl start csmd-compute"
+check_return_flag_value $? 0 "Test Case 15:  RECOVERING ${SINGLE_COMPUTE} start csmd-compute"
+
+# Checking status of compute node
+retry_process -c 1 -m 5 -d 2 ${CSM_PATH}/csm_node_resources_query_all | grep ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 RC=$?
-${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s IN_SERVICE > ${TEMP_LOG} 2>&1 
-if [ ${RC} -eq 0 ]
-then
-	echo "SUCCESS" >> ${LOG}
-else
-	echo "FAILED" >> ${LOG}
-fi
+check_return_flag_value $? 0 "Test Case 16:  csm_node_resources_query_all ${SINGLE_COMPUTE}"
+
+# Setting the compute node to "IN_SERVICE"
+retry_process -c 1 -m 5 -d 2 ${CSM_PATH}/csm_node_attributes_update -n ${SINGLE_COMPUTE} -s IN_SERVICE > ${TEMP_LOG} 2>&1 
+RC=$?
+check_return_flag_value $? 0 "Test Case 17:  csm_node_attributes_update ${SINGLE_COMPUTE} IN_SERVICE"
 
 rm -f ${TEMP_LOG}
 

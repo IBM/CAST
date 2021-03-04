@@ -2,7 +2,7 @@
 #   
 #    include/functions.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -182,4 +182,88 @@ clear_allocations()
 
     # Drop all of the nodes into in service
     ${CSM_PATH}/csm_node_attributes_update -n ${COMPUTE_NODES} -s IN_SERVICE
+}
+
+#----------------------------------------------------------
+# Function to handle muliple attemps for a delayed process
+# before exiting the step.
+# Added in flags (counter, max attemps, and the delay
+# in between each attemp(s)) (in seconds).
+#----------------------------------------------------------
+function retry_process {
+#------------------------------------
+# Default Values if nothing provided
+#------------------------------------
+c=1
+m=5
+d=1
+
+exit_func(){ echo >&2 "$@"; exit 1; }
+
+#-----------------------------------
+# Arguments passed in
+#-----------------------------------
+while getopts ":c:m:d:" opt; do
+  case $opt in
+    c) #counter flag
+       case $OPTARG in
+       ''|*[!-0-9]*|-|*?-*) exit_func "invalid number $OPTARG" ;;
+       *) c=$OPTARG ;;
+       esac
+       ;;
+    m) #max attempts
+       case $OPTARG in
+       ''|*[!-0-9]*|-|*?-*) exit_func "invalid number $OPTARG" ;;
+       *) m=$OPTARG ;;
+       esac
+       ;;
+
+    d) #delay time in seconds
+       case $OPTARG in
+       ''|*[!-0-9]*|-|*?-*) exit_func "invalid number $OPTARG" ;;
+       *) d=$OPTARG ;;
+       esac
+       ;;
+    :) exit_func "argument needed to -$OPTARG" ;;
+    *) exit_func "invalid switch -$OPTARG" ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+#-------------------------------------------
+# This is the actual multiple retry process
+#-------------------------------------------
+function fail {
+  echo "$1" >> ${TEMP_LOG}
+}
+
+counter=${c}
+max=${m}
+delay=${d}
+
+while true; do
+  "$@" && break || {
+    if [[ $counter -lt $max ]]; then
+      ((counter++))
+      echo "[$(LogMsg)] Command failed. Attempt $counter/$max:" >> ${TEMP_LOG}
+      sleep $delay;
+    else
+      RC=$?
+      fail "[$(LogMsg)] The command has failed after $counter attempts." >> ${TEMP_LOG}
+      break
+      return 1
+    fi
+  }
+done
+
+#---------------------------------------
+# Check the return code of the attemps
+# If the return code is -ne 0 then fail
+#---------------------------------------
+if [[ $RC -ne 0 ]]; then
+  return 1
+else
+  return 0
+fi
 }
