@@ -4,7 +4,7 @@
 #
 #    findJobMetrics.py
 #
-#    © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#    © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -97,7 +97,7 @@ def main(args):
     if total_hits == None:
         print("# Sorry. Could not find any matching results.")
         return 0
-    if total_hits != 1:
+    if total_hits['value'] != 1:
         print("This implementation only supports queries where the hit count is equal to 1.")
         return 3
 
@@ -178,7 +178,7 @@ def main(args):
         cast.print_request_error(e)
         return 4
 
-    if args.allocation_id > 0 :
+    if int(args.allocation_id) > 0 :
         print("\nMetric Analysis for Allocation ID {0} :\n".format(args.allocation_id))
     else : 
         print("\nMetric Analysis for Job ID {0} - {1} :\n".format(args.job_id, args.job_id_secondary))
@@ -199,6 +199,7 @@ def main(args):
 
         for agg in aggs:
             try:
+                agg = int(agg)
                 print(print_fmt.format(agg, max_width, aggs[agg]["min"], aggs[agg]["max"],
                     aggs[agg]["avg"], aggs[agg]["std_deviation"], aggs[agg]["count"]))
             except ValueError:
