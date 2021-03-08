@@ -2,7 +2,7 @@
 #   
 #    setup/csm_uninstall.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -100,6 +100,7 @@ curr_rpm_list+=`rpm -qa | grep ibm-flightlog`
 curr_rpm_list+=`rpm -qa | grep ibm-csm-db`
 curr_rpm_list+=`rpm -qa | grep ibm-csm-restd`
 curr_rpm_list+=`rpm -qa | grep ibm-csm-bds`
+curr_rpm_list+=`rpm -qa | grep ibm-csm-tools`
 curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
 curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
 
