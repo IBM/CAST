@@ -1023,7 +1023,7 @@ int main(int orig_argc, const char** orig_argv)
     map<int, string> contribResults;
 
 
-    if(strstr(argv[1], "^") != NULL)
+    if( (orig_argc>1) && ( strstr(argv[1], "^") != NULL) )
     {
         carrotTokens = buildTokens(argv[1], "^");
         command = argv[0];
