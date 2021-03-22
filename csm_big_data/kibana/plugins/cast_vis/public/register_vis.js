@@ -6,7 +6,6 @@ import { CastVisController } from './vis_controller';
 
 import CastSearchVisWrapper from './components/vis/cast_search_vis.js';
 
-import { CATEGORY } from 'ui/vis/vis_category';
 import { VisFactoryProvider } from 'ui/vis/vis_factory';
 import { VisTypesRegistryProvider } from 'ui/registry/vis_types';
 import { defaultFeedbackMessage } from 'ui/vis/default_feedback_message';
@@ -23,7 +22,6 @@ export default function CASTVisProvider(Private) {
         isAccessible: true,
         image,
         description: 'Performs a CAST based filtering',
-        category: CATEGORY.OTHER,
         feedbackMessage: defaultFeedbackMessage,
         visualization: CastVisController,
         visConfig: {

@@ -1,6 +1,6 @@
 {
   "name": "cast_visualizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A kibana plugin to facilitate visualization and control of CAST datasets.",
   "main": "index.js",
   "kibana": {
@@ -11,7 +11,7 @@
     "start": "plugin-helpers start",
     "test:server": "plugin-helpers test:server",
     "test:browser": "plugin-helpers test:browser",
-    "build": "plugin-helpers build -k 6.3.2",
+    "build": "plugin-helpers build -k 6.8.0",
     "postinstall": "plugin-helpers postinstall"
   },
   "devDependencies": {
