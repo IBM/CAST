@@ -169,6 +169,8 @@ map<filehandleLocator, filehandle*> fhregistry;
 
 int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t contrib, uint32_t index)
 {
+    int rc = 0;
+
     filehandleLocator fl;
     fl.jobid = jobid;
     fl.handle = handle;
@@ -178,13 +180,47 @@ int addFilehandle(filehandle* fh, uint64_t jobid, uint64_t handle, uint32_t cont
 //    FileHandleRegistryLock();
 
     LOG(bb,debug) << "addFilehandle:  fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index;
+
+    filehandle* fh2 = 0;
+    int rc2 = findFilehandle(fh2, jobid, handle, contrib, index);
+#if BBSERVER
+    if (rc2 == 0)
     {
+        LOG(bb,info) << "addFilehandle: Input fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index \
+                     << ". However, file handle " << fh << " to be added already exists as " << fh2 \
+                     << ". The existing file handle is being released and the associated fd closed. "
+                     << ". This is most likely due to an interrupted start transfer operation and an existing stored transfer definition being reused.";
+        try
+        {
+            delete fh2;
+            fh2 = 0;
+        }
+        catch(exception& e)
+        {
+            LOG(bb,error) << "addFilehandle: fh=" << fh2 << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index \
+                          << ". Exception occurred when attempting to release the file handle, " << e.what() \
+                          << ". Processing will continue...";
+        }
+        rc2 = -1;
+    }
+#endif
+    if (rc2 != 0)
+    {
+        // File handle entry does not already exist
         fhregistry[fl] = fh;
+    }
+    else
+    {
+        // File handle entry already exists
+        rc = -1;
+        LOG(bb,error) << "addFilehandle: Input fh=" << fh << " jobid=" << jobid << "  handle=" << handle << " contribid=" << contrib << "  index=" << index \
+                      << ". However, file handle " << fh << " to be added already exists as " << fh2 \
+                      << ". This is mostly likely due to an incorrect handle and/or contribid and/or index value being specified for this transfer within the job.";
     }
 
 //    FileHandleRegistryUnlock();
 
-    return 0;
+    return rc;
 }
 
 int numActiveFileTransfers(uint64_t jobid, uint64_t handle, uint64_t& count)
@@ -482,15 +518,13 @@ int filehandle::close()
         ::close(fd);
 #if (BBSERVER || BBPROXY)
         BB_GetTimeDifference(l_Time);
-#endif
-        fd = -1;
-#if (BBSERVER || BBPROXY)
         LOG(bb,info) << "Closed file " << filename << ", fd=" << fd << ", time=" << (double)l_Time/(double)g_TimeBaseScale << " seconds";
         FL_Write(FLProxy, CloseFile, "Close for filehandle %ld, ticks %ld",(uint64_t)fd,l_Time,0,0);
 #else
         LOG(bb,info) << "Closing file " << filename << ", fd=" << fd;
         FL_Write(FLProxy, CloseFile_, "Close for filehandle %ld",(uint64_t)fd,0,0,0);
 #endif
+        fd = -1;
     }
 
     return 0;

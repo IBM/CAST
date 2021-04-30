@@ -65,6 +65,8 @@ namespace bs  = boost::system;
 
 char MINIMUM_LOGICAL_VOLUME_SIZE[4] = "16M";
 
+typedef std::pair<uint32_t, filehandle*> FileHandleEntry;
+
 extern thread_local uid_t threadLocaluid;
 extern thread_local gid_t threadLocalgid;
 
@@ -1985,7 +1987,7 @@ int processContrib(const uint64_t pNumContrib, uint32_t pContrib[])
 }
 
 
-int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, const uint64_t pHandle, const uint32_t pContribId, vector<struct stat*>& pStats, const uint32_t pPerformOperation)
+int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, const uint64_t pHandle, const uint32_t pContribId, vector<struct stat*>& pStats, vector<FileHandleEntry>* pFileHandlesAdded, const uint32_t pPerformOperation)
 {
     ENTRY(__FILE__,__FUNCTION__);
 
@@ -2197,17 +2199,27 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                             // transfer processing.
                             srcfile_ptr->setRestartInProgress();
                         }
-                        addFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex);
-
-                        if (l_SourceFileIsLocal && (!l_SimulateFileStageIn))
+                        if (!addFilehandle(srcfile_ptr, pJobId, pHandle, pContribId, e.sourceindex))
                         {
-                            // Local cp or stageout processing...
-                            // If not already done, get stats for the local source file on the SSD...
-                            if (pStats[e.sourceindex] == 0)
+                            pFileHandlesAdded->push_back(std::make_pair(e.sourceindex, srcfile_ptr));
+                            if (l_SourceFileIsLocal && (!l_SimulateFileStageIn))
                             {
-                                pStats[e.sourceindex] = new(struct stat);
-                                srcfile_ptr->getstats(*pStats[e.sourceindex]);
+                                // Local cp or stageout processing...
+                                // If not already done, get stats for the local source file on the SSD...
+                                if (pStats[e.sourceindex] == 0)
+                                {
+                                    pStats[e.sourceindex] = new(struct stat);
+                                    srcfile_ptr->getstats(*pStats[e.sourceindex]);
+                                }
                             }
+                        }
+                        else
+                        {
+                            LOG(bb,error) << "Adding of the filehandle to the registry for srcfile " << transfer->files[e.sourceindex] << " failed";
+                            rc = -1;
+
+                            delete srcfile_ptr;
+                            break;
                         }
                     }
                 }
@@ -2270,6 +2282,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                     if (dstfile_ptr->getfd() >= 0)
                                     {
                                         addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                        pFileHandlesAdded->push_back(std::make_pair(e.targetindex, dstfile_ptr));
                                     }
                                     else
                                     {
@@ -2549,6 +2562,7 @@ int setupTransfer(BBTransferDef* transfer, Uuid &lvuuid, const uint64_t pJobId, 
                                                     if (dstfile_ptr->getfd() >= 0)
                                                     {
                                                         addFilehandle(dstfile_ptr, pJobId, pHandle, pContribId, e.targetindex);
+                                                        pFileHandlesAdded->push_back(std::make_pair(e.targetindex, dstfile_ptr));
                                                     }
                                                     else
                                                     {
@@ -2759,6 +2773,7 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
     uint32_t l_MarkFailed = 0;
 
     vector<struct stat*> l_Stats;
+    vector<FileHandleEntry> l_FileHandlesAdded;
     char l_Empty = '\0';
     bool releaseFileHandles = false;
 
@@ -2777,7 +2792,7 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
                 if ((!l_PerformOperation) || transfer->files.size())
                 {
                     Uuid lv_uuid;
-                    rc = setupTransfer(transfer, lv_uuid, pJobId, pHandle, pContribId, l_Stats, l_PerformOperation);
+                    rc = setupTransfer(transfer, lv_uuid, pJobId, pHandle, pContribId, l_Stats, &l_FileHandlesAdded, l_PerformOperation);
                     if (rc)
                     {
                         // NOTE:  errstate should already be filled in, but if not, set error text here...
@@ -2926,13 +2941,13 @@ int startTransfer(BBTransferDef* transfer, const uint64_t pJobId, const uint64_t
 
         FileHandleRegistryLock();
 
-        for (unsigned int index=0; index<transfer->files.size(); index++)
+        for (auto& e: l_FileHandlesAdded)
         {
             LOOP_COUNT(__FILE__,__FUNCTION__,"released_handles");
             try
             {
-                filehandle* fh;
-                if (!removeFilehandle(fh, pJobId, pHandle, pContribId, index))
+                filehandle* fh = e.second;
+                if (!removeFilehandle(fh, pJobId, pHandle, pContribId, e.first))
                 {
                     string l_FileName = fh->getfn();
                     LOG(bb,info) << "Releasing filehandle '" << l_FileName << "'";
