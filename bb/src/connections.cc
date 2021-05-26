@@ -406,6 +406,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 #ifdef BBSERVER
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(".") + to_string(++newconnection_name_sequence_number)
             + " (" + conn->getRemoteAddrString() + ")";
+            LOG(bb,info) << "<== Received CORAL_AUTHENTICATE(SSL) from " << l_newconnection_name.c_str();
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
 #endif
@@ -429,6 +430,9 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
     txp::Attr_int32 resultcode(txp::resultCode, rc);
     response->addAttribute(&resultcode);
     if (rc) {addBBErrorToMsg(response);}
+#ifdef BBSERVER
+    LOG(bb,info) << "==>  CORAL_AUTHENTICATE(SSL) rsp to" << conn->getRemoteAddrString() << " rc="<<rc;
+#endif    
     int rc_write=conn->write(response);
     if (rc_write <= 0) {
         conn->disconnect();
@@ -1092,7 +1096,9 @@ int doAuthenticate(const string& name);
 int bbproxy_SayHello(const string& pConnectionName);
 int xchgWithBBserver(const string& name)
 {
+    threadLocalTrackSyscallPtr->nowTrack(TrackSyscall::doAuthenticateSent, name.c_str(), __LINE__);  
     int rc=doAuthenticate(name);
+    threadLocalTrackSyscallPtr->clearTrack();
     if(rc)
     {
         LOG(bb,error) << "Authenication failed for bbserver="<<name;

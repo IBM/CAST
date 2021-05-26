@@ -201,6 +201,7 @@ uint64_t getTimeBaseScale()
         case SSDpreadsyscall:bberror << err("syscall.file.literal","SSDpreadsyscall"); break;
         case SSDpwritesyscall:bberror << err("syscall.file.literal","SSDpwritesyscall"); break;
         case SSDopenreaddirect:bberror << err("syscall.file.literal","SSDopenreaddirect"); break;
+        case doAuthenticateSent:bberror << err("syscall.file.literal","doAuthenticateSent"); break;
         case nosyscall:bberror << err("syscall.file.literal","nosyscall"); break;
         default: break;
     }

@@ -18,6 +18,7 @@
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_status
     ignore_errors: yes
+    changed_when: false
 
   - fail:  
      msg: bbproxy daemon is still running 
@@ -52,6 +53,7 @@
     command:  /bin/systemctl status bbserver.service 
     register: bbserver_service_status
     ignore_errors: yes
+    changed_when: false
 
   - fail:  
      msg: bbserver daemon is still running 
@@ -95,12 +97,10 @@
     register: export_layout_loaded
     ignore_errors: yes  
 
-  - debug: 
-      msg: export_layout module STILL loaded
-    when:  export_layout_loaded.rc == 0
-
-  - fail: 
-     msg: failing since export_layout module STILL loaded
+# No longer fail but do warn since export_layout rarely changes but testers may be using sandbox bb code
+  - name: Warn if export_layout module is still loaded
+    ansible.builtin.debug: 
+      msg: failing since export_layout module STILL loaded
     when: export_layout_loaded.rc == 0
 
 

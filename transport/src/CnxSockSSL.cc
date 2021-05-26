@@ -195,10 +195,12 @@ int CnxSockSSL::accept() {
             if (RCgetsockname) {
                 LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
             }
-            LOG(txp,always)<<"CnxSockSSL::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" CnxSockSSL::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
             _cSSL= SSL_new(_sslctx);
             SSL_set_fd(_cSSL, _sockfd);
-            if (SSL_accept(_cSSL)<0)
+            int SSL_accept_rc = SSL_accept(_cSSL);
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
+            if (SSL_accept_rc<0)
                 {
                     LOG(txp,error) << __PRETTY_FUNCTION__<< "SSL handcheck failed";
                     return -1;
@@ -230,11 +232,13 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
             if (RCgetsockname) {
                 LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
             }
-            LOG(txp,always)<<"CnxSockSSL::accept(p) "<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" CnxSockSSL::accept(p) Csig="<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
 
             l_NewSock->_cSSL= SSL_new(l_NewSock->_sslctx);
             SSL_set_fd(l_NewSock->_cSSL, l_NewSock->_sockfd);
-            if (SSL_accept(l_NewSock->_cSSL)<0)
+            int SSL_accept_rc = SSL_accept(l_NewSock->_cSSL);
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
+            if (SSL_accept_rc<0)
                 {
                     LOG(txp,error) << __PRETTY_FUNCTION__<< "SSL handcheck failed";
                     delete l_NewSock;

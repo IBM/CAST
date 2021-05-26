@@ -45,7 +45,9 @@ uint64_t timebase;
    enum tracking{nosyscall=0, opensyscall=1, preadsyscall=2, pwritesyscall=3, statsyscall=4,
                  fstatsyscall=5, fsyncsyscall=6, fcntlsyscall=7, openexlayout=8, setupexlayout=9, finalizeexlayout=10,
                  fopensyscall=11, freadsyscall=12, fseeksyscall=13, ftellsyscall=14, fwritesyscall=15,
-                 SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48};
+                 SSDopenwritedirect=32, SSDopenwriteNOTdirect=33, SSDpreadsyscall=34, SSDpwritesyscall=35, SSDopenreaddirect=48,
+                 doAuthenticateSent=256
+                 };
 
      TrackSyscall();
 

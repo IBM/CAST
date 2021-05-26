@@ -18,6 +18,7 @@
     command:  /bin/systemctl status bbserver.service 
     register: bbserver_service_result
     ignore_errors: yes
+    changed_when: false
 
   - name: Start bbServer
     command: /opt/ibm/bb/scripts/bbactivate --server {{BBACTIVATE_PARMS}}
@@ -26,8 +27,8 @@
 
   - name: Fail if bbserver daemon is not now running
     command:  /bin/systemctl status bbserver.service 
-    register: bbserver_service_result
     any_errors_fatal: true  
+    changed_when: false
 
 - hosts: compute
   tasks:
@@ -35,6 +36,7 @@
     shell: lsmod |grep export_layout 
     register: export_layout_loaded
     ignore_errors: yes
+    changed_when: false 
 
   - name: modprobe export_layout module 
     command: modprobe export_layout 
@@ -45,6 +47,7 @@
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
     ignore_errors: yes
+    changed_when: false
 
   - name: Start BB on computes
     command: /opt/ibm/bb/scripts/bbactivate --cn {{BBACTIVATE_PARMS}}
@@ -54,6 +57,7 @@
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
     any_errors_fatal: true
+    changed_when: false
 
   - name: Waiting for bbProxy to start accepting bbcmd connections
     wait_for:

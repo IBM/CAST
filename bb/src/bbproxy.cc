@@ -5011,6 +5011,9 @@ int doAuthenticate(const string& name){
         LOG_ERROR_TEXT_ERRNO(errorText, EINVAL);
         SET_RC_AND_RAS(rc, bb.net.authfailed);
     }
+    else {
+        LOG(bb,info) << "<== Received CORAL_AUTHENTICATE(SSL) rsp from " << name.c_str();
+    }
 
     delete msg;
     return rc;
