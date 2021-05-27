@@ -1892,14 +1892,22 @@ void* responseThread(void* ptr)
                         lockConnectionMaps("responseThread - accept remote SSL connection");
                         {
                             (connections[pollinfo[idx].fd])->accept(newsock);
-                            newsock->keepAlive();
-                            connections[newsock->getSockfd()] = newsock;
+                            if (newsock){
+                              newsock->keepAlive();  //assumes newsock is valid
+                              connections[newsock->getSockfd()] = newsock;
+                            }
+                            
                         }
                         unlockConnectionMaps("responseThread - accept remote SSL connection");
-
+                        
                         bberror.clear();
-
-                        FL_Write(FLConn, FL_AcceptDoneSSL, "Remote SSL connection was connected.  fd=%ld",newsock->getSockfd(),0,0,0);
+                        if (newsock) {
+                            FL_Write(FLConn, FL_AcceptDoneSSL, "Remote SSL connection was connected.  fd=%ld",newsock->getSockfd(),0,0,0);
+                        }
+                        else {
+                            FL_Write(FLConn, FL_RejectSSL, "Remote SSL connection was rejected.", 0,0,0,0);
+                        }
+                        
                     }
                     else if( __glibc_unlikely(pollinfo[idx].fd == unix_listen_socket) )
                     {

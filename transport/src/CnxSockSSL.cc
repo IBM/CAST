@@ -203,7 +203,7 @@ int CnxSockSSL::accept() {
             int SSL_accept_rc = SSL_accept(_cSSL);
             LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
             if (SSL_accept_rc==1){ //TLS/SSL handshake was successful
-              
+            
             } 
             else // 0=not successful but shutdown controlled; <0 fatal error
                 {
@@ -231,6 +231,7 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
         } else {
             l_NewSock->_sockfd = l_NewSock->_rcLast;
             l_NewSock->setNoDelay(true);
+        
             int RCgetpeername=getpeername(l_NewSock->_sockfd, &(l_NewSock->_sockaddrRemote), &l_Sockaddrlen);
             if (RCgetpeername){
                 LOG(txp,always)<<"CnxSockSSL::accept(p) getpeername errno="<<errno<<", "<<strerror(errno);
@@ -246,13 +247,14 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
             int SSL_accept_rc = SSL_accept(l_NewSock->_cSSL);
             LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
             if (SSL_accept_rc==1){ //TLS/SSL handshake was successful
-              
+             
             } 
             else // 0=not successful but shutdown controlled; <0 fatal error
                 {
                     int SSLerror=::SSL_get_error(l_NewSock->_cSSL, SSL_accept_rc);
                     LOG(txp,error) <<l_NewSock->getInfoString()<< " SSL handshake failed SSLerror="<<SSLerror;
                     delete l_NewSock;
+                  
                     return -2;
                 }
             pNewSock = l_NewSock;
@@ -299,7 +301,7 @@ int CnxSockSSL::connect2Remote(){
             {
                 LOG(txp,error) << __PRETTY_FUNCTION__<<" ssl connect failed" << strerror(errno);
                 return -1;
-            }
+            }   
     }
 
     return _rcLast;
