@@ -372,12 +372,13 @@ inline std::string getAddr4(const struct sockaddr& pSockaddr){
             return timeout;
         }
 
-        inline void setNoDelay(timeval& timeout) {
-            if (setsockopt(_sockfd, SOL_SOCKET, TCP_NODELAY, &timeout, sizeof(timeval)) != 0) {
-                printf("%s setsockopt failed errno=%d(%s)\n",__PRETTY_FUNCTION__,errno,strerror(errno));
-            }
-            return;
-        }
+        inline void setNoDelay(bool value) {
+			int val = value;//1 for on, 0 for off
+			if (setsockopt(_sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)) != 0) {
+				printf("%s setsockopt failed errno=%d(%s)\n",__PRETTY_FUNCTION__,errno,strerror(errno));
+			}
+			return;
+		}
 
         inline void setRecvTimeout(timeval& timeout) {
             if (setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeval)) != 0) {

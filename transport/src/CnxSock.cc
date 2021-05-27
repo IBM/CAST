@@ -184,6 +184,7 @@ int CnxSock::connect2Remote(){
 	if (_rcLast<0) {
 		LOG(txp,warning)<< __PRETTY_FUNCTION__<<"_rcLast"<< _rcLast<< " errno="<<errno<<", "<<strerror(errno);
 	} else {
+		setNoDelay(true);
 		_sockaddrlen=sizeof(_sockaddrLocal);
 		int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
         if (RCgetsockname) {
