@@ -134,8 +134,8 @@ const double DEFAULT_BBSERVER_HEARTBEAT_DUMP_INTERVAL = 1800;                   
 // NOTE: If the DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL is modified, the
 //       declare server dead time is also affected.
 const double DEFAULT_BBSERVER_HEARTBEAT_TIME_INTERVAL = 150;                    // in seconds (2.5 minutes)
-const double DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL = 600;                       // in seconds (10 minutes)
-const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 600;                       // in seconds (10 minutes)
+const double DEFAULT_BBSERVER_IBSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
+const double DEFAULT_BBSERVER_IOSTATS_TIME_INTERVAL = 60;                       // in seconds (1 minute)
 // const double DEFAULT_BBSERVER_RESIZE_SSD_TIME_INTERVAL = 8;                     // in seconds
 const double DEFAULT_IBSTATS_LOW_ACTIVITY_RATE = 0.25;                          // NOTE: This value represents the
                                                                                 //       rate in GB/sec
