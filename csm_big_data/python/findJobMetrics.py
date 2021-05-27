@@ -120,7 +120,7 @@ def main(args):
     }
 
     # ---------------------------------------------------------------------------------------------
-    date_format= '%Y-%m-%d %H:%M:%S.%f'
+    date_format= '%Y-%m-%dT%H:%M:%S.%f'
     print_format='%Y-%m-%d %H:%M:%S:%f'
     search_format='epoch_millis'
 
