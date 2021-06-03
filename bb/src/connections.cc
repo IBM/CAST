@@ -1906,6 +1906,7 @@ void* responseThread(void* ptr)
                         }
                         else {
                             FL_Write(FLConn, FL_RejectSSL, "Remote SSL connection was rejected.", 0,0,0,0);
+                            LOG(bb,error) << "Remote SSL connection was rejected.";
                         }
                         
                     }

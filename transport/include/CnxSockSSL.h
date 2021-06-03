@@ -121,7 +121,7 @@ namespace txp{
             return (getLocalAddrString() != getRemoteAddrString() );
         }
         
-    inline void setNoDelay(bool value)
+    inline void setNoDelay(int value)
     {
         int val = value;//1 for on, 0 for off
         if (setsockopt(_sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)) != 0)
@@ -131,6 +131,13 @@ namespace txp{
             }
         return;
     }
+    
+    inline void setReusePort(int val) {
+		if (setsockopt(_sockfd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val)) != 0) {
+				printf("%s setsockopt failed errno=%d(%s)\n",__PRETTY_FUNCTION__,errno,strerror(errno));
+		}
+		return;
+	}
 
     int accept(txp::Connex* &pNewSock);
 
