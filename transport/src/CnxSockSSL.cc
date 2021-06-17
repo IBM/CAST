@@ -169,12 +169,27 @@ void CnxSockSSL::verifyCertificates()
 
 int CnxSockSSL::SockRead(void* pDataBuffer, const size_t pDataBufferSize)
 {
-    return SSL_read(_cSSL, pDataBuffer, pDataBufferSize);
+    int SSL_read_rc = 0;
+    LOG(txp,debug)<< __PRETTY_FUNCTION__<<"pDataBuffer="<< pDataBuffer<< " pDataBufferSize="<<pDataBufferSize;
+    SSL_read_rc = SSL_read(_cSSL, pDataBuffer, pDataBufferSize);
+    if ( (SSL_read_rc <= 0)  ){
+      int SSLerror=::SSL_get_error(_cSSL, SSL_read_rc);
+      LOG(txp,error) << getInfoString()<< "SSL_read SSLerror="<<SSLerror<<" SSL_read_rc="<<SSL_read_rc<<" ?errno="<<errno;
+      usleep(100);
+      SSL_read_rc = SSL_read(_cSSL, pDataBuffer, pDataBufferSize);
+    }  
+    return SSL_read_rc;
 }
+
 
 int CnxSockSSL::SockWrite(const void* pDataBuffer, const size_t pDataBufferSize)
 {
-    return SSL_write(_cSSL, pDataBuffer, pDataBufferSize);
+    int SSL_write_rc = SSL_write(_cSSL, pDataBuffer, pDataBufferSize);
+    if (SSL_write_rc <= 0){
+      int SSLerror=::SSL_get_error(_cSSL, SSL_write_rc);
+      LOG(txp,error) << getInfoString()<< "SSL_write SSLerror="<<SSLerror<<" SSL_write_rc="<<SSL_write_rc<<" ?errno="<<errno;
+    }  
+    return SSL_write_rc;
 }
 
 int CnxSockSSL::accept() {
@@ -195,12 +210,18 @@ int CnxSockSSL::accept() {
             if (RCgetsockname) {
                 LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
             }
-            LOG(txp,always)<<"CnxSockSSL::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" CnxSockSSL::accept() "<<getInfoString()<<" sockfd="<<_sockfd;
             _cSSL= SSL_new(_sslctx);
             SSL_set_fd(_cSSL, _sockfd);
-            if (SSL_accept(_cSSL)<0)
+            int SSL_accept_rc = SSL_accept(_cSSL);
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
+            if (SSL_accept_rc==1){ //TLS/SSL handshake was successful
+            
+            } 
+            else // 0=not successful but shutdown controlled; <0 fatal error
                 {
-                    LOG(txp,error) << __PRETTY_FUNCTION__<< "SSL handcheck failed";
+                    int SSLerror=::SSL_get_error(_cSSL, SSL_accept_rc);
+                    LOG(txp,error) << getInfoString()<< "Accept SSL handshake failed SSLerror="<<SSLerror;
                     return -1;
                 }
 
@@ -230,14 +251,21 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
             if (RCgetsockname) {
                 LOG(txp,warning)<<__PRETTY_FUNCTION__<< " getsockname errno="<<errno<<", "<<strerror(errno);
             }
-            LOG(txp,always)<<"CnxSockSSL::accept(p) "<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" accept(p)="<<l_NewSock->getInfoString()<<" sockfd="<<l_NewSock->_sockfd;
 
             l_NewSock->_cSSL= SSL_new(l_NewSock->_sslctx);
             SSL_set_fd(l_NewSock->_cSSL, l_NewSock->_sockfd);
-            if (SSL_accept(l_NewSock->_cSSL)<0)
+            int SSL_accept_rc = SSL_accept(l_NewSock->_cSSL);
+            LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_accept_rc="<<SSL_accept_rc;
+            if (SSL_accept_rc==1){ //TLS/SSL handshake was successful
+              
+            } 
+            else // 0=not successful but shutdown controlled; <0 fatal error
                 {
-                    LOG(txp,error) << __PRETTY_FUNCTION__<< "SSL handcheck failed";
+                    int SSLerror=::SSL_get_error(l_NewSock->_cSSL, SSL_accept_rc);
+                    LOG(txp,error) <<l_NewSock->getInfoString()<< "Accept newsock SSL handshake failed SSLerror="<<SSLerror;
                     delete l_NewSock;
+                  
                     return -2;
                 }
             pNewSock = l_NewSock;
@@ -252,7 +280,6 @@ int CnxSockSSL::accept(txp::Connex* &pNewSock) {
 
 
 int CnxSockSSL::bindCnxSock() {
-    setReuseAddress(1);
     _rcLast = bind(_sockfd,&_sockaddrLocal,_sockaddrlen);
     if (_rcLast<0) {
         LOG(txp,warning)<< __PRETTY_FUNCTION__<<":"<<__LINE__<<" _rcLast"<< _rcLast<< " errno="<<errno<<", "<<strerror(errno);
@@ -263,6 +290,7 @@ int CnxSockSSL::bindCnxSock() {
 
 int CnxSockSSL::connect2Remote(){
     _sockaddrlen=sizeof(_sockaddrRemote);
+    setReuseAddress(1);
     _rcLast = connect(_sockfd, &_sockaddrRemote,_sockaddrlen);
     if (_rcLast<0) {
         LOG(txp,warning)<< __PRETTY_FUNCTION__<< "_rcLast="<< _rcLast << " errno="<<errno<<", "<<strerror(errno);
@@ -279,11 +307,19 @@ int CnxSockSSL::connect2Remote(){
         LOG(txp,always)<< "CnxSockSSL::connect2Remote() "<< getInfoString()<<" sockfd="<<_sockfd;
         _cSSL= SSL_new(_sslctx);
         SSL_set_fd(_cSSL, _sockfd);
-        if ( SSL_connect(_cSSL) <0 )   /* perform the connection handshake*/
-            {
-                LOG(txp,error) << __PRETTY_FUNCTION__<<" ssl connect failed" << strerror(errno);
-                return -1;
-            }
+        int SSL_connect_rc = SSL_connect(_cSSL);
+        LOG(txp,always)<<__PRETTY_FUNCTION__<<" SSL_connect_rc="<<SSL_connect_rc;
+        if (SSL_connect_rc==1){ //TLS/SSL handshake was successful
+
+        } 
+        else // 0=not successful but shutdown controlled; <0 fatal error
+        {
+            int SSLerror=::SSL_get_error(_cSSL, SSL_connect_rc);
+            LOG(txp,error) << getInfoString()<< "connect SSL handshake failed SSLerror="<<SSLerror;
+            return -1;
+        }
+
+        LOG(txp,always)<<__PRETTY_FUNCTION__<<" recfBufSize="<<getRecvBufferSize()<<" sendBufSize="<<getSendBufferSize();
     }
 
     return _rcLast;
