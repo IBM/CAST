@@ -16,19 +16,22 @@
 
 - hosts: localhost
   tasks:
-    - debug: 
-       msg:  "key file={{FQP_KEYFILE}}"
-    - debug: 
-       msg:  "certificate file={{FQP_CERTFILE}}"   
+    - name: show key file and certificate file names via debug msg
+      debug: 
+        msg:  
+        - "key file={{FQP_KEYFILE}}"
+        - "certificate file={{FQP_CERTFILE}}"   
 
 
     - name: Check for certificate key file 
       command: ls -l {{FQP_KEYFILE}}
       any_errors_fatal: true
+      changed_when: false
 
     - name: Check for certificate file 
       command: ls -l {{FQP_CERTFILE}} 
-      any_errors_fatal: true     
+      any_errors_fatal: true    
+      changed_when: false 
  
 - hosts: server compute
   tasks:

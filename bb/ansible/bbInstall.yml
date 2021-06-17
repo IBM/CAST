@@ -26,10 +26,12 @@
 
 - hosts: server
   tasks:
-  - name: Skip any activation if bbserver is running
+  - name: Skip RPM installs if bbserver is running
     command:  /bin/systemctl status bbserver.service 
     register: bbserver_service_result
     ignore_errors: yes
+    changed_when: false
+    failed_when: "bbserver_service_result.rc != 4"
 
   - name: Install BB RPMs on ESS
     shell: "dnf install -y ibm-burstbuffer"
@@ -44,6 +46,7 @@
     shell: lsmod |grep export_layout 
     register: export_layout_loaded
     ignore_errors: yes
+    changed_when: false
 
   - name: install export RPM on Compute
     shell: "dnf install -y ibm-export_layout"
@@ -56,10 +59,12 @@
     shell: lsmod |grep export_layout 
     any_errors_fatal: true
     
-  - name: Skip any activation if bbproxy is running
+  - name: Skip RPM installs if bbproxy is running
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
     ignore_errors: yes
+    changed_when: false
+    failed_when: "bbproxy_service_result.rc != 4"
 
   - name: install BB RPMs on Compute
     shell: "dnf install -y ibm-burstbuffer ibm-burstbuffer-tools ibm-burstbuffer-tests"
