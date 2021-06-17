@@ -132,7 +132,7 @@ int CnxSock::accept(txp::Connex* &pNewSock) {
 
 int CnxSock::acceptRemote() {
 	if (accept()==-1) return -errno;
-        setNoDelay(true);
+        setNoDelay(1);
         
 	return 0;
 }
@@ -184,6 +184,7 @@ int CnxSock::connect2Remote(){
 	if (_rcLast<0) {
 		LOG(txp,warning)<< __PRETTY_FUNCTION__<<"_rcLast"<< _rcLast<< " errno="<<errno<<", "<<strerror(errno);
 	} else {
+		setNoDelay(1);
 		_sockaddrlen=sizeof(_sockaddrLocal);
 		int RCgetsockname = getsockname(_sockfd, &_sockaddrLocal, &_sockaddrlen);
         if (RCgetsockname) {
