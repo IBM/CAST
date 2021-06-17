@@ -5005,11 +5005,14 @@ int doAuthenticate(const string& name){
     rc = ((txp::Attr_int32*)msg->retrieveAttrs()->at(txp::resultCode))->getData();
     if (rc) {
         stringstream errorText;
-        errorText <<"CORAL_AUTHENICATE(SSL) failed contribid=" << contribid \
+        errorText <<"<== CORAL_AUTHENICATE(SSL) failed contribid=" << contribid \
         << ", process_whoami=" << process_whoami.c_str() << ", process_instance=" << process_instance.c_str() \
         << ", msg#=" << msg->getMsgNumber() << ", rqstmsg#=" << msg->getRequestMsgNumber() << ", rc=" << rc;
         LOG_ERROR_TEXT_ERRNO(errorText, EINVAL);
         SET_RC_AND_RAS(rc, bb.net.authfailed);
+    }
+    else {
+        LOG(bb,info) << "<== Received CORAL_AUTHENTICATE(SSL) rsp from " << name.c_str();
     }
 
     delete msg;
