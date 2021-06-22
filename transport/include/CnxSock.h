@@ -98,7 +98,7 @@ struct sockaddr_in {
                    return "CnxSock=(L)"+getLocalAddr4withPort()+"/(R)"+ getRemoteAddr4withPort();
                 }
 
-		inline void setNoDelay(bool value) {
+		inline void setNoDelay(int value) {
 			int val = value;//1 for on, 0 for off
 			if (setsockopt(_sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)) != 0) {
 				printf("%s setsockopt failed errno=%d(%s)\n",__PRETTY_FUNCTION__,errno,strerror(errno));

@@ -18,6 +18,7 @@
     command:  /bin/systemctl status bbserver.service 
     register: bbserver_service_result
     ignore_errors: yes
+    changed_when: false
 
   - debug:
       msg:  bbserver.service is not running
@@ -29,6 +30,7 @@
     command:  /bin/systemctl status bbproxy.service 
     register: bbproxy_service_result
     ignore_errors: yes
+    changed_when: false
 
   - debug:
       msg:  bbproxy.service is not running
@@ -38,8 +40,10 @@
     shell: lsmod |grep export_layout 
     register: export_layout_loaded
     ignore_errors: yes
+    changed_when: false
 
-  - debug:
+  - name:  check export_layout module is NOT loaded
+    ansible.builtin.debug:
       msg: export_layout module is NOT loaded
     when:  export_layout_loaded.rc != 0 
    

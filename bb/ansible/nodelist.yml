@@ -34,6 +34,7 @@
   - name: echo hostname
     shell: echo "{{ inventory_hostname }}"
     register: hostnamevar
+    changed_when: false
 
   - name: build host list
     lineinfile:

@@ -406,6 +406,7 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
 #ifdef BBSERVER
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(".") + to_string(++newconnection_name_sequence_number)
             + " (" + conn->getRemoteAddrString() + ")";
+            LOG(bb,info) << "<== Received CORAL_AUTHENTICATE(SSL) from " << l_newconnection_name.c_str();
 #else
 		    std::string l_newconnection_name = string(receivedFromWhoami) + string(instance);
 #endif
@@ -429,6 +430,9 @@ void connection_authenticate(txp::Id id, txp::Connex* conn, txp::Msg*& msg)
     txp::Attr_int32 resultcode(txp::resultCode, rc);
     response->addAttribute(&resultcode);
     if (rc) {addBBErrorToMsg(response);}
+#ifdef BBSERVER
+    LOG(bb,info) << "==>  CORAL_AUTHENTICATE(SSL) rsp to" << conn->getRemoteAddrString() << " rc="<<rc;
+#endif    
     int rc_write=conn->write(response);
     if (rc_write <= 0) {
         conn->disconnect();
@@ -1150,6 +1154,7 @@ int makeConnection2bbserver(const std::string& pName)
         return ENOTCONN;
     }
     addToConnectionMapsWithDoorbell(newconnection_sock);
+    sleep(1);//Wait a second for any outstanding SSL (re)negotiations to complete 
     std::string l_newconnection_name = newconnection_sock->getConnectName();
     int rc=xchgWithBBserver(l_newconnection_name);
     return rc;
@@ -1569,7 +1574,6 @@ int setupBBproxyListener(string whoami)
                 delete sslSock;
                 return -1;
             }
-
             sslSock->setLocalAddr(iplocal, port);
             try{
                 sslSock->loadCertificates(cert,key);
@@ -1886,14 +1890,23 @@ void* responseThread(void* ptr)
                         lockConnectionMaps("responseThread - accept remote SSL connection");
                         {
                             (connections[pollinfo[idx].fd])->accept(newsock);
-                            newsock->keepAlive();
-                            connections[newsock->getSockfd()] = newsock;
+                            if (newsock){
+                              newsock->keepAlive();  //assumes newsock is valid
+                              connections[newsock->getSockfd()] = newsock;
+                            }
+                            
                         }
                         unlockConnectionMaps("responseThread - accept remote SSL connection");
-
+                        
                         bberror.clear();
-
-                        FL_Write(FLConn, FL_AcceptDoneSSL, "Remote SSL connection was connected.  fd=%ld",newsock->getSockfd(),0,0,0);
+                        if (newsock) {
+                            FL_Write(FLConn, FL_AcceptDoneSSL, "Remote SSL connection was connected.  fd=%ld",newsock->getSockfd(),0,0,0);
+                        }
+                        else {
+                            FL_Write(FLConn, FL_RejectSSL, "Remote SSL connection was rejected.", 0,0,0,0);
+                            LOG(bb,error) << "Remote SSL connection was rejected.";
+                        }
+                        
                     }
                     else if( __glibc_unlikely(pollinfo[idx].fd == unix_listen_socket) )
                     {
@@ -2004,6 +2017,9 @@ void* responseThread(void* ptr)
                                     }
                                 }
                             }
+                        }
+                        else if (rc== (-EAGAIN) ){//-1 on reading message, errno=EAGAIN
+                           LOG(bb,info) << " EAGAIN for fd="<<pollinfo[idx].fd<<" connection="<< connections[pollinfo[idx].fd]->getInfoString();
                         }
                         else //rc!=0
                         {
