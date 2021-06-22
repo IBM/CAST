@@ -1154,7 +1154,7 @@ int makeConnection2bbserver(const std::string& pName)
         return ENOTCONN;
     }
     addToConnectionMapsWithDoorbell(newconnection_sock);
-    sleep(1);//Wait a second for any outstanding SSL (re)negotiations to complete (avoid SSL read lockup)
+    sleep(1);//Wait a second for any outstanding SSL (re)negotiations to complete 
     std::string l_newconnection_name = newconnection_sock->getConnectName();
     int rc=xchgWithBBserver(l_newconnection_name);
     return rc;
