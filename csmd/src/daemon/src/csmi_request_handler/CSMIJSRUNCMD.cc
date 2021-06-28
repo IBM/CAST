@@ -24,6 +24,8 @@
 
 #include "csmi_stateful_db/CSMIStatefulDBInit.h"
 
+#include "csmi_sort_hosts.h"
+
 #define STATE_NAME "CSMIJSRUNCMD"
 
 // Use this to make changing struct names easier.
@@ -206,6 +208,7 @@ bool CSMIJSRUNCMD_Master::ParseAuthQuery(
                 nodeStr = strtok_r(NULL, ",\"{}", &saveptr);
             }
             mcast_ctx->num_nodes = i;
+            qsort(mcast_ctx->compute_nodes, mcast_ctx->num_nodes, sizeof(char *), &csmi_hostname_compare);
         }
         else
         {

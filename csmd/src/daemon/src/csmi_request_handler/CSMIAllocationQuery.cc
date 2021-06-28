@@ -16,6 +16,8 @@
 #include "CSMIAllocationQuery.h"
 #include "csmi_stateful_db/CSMIStatefulDBRecvSend.h"
 
+#include "csmi_sort_hosts.h"
+
 #define STATE_NAME "CSMIAllocationQuery:"
 // Use this to make changing struct names easier.
 #define INPUT_STRUCT csm_allocation_query_input_t
@@ -197,8 +199,6 @@ bool CSMIAllocationQuery::CreateResponsePayload(
         csm::db::DBReqContent *dbReq = new csm::db::DBReqContent( stmt, paramCount );
         dbReq->AddNumericParam<int64_t>(allocation->allocation_id);
         *dbPayload = dbReq;
-
-
     }
     else
     {
@@ -237,14 +237,15 @@ bool CSMIAllocationQuery::CreateByteArray(
         if ( numRecords > 0 )
         {
             output.allocation->compute_nodes = (char **)malloc(sizeof(char *) * numRecords);
-        }
 
-        for(uint32_t i = 0; i < numRecords; ++i)
-        {
-            if ( tuples[i] && tuples[i]->data)
+            for(uint32_t i = 0; i < numRecords; ++i)
             {
-                output.allocation->compute_nodes[i] = strdup(tuples[i]->data[0]);
+                if ( tuples[i] && tuples[i]->data)
+                {
+                    output.allocation->compute_nodes[i] = strdup(tuples[i]->data[0]);
+                }
             }
+            qsort(output.allocation->compute_nodes, numRecords, sizeof(char *), &csmi_hostname_compare);
         }
 
         // Serialize and free.

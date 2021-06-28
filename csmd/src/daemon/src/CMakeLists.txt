@@ -171,6 +171,7 @@ file(GLOB CSM_DAEMON_SRC
   csmi_request_handler/csmi_mcast/CSMIMcastBB.cc
 
   # JSRUN
+  csmi_request_handler/csmi_sort_hosts.cc
   csmi_request_handler/CSMIJSRUNCMD.cc
   csmi_request_handler/CSMIJSRUNCMDAgentState.cc
   csmi_request_handler/csmi_mcast/CSMIMcastJSRUN.cc
