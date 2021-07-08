@@ -2,7 +2,7 @@
 #   
 #    setup/csm_install.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -39,6 +39,37 @@ else
 fi
 
 # Get hostname of master node
+compute=""
+compute="${COMPUTE_NODES}"
+
+utility=""
+utility="utility"
+
+service=""
+service="${AGGREGATOR_A},${AGGREGATOR_B}"
+
+master=""
+master="localhost"
+
+all=""
+
+if [ -n "${compute}" ] ; then
+  all="${all}${compute},"
+fi
+
+if [ -n "${utility}" ] ; then
+  all="${all}${utility},"
+fi
+
+if [ -n "${service}" ] ; then
+  all="${all}${service},"
+fi
+
+if [ -n "${all}" ] ; then
+  # Remove trailing comma
+  all=${all%?}
+fi
+
 master_node=`hostname`
 
 # Get list of compute nodes
@@ -252,18 +283,19 @@ xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_r
 # Set up the pam modules on the CSM compute nodes
 xdsh csm_comp "if [ -e /usr/lib64/security/libcsmpam.so ] ; then sed -i '/libcsmpam.so/s/^#*//g' /etc/pam.d/sshd ; fi"
 
+# Daemon Reload
+systemctl daemon-reload
+xdsh csm_comp,utility "systemctl daemon-reload"
+
+# Start Nvidia daemons
+if [ -n "${all}" ] ; then
+  xdsh "${all}" "systemctl start nvidia-persistenced"
+  xdsh "${all}" "systemctl start dcgm"
+fi
+
 # Start Daemons
 systemctl start csmd-master
 xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
 xdsh ${AGGREGATOR_B} "systemctl start csmd-aggregator"
 xdsh utility "systemctl start csmd-utility"
 xdsh csm_comp "systemctl start csmd-compute"
-
-# Daemon Reload
-systemctl daemon-reload
-xdsh csm_comp,utility "systemctl daemon-reload"
-
-# Start Nvidia daemons
-xdsh csm_comp,utility,service "systemctl start nvidia-persistenced"
-xdsh csm_comp,utility,service "systemctl start dcgm"
-wait

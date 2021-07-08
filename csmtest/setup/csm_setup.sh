@@ -2,7 +2,7 @@
 #   
 #    setup/csm_setup.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -26,8 +26,57 @@ else
         echo "Could not find csm_test.cfg file expected at "${BASH_SOURCE%/*}/../csm_test.cfg", exitting."
         exit 1
 fi
- 
+
 LOG=${LOG_PATH}/setup/csm_setup.log
+TEMP_LOG=${LOG_PATH}/setup/csm_install.log
+
+if [ -f "${BASH_SOURCE%/*}/../include/functions.sh" ]
+then
+        . "${BASH_SOURCE%/*}/../include/functions.sh"
+else
+        echo "Could not find functions file expected at /../include/functions.sh, exitting."
+        exit 1
+fi
+
+# Get hostname of master node
+compute=""
+compute="${COMPUTE_NODES}"
+
+utility=""
+utility="utility"
+
+service=""
+service="${AGGREGATOR_A},${AGGREGATOR_B}"
+
+master=""
+master="localhost"
+
+all=""
+
+if [ -n "${compute}" ] ; then
+  all="${all}${compute},"
+fi
+
+if [ -n "${utility}" ] ; then
+  all="${all}${utility},"
+fi
+
+if [ -n "${service}" ] ; then
+  all="${all}${service},"
+fi
+
+if [ -n "${all}" ] ; then
+  # Remove trailing comma
+  all=${all%?}
+fi
+
+master_node=`hostname`
+
+# Get list of compute nodes
+compute_node_list=`nodels csm_comp`
+
+# Get list of utility nodes
+utility_node_list=`nodels utility`
 
 # Clean local rpms directory
 rm -f ${INSTALL_DIR}/ibm-*
@@ -50,15 +99,24 @@ systemctl stop csmd-aggregator
 systemctl stop csmd-master
 
 # Remove old CSM RPMs on Master
-rpm -e ibm-csm-core-* ibm-csm-api-* ibm-csm-db-* ibm-csm-hcdiag-* ibm-csm-restd-* ibm-flightlog-*
+RPMS="ibm-csm-bds ibm-csm-unittest ibm-csm-db ibm-csm-hcdiag ibm-csm-restd ibm-csm-api ibm-csm-core ibm-flightlog ibm-csm-bds-logstash"
+echo "------------------------------------------------------------------------------------------------------------------------"
+for RPM in $RPMS ; do
+  if rpm --quiet -q "$RPM" ; then
+      rpm -e "$RPM"
+    printf "%-20s %-15s %-25s %-15s\n" "${MASTER}:" "Package:" "${RPM}" "Uninstalled"
+  fi
+done
+echo "------------------------------------------------------------------------------------------------------------------------"
 
-# Remove old CSM RPMs on Utility, Computes & Aggregator 
-xdsh csm_comp,utility "rpm -e ibm-csm-core-* ibm-csm-api-* ibm-csm-hcdiag-* ibm-flightlog-*"
-xdsh ${AGGREGATOR_A} "rpm -e ibm-csm-core-* ibm-csm-api-* ibm-csm-hcdiag-* ibm-flightlog-*"
+# Remove all existing rpms from utility, aggregator, and compute nodes
+if [ -n "${all}" ] ; then
+  xdsh ${all} "for RPM in $RPMS ; do if rpm --quiet -q \$RPM ; then rpm -e \$RPM ; printf \"%-20s %-15s %-25s %-15s\n\" \"Group_Names_Above:\" \"Package:\" \"\${RPM}\" \"Uninstalled\"; fi done" | xcoll
 
 # File clean up
-xdsh csm_comp,utility "rm -rf /etc/ibm /var/log/ibm"
-rm -rf /etc/ibm /var/log/ibm
+xdsh ${all} "rm -rf /etc/ibm /var/log/ibm"
+fi
+echo "------------------------------------------------------------------------------------------------------------------------"
 
 # Install new CSM RPMs - Management node
 rpm -ivh ${INSTALL_DIR}/ibm-flightlog-1.*
@@ -129,18 +187,18 @@ xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 xdcp csm_comp -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
 xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
-# Start Daemons
-systemctl start mosquitto
-systemctl start csmd-master
-xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
-xdsh utility "systemctl start csmd-utility"
-xdsh csm_comp "systemctl start csmd-compute"
-
 # Daemon Reload
 systemctl daemon-reload
 xdsh csm_comp,utility "systemctl daemon-reload"
 
 # Start Nvidia daemons
-xdsh csm_comp,utility,service "systemctl start nvidia-persistenced"
-xdsh csm_comp,utility,service "systemctl start dcgm"
-wait
+if [ -n "${all}" ] ; then
+  xdsh "${all}" "systemctl start nvidia-persistenced"
+  xdsh "${all}" "systemctl start dcgm"
+fi
+
+# Start Daemons
+systemctl start csmd-master
+xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
+xdsh utility "systemctl start csmd-utility"
+xdsh csm_comp "systemctl start csmd-compute"

@@ -44,7 +44,7 @@ date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
 # Test Case 1: Inventory Library - fvt_node_attributes_query_and_update.py
-${FVT_PATH}/buckets/basic/fvt_node_attributes_query_and_update.py ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
+retry_process ${FVT_PATH}/buckets/basic/fvt_node_attributes_query_and_update.py ${SINGLE_COMPUTE} > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 1: Inventory Library - fvt_node_attributes_query_and_update.py"
 
 # Test Case 2: Workload Manager Library - fvt_allocation_create_and_delete.py
