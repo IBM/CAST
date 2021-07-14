@@ -129,7 +129,8 @@ DEFAULT_HANDLE = 0
 DEFAULT_HOSTNAME = ""
 
 l_Temp = os.environ['USER']
-DEFAULT_CONFIG = (os.path.join(*("%s,etc,ibm,bb.cfg" % (os.path.sep)).split(",")))
+#DEFAULT_CONFIG = (os.path.join(*("%s,etc,ibm,bb.cfg" % (os.path.sep)).split(",")))
+DEFAULT_CONFIG = (os.path.join(*("%s,u,dlherms,CAST,work,bb,scripts,bb.cfg" % (os.path.sep)).split(",")))
 DEFAULT_ORGSRC = (os.path.join(*("%s,gpfs,gpfs0,%s,source" % (os.path.sep, l_Temp)).split(",")))
 DEFAULT_MOUNT = (os.path.join(*("%s,tmp,%s,mnt" % (os.path.sep, l_Temp)).split(",")))
 DEFAULT_TARGET = (os.path.join(*("%s,gpfs,gpfs0,%s,target" % (os.path.sep, l_Temp)).split(",")))
@@ -173,9 +174,9 @@ def Coral_InitLibrary(pContribId, pClientVersion, pConfig, pUnixPath):
 #
 
 def usage(code, msg=''):
-    print >> sys.stderr, __doc__
+    print(__doc__, file=sys.stderr)
     if msg:
-        print >> sys.stderr, msg
+        print(msg, file=sys.stderr)
     sys.exit(code)
 
 
@@ -209,11 +210,11 @@ def setDefaults(pEnv):
     pEnv["procedure_args"] = DEFAULT_PROCEDURE_ARGS
     # NOTE: The iteration value can be passed into the main()
     #       routine of this module
-    if (not pEnv.has_key("iteration")):
+    if ("iteration" not in pEnv):
         pEnv["iteration"] = DEFAULT_ITERATION
     # NOTE: The jobid_bump value can be passed into the main()
     #       routine of this module
-    if (not pEnv.has_key("jobid_bump")):
+    if ("jobid_bump" not in pEnv):
         pEnv["jobid_bump"] = DEFAULT_JOBID_BUMP
 
     return
@@ -263,7 +264,7 @@ def processArgs(pEnv, pArgs):
     try:
         l_Opts, l_Args = getopt.getopt(pArgs,"ha:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:1:2:3:4:",["cn_failover=","io_failover=","contrib=","name=","floor=","flags=","group=","handle=","hostname=","jobid=","jobstepid=","libpath=","mount=","mode=","owner=","testpath=","orgsrc=","contribid=","size=","tag=","unixpath=","type=","procedure=","target=","testcase=","config=","procedure_args=","iteration=","jobid_bump=","cancelscope="])
     except getopt.GetoptError as e:
-        print >> sys.stderr, e
+        print(e, file=sys.stderr)
         usage(1, "Invalid arguments passed")
 
     l_ConfigSpecified = False
@@ -271,7 +272,7 @@ def processArgs(pEnv, pArgs):
     for l_Opt, l_Arg in l_Opts:
 #        print l_Opt, l_Arg
         if l_Opt == '-h':
-            print __doc__
+            print(__doc__)
             sys.exit()
         elif l_Opt in ("-a", "--cn_failover"):
             if (l_Arg == "0"):
@@ -375,42 +376,54 @@ def buildLibraryWrapper(pEnv):
 
 
 def main(pArgs):
+    l_SavedPath = os.environ['PATH']
+    l_NewPath = '.:' + l_SavedPath
+    os.environ['PATH'] = l_NewPath
+#    print("Environment variable $PATH set to %s" % (l_NewPath))
+
     l_Env = {}
-    processArgs(l_Env, pArgs)
+    try:
+        processArgs(l_Env, pArgs)
 
-    # Build the ctypes interfaces to the BB APIs...
-    bb.api = buildLibraryWrapper(l_Env)
+        # Build the ctypes interfaces to the BB APIs...
+        bb.api = buildLibraryWrapper(l_Env)
 
-    # We only print out the shared library information for the main routine...
-    if (len(l_Env["procedure_args"]) == 0):
-        print "Shared library:  %s" % (l_Env["LIB"])
+        # We only print out the shared library information for the main routine...
+        if (len(l_Env["procedure_args"]) == 0):
+            print("Shared library:  %s" % (l_Env["LIB"]))
 
-    l_Contribid = bb.cvar("contribid", l_Env)
+        l_Contribid = bb.cvar("contribid", l_Env)
 
-    l_Size = bb.cvar("size", 256)
-    l_API_Version = ctypes.create_string_buffer(256)
-    rc = BB_GetVersion(l_Size, l_API_Version)
+        l_Size = bb.cvar("size", 256)
+        l_API_Version = ctypes.create_string_buffer(256)
+        rc = BB_GetVersion(l_Size, l_API_Version)
 
-    if (rc == 0):
-        if (l_Env["TESTCASE"] != "None"):
-            if l_Env.has_key("CONFIG") or l_Env.has_key("UNIXPATH"):
-                l_Config = ctypes.c_char_p(l_Env.get("CONFIG", NOCONFIG))
-                l_UnixPath = ctypes.c_char_p(l_Env.get("UNIXPATH", NOUNIXPATH))
-                rc = Coral_InitLibrary(l_Contribid, l_API_Version, l_Config, l_UnixPath)
-            else:
-                rc = BB_InitLibrary(l_Contribid, l_API_Version)
+        if (rc == 0):
+            if (l_Env["TESTCASE"] != "None"):
+                if "CONFIG" in l_Env or "UNIXPATH" in l_Env:
+                    l_Config = ctypes.c_char_p(l_Env.get("CONFIG", NOCONFIG).encode())
+                    l_UnixPath = ctypes.c_char_p(l_Env.get("UNIXPATH", NOUNIXPATH).encode())
+                    rc = Coral_InitLibrary(l_Contribid, l_API_Version, l_Config, l_UnixPath)
+                else:
+                    rc = BB_InitLibrary(l_Contribid, l_API_Version)
 
-            if (rc == 0):
-                setSysPath(l_Env)
-                l_TestCase = importlib.import_module(l_Env["TESTCASE"])
-                rc = l_TestCase.main(l_Env)
-                print "bbapi_main.main(): rc = %d" % (rc)
-            else:
-                print "BB_InitLibrary():  rc = %d" % (rc)
+                if (rc == 0):
+                    setSysPath(l_Env)
+                    l_TestCase = importlib.import_module(l_Env["TESTCASE"])
+                    rc = l_TestCase.main(l_Env)
+                    print("bbapi_main.main(): rc = %d" % (rc))
+                else:
+                    print("BB_InitLibrary():  rc = %d" % (rc))
 
-            BB_TerminateLibrary()
-    else:
-        print "BB_GetVersion():  rc = %d" % (rc)
+                BB_TerminateLibrary()
+        else:
+            print("BB_GetVersion():  rc = %d" % (rc))
+    except Exception as e:
+        rc = -1
+        print('Exception raised from bbapi_main::main(), %s' % (e))
+    finally:
+        os.environ['PATH'] = l_SavedPath
+#        print("Environment variable $PATH set to %s" % (l_SavedPath))
 
     return rc
 
@@ -426,6 +439,6 @@ if __name__ == '__main__':
         rc = 0
     else:
         rc = -1
-    print "bbapi_main: rc = %d" % (rc)
+    print("bbapi_main: rc = %d" % (rc))
 
     sys.exit(rc)
