@@ -64,8 +64,8 @@ def main(args):
 
     # Parse the user's date.
     date_format='(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
-    #date_print_format='%Y-%m-%d %H:%M:%S'
-    date_print_format='%s'
+    date_print_format='%Y-%m-%dT%H:%M:%S'
+    #date_print_format='%s'
 
     target_date=args.timestamp
     time_search=re.search(date_format, target_date)

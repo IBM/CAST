@@ -218,8 +218,8 @@ def build_timestamp_range( start_time, end_time, field="@timestamp"):
     '''
 
     # Build the time range
-    start_time = convert_timestamp(start_time)
-    end_time   = convert_timestamp(end_time)
+    #start_time = convert_timestamp(start_time)
+    #end_time   = convert_timestamp(end_time)
 
     # Build the time range.
     target=[]
