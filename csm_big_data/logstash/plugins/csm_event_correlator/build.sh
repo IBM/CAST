@@ -28,7 +28,8 @@ mv logstash-filter-csm-event-correlator-*.gem logstash/
 
 # Fetch all of the dependencies.
 cd logstash/dependencies
-gem fetch logstash-codec-plain
+gem fetch logstash-codec-plain -v 3.0.6
+gem install jar-dependencies -v 0.4.0
 
 # Return home and zip the file.
 cd ${SCRIPT_HOME}
