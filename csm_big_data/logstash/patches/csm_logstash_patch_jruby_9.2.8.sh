@@ -2,7 +2,7 @@
 
 #================================================================================
 #
-#    csm_logstash_patch_9.2.8.sh
+#    csm_logstash_patch_jruby_9.2.8.sh
 #
 #    © Copyright IBM Corporation 2021. All Rights Reserved
 #
