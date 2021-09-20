@@ -23,7 +23,7 @@ Installation and Configuration
 Installation
 ^^^^^^^^^^^^
 
-.. note:: This guide has been tested using Logstash 6.8.1, the latest RPM may be downloaded from
+.. note:: This guide has been tested using Logstash 7.5.1, the latest RPM may be downloaded from
    `the Elastic Site <https://www.elastic.co/downloads/logstash>`_.
 
 For the official install guide of Logstash in the ELK stack go to: `Installing Logstash`_
@@ -33,11 +33,53 @@ CAST provides a set of sample configuration files in the repository at `csm_big_
 If the |csm-bds| rpm has been installed the sample configurations may be found 
 in `/opt/ibm/csm/bigdata/logstash/`.
 
-1. Install the logstash rpm and java 1.8.1+ (command run from directory with logstash rpm):
+Preparing for installation
 
 .. code-block:: bash
 
-     yum install -y logstash-*.rpm java-1.8.*-openjdk
+    # groupadd -g 1900 elasticsearch; groupadd -g 1901 kibana; groupadd -g 1902 logstash
+    # useradd -g 1900 -u 1900 elasticsearch; useradd -g 1901 -u 1901 kibana; useradd -g 1902 -u 1902 logstash
+
+.. code-block:: bash
+
+    grep 'logstash\|elasticsearch\|kibana' /etc/passwd /etc/group
+    /etc/passwd:elasticsearch:x:1900:1900::/home/elasticsearch:/bin/bash
+    /etc/passwd:kibana:x:1901:1901::/home/kibana:/bin/bash
+    /etc/passwd:logstash:x:1902:1902::/home/logstash:/bin/bash
+    /etc/group:elasticsearch:x:1900:
+    /etc/group:kibana:x:1901:
+    /etc/group:logstash:x:1902:
+
+1. Install the logstash rpm and java-11 (command run from directory with logstash rpm):
+
+.. code-block:: bash
+
+     yum install -y logstash-*.rpm java-11*
+
+After the JAVA-11 installation
+
+.. note:: After installing `Java`, set up the `JAVA` environment variables in root's `.bashrc` file. Assuming `Java` is installed in `/usr/lib/jvm/java-11`.
+Additionally, bundler and jruby could be installed outside of logstash, so these could also be include in the `/root/.bashrc` file as well.
+There could be incompatibility issues because logstash installs its own bundler and jruby. They have to be added in-front of the PATH so they are found first.
+The admin can try to run the two different versions by specifying absolute paths.
+
+.. code-block:: bash
+
+    export JAVA_HOME=/usr/lib/jvm/java-11
+    export PATH=/usr/lib/jvm/java-11/bin:$PATH
+    export BUNDLE_DIR=/usr/share/logstash/vendor/bundle/jruby/2.5.0/bin
+    export JRUBY_DIR=/usr/share/logstash/vendor/jruby/bin
+    export PATH=$BUNDLE_DIR:$JRUBY_DIR:$PATH
+
+The above dir. could also be a symbolic link. There could be multiple versions of `Java` installed by other software. Find out where java is:
+
+.. code-block:: bash
+
+    # which java
+    /usr/lib/jvm/java-11/bin/java
+     
+    # ls -ld /usr/lib/jvm/java-11
+    lrwxrwxrwx 1 root root 29 Jul 12 15:59 /usr/lib/jvm/java-11 -> /etc/alternatives/java_sdk_11
 
 2. Copy the Logstash pipeline configuration files to the appropriate directories. 
 
@@ -207,7 +249,7 @@ Now that every thing has been installed and configured. You can start Logstash.
 Logstash should now be operational. At this point data aggregators should be configured to point
 to your Logstash node as appropriate.
 
-.. note:: In ELK 6.8.1, Logstash may not start and run on Power, due to an arch issue. Please see: :ref:`Logstash_Not_Starting`
+.. note:: In ELK 7.5.1, Logstash may not start and run on Power, due to an arch issue. Please see: :ref:`Logstash_Not_Starting`
 
 CSM Event Correlator
 ---------------------

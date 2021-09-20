@@ -20,7 +20,7 @@ There was a typo in a previous version of CAST. The field "close_removed" is a b
 Logstash Not Starting
 ---------------------
 
-In ELK 6.8.1, Logstash may not start and run on Power, due to an arch issue. 
+In ELK 7.5.1, Logstash may not start and run on Power, due to an arch issue. 
 
 .. code-block:: none
 
@@ -35,7 +35,7 @@ GitHub Issue: https://github.com/elastic/logstash/issues/10755
 
 IBM and the CAST team have made a script to fix this packaging issue. 
 
-The patch can be found in the CAST repo at: https://github.com/IBM/CAST/blob/master/csm_big_data/logstash/patches/csm_logstash_6-8-1_patch.sh and in the install dir at: ``/opt/ibm/csm/bigdata/logstash/patches/csm_logstash_6-8-1_patch.sh``.
+The patch can be found in the CAST repo at: https://github.com/IBM/CAST/blob/master/csm_big_data/logstash/csm_logstash_patch_jruby_9.2.8.sh and in the install dir at: ``/opt/ibm/csm/bigdata/logstash/csm_logstash_patch_jruby_9.2.8.sh``.
 
 Run this patch before starting Logstash. 
 
