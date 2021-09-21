@@ -3,7 +3,7 @@
 #
 #    csm_db_backup_script_v1.sh
 #
-#  © Copyright IBM Corporation 2015-2019. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -16,9 +16,9 @@
 
 #--------------------------------------------------------------------------------
 #   usage:              Backup CSM DB related data, tables, triggers, functions, etc.
-#   current_version:    1.5
+#   current_version:    1.6
 #   created:            03-26-2018
-#   last modified:      04-04-2019
+#   last modified:      09-20-2021
 #--------------------------------------------------------------------------------
 
 #----------------------------------------------------------------
@@ -40,7 +40,7 @@ cd "${BASH_SOURCE%/*}" || exit
 dbname=$DEFAULT_DB
 BASENAME=`basename "$0"`
 now=$(date '+%Y-%m-%d.%H.%M.%S.%N')
-
+njobs="16"
 script_name="csm_db_backup_script_v1.sh"
 
 #---------------------------------------
@@ -352,11 +352,16 @@ if [ $conn_count == "0" ]; then
     #------ Check to see if 'pv' is installed ------#
     FILE="/usr/bin/pv" 2>&1
         if [ -f $FILE ]; then
-            pg_dump -U $db_username -Fc $dbname | pv -w 80 -F '[Info    ] Script Stats:                |  [%b] [%t] %r %a %e' > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
+            echo "[Info    ] Number of Jobs (DB threads)  |  $njobs"
+            LogMsg "[Info    ] Number of Jobs (DB threads)  | $njobs"
+            pg_dump -U $db_username -d $dbname -j $njobs -Fd -f "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`" | pv -w 80 -F '[Info    ] Script Stats:                |  [%t]'
         else
             echo "[Info    ] PV statistics:               |  Might not be installed (continuing process)"
             LogMsg "[Info    ] PV statistics:               | Might not be installed (continuing process)"
-            pg_dump -U $db_username -Fc $dbname > "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`.backup"
+            LogMsg "[Info    ] Number of Jobs (DB threads)  | $njobs"
+            echo "[Info    ] Number of Jobs (DB threads)  |  $njobs"
+            pg_dump -U $db_username -d $dbname -j $njobs -Fd -f "${data_dir}${dbname}_${trim}_`date +%d-%m-%Y"_"%H_%M_%S`"
+            
         fi
 else
     echo "${line1_out}"
@@ -394,8 +399,9 @@ ds=$(echo "$dt3-60*$dm" | bc)
 
     echo "[Info    ] ${line4_out}"
     LogMsg "${line2_log}"
-    printf "[Info    ] Timing:                      |  %d:%02d:%02d:%02.4f\n" $dd $dh $dm $ds
-    LogMsg "[Info    ] Timing:                      | $dd:$dh:$dm:0$ds"
+    printf "[Info    ] Timing:                      |  %d:%02d:%02d:%07.4f\n" $dd $dh $dm $ds
+    total_timing=`printf "[Info    ] Timing:                      | %d:%02d:%02d:%07.4f\n" $dd $dh $dm $ds`
+    LogMsg "$total_timing"
 
     #------ Logging info based on connection status ------#
     if [ $conn_count == "0"  ]; then
