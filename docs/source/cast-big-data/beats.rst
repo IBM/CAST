@@ -24,6 +24,8 @@ for a more generalized installation guide please consult the official `Filebeats
 
 1. Install the filebeats rpm on the node:
 
+This node is usually the CSM master where transaction logs are located.
+
 .. code-block:: bash
     
    rpm -ivh filebeat-*.rpm 

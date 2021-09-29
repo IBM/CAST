@@ -23,8 +23,10 @@ Installation and Configuration
 Installation
 ^^^^^^^^^^^^
 
-.. note:: This guide has been tested using Logstash 7.5.1, the latest RPM may be downloaded from
-   `the Elastic Site <https://www.elastic.co/downloads/logstash>`_.
+.. note:: This guide has been tested using Logstash 7.5.1, which is built for IBM System P.
+    At this writing,
+    `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_ no longer provided rpms
+    for the ppc64le architecture.
 
 For the official install guide of Logstash in the ELK stack go to: `Installing Logstash`_
 
@@ -34,6 +36,11 @@ If the |csm-bds| rpm has been installed the sample configurations may be found
 in `/opt/ibm/csm/bigdata/logstash/`.
 
 Preparing for installation
+
+The Elastic software stack components are installed and run on multiple nodes with associated
+user name such as `elasticsearch`, `kibana`, and `logstash`. They are required to have
+the same user ID and group ID across nodes. Following are examples of creating and verifying
+these user IDs.
 
 .. code-block:: bash
 
@@ -55,6 +62,13 @@ Preparing for installation
 .. code-block:: bash
 
      yum install -y logstash-*.rpm java-11*
+
+.. note:: Java-11 is a prerequite and can be installed before logstash. In that case, you just
+     install logstash.
+
+.. code-block:: bash
+
+     yum install -y logstash-*.rpm
 
 After the JAVA-11 installation
 
@@ -136,6 +150,9 @@ Configuration
    pipeline.batch.size: 2000 # This is the MAXIMUM, to prevent exceedingly long waits a delay is supplied.  
    pipeline.batch.delay: 50  # Maximum time to wait to execute an underfilled queue in milliseconds.
    queue.type: persisted
+   log.level: info
+   path.queue: /var/log/logstash/logstash-queue/
+   queue.max_bytes: 300gb
    ...
 
 Tuning logstash is highly dependant on your use case and environment. What follows is a set of

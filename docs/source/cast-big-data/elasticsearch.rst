@@ -14,8 +14,10 @@ storage or large numbers of drives are prefered.
 Configuration
 -------------
 
-.. note:: This guide has been tested using Elasticsearch 7.5.1, the latest RPM may be downloaded from
-    `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_.
+.. note:: This guide has been tested using Elasticsearch 7.5.1, which is built for IBM System P.
+    At this writing,
+    `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_ no longer provided rpms
+    for the ppc64le architecture.
 
 The following is a brief introduction to the installation and configuration of the elasticsearch service.
 It is generally assumed that elasticsearch is to be installed on multiple Big Data Nodes to take
@@ -96,8 +98,8 @@ The above dir. could also be a symbolic link. There could be multiple versions o
 .. note:: This is technically optional, however, data will have limited use. This script 
     configures Elasticsearch to properly parse timestamps.
 
-Elasticsearch should now be operational. If Logstash was properly configured there should already
-be data being written to your index.
+Elasticsearch should now be operational. Next logical step is to 
+    `install and configure Logstash <https://cast.readthedocs.io/en/cast_1.8.x/cast-big-data/logstash.html#installation-and-configuration>`_.
 
 Tuning Elasticsearch
 --------------------

@@ -10,8 +10,10 @@ CAST provides a utility plugin for multistep searches of CSM jobs in Kibana dash
 Configuration
 -------------
 
-.. note:: This guide has been tested using Kibana 7.5.1, the latest RPM may be downloaded from
-    `the Elastic Site <https://www.elastic.co/downloads/kibana>`_.
+.. note:: This guide has been tested using Kibana 7.5.1, which is built for IBM System P.
+    At this writing,
+    `the Elastic Site <https://www.elastic.co/downloads/elasticsearch>`_ no longer provided rpms
+    for the ppc64le architecture.
 
 The following is a brief introduction to the installation and configuration of the Kibana service.
 
@@ -105,6 +107,8 @@ CAST recommends the following four values be set before starting Kibana:
 
     rpm -ivh ibm-csm-bds-kibana-*.noarch.rpm
 
+See `Cast Search <https://cast.readthedocs.io/en/cast_1.8.x/cast-big-data/kibana.html#cast-search>`_ for more information.
+
 4. Start Kibana:
 
 .. code-block:: bash
@@ -120,7 +124,7 @@ CAST Search
 
 CAST Search is a React plugin designed for interfacing with elastic search an building filters for 
 Kibana Dashboards. To maxmize the value of the plugin the `cast-allocation` index pattern should be 
-specified.
+specified. See detailed instructions for `Cast Search installation and configuration <https://cast.readthedocs.io/en/cast_1.8.x/cast-big-data/cast-search.html>`_.
 
 .. TODO describe funciton and feature in greater depth.
 
