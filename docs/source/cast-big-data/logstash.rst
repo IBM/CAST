@@ -73,6 +73,7 @@ these user IDs.
 After the JAVA-11 installation
 
 .. note:: After installing `Java`, set up the `JAVA` environment variables in root's `.bashrc` file. Assuming `Java` is installed in `/usr/lib/jvm/java-11`.
+
 Additionally, bundler and jruby could be installed outside of logstash, so these could also be include in the `/root/.bashrc` file as well.
 There could be incompatibility issues because logstash installs its own bundler and jruby. They have to be added in-front of the PATH so they are found first.
 The admin can try to run the two different versions by specifying absolute paths.
