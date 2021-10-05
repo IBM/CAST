@@ -2,7 +2,7 @@
 #   
 #    setup/csm_uninstall.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -38,11 +38,46 @@ else
 	exit 1
 fi
 
+# Output formatter
+line1_out=$(printf "%0.s-" {1..90})
+
 # Get list of compute nodes
 compute_node_list=`nodels csm_comp`
 
 # Get list of utility nodes
 utility_node_list=`nodels utility`
+# Get hostname of master node
+
+compute=""
+compute="${COMPUTE_NODES}"
+
+utility=""
+utility="${utility_node_list}"
+
+service=""
+service="${AGGREGATOR_A},${AGGREGATOR_B}"
+
+master=""
+master="localhost"
+
+all=""
+
+if [ -n "${compute}" ] ; then
+  all="${all}${compute},"
+fi
+
+if [ -n "${utility}" ] ; then
+  all="${all}${utility},"
+fi
+
+if [ -n "${service}" ] ; then
+  all="${all}${service},"
+fi
+
+if [ -n "${all}" ] ; then
+  # Remove trailing comma
+  all=${all%?}
+fi
 
 # Comment out any entries for libcsmpam.so in /etc/pam.d/sshd
 xdsh all "sed -i '/libcsmpam.so/s/^#*/#/g' /etc/pam.d/sshd"
@@ -91,149 +126,41 @@ if [ $? -eq 0 ]
 		xdsh ${AGGREGATOR_B} "systemctl stop csmd-aggregator" > /dev/null
 fi
 
-# Check for RPMs installed on Master, store names
-curr_rpm_list=""
-curr_rpm_list+=`rpm -qa | grep ibm-csm-api`
-curr_rpm_list+=`rpm -qa | grep ibm-csm-core`
-curr_rpm_list+=`rpm -qa | grep ibm-csm-hcdiag`
-curr_rpm_list+=`rpm -qa | grep ibm-flightlog`
-curr_rpm_list+=`rpm -qa | grep ibm-csm-db`
-curr_rpm_list+=`rpm -qa | grep ibm-csm-restd`
-curr_rpm_list+=`rpm -qa | grep ibm-csm-bds`
-curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
-curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
+RPMS="ibm-csm-bds ibm-csm-bds-logstash ibm-csm-unittest ibm-csm-db ibm-csm-hcdiag ibm-csm-restd ibm-csm-api ibm-csm-core ibm-fshipmond ibm-fshipd ibm-fshipcld ibm-burstbuffer-tools ibm-burstbuffer-tests ibm-burstbuffer ibm-burstbuffer-mn ibm-burstbuffer-lsf ibm-csm-tools ibm-export_layout ibm-scripts ibm-transport-devel ibm-utilities-devel ibm-flightlog ibm-flightlog-devel"
 
-# Uninstall old CSM RPMs on Master
-if [ "$curr_rpm_list" ]
-	then
-		rpm -e ${curr_rpm_list}
-		if [ $? -ne 0 ]
-			then
-				echo "Failed to Uninstall CSM RPMs on Master"
-				echo "rpm -e ${curr_rpm_list}"
-				exit 1
-			else
-				echo "Uninstalled old CSM RPMs on Master"
-		fi
-	else
-		echo "No RPMs installed on Master"
-fi
-
-# Check for RPMs installed on Utility, store names, then uninstall them all
-for node in ${utility_node_list}
-do
-	curr_rpm_list=""
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-api"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-core"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-hcdiag"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-flightlog"`
-	curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
-	curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
-	# uninstall step
-	if [ "$curr_rpm_list" ]
-		then
-			ssh ${node} "rpm -e ${curr_rpm_list}"
-			if [ $? -ne 0 ]
-				then
-					echo "Failed to uninstall CSM RPMs on utility node ${node}"
-					echo "ssh ${node} \"rpm -e ${curr_rpm_list}\""
-					exit 1
-				else
-					echo "Uninstalled CSM RPMs on utility node ${node}"
-			fi
-		else
-			echo "No RPMs installed on utility node ${node}"
-	fi
+echo "$line1_out"
+for RPM in $RPMS ; do
+  if rpm --quiet -q "$RPM" ; then
+    rpm -e "$RPM" &> /dev/null
+    printf "%-20s %-15s %-30s %-15s\n" "${MASTER}:" "Package:" "${RPM}" "Uninstalled"
+  else
+    printf "%-20s %-15s %-25s %-15s\n" "${MASTER}:" "Package:" "${RPM}" "Is Not installed"
+  fi
 done
 
-# Check for RPMs installed on Aggregator, store names 
-if [ `hostname` != ${AGGREGATOR_A} ]
-	then
-		curr_rpm_list=""
-		curr_rpm_list+=`ssh ${AGGREGATOR_A} "rpm -qa | grep ibm-csm-api"`
-		curr_rpm_list+=`ssh ${AGGREGATOR_A} "rpm -qa | grep ibm-csm-core"`
-		curr_rpm_list+=`ssh ${AGGREGATOR_A} "rpm -qa | grep ibm-csm-hcdiag"`
-		curr_rpm_list+=`ssh ${AGGREGATOR_A} "rpm -qa | grep ibm-flightlog"`
-		curr_rpm_list+=`ssh ${AGGREGATOR_A} "rpm -qa | grep ibm-csm-restd"`
-		curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
-		curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
-		# uninstall step
-		if [ "$curr_rpm_list" ]
-			then
-				ssh ${AGGREGATOR_A} "rpm -e ${curr_rpm_list}"
-				if [ $? -ne 0 ]
-					then
-						echo "Failed to uninstall CSM RPMs on aggregator node ${AGGREGATOR_A}"
-        		                	echo "ssh ${AGGREGATOR_A} \"rpm -e ${curr_rpm_list}\""
-                       		 		exit 1
-                			else
-                        			echo "Uninstalled CSM RPMs on aggregator node ${AGGREGATOR_A}"
-        			fi
-			else
-				echo "No RPMs installed on agggregator node ${AGGREGATOR_A}"
-		fi
+# Remove all existing rpms from utility, aggregator, and compute nodes
+if [ -n "${all}" ] ; then
+echo "$line1_out"
+xdsh ${all} \
+"for RPM in $RPMS ; do \
+   if rpm --quiet -q \$RPM ; then \
+     rpm -e \$RPM &> /dev/null ; \
+     if [ $? -eq 0 ]; then \
+     printf \"%-24s %-25s %16s\n\" \"         Package:\" \$RPM \"Uninstalled\" ; \
+     fi \
+   else
+       printf \"%-24s %-25s %15s\n\" \"         Package:\" \$RPM \"Is Not installed\" ; \
+   fi \
+done \
+"
+
+  # Files cleanup
+  xdsh ${all} "rm -rf /etc/ibm /var/log/ibm"
 fi
 
-# Check for RPMs installed on Aggregator B, store names
-if [ ${AGGREGATOR_A} != ${AGGREGATOR_B} ]
-	then
-		curr_rpm_list=""
-                curr_rpm_list+=`ssh ${AGGREGATOR_B} "rpm -qa | grep ibm-csm-api"`
-                curr_rpm_list+=`ssh ${AGGREGATOR_B} "rpm -qa | grep ibm-csm-core"`
-                curr_rpm_list+=`ssh ${AGGREGATOR_B} "rpm -qa | grep ibm-csm-hcdiag"`
-                curr_rpm_list+=`ssh ${AGGREGATOR_B} "rpm -qa | grep ibm-flightlog"`
-		curr_rpm_list+=`ssh ${AGGREGATOR_B} "rpm -qa | grep ibm-csm-restd"`
-                curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
-                curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
-                # uninstall step
-		if [ "$curr_rpm_list" ]
-			then
- 		               	ssh ${AGGREGATOR_B} "rpm -e ${curr_rpm_list}"
-              			if [ $? -ne 0 ]
-                        		then
-						echo "Failed to uninstall CSM RPMs on aggregator node ${AGGREGATOR_B}"
-                             			echo "ssh ${AGGREGATOR_B} \"rpm -e ${curr_rpm_list}\""
-                             			exit 1
-                        		else
-                                		echo "Uninstalled CSM RPMs on aggregator node ${AGGREGATOR_B}"
-                		fi
-			else
-				echo "No RPMs installed on aggregator node ${AGGREGATOR_B}"
-		fi
-fi		
-
-# Check for RPMs installed on compute nodes, store names
-for node in ${compute_node_list}
-do
-	curr_rpm_list=""
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-api"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-core"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-csm-hcdiag"`
-	curr_rpm_list+=`ssh ${node} "rpm -qa | grep ibm-flightlog"`
-        curr_rpm_list=${curr_rpm_list//.ppc64le/.ppc64le }
-	curr_rpm_list=${curr_rpm_list//.noarch/.noarch }
-	# uninstall step
-	if [ "$curr_rpm_list" ]
-		then
-			ssh ${node} "rpm -e ${curr_rpm_list}"
-			if [ $? -ne 0 ]
-				then
-					echo "Failed to uninstall CSM RPMs on compute node ${node}"
-					echo "ssh ${node} \"rpm -e ${curr_rpm_list}\""
-					exit 1
-				else
-					echo "Uninstalled CSM RPMs on compute node ${node}"
-			fi
-		else
-			echo "No RPMs installed on compute node ${node}"
-	fi
-done
-
-# File clean up
-xdsh csm_comp,utility "rm -rf /etc/ibm /var/log/ibm"
-xdsh ${AGGREGATOR_A} "rm -rf /etc/ibm /var/log/ibm"
-xdsh ${AGGREGATOR_B} "rm -rf /etc/ibm /var/log/ibm"
-rm -rf /etc/ibm /var/log/ibm
+if [ -n "${master}" ] ; then
+  rm -rf /etc/ibm /var/log/ibm
+fi
 
 # RPM directory clean up
 xdsh csm_comp,utility "rm -rf /root/rpms"
@@ -246,4 +173,5 @@ if [ ${AGGREGATOR_A} != ${AGGREGATOR_B} ]
 		xdsh ${AGGREGATOR_B} "rm -rf /root/rpms"
 fi
 
+echo "$line1_out"
 exit 0
