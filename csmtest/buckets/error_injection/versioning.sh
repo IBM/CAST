@@ -2,7 +2,7 @@
 #   
 #    buckets/error_injection/versioning.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -70,7 +70,7 @@ systemctl start csmd-master > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Starting Master"
 xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Starting Aggregator"
-xdsh utility "systemctl start csmd-utility" > ${TEMP_LOG} 2>&1
+xdsh ${UTILITY} "systemctl start csmd-utility" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Starting Utility"
 xdsh ${SINGLE_COMPUTE} "systemctl start csmd-compute" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Starting Compute"
@@ -79,7 +79,7 @@ check_return_exit $? 0 "Starting Compute"
 systemctl status csmd-master > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 1: Check Master status"
 
-sleep 5
+sleep 10
 # Test Case 2: Check Compute is not active
 xdsh ${SINGLE_COMPUTE} "systemctl is-active csmd-compute" > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 1 "Test Case 2: Check Compute is not active"

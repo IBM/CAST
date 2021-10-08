@@ -2,7 +2,7 @@
 #   
 #    buckets/error_injection/allocation.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -65,7 +65,7 @@ check_all_output "IN_SERVICE"
 check_return_exit $? 0 "Test Case 2: csm_allocation_create node is out of service - verify back IN_SERVICE"
 
 # Test Case 3: csm_allocation_create permission denied
-su -c "${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE}" plundgr > ${TEMP_LOG} 2>&1
+su -c "${CSM_PATH}/csm_allocation_create -j 123 -n ${SINGLE_COMPUTE}" ${USER} > ${TEMP_LOG} 2>&1
 check_return_exit $? 1 "Test Case 3: csm_allocation_create permission denied"
 
 # Test Case 4: csm_allocation_create prolog error 255
@@ -267,7 +267,7 @@ ${CSM_PATH}/csm_allocation_update_history -a ${allocation_id} -c "test comment" 
 check_return_flag_value $? 25 "Test Case 39: csm_allocation_update_history before allocation deleted (i.e. added to history table)"
 
 # Test Case 40: csm_allocation_delete permission denied
-su -c "${CSM_PATH}/csm_allocation_delete -a ${allocation_id}" plundgr > ${TEMP_LOG} 2>&1
+su -c "${CSM_PATH}/csm_allocation_delete -a ${allocation_id}" ${USER} > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 16 "Test Case 40: csm_allocation_delete permission denied"
 
 # Test Case 40: csm_allocation_delete success

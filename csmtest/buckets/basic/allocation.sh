@@ -2,7 +2,7 @@
 #   
 #    buckets/basic/node.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -126,7 +126,7 @@ check_return_flag_value $? 0 "Test Case 12:  Checking allocation history table u
 
 # Test Case 13: csm_allocation_create with launch node input
 # Get utility node name
-utility_node=`nodels utility | head -1`
+utility_node=`nodels ${UTILITY} | head -1`
 ${CSM_PATH}/csm_allocation_create -j 1 -n ${SINGLE_COMPUTE} -l ${utility_node} > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 13:  csm_allocation_create with launch node input"
 

@@ -16,7 +16,7 @@
 # Script to uninstall CSM on test environment
 # DEBUG:
 
-# set -x
+#set -x
 
 # Try to source the configuration file to get global configuration variables
 if [ -f "${BASH_SOURCE%/*}/../csm_test.cfg" ]
@@ -42,23 +42,22 @@ fi
 line1_out=$(printf "%0.s-" {1..90})
 
 # Get list of compute nodes
-compute_node_list=`nodels csm_comp`
+#compute_node_list=`nodels ${COMPUTE_NODES}`
 
 # Get list of utility nodes
-utility_node_list=`nodels utility`
+#utility_node_list=`nodels ${UTILITY}`
 # Get hostname of master node
-
 compute=""
 compute="${COMPUTE_NODES}"
 
 utility=""
-utility="${utility_node_list}"
+utility="${UTILITY}"
 
 service=""
 service="${AGGREGATOR_A},${AGGREGATOR_B}"
 
 master=""
-master="localhost"
+master="${MASTER}"
 
 all=""
 
@@ -80,7 +79,7 @@ if [ -n "${all}" ] ; then
 fi
 
 # Comment out any entries for libcsmpam.so in /etc/pam.d/sshd
-xdsh all "sed -i '/libcsmpam.so/s/^#*/#/g' /etc/pam.d/sshd"
+xdsh ${all} "sed -i '/libcsmpam.so/s/^#*/#/g' /etc/pam.d/sshd"
 sleep 1
 
 # Stop CSM daemons on Master
@@ -96,7 +95,7 @@ if [ $? -eq 0 ]
 fi
 
 # Stop CSM daemons on Compute
-for node in ${compute_node_list}
+for node in $( echo $COMPUTE_NODES | sed "s/,/ /g")
 do
 	ssh ${node} "systemctl is-active csmd-compute" > /dev/null
 	if [ $? -eq 0 ]
@@ -106,10 +105,10 @@ do
 done
 
 # Stop CSM daemons on Utility
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 if [ $? -eq 0 ]
 	then
-		xdsh utility "systemctl stop csmd-utility" > /dev/null
+		xdsh ${UTILITY} "systemctl stop csmd-utility" > /dev/null
 fi
 
 # Stop CSM daemons on Aggregator
@@ -151,8 +150,7 @@ xdsh ${all} \
    else
        printf \"%-24s %-25s %15s\n\" \"         Package:\" \$RPM \"Is Not installed\" ; \
    fi \
-done \
-"
+done"
 
   # Files cleanup
   xdsh ${all} "rm -rf /etc/ibm /var/log/ibm"
@@ -163,7 +161,7 @@ if [ -n "${master}" ] ; then
 fi
 
 # RPM directory clean up
-xdsh csm_comp,utility "rm -rf /root/rpms"
+xdsh ${COMPUTE_NODES},${UTILITY} "rm -rf /root/rpms"
 if [ `hostname` != ${AGGREGATOR_A} ]
 	then
 		xdsh ${AGGREGATOR_A} "rm -rf /root/rpms"

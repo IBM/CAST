@@ -2,7 +2,7 @@
 #   
 #    tools/single_aggregator/daemon_status.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -13,11 +13,19 @@
 # 
 #================================================================================
 
+if [ -f "${BASH_SOURCE%/*}/../../csm_test.cfg" ]
+then
+        . "${BASH_SOURCE%/*}/../../csm_test.cfg"
+else
+        echo "Could not find csm_test.cfg file expected at "${BASH_SOURCE%/*}/../../csm_test.cfg", exitting."
+        exit 1
+fi
+
 echo "MASTER"
 systemctl is-active csmd-master
 echo "AGGREGATOR"
 systemctl is-active csmd-aggregator
 echo "UTILITY"
-xdsh utility "systemctl is-active csmd-utility"
+xdsh ${UTILITY} "systemctl is-active csmd-utility"
 echo "COMPUTE"
-xdsh csm_comp "systemctl is-active csmd-compute"
+xdsh ${COMPUTE_NODES} "systemctl is-active csmd-compute"

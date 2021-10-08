@@ -2,7 +2,7 @@
 #   
 #    tools/complete_fvt.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -41,8 +41,8 @@ segfault_scan () {
 	xdcp ${MASTER} -P /var/log/ibm/csm/csm_master.log ${LOG_PATH}/performance/
 	xdcp ${AGGREGATOR_A} -P /var/log/ibm/csm/csm_aggregator.log ${LOG_PATH}/performance/
 	xdcp ${AGGREGATOR_B} -P /var/log/ibm/csm/csm_aggregator.log ${LOG_PATH}/performance/
-	xdcp utility -P /var/log/ibm/csm/csm_utility.log ${LOG_PATH}/performance/
-	xdcp csm_comp -P /var/log/ibm/csm/csm_compute.log ${LOG_PATH}/performance/
+	xdcp ${UTILITY} -P /var/log/ibm/csm/csm_utility.log ${LOG_PATH}/performance/
+	xdcp ${COMPUTE_NODES} -P /var/log/ibm/csm/csm_compute.log ${LOG_PATH}/performance/
 
 	# Grep for segfault
 	# Exit if found

@@ -2,7 +2,7 @@
 #   
 #    buckets/error_injection/infrastructure.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -31,7 +31,7 @@ LOG=${LOG_PATH}/buckets/error_injection/infrastructure.log
 CSM_PATH=/opt/ibm/csm/bin
 TEMP_LOG=${LOG_PATH}/buckets/error_injection/infrastructure_tmp.log
 FLAG_LOG=${LOG_PATH}/buckets/error_injection/infrastructure_flags.log
-UTILIY=$(nodels utility)
+UTILIY=$(nodels ${UTILITY})
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
@@ -63,9 +63,9 @@ check_return_flag_value $? 0 "Test Case 1: Validating Health Check output"
 
 # Test Case 2: Start utility daemon, health check, utility daemon filled in
 echo "Test Case 2: Start utility daemon, health check, utility daemon filled in" >> ${LOG}
-xdsh utility "systemctl start csmd-utility"
+xdsh ${UTILITY} "systemctl start csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 2: Utility is active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 2: Health Check"
@@ -74,16 +74,16 @@ check_return_flag_value $? 0 "Test Case 2: Validating Health Check output"
 
 # Test Case 3: health check from utility, same info, local listed as utility
 echo "Test Case 3: health check from utility, same info, local listed as utility" >> ${LOG}
-xdsh utility "${CSM_PATH}/csm_infrastructure_health_check -v" > ${TEMP_LOG} 2>&1
+xdsh ${UTILITY} "${CSM_PATH}/csm_infrastructure_health_check -v" > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 3: Health check from utility"
 check_all_output "MASTER: ${MASTER}" "Aggregators:0" "Utility Nodes:1" "Local_daemon: UTILITY: ${UTILITY}"
 check_return_flag_value $? 0 "Test Case 3: Validating Health Check output"
 
 # Test Case 4: Stop utility daemon, health check, utility daemon unresponsive
 echo "Test Case 4: Stop utility daemon, health check, utility daemon unresponsive" >> ${LOG}
-xdsh utility "systemctl stop csmd-utility"
+xdsh ${UTILITY} "systemctl stop csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 1 "Test Case 4: Utility is not active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 4: Health Check"
@@ -92,9 +92,9 @@ check_return_flag_value $? 0 "Test Case 4: Validating Health Check output"
 
 # Test Case 5: Start utility daemon, health check, utility daemon responsive and bounced=1
 echo "Test Case 5: Start utility daemon, health check, utility daemon responsive and bounced=1" >> ${LOG}
-xdsh utility "systemctl start csmd-utility"
+xdsh ${UTILITY} "systemctl start csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 5: Utility is active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 5: Health Check"
@@ -107,7 +107,7 @@ systemctl stop csmd-master
 sleep 1
 systemctl is-active csmd-master > /dev/null
 check_return_exit $? 3 "Test Case 6: Master is inactive"
-xdsh utility "cat /var/log/ibm/csm/csm_utility.log" > ${TEMP_LOG} 2>&1
+xdsh ${UTILITY} "cat /var/log/ibm/csm/csm_utility.log" > ${TEMP_LOG} 2>&1
 check_all_output "Transition from RUNMODE_CONFIGURED to: RUNMODE_DISCONNECTED"
 check_return_flag_value $? 0 "Test Case 6: Utility transition to RUNMODE_DISCONNECTED"
 
@@ -117,7 +117,7 @@ systemctl start csmd-master
 sleep 1
 systemctl is-active csmd-master > /dev/null
 check_return_exit $? 0 "Test Case 7: Master is active"
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 7: Utility is still active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 7: Health Check"
@@ -227,9 +227,9 @@ check_return_flag_value $? 0 "Test Case 15: Validating Health Check output"
 
 # Test Case 16: Start utility daemon, health check, utility and aggregator daemon present
 echo "Test Case 16: Start utility daemon, health check, utility and aggregator daemon present" >> ${LOG}
-xdsh utility "systemctl start csmd-utility"
+xdsh ${UTILITY} "systemctl start csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 16: Utility is active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 16: Health Check"
@@ -249,9 +249,9 @@ check_return_flag_value $? 0 "Test Case 17: Validating Health Check output"
 
 # Test Case 18: Stop utility daemon, health check, unresponsive aggregator and utility
 echo "Test Case 18: Stop utility daemon, health check, unresponsive aggregator and utility" >> ${LOG}
-xdsh utility "systemctl stop csmd-utility"
+xdsh ${UTILITY} "systemctl stop csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 1 "Test Case 18: Utility is not active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 18: Health Check"
@@ -271,9 +271,9 @@ check_return_flag_value $? 0 "Test Case 19: Validating Health Check output"
 
 # Test Case 20: Start utility daemon, health check, responsive aggregator and utility and bounced=1 for both
 echo "Test Case 20: Start utility daemon, health check, responsive aggregator and utility and bounced=1 for both" >> ${LOG}
-xdsh utility "systemctl start csmd-utility"
+xdsh ${UTILITY} "systemctl start csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 20: Utility is active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 20: Health Check"
@@ -289,7 +289,7 @@ check_return_exit $? 3 "Test Case 21: Master is not active"
 xdsh ${AGGREGATOR_A} "cat /var/log/ibm/csm/csm_aggregator.log" > ${TEMP_LOG} 2>&1
 check_all_output "Transition from RUNMODE_CONFIGURED to: RUNMODE_DISCONNECTED"
 check_return_flag_value $? 0 "Test Case 21: Aggregator transitions to RUNMODE_DISCONNECTED"
-xdsh utility "cat /var/log/ibm/csm/csm_utility.log" > ${TEMP_LOG} 2>&1
+xdsh ${UTILITY} "cat /var/log/ibm/csm/csm_utility.log" > ${TEMP_LOG} 2>&1
 check_all_output "Transition from RUNMODE_CONFIGURED to: RUNMODE_DISCONNECTED"
 check_return_flag_value $? 0 "Test Case 21: Utility transitions to RUNMODE_DISCONNECTED"
 
@@ -299,7 +299,7 @@ systemctl start csmd-master
 sleep 1
 systemctl is-active csmd-master > /dev/null
 check_return_exit $? 0 "Test Case 22: Master is active"
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 22: Utility is active"
 xdsh ${AGGREGATOR_A} "systemctl is-active csmd-aggregator" > /dev/null
 check_return_exit $? 0 "Test Case 22: Aggregator is active"
@@ -405,9 +405,9 @@ check_return_flag_value $? 0 "Test Case 29: Validating Health Check output"
 
 # Test Case 30: Start utility daemon, health check, utility and aggregator daemon present
 echo "Test Case 30: Start utility daemon, health check, utility and aggregator daemon present" >> ${LOG}
-xdsh utility "systemctl start csmd-utility"
+xdsh ${UTILITY} "systemctl start csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 0 "Test Case 30: Utility is active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 30: Health Check"
@@ -441,9 +441,9 @@ check_return_flag_value $? 0 "Test Case 32: Validating csm_ras_event_query outpu
 
 # Test Case 33: Stop utility daemon, health check, utility disconnected
 echo "Test Case 33: Stop utility daemon, health check, utility disconnected" >> ${LOG}
-xdsh utility "systemctl stop csmd-utility"
+xdsh ${UTILITY} "systemctl stop csmd-utility"
 sleep 1
-xdsh utility "systemctl is-active csmd-utility" > /dev/null
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
 check_return_exit $? 1 "Test Case 33: Utility is not active"
 ${CSM_PATH}/csm_infrastructure_health_check -v > ${TEMP_LOG} 2>&1
 check_return_exit $? 0 "Test Case 33: Health Check"

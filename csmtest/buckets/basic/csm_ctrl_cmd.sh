@@ -2,7 +2,7 @@
 #   
 #    buckets/basic/csm_ctrl_cmd.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -43,7 +43,8 @@ date >> ${LOG}
 echo "------------------------------------------------------------" >> ${LOG}
 
 # Get Target Compute Node
-target_node=`nodels compute_B | head -1`
+#target_node=`nodels ${COMPUTE_B} | head -1`
+target_node=`echo ${COMPUTE_B} | cut -d ',' -f 1`
 
 # Start with Fresh CSM environment
 ${BASH_SOURCE%/*}/../../tools/dual_aggregator/shutdown_daemons.sh
