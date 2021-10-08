@@ -13,6 +13,7 @@ export RPM_DIR=
 export BIG_DATA_DIR=
 export SQL_DIR=
 export SSL_KEY=
+export CAST_ELASTIC=
 
 # Node Types
 export XCATMN=
@@ -22,7 +23,14 @@ export AGGREGATOR_B=
 export COMPUTE_NODES=
 export SINGLE_COMPUTE=
 export UFM_ADDR=
+export XCATMN_IP=
 export LOGSTASH=
+
+# Node Types
+export SERVICE=
+export COMPUTE_B=
+export COMPUTE_A=
+export UTILITY=
 
 # Users
 export USER=
