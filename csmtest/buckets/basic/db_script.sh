@@ -2,7 +2,7 @@
 #   
 #    buckets/basic/db_script.sh
 # 
-#  © Copyright IBM Corporation 2015-2018. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -69,7 +69,7 @@ check_return_exit $? 2 "Test Case 5: Checking fvttestdb was deleted"
 
 # Cleanup
 rm -f ${TEMP_LOG}
-rm -f /var/lib/pgsql/backups/fvttestdb*
+rm -rf /var/lib/pgsql/backups/fvttestdb_*
 
 echo "------------------------------------------------------------" >> ${LOG}
 echo "CSM DB Scripts Bucket PASSED" >> ${LOG}

@@ -13,6 +13,15 @@
 # 
 #================================================================================
 
+# Try to source the configuration file to get global configuration variables
+if [ -f "${BASH_SOURCE%/*}/../csm_test.cfg" ]
+then
+        . "${BASH_SOURCE%/*}/../csm_test.cfg"
+else
+        echo "Could not find csm_test.cfg file expected at "${BASH_SOURCE%/*}/../csm_test.cfg", exitting."
+        exit 1
+fi
+
 # ----------------------------------------------------------------
 # LogMsg Date/Time Function
 # Functionality: This helps track the date/timing of each bucket
@@ -48,8 +57,8 @@ check_all_output () {
 shutdown_daemons () {
         systemctl stop csmd-master
         xdsh ${AGGREGATOR_A} "systemctl stop csmd-aggregator"
-        xdsh utility "systemctl stop csmd-utility"
-        xdsh csm_comp "systemctl stop csmd-compute"
+        xdsh ${UTILITY} "systemctl stop csmd-utility"
+        xdsh ${COMPUTE_NODES} "systemctl stop csmd-compute"
         echo "y" | /opt/ibm/csm/db/csm_db_script.sh -d csmdb
         /opt/ibm/csm/db/csm_db_script.sh -n csmdb
 }

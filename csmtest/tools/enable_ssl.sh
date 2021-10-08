@@ -2,7 +2,7 @@
 #
 #    tools/enable_ssl.sh
 #
-#  © Copyright IBM Corporation 2015-2020. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2021. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -42,7 +42,7 @@ fi
 
 # Create cert directory on remote nodes
 xdsh ${MASTER} "mkdir -p /root/cert"
-xdsh utility "mkdir -p /root/cert"
+xdsh ${UTILITY} "mkdir -p /root/cert"
 xdsh ${AGGREGATOR_A} "mkdir -p /root/cert"
 xdsh ${AGGREGATOR_B} "mkdir -p /root/cert"
 xdsh ${COMPUTE_NODES} "mkdir -p /root/cert"
@@ -50,8 +50,8 @@ xdsh ${COMPUTE_NODES} "mkdir -p /root/cert"
 # Distribute xCAT certificate authority, credential files
 xdcp ${MASTER} /root/cert/ca.pem /root/cert/
 xdcp ${MASTER} /root/cert/server-cred.pem /root/cert/
-xdcp utility /root/cert/ca.pem /root/cert/
-xdcp utility /root/cert/server-cred.pem /root/cert/
+xdcp ${UTILITY} /root/cert/ca.pem /root/cert/
+xdcp ${UTILITY} /root/cert/server-cred.pem /root/cert/
 xdcp ${AGGREGATOR_A} /root/cert/ca.pem /root/cert/
 xdcp ${AGGREGATOR_A} /root/cert/server-cred.pem /root/cert/
 xdcp ${AGGREGATOR_B} /root/cert/ca.pem /root/cert/
@@ -80,13 +80,13 @@ sed -i -- "/cred_pem/c\                \"cred_pem\": \"/root/cert/server-cred.pe
 
 # Distribute CSM config files 
 xdcp ${MASTER} /etc/ibm/csm/csm_master.cfg /etc/ibm/csm/csm_master.cfg
-xdcp utility /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
+xdcp ${UTILITY} /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_aggregator_A.cfg /etc/ibm/csm/csm_aggregator.cfg
 xdcp ${AGGREGATOR_B} /etc/ibm/csm/csm_aggregator_B.cfg /etc/ibm/csm/csm_aggregator.cfg
-xdcp compute_A /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
-xdcp compute_B /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
+xdcp ${COMPUTE_A} /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
+xdcp ${COMPUTE_B} /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
 # If csm_compute_A/B.cfg does not exist, distribute in single aggregator config
 if [ ! -f /etc/ibm/csm/csm_compute_A.cfg ]
 then
-	xdcp csm_comp /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
+	xdcp ${COMPUTE_NODES} /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
 fi

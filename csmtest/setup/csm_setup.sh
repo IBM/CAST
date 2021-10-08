@@ -38,18 +38,21 @@ else
         exit 1
 fi
 
+# Output formatter
+line1_out=$(printf "%0.s-" {1..90})
+
 # Get hostname of master node
 compute=""
 compute="${COMPUTE_NODES}"
 
 utility=""
-utility="utility"
+utility="${UTILITY}"
 
 service=""
 service="${AGGREGATOR_A},${AGGREGATOR_B}"
 
 master=""
-master="localhost"
+master="${MASTER}"
 
 all=""
 
@@ -73,50 +76,89 @@ fi
 master_node=`hostname`
 
 # Get list of compute nodes
-compute_node_list=`nodels csm_comp`
+compute_node_list="$compute"
 
 # Get list of utility nodes
-utility_node_list=`nodels utility`
+utility_node_list="$utility"
 
 # Clean local rpms directory
 rm -f ${INSTALL_DIR}/ibm-*
 
 # Clean local rpms directory on Aggregator, Utility, Comp nodes
 xdsh ${AGGREGATOR_A} "rm -rf /root/rpms/*.rpm"
-xdsh csm_comp,utility "rm -rf /root/rpms"
+xdsh ${COMPUTE_NODES},${UTILITY} "rm -rf /root/rpms"
 
 # Grab Daily Build
 cp ${RPM_DIR}/ibm-csm-* ${INSTALL_DIR}
 cp ${RPM_DIR}/ibm-flightlog-1.* ${INSTALL_DIR}
 
-# Stop old CSM deamons on Utility, Computes & Aggregator
-xdsh csm_comp "systemctl stop csmd-compute"
-xdsh utility "systemctl stop csmd-utility"
-xdsh ${AGGREGATOR_A} "systemctl stop csmd-aggregator"
+# Stop CSM daemons on Compute
+for node in $( echo $COMPUTE_NODES | sed "s/,/ /g")
+do
+    ssh ${node} "systemctl is-active csmd-compute" > /dev/null
+    if [ $? -eq 0 ]
+        then
+            ssh ${node} "systemctl stop csmd-compute" > /dev/null
+    fi
+done
 
-# Stop old CSM deamons on Master
-systemctl stop csmd-aggregator
-systemctl stop csmd-master
+# Stop CSM daemons on Utility
+xdsh ${UTILITY} "systemctl is-active csmd-utility" > /dev/null
+if [ $? -eq 0 ]
+    then
+        xdsh ${UTILITY} "systemctl stop csmd-utility" > /dev/null
+fi
+
+# Stop CSM daemons on Aggregator
+xdsh ${AGGREGATOR_A} "systemctl is-active csmd-aggregator" > /dev/null
+if [ $? -eq 0 ]
+    then
+        xdsh ${AGGREGATOR_A} "systemctl stop csmd-aggregator" > /dev/null
+fi
+
+# Stop CSM daemons on Master
+systemctl is-active csmd-master > /dev/null
+if [ $? -eq 0 ]
+    then
+        systemctl stop csmd-master > /dev/null
+fi
+systemctl is-active csmd-aggregator > /dev/null
+if [ $? -eq 0 ]
+    then
+        systemctl stop csmd-aggregator > /dev/null
+fi
 
 # Remove old CSM RPMs on Master
-RPMS="ibm-csm-bds ibm-csm-unittest ibm-csm-db ibm-csm-hcdiag ibm-csm-restd ibm-csm-api ibm-csm-core ibm-flightlog ibm-csm-bds-logstash"
-echo "------------------------------------------------------------------------------------------------------------------------"
+RPMS="ibm-csm-bds ibm-csm-bds-logstash ibm-csm-unittest ibm-csm-db ibm-csm-hcdiag ibm-csm-restd ibm-csm-api ibm-csm-core ibm-fshipmond ibm-fshipd ibm-fshipcld ibm-burstbuffer-tools ibm-burstbuffer-tests ibm-burstbuffer ibm-burstbuffer-mn ibm-burstbuffer-lsf ibm-csm-tools ibm-export_layout ibm-scripts ibm-transport-devel ibm-utilities-devel ibm-flightlog ibm-flightlog-devel"
+echo "$line1_out"
 for RPM in $RPMS ; do
   if rpm --quiet -q "$RPM" ; then
-      rpm -e "$RPM"
+    rpm -e "$RPM" &> /dev/null
     printf "%-20s %-15s %-25s %-15s\n" "${MASTER}:" "Package:" "${RPM}" "Uninstalled"
+  else
+    printf "%-20s %-15s %-25s %-15s\n" "${MASTER}:" "Package:" "${RPM}" "Is Not installed"
   fi
 done
-echo "------------------------------------------------------------------------------------------------------------------------"
 
 # Remove all existing rpms from utility, aggregator, and compute nodes
 if [ -n "${all}" ] ; then
-  xdsh ${all} "for RPM in $RPMS ; do if rpm --quiet -q \$RPM ; then rpm -e \$RPM ; printf \"%-20s %-15s %-25s %-15s\n\" \"Group_Names_Above:\" \"Package:\" \"\${RPM}\" \"Uninstalled\"; fi done" | xcoll
+echo "$line1_out"
+xdsh ${all} \
+"for RPM in $RPMS ; do \
+   if rpm --quiet -q \$RPM ; then \
+     rpm -e \$RPM &> /dev/null ; \
+     if [ $? -eq 0 ]; then \
+       printf \"%-24s %-25s %16s\n\" \"         Package:\" \$RPM \"Uninstalled\" ; \
+     fi \
+   else
+       printf \"%-24s %-25s %15s\n\" \"         Package:\" \$RPM \"Is Not installed\" ; \
+   fi \
+done"
 
 # File clean up
 xdsh ${all} "rm -rf /etc/ibm /var/log/ibm"
 fi
-echo "------------------------------------------------------------------------------------------------------------------------"
+echo "$line1_out"
 
 # Install new CSM RPMs - Management node
 rpm -ivh ${INSTALL_DIR}/ibm-flightlog-1.*
@@ -136,26 +178,26 @@ xdsh ${AGGREGATOR_A} "rpm -ivh /root/rpms/ibm-csm-hcdiag-*"
 xdsh ${AGGREGATOR_A} "rpm -ivh /root/rpms/ibm-csm-api-*"
 
 # Install new CSM RPMs - Utility node (login + launch)
-xdcp utility -R ${INSTALL_DIR} /root/ 
-xdsh utility "rpm -ivh /root/rpms/ibm-flightlog-1.*" 
-xdsh utility "rpm -ivh /root/rpms/ibm-csm-core-*"
-xdsh utility "rpm -ivh /root/rpms/ibm-csm-api-*"
-xdsh utility "rpm -ivh /root/rpms/ibm-csm-hcdiag-*"
-#xdsh utility "rpm -ivh ${INSTALL_DIR}/ibm-flightlog-0.2.0-*"
-#xdsh utility "rpm -ivh ${INSTALL_DIR}/ibm-csm-core-*"
-#xdsh utility "rpm -ivh ${INSTALL_DIR}/ibm-csm-api-*"
-#xdsh utility "rpm -ivh ${INSTALL_DIR}/ibm-csm-hcdiag-*"
+xdcp ${UTILITY} -R ${INSTALL_DIR} /root/ 
+xdsh ${UTILITY} "rpm -ivh /root/rpms/ibm-flightlog-1.*" 
+xdsh ${UTILITY} "rpm -ivh /root/rpms/ibm-csm-core-*"
+xdsh ${UTILITY} "rpm -ivh /root/rpms/ibm-csm-api-*"
+xdsh ${UTILITY} "rpm -ivh /root/rpms/ibm-csm-hcdiag-*"
+#xdsh ${UTILITY} "rpm -ivh ${INSTALL_DIR}/ibm-flightlog-0.2.0-*"
+#xdsh ${UTILITY} "rpm -ivh ${INSTALL_DIR}/ibm-csm-core-*"
+#xdsh ${UTILITY} "rpm -ivh ${INSTALL_DIR}/ibm-csm-api-*"
+#xdsh ${UTILITY} "rpm -ivh ${INSTALL_DIR}/ibm-csm-hcdiag-*"
 
 # Install new CSM RPMs - Compute node 
-xdcp csm_comp -R ${INSTALL_DIR} /root
-xdsh csm_comp "rpm -ivh /root/rpms/ibm-flightlog-1.*"
-xdsh csm_comp "rpm -ivh /root/rpms/ibm-csm-core-*"
-xdsh csm_comp "rpm -ivh /root/rpms/ibm-csm-api-*"
-xdsh csm_comp "rpm -ivh /root/rpms/ibm-csm-hcdiag-*"
-#xdsh csm_comp "rpm -ivh ${INSTALL_DIR}/ibm-flightlog-0.2.0-*"
-#xdsh csm_comp "rpm -ivh ${INSTALL_DIR}/ibm-csm-core-*"
-#xdsh csm_comp "rpm -ivh ${INSTALL_DIR}/ibm-csm-api-*"
-#xdsh csm_comp "rpm -ivh ${INSTALL_DIR}/ibm-csm-hcdiag-*"
+xdcp ${COMPUTE_NODES} -R ${INSTALL_DIR} /root
+xdsh ${COMPUTE_NODES} "rpm -ivh /root/rpms/ibm-flightlog-1.*"
+xdsh ${COMPUTE_NODES} "rpm -ivh /root/rpms/ibm-csm-core-*"
+xdsh ${COMPUTE_NODES} "rpm -ivh /root/rpms/ibm-csm-api-*"
+xdsh ${COMPUTE_NODES} "rpm -ivh /root/rpms/ibm-csm-hcdiag-*"
+#xdsh ${COMPUTE_NODES} "rpm -ivh ${INSTALL_DIR}/ibm-flightlog-0.2.0-*"
+#xdsh ${COMPUTE_NODES} "rpm -ivh ${INSTALL_DIR}/ibm-csm-core-*"
+#xdsh ${COMPUTE_NODES} "rpm -ivh ${INSTALL_DIR}/ibm-csm-api-*"
+#xdsh ${COMPUTE_NODES} "rpm -ivh ${INSTALL_DIR}/ibm-csm-hcdiag-*"
 
 # CSM DB cleanup
 echo "y" | /opt/ibm/csm/db/csm_db_script.sh -d csmdb
@@ -176,20 +218,20 @@ sed -i -- "s/__UFM_REST_ADDRESS__/${UFM_ADDR}/g" *
 #sed -i -- "s/__AGGREGATOR_B__/${AGGREGATOR_B}/g" *
 #sed -i -- "s/__CSMRESTD_IP__/${localhost}/g" *
 cd ${FVT_PATH}/setup/
-xdsh csm_comp,utility "mkdir -p /etc/ibm/csm/"
-xdcp csm_comp /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
-xdcp utility /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
+xdsh ${COMPUTE_NODES},${UTILITY} "mkdir -p /etc/ibm/csm/"
+xdcp ${COMPUTE_NODES} /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
+xdcp ${UTILITY} /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_aggregator.cfg /etc/ibm/csm/csm_aggregator.cfg
-xdcp csm_comp,utility /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
+xdcp ${COMPUTE_NODES},${UTILITY} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 
 # 4.2.3 Prolog/Epilog Scripts Compute
-xdcp csm_comp -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
-xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
+xdcp ${COMPUTE_NODES} -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
+xdsh ${COMPUTE_NODES},${UTILITY} "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
 # Daemon Reload
 systemctl daemon-reload
-xdsh csm_comp,utility "systemctl daemon-reload"
+xdsh ${COMPUTE_NODES},${UTILITY} "systemctl daemon-reload"
 
 # Start Nvidia daemons
 if [ -n "${all}" ] ; then
@@ -200,5 +242,5 @@ fi
 # Start Daemons
 systemctl start csmd-master
 xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
-xdsh utility "systemctl start csmd-utility"
-xdsh csm_comp "systemctl start csmd-compute"
+xdsh ${UTILITY} "systemctl start csmd-utility"
+xdsh ${COMPUTE_NODES} "systemctl start csmd-compute"

@@ -43,13 +43,13 @@ compute=""
 compute="${COMPUTE_NODES}"
 
 utility=""
-utility="utility"
+utility="${UTILITY}"
 
 service=""
 service="${AGGREGATOR_A},${AGGREGATOR_B}"
 
 master=""
-master="localhost"
+master="${MASTER}"
 
 all=""
 
@@ -73,10 +73,10 @@ fi
 master_node=`hostname`
 
 # Get list of compute nodes
-compute_node_list=`nodels csm_comp`
+#compute_node_list=`nodels ${COMPUTE_NODES}`
 
 # Get list of utility nodes
-utility_node_list=`nodels utility`
+utility_node_list="$utility"
 
 #----------------------------------------------------------------------
 # RPM Replace and Download Section
@@ -133,7 +133,7 @@ do
 done
 
 # Replace Old RPMs in /root/rpms on Compute nodes with RPMs from INSTALL_DIR
-for node in ${compute_node_list}
+for node in $( echo $COMPUTE_NODES | sed "s/,/ /g")
 do
         ssh ${node} "ls /root/rpms/ibm-csm-core-*" > /dev/null 2>&1
         if [ $? -eq 0 ]
@@ -188,7 +188,7 @@ do
 done
 
 # Install RPMs on Compute Nodes
-for node in ${compute_node_list}
+for node in $( echo $COMPUTE_NODES | sed "s/,/ /g")
 do
 	xdsh ${node} "rpm -ivh /root/rpms/ibm-flightlog-1.*"
 	xdsh ${node} "rpm -ivh /root/rpms/ibm-csm-core-*"
@@ -251,24 +251,24 @@ if [ ! -z $LOGSTASH ]
 fi
 
 # Configuration file distribution
-xdsh csm_comp,utility "mkdir -p /etc/ibm/csm"
+xdsh ${COMPUTE_NODES},${UTILITY} "mkdir -p /etc/ibm/csm"
 xdsh ${AGGREGATOR_A} "mkdir -p /etc/ibm/csm"
 xdsh ${AGGREGATOR_B} "mkdir -p /etc/ibm/csm"
-xdcp utility /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
+xdcp ${UTILITY} /etc/ibm/csm/csm_utility.cfg /etc/ibm/csm/csm_utility.cfg
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_aggregator_A.cfg /etc/ibm/csm/csm_aggregator.cfg
 xdcp ${AGGREGATOR_B} /etc/ibm/csm/csm_aggregator_B.cfg /etc/ibm/csm/csm_aggregator.cfg
-xdcp csm_comp,utility /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
+xdcp ${COMPUTE_NODES},${UTILITY} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 xdcp ${AGGREGATOR_B} /etc/ibm/csm/csm_api.acl /etc/ibm/csm/csm_api.acl
 xdcp ${AGGREGATOR_A} /etc/ibm/csm/csm_api.cfg /etc/ibm/csm/csm_api.cfg
 xdcp ${AGGREGATOR_B} /etc/ibm/csm/csm_api.cfg /etc/ibm/csm/csm_api.cfg
-xdcp csm_comp,utility /etc/ibm/csm/csm_api.cfg /etc/ibm/csm/csm_api.cfg
+xdcp ${COMPUTE_NODES},${UTILITY} /etc/ibm/csm/csm_api.cfg /etc/ibm/csm/csm_api.cfg
 if [ ${AGGREGATOR_A} == ${AGGREGATOR_B} ]
 	then
-		xdcp csm_comp /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
+		xdcp ${COMPUTE_NODES} /etc/ibm/csm/csm_compute.cfg /etc/ibm/csm/csm_compute.cfg
 	else
-		xdcp compute_A /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
-		xdcp compute_B /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
+		xdcp ${COMPUTE_A} /etc/ibm/csm/csm_compute_A.cfg /etc/ibm/csm/csm_compute.cfg
+		xdcp ${COMPUTE_B} /etc/ibm/csm/csm_compute_B.cfg /etc/ibm/csm/csm_compute.cfg
 fi
 if [ ! -z $SSL_KEY ]
 	then
@@ -277,15 +277,15 @@ if [ ! -z $SSL_KEY ]
 fi
 
 # 4.2.3 Prolog/Epilog Scripts Compute
-xdcp csm_comp -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
-xdsh csm_comp,utility "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
+xdcp ${COMPUTE_NODES} -p /opt/ibm/csm/share/prologs/* /opt/ibm/csm/prologs
+xdsh ${COMPUTE_NODES},${UTILITY} "/usr/bin/cp -p /opt/ibm/csm/share/recovery/soft_failure_recovery /opt/ibm/csm/recovery/soft_failure_recovery"
 
 # Set up the pam modules on the CSM compute nodes
-xdsh csm_comp "if [ -e /usr/lib64/security/libcsmpam.so ] ; then sed -i '/libcsmpam.so/s/^#*//g' /etc/pam.d/sshd ; fi"
+xdsh ${COMPUTE_NODES} "if [ -e /usr/lib64/security/libcsmpam.so ] ; then sed -i '/libcsmpam.so/s/^#*//g' /etc/pam.d/sshd ; fi"
 
 # Daemon Reload
 systemctl daemon-reload
-xdsh csm_comp,utility "systemctl daemon-reload"
+xdsh ${COMPUTE_NODES},${UTILITY} "systemctl daemon-reload"
 
 # Start Nvidia daemons
 if [ -n "${all}" ] ; then
@@ -297,5 +297,5 @@ fi
 systemctl start csmd-master
 xdsh ${AGGREGATOR_A} "systemctl start csmd-aggregator"
 xdsh ${AGGREGATOR_B} "systemctl start csmd-aggregator"
-xdsh utility "systemctl start csmd-utility"
-xdsh csm_comp "systemctl start csmd-compute"
+xdsh ${UTILITY} "systemctl start csmd-utility"
+xdsh ${COMPUTE_NODES} "systemctl start csmd-compute"
