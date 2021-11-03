@@ -23,13 +23,13 @@ Without these dependencies CSM cannot run.
      - Version
      - Comments
    * - xCAT
-     - 2.16.1
+     - 2.16.2
      - 
    * - Postgres SQL
-     - 10.6
+     - 10.15
      - `xCAT document for migration <https://xcat-docs.readthedocs.io/en/stable/advanced/hierarchy/databases/postgres_configure.html>`_
    * - openssl-libs
-     - 1.1.1c-15
+     - 1.1.1g-15.el8_3
      - 
    * - perl-YAML
      - 1.24-3
@@ -38,11 +38,12 @@ Without these dependencies CSM cannot run.
      - 2.97.001-2
      - Required by the Diagnostic's tests that get information from the UFM. 
    * - cast-boost
-     - 1.66.0-7
+     - 1.66.0-10
      - Found on Box Already bumped up on rhels 8 CSM uses the version of boost RPMS included with the OS instead of the custom built cast-boost RPMS used of rhels 7
    * - P9 Witherspoon firmware level
-     - * **BMC:** ibm-v2.3-476-g2d622cb-r33-coral-cfm-0-gb2c03c9
-       * **Host:** IBM-witherspoon-OP9_v2.0.14_1.2
+     - * A minimum Server Firmware level of OP940.20 for models 8335-GTX and 8335-GTH.
+       * A minimum Server Firmware level of OP910.50 for 8335-GTG.
+       * A minimum Server Firmware level of OP910.50C for models 8335-GTC and 8335-GTW.
      - Found on Box
 
 
@@ -92,7 +93,7 @@ These dependencies are highly suggested.
        * net-tools package (ifconfig command)
        * mesa-libGLU-devel and mesa-libGLU packages
    * - Spectrum MPI
-     - 10.4.0.2
+     - 10.4.0.4
      - Needed by the Diagnostic tests: 
 
        * dgemm
@@ -105,10 +106,10 @@ These dependencies are highly suggested.
        * IBM ESSL (IBM Engineering and Scientific Subroutine Libray)
        * IBM XL Fortran
    * - sudo
-     - sudo-1.8.29-5.el8.ppc64le
+     - sudo-1.8.29-7.el8.ppc64le
      - Required by the Diagnostic’s tests that needs to run as root
    * - lm-sensors
-     - 3.4.0
+     - 3.4.0-22
      - Required by the Diagnostic’s temperature tests.
 
 
@@ -123,7 +124,7 @@ Software with dependencies on CSM
      - Version
      - Comments
    * - Spectrum LSF
-     - 10.1 (With SP 4.0 Update)
+     - 10.1 (fix pack 12)
      -  
    * - Burst Buffer
      - 1.8.2
