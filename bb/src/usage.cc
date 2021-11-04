@@ -300,6 +300,7 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
         string name = tokens[0];
         string val  = tokens[1];
         size_t index;
+        name.erase(name.find_last_not_of("\t")+1);
         name.erase(name.find_last_not_of(" ")+1);
         while((index = val.find_first_not_of(".0123456789")) != string::npos)
         {
@@ -322,11 +323,11 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
     copyd(temperature);
     copyd(available_spare);
     copyd(percentage_used);
-    copyi(data_read);
-    copyi(data_written);
-    copyi(num_read_commands);
-    copyi(num_write_commands);
-    copyi(busy_time);
+    usage.data_read = stoull(field["data_units_read"]);
+    usage.data_written = stoull(field["data_units_written"]);
+    usage.num_read_commands = stoull(field["host_read_commands"]);
+    usage.num_write_commands  = stoull(field["host_write_commands"]);
+    usage.busy_time  = stoull(field["controller_busy_time"]);
     copyi(power_cycles);
     copyi(power_on_hours);
     copyi(unsafe_shutdowns);
