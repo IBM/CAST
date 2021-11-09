@@ -300,8 +300,7 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
         string name = tokens[0];
         string val  = tokens[1];
         size_t index;
-        name.erase(name.find_last_not_of("\t")+1);
-        name.erase(name.find_last_not_of(" ")+1);
+        name.erase(name.find_last_not_of(" \t")+1); //remove trailing  spaces and tabs
         while((index = val.find_first_not_of(".0123456789")) != string::npos)
         {
             val.erase(index,1);
