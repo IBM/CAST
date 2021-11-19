@@ -11,7 +11,7 @@
  |    restricted by GSA ADP Schedule Contract with IBM Corp.
  *******************************************************************************/
 
-
+#include <stdexcept> 
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -150,8 +150,16 @@ private:
         vector<uint64_t> values;
         boost::char_separator<char> sep(" ");
         tokenizer< boost::char_separator<char>  > tok(line_str, sep);
-        for(tokenizer< boost::char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
-            values.push_back(stoull(*beg));
+        try {
+            for(tokenizer< boost::char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
+              if ( beg->compare("\n")==0  ) continue;
+              values.push_back(stoull(*beg));
+            }
+        }
+        catch (invalid_argument& e)
+        {
+           LOG(bb,info) <<"file="<<__FILE__<<" "<< __FUNCTION__<<":"<< __LINE__<<":"<<e.what();
+        }
 
         pLocalRead       = values[6-4] * sectorsize;
         pLocalWrite      = values[10-4] * sectorsize;
@@ -292,7 +300,7 @@ int proxy_GetDeviceUsage(uint32_t devicenum, BBDeviceUsage_t& usage)
         string name = tokens[0];
         string val  = tokens[1];
         size_t index;
-        name.erase(name.find_last_not_of(" ")+1);
+        name.erase(name.find_last_not_of(" \t")+1); //remove trailing  spaces and tabs
         while((index = val.find_first_not_of(".0123456789")) != string::npos)
         {
             val.erase(index,1);
