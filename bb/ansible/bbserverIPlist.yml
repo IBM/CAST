@@ -63,6 +63,14 @@
 
 - hosts: compute server
   tasks:
+  - name: Create /etc/ibm directory if it does not exist
+    file:   
+      path: /etc/ibm
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+
   - name: Copy server ip list to compute/server  nodes
     copy:
         src: /tmp/serverlist
