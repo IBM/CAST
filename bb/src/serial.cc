@@ -172,6 +172,10 @@ void look4NVMFinitiator(){
                             {
                                 files.push_back("address");
                             }
+                            else if(line == string("tcp"))
+                            {
+                                files.push_back("address");
+                            }
                         }
                         if(files[index] == "address")
                         {
@@ -292,6 +296,11 @@ void look4NVMFtargetDevices(){
                                 {
                                 }
                                 else if(line == string("rdma"))
+                                {
+                                    files.push_back("addr_traddr");
+                                    files.push_back("addr_trsvcid");
+                                }
+                                else if(line == string("tcp"))
                                 {
                                     files.push_back("addr_traddr");
                                     files.push_back("addr_trsvcid");
