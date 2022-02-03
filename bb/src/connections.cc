@@ -327,22 +327,22 @@ int setupWhoami(string whoami, string instance)
    \brief Connection authentication response handler
  */
 static boost::property_tree::ptree myV;
+static bool myV_set = false;
 boost::property_tree::ptree getVersionPropertyTree(){
+    if (!myV_set){
+      bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
+      myV_set=true;
+    }
     return myV;
 }
 
-static bool myVersionInit(){
-   bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
-   return true;
-}
-static bool myV_set = myVersionInit();
-
 int versionCheck(const std::string& pReceivedVersion){
+    auto vt = getVersionPropertyTree();
     boost::property_tree::ptree receivedV;
 
     bbVersionToTree(pReceivedVersion, receivedV);
 
-    std::string myVersionString = myV.get("version.major", "NOTFOUND_"+process_whoami);
+    std::string myVersionString = vt.get("version.major", "NOTFOUND_"+process_whoami);
     if(myVersionString != receivedV.get("version.major", "xyz"))
     {
         stringstream errorText;
@@ -352,7 +352,7 @@ int versionCheck(const std::string& pReceivedVersion){
         bberror << err("error.whoami", process_whoami);
         SET_RC_RAS_AND_BAIL(-1, bb.cfgerr.versionmismatch);
     }
-    if( myV.get("gitcommit", "commit_NOTFOUND_"+process_whoami) != receivedV.get("gitcommit", "xyz"))
+    if( vt.get("gitcommit", "commit_NOTFOUND_"+process_whoami) != receivedV.get("gitcommit", "xyz"))
         LOG(bb,info)<<"gitcommit levels are different,  received="<<pReceivedVersion<<" my Version="<<BBAPI_CLIENTVERSIONSTR;
     return 0;
 }
