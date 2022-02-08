@@ -327,12 +327,13 @@ int setupWhoami(string whoami, string instance)
    \brief Connection authentication response handler
  */
 static boost::property_tree::ptree myV;
-static bool myV_set = false;
+pthread_once_t init_myV = PTHREAD_ONCE_INIT;
+void set_myV(void){
+  bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
+}
+
 boost::property_tree::ptree getVersionPropertyTree(){
-    if (!myV_set){
-      bbVersionToTree(BBAPI_CLIENTVERSIONSTR, myV);
-      myV_set=true;
-    }
+    pthread_once(&init_myV, set_myV);
     return myV;
 }
 
