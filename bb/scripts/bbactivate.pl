@@ -140,6 +140,7 @@ GetOptions(
     "nodelist=s"      => \$CFG{"nodelist"},
     "esslist=s"       => \$CFG{"esslist"},
     "configtempl=s"   => \$CFG{"configtempl"},
+    "volumegroup=s"   => \$CFG{"volumegroup"},
     "nvmetempl=s"     => \$CFG{"nvmetempl"},
     "outputconfig=s"  => \$CFG{"outputconfig"},
     "interfacename=s" => \$CFG{"interfacename"},
@@ -246,6 +247,7 @@ sub setDefaults
     &def("envdir",           1, "HOME");
     &def("lsfdir",           1, "");
     &def("skip",             1, "");
+    &def("volumegroup",      1, "bb");
     &def("configtempl",      2, "$SCRIPTPATH/bb.cfg");
     &def("nvmetempl",        2, "$SCRIPTPATH/nvmet.json");
 
@@ -417,6 +419,8 @@ sub makeProxyConfigFile
     {
         $json->{"bb"}{"proxy"}{"controller"} = "csm";
     }
+    $json->{"bb"}{"proxy"}{"volumegroup"} = $CFG{"volumegroup"};
+    
     $json->{"bb"}{"cmd"}{"controller"} = "none";    # disable on compute nodes
 
     $json->{"bb"}{"server0"}{"sslcertif"} = $CFG{"sslcert"} if($CFG{"sslcert"} ne "default");
