@@ -177,6 +177,10 @@ check_return_flag_value $? 0 "Test Case 26: chk-os"
 ${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-temp --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
 check_return_flag_value $? 0 "Test Case 27: chk-temp"
 
+# Test Case 28: chk-ib-pcispeed
+${HC_DIAG_PATH}/bin/hcdiag_run.py --test chk-ib-pcispeed --target ${COMPUTE_NODES} > ${TEMP_LOG} 2>&1
+check_return_flag_value $? 0 "Test Case 28: chk-ib-pcispeed"
+
 rm -f ${TEMP_LOG}
 
 # Clean up the scripts if exists (default configuration templates)

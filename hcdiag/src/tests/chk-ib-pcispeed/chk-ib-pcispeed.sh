@@ -3,7 +3,7 @@
 #   
 #    hcdiag/src/tests/chk-ib-pcispeed/chk-ib-pcispeed.sh
 # 
-#  © Copyright IBM Corporation 2015,2016. All Rights Reserved
+#  © Copyright IBM Corporation 2015-2022. All Rights Reserved
 #
 #    This program is licensed under the terms of the Eclipse Public License
 #    v1.0 as published by the Eclipse Foundation and available at
@@ -45,8 +45,8 @@ count=0
 err=0
 for a in `lspci |grep ${VENDOR} | awk '{print $1}'`; do
    line=`sudo lspci -s $a -vv | grep "LnkSta:"`
-   speed=`echo ${line} | awk '{print substr($3,1,length($3)-1)}'`
-   width=`echo ${line} | awk '{print substr($5,1,length($5)-1)}'`
+   speed="$(echo "${line}" | awk 'match($0, /Speed\s*([0-9]+GT\/s)/, a) {print a[1]}')"
+   width="$(echo "${line}" | awk 'match($0, /Width\s*(x[0-9]+)/, a) {print a[1]}')"
    echo "Adapter: $a, $speed, $width."
    if [ "$SPEED" != "$speed" ]; then
       echo "Error, expecting: $SPEED, got: $speed"
