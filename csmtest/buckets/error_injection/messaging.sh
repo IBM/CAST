@@ -28,6 +28,7 @@ CSM_PATH=/opt/ibm/csm/bin
 TEMP_LOG=${LOG_PATH}/buckets/error_injection/messaging_tmp.log
 FLAG_LOG=${LOG_PATH}/buckets/error_injection/messaging_flags.log
 ERROR_INJECT=${CAST_PATH}/.build/csmd/src/daemon/tests/error_inject
+export LD_LIBRARY_PATH=/opt/ibm/csm/lib/:/opt/ibm/flightlog/lib
 
 if [ -f "${BASH_SOURCE%/*}/../../include/functions.sh" ]
 then
