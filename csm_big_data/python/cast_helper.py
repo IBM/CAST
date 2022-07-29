@@ -48,7 +48,8 @@ TARGET_ENV='CAST_ELASTIC'
 DATE_FORMAT        = '(\d{4})-(\d{1,2})-(\d{1,2})[ \.T]*(\d{0,2}):{0,1}(\d{0,2}):{0,1}(\d{0,2})'
 DATE_FORMAT_PRINT  = '%Y-%m-%d %H:%M:%S'
 #TIME_SEARCH_FORMAT = 'yyyy-MM-dd HH:mm:ss'
-TIME_SEARCH_FORMAT = "epoch_millis"
+#TIME_SEARCH_FORMAT = "epoch_millis"
+TIME_SEARCH_FORMAT = "strict_date_optional_time_nanos"
 
 USER_JOB_FIELDS=["data.primary_job_id","data.secondary_job_id", "data.allocation_id", 
     "data.user_name", "data.begin_time", "data.history.end_time", "data.state"]
@@ -156,8 +157,11 @@ def build_time_range(start_time, end_time,
         for a record to be considered "in range".
     '''
     # Build the time range
-    start_time = convert_timestamp(start_time)
-    end_time = convert_timestamp(end_time)
+    # UPDATE: convert_timestamp() returns time in epoch_millis format which is not needed
+    # when TIME_SEARCH_FORMAT is changed to strict_date_optional_time_nanos.
+    # Following two lines are commented out.
+    ##start_time = convert_timestamp(start_time)
+    ##end_time = convert_timestamp(end_time)
 
     if start_time and end_time:
         # Build the time range.
@@ -214,8 +218,8 @@ def build_timestamp_range( start_time, end_time, field="@timestamp"):
     '''
 
     # Build the time range
-    start_time = convert_timestamp(start_time)
-    end_time   = convert_timestamp(end_time)
+    #start_time = convert_timestamp(start_time)
+    #end_time   = convert_timestamp(end_time)
 
     # Build the time range.
     target=[]
