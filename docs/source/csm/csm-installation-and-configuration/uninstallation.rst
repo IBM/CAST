@@ -24,9 +24,9 @@ Remove rpms
 
 .. code-block:: bash
 
-  $ xdsh compute,utility "rpm -e ibm-csm-core-1.8.2-*.ppc64le ibm-csm-api-1.8.2-*.ppc64le ibm-flightlog-1.8.2-*.ppc64le ibm-csm-hcdiag-1.8.2-*.noarch"
+  $ xdsh compute,utility "rpm -e ibm-csm-core-1.8.3-*.ppc64le ibm-csm-api-1.8.3-*.ppc64le ibm-flightlog-1.8.3-*.ppc64le ibm-csm-hcdiag-1.8.3-*.noarch"
 
-  $ rpm -e ibm-csm-core-1.8.2-*.ppc64le ibm-csm-hcdiag-1.8.2-*.noarch ibm-csm-db-1.8.2-*.noarch ibm-csm-api-1.8.2-*.ppc64le ibm-csm-restd-1.8.2-*.ppc64le ibm-flightlog-1.8.2-*.ppc64le
+  $ rpm -e ibm-csm-core-1.8.3-*.ppc64le ibm-csm-hcdiag-1.8.3-*.noarch ibm-csm-db-1.8.3-*.noarch ibm-csm-api-1.8.3-*.ppc64le ibm-csm-restd-1.8.3-*.ppc64le ibm-flightlog-1.8.3-*.ppc64le
 
 
 Clean up log and configuration files

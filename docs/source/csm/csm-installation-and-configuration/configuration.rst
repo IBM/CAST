@@ -244,7 +244,7 @@ Run CSM infrastructure health check on the login / launch node to verify the inf
  Connected. Checking infrastructure... (this may take a moment. Please be patient...)
 
  ###### RESPONSE FROM THE LOCAL DAEMON #######
- MASTER: c650f99p06 (bounced=0; version=1.8.2)
+ MASTER: c650f99p06 (bounced=0; version=1.8.3)
         DB_free_conn_size: 10
         DB_locked_conn_pool_size: 0
         Timer_test: success
@@ -255,7 +255,7 @@ Run CSM infrastructure health check on the login / launch node to verify the inf
         UniqueID_test: success
 
  Aggregators:2
-    AGGREGATOR: c650f99p06 (bounced=1; version=1.8.2)
+    AGGREGATOR: c650f99p06 (bounced=1; version=1.8.3)
         Active_primary: 2
         Unresponsive_primary: 0
         Active_secondary: 2
@@ -263,17 +263,17 @@ Run CSM infrastructure health check on the login / launch node to verify the inf
 
         Primary Nodes:
                 Active: 2
-                        COMPUTE: c650f99p18 (bounced=1; version=1.8.2; link=PRIMARY)
-                        COMPUTE: c650f99p26 (bounced=1; version=1.8.2; link=SECONDARY)
+                        COMPUTE: c650f99p18 (bounced=1; version=1.8.3; link=PRIMARY)
+                        COMPUTE: c650f99p26 (bounced=1; version=1.8.3; link=SECONDARY)
                 Unresponsive: 0
 
         Secondary Nodes:
                 Active: 2
-                        COMPUTE: c650f99p36 (bounced=1; version=1.8.2; link=SECONDARY)
-                        COMPUTE: c650f99p28 (bounced=1; version=1.8.2; link=SECONDARY)
+                        COMPUTE: c650f99p36 (bounced=1; version=1.8.3; link=SECONDARY)
+                        COMPUTE: c650f99p28 (bounced=1; version=1.8.3; link=SECONDARY)
                 Unresponsive: 0
 
-    AGGREGATOR: c650f99p30 (bounced=1; version=1.8.2)
+    AGGREGATOR: c650f99p30 (bounced=1; version=1.8.3)
         Active_primary: 2
         Unresponsive_primary: 0
         Active_secondary: 2
@@ -281,25 +281,25 @@ Run CSM infrastructure health check on the login / launch node to verify the inf
 
         Primary Nodes:
                 Active: 2
-                        COMPUTE: c650f99p36 (bounced=1; version=1.8.2; link=PRIMARY)
-                        COMPUTE: c650f99p28 (bounced=1; version=1.8.2; link=PRIMARY)
+                        COMPUTE: c650f99p36 (bounced=1; version=1.8.3; link=PRIMARY)
+                        COMPUTE: c650f99p28 (bounced=1; version=1.8.3; link=PRIMARY)
                 Unresponsive: 0
 
         Secondary Nodes:
                 Active: 2
-                        COMPUTE: c650f99p18 (bounced=1; version=1.8.2; link=SECONDARY)
-                        COMPUTE: c650f99p26 (bounced=1; version=1.8.2; link=PRIMARY)
+                        COMPUTE: c650f99p18 (bounced=1; version=1.8.3; link=SECONDARY)
+                        COMPUTE: c650f99p26 (bounced=1; version=1.8.3; link=PRIMARY)
                 Unresponsive: 0
 
 
   Unresponsive Aggregators: 0
 
  Utility Nodes:1
-    UTILITY: c650f99p16 (bounced=1; version=1.8.2)
+    UTILITY: c650f99p16 (bounced=1; version=1.8.3)
 
   Unresponsive Utility Nodes: 0
 
- Local_daemon: MASTER: c650f99p06 (bounced=0; version=1.8.2)
+ Local_daemon: MASTER: c650f99p06 (bounced=0; version=1.8.3)
         Status:
  #############################################
 
@@ -331,7 +331,7 @@ Install the ibm-csm-restd rpm if it is not already installed:
 
 .. code-block:: bash
 
-  $ rpm -ivh ibm-csm-restd-1.8.2-*.ppc64le.rpm
+  $ rpm -ivh ibm-csm-restd-1.8.3-*.ppc64le.rpm
 
 
 Copy the default configuration file from /opt/ibm/csm/share/etc to /etc/ibm/csm:

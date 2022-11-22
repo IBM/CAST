@@ -8,7 +8,7 @@ List of CSM RPMs
 
 The following RPMs are all of the required RPMs for :ref:`CSM`. These RPMs can be found on Box in the same folder as this document. Please verify that you have all required RPMs. 
 
-For CSM, all CSM rpms have a version of ibm-csm-component-1.8.2-commit_sequence.ppc64le.rpm, for example, ibm-csm-core-1.8.2-3566.ppc64le.rpm.  The commit_sequence portion is an increasing value that changes every time a new commit is added to the repository. Because the commit_sequence changes so frequently, this document makes use of a wildcard for this portion of the rpm name.
+For CSM, all CSM rpms have a version of ibm-csm-component-1.8.3-commit_sequence.ppc64le.rpm, for example, ibm-csm-core-1.8.3-3605.ppc64le.rpm.  The commit_sequence portion is an increasing value that changes every time a new commit is added to the repository. Because the commit_sequence changes so frequently, this document makes use of a wildcard for this portion of the rpm name.
 
 **ibm-csm-core** holds CSM infrastructure daemon and configuration file examples.
 
@@ -137,13 +137,13 @@ Install the flightlog RPM and the following CSM RPMs, which can be found on Box.
 
 .. code-block:: bash
 
-  $ rpm -ivh ibm-flightlog-1.8.2-*.ppc64le.rpm \
-  ibm-csm-core-1.8.2-*.ppc64le.rpm \
-  ibm-csm-api-1.8.2-*.ppc64le.rpm  \
-  ibm-csm-db-1.8.2-*.noarch.rpm \
-  ibm-csm-bds-1.8.2-*.noarch.rpm \
-  ibm-csm-hcdiag-1.8.2-*.noarch.rpm \
-  ibm-csm-restd-1.8.2-*.ppc64le.rpm
+  $ rpm -ivh ibm-flightlog-1.8.3-*.ppc64le.rpm \
+  ibm-csm-core-1.8.3-*.ppc64le.rpm \
+  ibm-csm-api-1.8.3-*.ppc64le.rpm  \
+  ibm-csm-db-1.8.3-*.noarch.rpm \
+  ibm-csm-bds-1.8.3-*.noarch.rpm \
+  ibm-csm-hcdiag-1.8.3-*.noarch.rpm \
+  ibm-csm-restd-1.8.3-*.ppc64le.rpm
 
 Installing CSM onto the Service Nodes
 -------------------------------------
@@ -158,13 +158,13 @@ Clone existing images, add the following packages to the “otherpkgs” directo
 .. code-block:: bash
 
   cast-boost-*
-  ibm-flightlog-1.8.2-*.ppc64le
-  ibm-csm-core-1.8.2-*.ppc64le
-  ibm-csm-api-1.8.2-*.ppc64le
-  ibm-csm-bds-1.8.2-*.noarch
-  ibm-csm-bds-logstash-1.8.2-*.noarch
-  ibm-csm-hcdiag-1.8.2-*.noarch
-  ibm-csm-restd-1.8.2-*.ppc64le
+  ibm-flightlog-1.8.3-*.ppc64le
+  ibm-csm-core-1.8.3-*.ppc64le
+  ibm-csm-api-1.8.3-*.ppc64le
+  ibm-csm-bds-1.8.3-*.noarch
+  ibm-csm-bds-logstash-1.8.3-*.noarch
+  ibm-csm-hcdiag-1.8.3-*.noarch
+  ibm-csm-restd-1.8.3-*.ppc64le
 
 Full Disk
 ^^^^^^^^^
@@ -187,13 +187,13 @@ Install the flightlog RPM and the following CSM RPMs, which can be found on Box.
 
 .. code-block:: bash
 
-  $ rpm -ivh ibm-flightlog-1.8.2-*.ppc64le.rpm \
-  ibm-csm-core-1.8.2-*.ppc64le.rpm \
-  ibm-csm-api-1.8.2-*.ppc64le.rpm \
-  ibm-csm-bds-1.8.2-*.noarch.rpm \
-  ibm-csm-bds-logstash-1.8.2-*.noarch.rpm \
-  ibm-csm-hcdiag-1.8.2-*.noarch.rpm \
-  ibm-csm-restd-1.8.2-*.ppc64le.rpm
+  $ rpm -ivh ibm-flightlog-1.8.3-*.ppc64le.rpm \
+  ibm-csm-core-1.8.3-*.ppc64le.rpm \
+  ibm-csm-api-1.8.3-*.ppc64le.rpm \
+  ibm-csm-bds-1.8.3-*.noarch.rpm \
+  ibm-csm-bds-logstash-1.8.3-*.noarch.rpm \
+  ibm-csm-hcdiag-1.8.3-*.noarch.rpm \
+  ibm-csm-restd-1.8.3-*.ppc64le.rpm
 
 Installing CSM onto the Login, Launch, and Workload manager Nodes
 -----------------------------------------------------------------
@@ -208,10 +208,10 @@ Clone existing images, add the following packages to the “otherpkgs” directo
 .. code-block:: bash
 
   cast-boost-*
-  ibm-flightlog-1.8.2-*.ppc64le
-  ibm-csm-core-1.8.2-*.ppc64le
-  ibm-csm-api-1.8.2-*.ppc64le
-  ibm-csm-hcdiag-1.8.2-*.noarch
+  ibm-flightlog-1.8.3-*.ppc64le
+  ibm-csm-core-1.8.3-*.ppc64le
+  ibm-csm-api-1.8.3-*.ppc64le
+  ibm-csm-hcdiag-1.8.3-*.noarch
 
 Full Disk
 ^^^^^^^^^
@@ -229,10 +229,10 @@ Install the cast-boost RPMs, which can be found on Box
 
 .. code-block:: bash
 
-  $ rpm -ivh ibm-flightlog-1.8.2-*.ppc64le.rpm \
-  ibm-csm-core-1.8.2-*.ppc64le.rpm \
-  ibm-csm-api-1.8.2-*.ppc64le.rpm \
-  ibm-csm-hcdiag-1.8.2-*.noarch.rpm
+  $ rpm -ivh ibm-flightlog-1.8.3-*.ppc64le.rpm \
+  ibm-csm-core-1.8.3-*.ppc64le.rpm \
+  ibm-csm-api-1.8.3-*.ppc64le.rpm \
+  ibm-csm-hcdiag-1.8.3-*.noarch.rpm
 
 Installing CSM onto the Compute Nodes
 -------------------------------------
@@ -247,10 +247,10 @@ Clone existing images, add the following packages to the “otherpkgs” directo
 .. code-block:: bash
 
   cast-boost-*
-  ibm-flightlog-1.8.2-*.ppc64le
-  ibm-csm-core-1.8.2-*.ppc64le
-  ibm-csm-api-1.8.2-*.ppc64le
-  ibm-csm-hcdiag-1.8.2-*.noarch
+  ibm-flightlog-1.8.3-*.ppc64le
+  ibm-csm-core-1.8.3-*.ppc64le
+  ibm-csm-api-1.8.3-*.ppc64le
+  ibm-csm-hcdiag-1.8.3-*.noarch
 
 Full disk
 ^^^^^^^^^
@@ -276,10 +276,10 @@ Note: replace ``/path/to/rpms`` with the appropriate location for your system.
 
 
   $ xdsh compute "cd /path/to/rpms; \
-  rpm -ivh ibm-flightlog-1.8.2-*.ppc64le.rpm \
-  ibm-csm-core-1.8.2-*.ppc64le.rpm \
-  ibm-csm-api-1.8.2-*.ppc64le.rpm \
-  ibm-csm-hcdiag-1.8.2-*.noarch"
+  rpm -ivh ibm-flightlog-1.8.3-*.ppc64le.rpm \
+  ibm-csm-core-1.8.3-*.ppc64le.rpm \
+  ibm-csm-api-1.8.3-*.ppc64le.rpm \
+  ibm-csm-hcdiag-1.8.3-*.noarch"
 
 
 
