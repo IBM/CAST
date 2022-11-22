@@ -58,16 +58,16 @@ from bbapiAdmin import *
 def main(pEnv):
     rc = 0;
 
-    if pEnv.has_key("procedure"):
+    if "procedure" in pEnv:
         try:
             rc = getattr(procs, pEnv["procedure"])(pEnv)
-            print "%sProcedure -> %s, rc = %d" % (os.linesep, os.path.splitext(os.path.basename(pEnv["procedure"]))[0], rc)
+            print("%sProcedure -> %s, rc = %d" % (os.linesep, os.path.splitext(os.path.basename(pEnv["procedure"]))[0], rc))
         except:
             rc = -1
-            print "When attempting to invoke procedure %s, unexpected error: %s" % (pEnv["procedure"], sys.exc_info()[0])
+            print("When attempting to invoke procedure %s, unexpected error: %s" % (pEnv["procedure"], sys.exc_info()[0]))
     else:
         rc = -1
-        print "Option -w or --procedure must be specified"
+        print("Option -w or --procedure must be specified")
 
     return rc
 

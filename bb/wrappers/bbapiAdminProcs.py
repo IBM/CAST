@@ -12,6 +12,7 @@
 #    restricted by GSA ADP Schedule Contract with IBM Corp.
 ###################################################
 
+import os
 import subprocess
 import time
 
@@ -19,19 +20,44 @@ from bbapi import *
 import bberror
 
 
+DEFAULT_PYTHON_INTERPRETER = '/u/dlherms/bin'
+
 #
 # Helper routines
 #
 
-def IssueCmd(pCmd):
+def GetPythonPath():
+    l_PythonLocation = None
+
+    l_CompletedProcess = IssueCmd("which python", pCWD=DEFAULT_PYTHON_INTERPRETER, pReturnCompletedProcessInfo=True)
+    if (l_CompletedProcess and l_CompletedProcess.returncode == 0):
+        l_PythonLocation = l_CompletedProcess.stdout[:-1]
+
+    return l_PythonLocation
+
+def IssueCmd(pCmd, pCWD='.', pReturnCompletedProcessInfo=False):
     l_RC = -1
+    l_CompletedProcess = None
 
     l_Attempts = 1
     while (l_RC in (-1, )):
         l_RC = 0
+        l_CompletedProcess = None
         try:
-            subprocess.check_call(pCmd, stderr=subprocess.STDOUT, shell=True)
-        except subprocess.CalledProcessError as error:
+            l_CompletedProcess = subprocess.run(pCmd, universal_newlines=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 shell=True,
+                                 cwd=pCWD)
+            if (l_CompletedProcess and l_CompletedProcess.returncode):
+                l_RC = -1
+                print("Failure returned from subprocess.run() with command of |", pCmd,
+                      "|, returncode=", l_CompletedProcess.returncode,
+                      ", stdout=", l_CompletedProcess.stdout,
+                      ", stderr=", l_CompletedProcess.stderr)
+
+        except Exception as error:
+#        except subprocess.CalledProcessError as error:
             # NOTE: When invoking APIs via the subprocess module,
             #       we simply treat 0 and -2 as the only tolerated
             #       return codes.  We do not tie into the extra
@@ -43,18 +69,25 @@ def IssueCmd(pCmd):
             #       They may or may not tolerate the rc, but
             #       we will not signal the BBError exception.
             l_RC = -1
-            print "Failure when attempting to invoke subprocess.check_call() with command of |", pCmd, "|"
+            print("Failure when attempting to invoke subprocess.run() with command of |", pCmd,
+                  "|, returncode=", l_CompletedProcess.returncode,
+                  ", stdout=", l_CompletedProcess.stdout,
+                  ", stderr=", l_CompletedProcess.stderr)
 
+        if l_RC:
             l_Attempts += 1
             if (l_Attempts > 25):
-                l_RC = error.returncode
-                print "IssueCmd(): Throwing BBError, l_RC=", l_RC
+                l_RC = l_CompletedProcess.returncode
+                print("IssueCmd(): Throwing BBError, l_RC=", l_RC)
                 raise bberror.BBError(rc=l_RC, text=pCmd)
             else:
-                print "Attempting to re-submit the command, attempt number ", l_Attempts
+                print("Attempting to re-submit the command, attempt number ", l_Attempts)
             time.sleep(12)
 
-    return l_RC
+    if pReturnCompletedProcessInfo:
+        return l_CompletedProcess
+    else:
+        return l_RC
 
 
 # NOTE: Convention below is to ALWAYS pass --process_args even if there are no arguments to pass.
@@ -62,13 +95,13 @@ def IssueCmd(pCmd):
 #       to the console for the BB environments setup via the functions in this module...   @DLH
 
 def sudo_ChangeMode(pEnv, pPathName, pMode):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeMode", pPathName, pMode)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeMode", pPathName, pMode)
     return IssueCmd(l_Cmd)
 
 def sudo_ChangeOwner(pEnv, pPathName, pOwner, pGroup):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeOwner", pPathName, pOwner, pGroup)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "ChangeOwner", pPathName, pOwner, pGroup)
     return IssueCmd(l_Cmd)
 
 # def sudo_CloseServer(pEnv, pName):
@@ -77,13 +110,13 @@ def sudo_ChangeOwner(pEnv, pPathName, pOwner, pGroup):
 #     return IssueCmd(l_Cmd)
 
 def sudo_CreateDirectory(pEnv, pNewPathName):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateDirectory", pNewPathName)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateDirectory", pNewPathName)
     return IssueCmd(l_Cmd)
 
 def sudo_CreateLogicalVolume(pEnv, pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFLAGS):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateLogicalVolume", pMountpoint, pSize, pFlags)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s,%s,%s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "CreateLogicalVolume", pMountpoint, pSize, pFlags)
     return IssueCmd(l_Cmd)
 
 # def sudo_GetServer(pEnv, pType):
@@ -97,18 +130,18 @@ def sudo_CreateLogicalVolume(pEnv, pMountpoint, pSize, pFlags=DEFAULT_BBCREATEFL
 #     return IssueCmd(l_Cmd)
 
 def sudo_RemoveDirectory(pEnv, pPathName):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveDirectory", pPathName)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveDirectory", pPathName)
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveJobInfo(pEnv):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid %d --jobid_bump 0 --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid"]+pEnv["jobid_bump"], "RemoveJobInfo", "None")
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid %d --jobid_bump 0 --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid"]+pEnv["jobid_bump"], "RemoveJobInfo", "None")
     return IssueCmd(l_Cmd)
 
 def sudo_RemoveLogicalVolume(pEnv, pMountpoint):
-    l_Cmd = "sudo python %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
-            (pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveLogicalVolume", pMountpoint)
+    l_Cmd = "sudo %s %s %s --libpath %s --testpath %s --iteration %d --jobid_bump %d --testcase RunProcedure --procedure %s --procedure_args %s" % \
+            (GetPythonPath(), pEnv["COMMAND"], pEnv["COMMAND_LINE_ARGS"], pEnv["LIBPATH"], pEnv["WRAPPER_PATH"], pEnv["iteration"], pEnv["jobid_bump"], "RemoveLogicalVolume", pMountpoint)
     return IssueCmd(l_Cmd)
 
 def sudo_ResizeMountPoint(pEnv, pMountpoint, pSize, pFlags=DEFAULT_BBRESIZEFLAGS):

@@ -35,11 +35,11 @@ def BasicTransfers(pEnv):
     rc = 0
     l_FuncName = sys._getframe().f_code.co_name
 
-    print "   >>>>> Start: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>> Start: %s.%s..." % (__name__, l_FuncName))
 
     l_Owner = pEnv.get("OWNER", None)
     l_Group = pEnv.get("GROUP", None)
-    l_Mode = int(pEnv.get("MODE", 0755))
+    l_Mode = int(pEnv.get("MODE", 0o755))
     l_LVSize = pEnv.get("SIZE", "1G")
 
     l_OrgSrc = pEnv["ORGSRC"]
@@ -89,7 +89,7 @@ def BasicTransfers(pEnv):
 
         if (rc == 0):
             # Create the files to be transferred
-            print "%sGenerating files with randfile..." % (os.linesep)
+            print("%sGenerating files with randfile..." % (os.linesep))
             for l_File, l_FileSize in (l_FileAttrs):
                 bb.createRandomFile(pEnv, (os.path.join(l_OrgSrc, l_File)), l_FileSize)
 
@@ -125,11 +125,11 @@ def BasicTransfers(pEnv):
             sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
 
             # Run the testcase...
-            for l_VarNum in xrange(0, len(l_SourceFiles)):
-                print "      >>>>> Start: Variation %d..." % (l_VarNum)
+            for l_VarNum in range(0, len(l_SourceFiles)):
+                print("      >>>>> Start: Variation %d..." % (l_VarNum))
 
                 l_TransferDef = BB_CreateTransferDef()
-                for l_FileNum in xrange(len(l_SourceFiles[l_VarNum])):
+                for l_FileNum in range(len(l_SourceFiles[l_VarNum])):
                     BB_AddFiles(l_TransferDef, l_SourceFiles[l_VarNum][l_FileNum], l_TargetFiles[l_VarNum][l_FileNum], BBFILEFLAGS[l_FileFlags[l_VarNum][l_FileNum]])
 
                 l_Tag += 1
@@ -146,7 +146,7 @@ def BasicTransfers(pEnv):
 
                 BB_FreeTransferDef(l_TransferDef)
 
-                print "      >>>>>   End: Variation %d..." % (l_VarNum)
+                print("      >>>>>   End: Variation %d..." % (l_VarNum))
 
                 if not l_AllFullSuccess:
                     raise BBError(rc=-1, text="Not all transfers had a status of BBFULLSUCCESS")
@@ -167,9 +167,9 @@ def BasicTransfers(pEnv):
         rc = error.rc
         # NOTE: BB_GetLastErrorDetails() output is contained within the error object
         #       and pertinant information is printed out from that data...
-        print `error`
+        print(repr(error))
 
-    print "   >>>>>   End: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>>   End: %s.%s..." % (__name__, l_FuncName))
 
     return rc
 
@@ -178,11 +178,11 @@ def BasicTransfers2(pEnv):
     rc = 0
     l_FuncName = sys._getframe().f_code.co_name
 
-    print "   >>>>> Start: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>> Start: %s.%s..." % (__name__, l_FuncName))
 
     l_Owner = pEnv.get("OWNER", None)
     l_Group = pEnv.get("GROUP", None)
-    l_Mode = int(pEnv.get("MODE", 0755))
+    l_Mode = int(pEnv.get("MODE", 0o755))
     l_LVSize = pEnv.get("SIZE", "1G")
 
     l_OrgSrc = pEnv["ORGSRC"]
@@ -221,7 +221,7 @@ def BasicTransfers2(pEnv):
 
         if (rc == 0):
             # Create the files to be transferred
-            print "%sGenerating files with randfile..." % (os.linesep)
+            print("%sGenerating files with randfile..." % (os.linesep))
             for l_File, l_FileSize in (l_FileAttrs):
                 bb.createRandomFile(pEnv, (os.path.join(l_OrgSrc, l_File)), l_FileSize)
 
@@ -232,11 +232,11 @@ def BasicTransfers2(pEnv):
             sudo_ChangeMode(pEnv, l_Target, l_Mode)
 
             # Run the testcase...
-            for l_VarNum in xrange(0, len(l_SourceFiles)):
-                print "      >>>>> Start: Variation %d..." % (l_VarNum)
+            for l_VarNum in range(0, len(l_SourceFiles)):
+                print("      >>>>> Start: Variation %d..." % (l_VarNum))
 
                 l_TransferDef = BB_CreateTransferDef()
-                for l_FileNum in xrange(len(l_SourceFiles[l_VarNum])):
+                for l_FileNum in range(len(l_SourceFiles[l_VarNum])):
                     BB_AddFiles(l_TransferDef, l_SourceFiles[l_VarNum][l_FileNum], l_TargetFiles[l_VarNum][l_FileNum], BBFILEFLAGS[l_FileFlags[l_VarNum][l_FileNum]])
 
                 l_Tag += 1
@@ -253,7 +253,7 @@ def BasicTransfers2(pEnv):
 
                 BB_FreeTransferDef(l_TransferDef)
 
-                print "      >>>>>   End: Variation %d..." % (l_VarNum)
+                print("      >>>>>   End: Variation %d..." % (l_VarNum))
 
                 if not l_AllFullSuccess:
                     raise BBError(rc=-1, text="Not all transfers had a status of BBFULLSUCCESS")
@@ -264,9 +264,9 @@ def BasicTransfers2(pEnv):
         rc = error.rc
         # NOTE: BB_GetLastErrorDetails() output is contained within the error object
         #       and pertinant information is printed out from that data...
-        print `error`
+        print(repr(error))
 
-    print "   >>>>>   End: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>>   End: %s.%s..." % (__name__, l_FuncName))
 
     return rc
 
@@ -275,11 +275,11 @@ def BasicTransfers3(pEnv):
     rc = 0
     l_FuncName = sys._getframe().f_code.co_name
 
-    print "   >>>>> Start: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>> Start: %s.%s..." % (__name__, l_FuncName))
 
     l_Owner = pEnv.get("OWNER", None)
     l_Group = pEnv.get("GROUP", None)
-    l_Mode = int(pEnv.get("MODE", 0755))
+    l_Mode = int(pEnv.get("MODE", 0o755))
     l_LVSize = "8G"
 
     l_OrgSrc = pEnv["ORGSRC"]
@@ -329,7 +329,7 @@ def BasicTransfers3(pEnv):
 
         if (rc == 0):
             # Create the files to be transferred
-            print "%sGenerating files with randfile..." % (os.linesep)
+            print("%sGenerating files with randfile..." % (os.linesep))
             for l_File, l_FileSize in (l_FileAttrs):
                 bb.createRandomFile(pEnv, (os.path.join(l_OrgSrc, l_File)), l_FileSize)
 
@@ -361,17 +361,17 @@ def BasicTransfers3(pEnv):
                     raise
             """
 
-            for i in xrange(1,100):
+            for i in range(1,100):
 
                 # Create the logical volume for the mountpoint...
                 sudo_CreateLogicalVolume(pEnv, l_Mountpoint, l_LVSize)
 
                 # Run the testcase...
-                for l_VarNum in xrange(0, len(l_SourceFiles)):
-                    print "      >>>>> Start: Variation %d..." % (l_VarNum)
+                for l_VarNum in range(0, len(l_SourceFiles)):
+                    print("      >>>>> Start: Variation %d..." % (l_VarNum))
 
                     l_TransferDef = BB_CreateTransferDef()
-                    for l_FileNum in xrange(len(l_SourceFiles[l_VarNum])):
+                    for l_FileNum in range(len(l_SourceFiles[l_VarNum])):
                         BB_AddFiles(l_TransferDef, l_SourceFiles[l_VarNum][l_FileNum], l_TargetFiles[l_VarNum][l_FileNum], BBFILEFLAGS[l_FileFlags[l_VarNum][l_FileNum]])
 
                     l_Tag += 1
@@ -390,7 +390,7 @@ def BasicTransfers3(pEnv):
 
                     BB_FreeTransferDef(l_TransferDef)
 
-                    print "      >>>>>   End: Variation %d..." % (l_VarNum)
+                    print("      >>>>>   End: Variation %d..." % (l_VarNum))
 
                     if not l_AllFullSuccess:
                         raise BBError(rc=-1, text="Not all transfers had a status of BBFULLSUCCESS")
@@ -412,9 +412,9 @@ def BasicTransfers3(pEnv):
         rc = error.rc
         # NOTE: BB_GetLastErrorDetails() output is contained within the error object
         #       and pertinant information is printed out from that data...
-        print `error`
+        print(repr(error))
 
-    print "   >>>>>   End: %s.%s..." % (__name__, l_FuncName)
+    print("   >>>>>   End: %s.%s..." % (__name__, l_FuncName))
 
     return rc
 
@@ -428,10 +428,10 @@ def main(pEnv):
 #                   BasicTransfers3,
                   )
 
-    for i in xrange(1):
+    for i in range(1):
         for l_TestCase in l_TestCases:
             rc = l_TestCase(pEnv)
-            print "Testcase -> %s, rc = %d" % (os.path.splitext(os.path.basename(l_TestCase.__name__))[0], rc)
+            print("Testcase -> %s, rc = %d" % (os.path.splitext(os.path.basename(l_TestCase.__name__))[0], rc))
             if (rc):
                 break
         if (rc):

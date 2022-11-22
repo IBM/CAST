@@ -18,6 +18,7 @@ import inspect
 import json
 import os
 import pprint
+import traceback
 
 import bb
 
@@ -45,17 +46,17 @@ def BB_GetLastErrorDetails(pBBError=None, pFormat=BBERRORFORMAT["BBERRORJSON"]):
         raise BB_GetLastErrorDetailsError(rc)
 
     l_Temp = []
-    for i in xrange(l_BufferSize.value):
-        if l_Buffer[i] != '\x00':
+    for i in range(l_BufferSize.value):
+        if l_Buffer[i] != b'\0':
             l_Temp.append(l_Buffer[i])
         else:
             break
-    l_Output = "".join(l_Temp)
+    l_Output = (b"".join(l_Temp)).decode()
 
     if (pBBError):
         lastErrorDetails = l_Output
     else:
-        print "BB_GetLastErrorDetails: %s" % (l_Output)
+        print("BB_GetLastErrorDetails: %s" % (l_Output))
 
     return l_Output
 
@@ -71,7 +72,7 @@ class BBError(Exception):
     def __init__(self, rc=-1, text="", func=""):
         self.rc = rc
         if (func == ""):
-            self.func = inspect.stack()[2][3]
+            self.func = inspect.stack()[2].function
         if (len(text) > 0):
             self.text = text
             self.lastErrorDetails = ""
@@ -85,10 +86,18 @@ class BBError(Exception):
         return "BBError(rc=%d, text=%s, func=%s, normalRCs=%s toleratedErrorRCs=%s, lastErrorDetails=%s)" % (self.rc, self.text, self.func, self.normalRCs, self.toleratedErrorRCs, self.lastErrorDetails)
 
     def __str__(self):
-        return os.linesep + self.func + ": " + self.text + ", rc=" + `self.rc` + os.linesep + self.getLastErrorDetailsSummary()
+        return os.linesep + self.func + ": " + self.text + ", rc=" + repr(self.rc) + os.linesep + self.getLastErrorDetailsSummary()
 
     def getLastErrorDetails(self):
-        return json.loads(BB_GetLastErrorDetails(self))
+        l_Temp = None
+
+        try:
+            l_Temp = BB_GetLastErrorDetails(self)
+            l_Temp = json.loads(l_Temp)
+        except Exception as error:
+            print(error)
+
+        return l_Temp
 
     def getLastErrorDetailsSummary(self):
         KEYS_IN_SUMMARY = ("rc","env","in","dft","out","error",)
@@ -98,7 +107,7 @@ class BBError(Exception):
         # For tolerated exceptions, return a true summary.
         # Otherwise, return everything in the error details.
         if int(self.lastErrorDetails.get("rc", "0")) not in self.getAllToleratedRCs():
-            l_SummaryKeys = self.lastErrorDetails.keys()
+            l_SummaryKeys = list(self.lastErrorDetails.keys())
 
         # Return only those keys with data...
         l_Output = []
@@ -133,10 +142,10 @@ class BBError(Exception):
             l_Prefix = "Non-tolerated"
             l_Continue = False
 
-        print datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S")
-        print "%s exception from %s, rc=%d" % (l_Prefix, self.func, self.rc)
+        print(datetime.now().strftime("Current date/time: %Y-%m-%d %H:%M:%S"))
+        print("%s exception from %s, rc=%d" % (l_Prefix, self.func, self.rc))
         if (not l_Continue):
-            print "%s" % (`self`)
+            print("%s" % (repr(self)))
 
         return l_Continue
 

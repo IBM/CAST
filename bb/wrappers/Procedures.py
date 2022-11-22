@@ -226,7 +226,7 @@ def RetrieveTransfers(pEnv):
         l_HostName = pEnv["hostname"]
         l_Handle = pEnv["handle"]
         l_Flags = DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS
-        if pEnv.has_key("FLAGS"):
+        if "FLAGS" in pEnv:
             l_Flags = BB_RTV_TRANSFERDEFS_FLAGS.get(pEnv["FLAGS"], DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS)
 
         (l_NumberOfTranferDefs, l_TransferDefs, l_BytesForTransferDefs) = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags)
@@ -246,7 +246,7 @@ def RestartTransfers(pEnv):
         l_HostName = pEnv["hostname"]
         l_Handle = pEnv["handle"]
         l_Flags = DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS
-        if pEnv.has_key("FLAGS"):
+        if "FLAGS" in pEnv:
             l_Flags = BB_RTV_TRANSFERDEFS_FLAGS.get(pEnv["FLAGS"], DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS)
 
         l_ActiveServer = BB_GetServer("active")
@@ -293,12 +293,12 @@ def RestartTransfers(pEnv):
         if (l_NumberOfTranferDefs > 0):
             if (not (l_Flags == BB_RTV_TRANSFERDEFS_FLAGS["ONLY_DEFINITIONS_WITH_STOPPED_FILES"])):
                 l_NumStoppedTransferDefs = BB_StopTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
-                print "%d transfer definition(s) were found already stopped or were stopped by the previous operation" % (l_NumStoppedTransferDefs)
+                print("%d transfer definition(s) were found already stopped or were stopped by the previous operation" % (l_NumStoppedTransferDefs))
             else:
                 l_NumStoppedTransferDefs = l_NumberOfTranferDefs
-                print "Additional transfer definition(s) are not being stopped because the option passed on the retrieve transfer operation indicated %s" % (BB_RTV_TRANSFERDEFS_FLAGS[l_Flags])
+                print("Additional transfer definition(s) are not being stopped because the option passed on the retrieve transfer operation indicated %s" % (BB_RTV_TRANSFERDEFS_FLAGS[l_Flags]))
         else:
-            print "No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted."
+            print("No transfer definition(s) were found given the provided input criteria.  An operation to stop transfers will not be attempted.")
 
         # NOTE: Even if no transfer definitions were stopped, we still need to issue the restart.
         #       The stop transfer(s) could have actually been performed on other bbServers via
@@ -307,7 +307,7 @@ def RestartTransfers(pEnv):
             # Restart the transfers
             l_NumRestartedTransferDefs = BB_RestartTransfers(l_HostName, l_Handle, l_TransferDefs, l_BytesForTransferDefs)
         else:
-            print "%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep)
+            print("%sNo transfer definition(s) were found given the provided input criteria.  An operation to restart transfers will not be attempted." % (os.linesep))
 
         if (l_ResumeCN_Host):
             l_ResumeCN_Host = False
@@ -346,7 +346,7 @@ def RestartTransfers(pEnv):
             l_Mountpoint = pEnv["MOUNT"]
             l_Owner = pEnv.get("OWNER", None)
             l_Group = pEnv.get("GROUP", None)
-            l_Mode = int(pEnv.get("MODE", 0755))
+            l_Mode = int(pEnv.get("MODE", 0o755))
             l_LVSize = pEnv.get("SIZE", "1G")
             sudo_CreateDirectory(pEnv, l_Mountpoint)
             sudo_ChangeOwner(pEnv, l_Mountpoint, l_Owner, l_Group)
@@ -403,7 +403,7 @@ def StopTransfers(pEnv):
         l_HostName = pEnv["hostname"]
         l_Handle = pEnv["handle"]
         l_Flags = DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS
-        if pEnv.has_key("FLAGS"):
+        if "FLAGS" in pEnv:
             l_Flags = BB_RTV_TRANSFERDEFS_FLAGS.get(pEnv["FLAGS"], DEFAULT_BB_RTV_TRANSFERDEFS_FLAGS)
 
         (l_NumberOfTranferDefs, l_TransferDefs, l_BytesForTransferDefs) = BB_RetrieveTransfers(l_HostName, l_Handle, l_Flags)
